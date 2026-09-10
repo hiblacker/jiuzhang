@@ -25,4 +25,4 @@ for(const repo of repos) {
   console.log(JSON.stringify(result));
 }
 await fs.mkdir('docs/research',{recursive:true});
-await fs.writeFile(`docs/research/github-snapshot-${asOf}.json`,JSON.stringify({as_of_date:asOf,cutoff_utc:cutoff,observed_at:new Date().toISOString(),method:'Public GitHub REST API without authentication. Star/pushed/archive/license fields are live observations, not historical reconstruction. Default-branch commit filtered by cutoff; stable release selected from first 10 only.',repositories:rows},null,2)+'\n');
+await fs.writeFile(`docs/research/github-snapshot-${asOf}.json`,JSON.stringify({as_of_date:asOf,cutoff_utc:cutoff,observed_at:new Date().toISOString(),method:'Public GitHub REST API without authentication. Star/pushed/archive/license fields are live observations, not historical reconstruction. Default-branch commit filtered by cutoff; GitHub release selected from first 10 using API flags only; not verified stable.',repositories:rows},null,2)+'\n');

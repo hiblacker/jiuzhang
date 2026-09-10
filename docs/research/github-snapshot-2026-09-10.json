@@ -2,7 +2,7 @@
   "as_of_date": "2026-09-10",
   "cutoff_utc": "2026-09-10T23:59:59Z",
   "observed_at": "2026-09-10T02:48:14.169Z",
-  "method": "Public GitHub REST API without authentication. Star/pushed/archive/license fields are live observations, not historical reconstruction. Default-branch commit filtered by cutoff; stable release selected from first 10 only.",
+  "method": "Public GitHub REST API without authentication. Star/pushed/archive/license fields are live observations, not historical reconstruction. Default-branch commit filtered by cutoff; GitHub release selected from first 10 using API flags only; not verified stable.",
   "repositories": [
     {
       "requested_repository": "apache/seatunnel",

@@ -21,6 +21,7 @@
 | [最终目标路线图](docs/05-target-roadmap.md) | 能力演进、扩展门槛与成本控制 |
 | [测试、验收与运维](docs/06-acceptance-operations.md) | 可执行的验收场景、运行手册和上线门禁 |
 | [待确认事项与决策记录](docs/07-decisions-risks.md) | 事实、假设、决策状态和风险 |
+| [GitHub开源项目选型](docs/08-github-open-source-research.md) | 13个候选、近期活跃证据、推荐组合和PoC |
 | [开发与 Git 协作规范](CONTRIBUTING.md) | 分支、及时提交、变更检查和密钥规则 |
 
 ## 一期交付主线
@@ -36,3 +37,12 @@
 3. 一期只选择一套主要调度器和一套模型执行方式，避免重复依赖管理。
 4. 研发环境可以轻量部署；生产拓扑通过容量、恢复演练和安全评审后确定。
 5. 不因为“最终目标”提前堆叠消息总线、分布式计算、数据目录和湖仓全家桶。
+
+## 文档与证据校验
+
+```powershell
+node tools/check-docs.mjs
+git diff --check
+```
+
+调研证据位于 `docs/research`，包含公开GitHub API快照、搜索记录与固定提交的一手资料索引。候选调研不等于组件已部署或兼容性已验证。

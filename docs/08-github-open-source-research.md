@@ -1,7 +1,7 @@
 # GitHub 开源项目调研与选型建议
 
 - 调研截止：2026-09-10（北京时间；公开 GitHub API 观测）
-- 证据快照：[`github-snapshot-2026-09-10.json`](github-snapshot-2026-09-10.json)
+- 证据快照：[`github-snapshot-2026-09-10.json`](research/github-snapshot-2026-09-10.json)
 - 方法：读取公开仓库元数据、截至 2026-09-10 UTC 的默认分支最新提交、前10条 Release，并保存仓库 README 的固定提交证据索引。GitHub Stars、pushed_at 属于观测值，不是质量证明；Release 标签可能含 `rc`/`beta`，不能直接当生产稳定版。
 
 ## 1. 结论先行
@@ -20,6 +20,8 @@
 
 ## 2. 适用性矩阵
 
+角色和功能依据各项目固定提交的 README，见[一手资料索引](research/primary-sources-2026-09-10.json)。只评价社区仓库能力，不将商业托管功能默认计入。
+
 评分：5=强适配，4=适配，3=需验证，2=明显缺口，1=不建议作为该能力核心。评分是针对本项目的工程判断，不是项目官方评级。
 
 | 项目 | 定位/适合能力 | 接入 | 编排 | SQL/模型 | 质量 | 治理 | 一期建议 | 主要注意事项 |
@@ -27,12 +29,13 @@
 | [Apache SeaTunnel](https://github.com/apache/seatunnel) | 批流一体、多连接器数据集成 | 5 | 3 | 2 | 3 | 2 | 优先PoC | 连接器实际支持、CDC语义、源负载和批次幂等须验证 |
 | [Apache DolphinScheduler](https://github.com/apache/dolphinscheduler) | 工作流/DAG、回填、数据源和权限 | 2 | 5 | 3 | 2 | 2 | 优先PoC | 需通过适配层接入；平台运行ID和发布状态不能丢 |
 | [Apache Airflow](https://github.com/apache/airflow) | Python DAG 编排和生态 | 2 | 5 | 3 | 2 | 2 | 可替代DS | Python运行环境、插件、升级和任务资源治理成本 |
+| [Dagster](https://github.com/dagster-io/dagster) | 数据资产导向的编排 | 2 | 5 | 3 | 3 | 3 | Python团队备选 | 与DS/Airflow为替代关系，非额外必装组件 |
 | [dbt Core](https://github.com/dbt-labs/dbt-core) | SQL 转换、模型、测试、文档 | 2 | 3 | 5 | 3 | 3 | 优先PoC | 不是数据采集/权限服务；须接入平台发布、审计和权限 |
 | [SQLMesh](https://github.com/SQLMesh/sqlmesh) | SQL/Python转换、计划、影响控制 | 2 | 3 | 5 | 3 | 4 | 与dbt二选一PoC | 版本、引擎兼容和团队学习成本需实际验证 |
-| [GX Core](https://github.com/great-expectations) | 数据质量 Expectations/验证结果 | 2 | 2 | 2 | 5 | 3 | P1候选 | 需定义规则生命周期、门禁和结果与发布版本绑定 |
+| [GX Core](https://github.com/fivetran/great_expectations) | 数据质量 Expectations/验证结果 | 2 | 2 | 2 | 5 | 3 | P1候选 | 需定义规则生命周期、门禁和结果与发布版本绑定 |
 | [OpenMetadata](https://github.com/open-metadata/OpenMetadata) | 目录、元数据、血缘和治理 | 2 | 2 | 2 | 3 | 5 | P1/P2 | 运行依赖和接入维护成本；不替代平台授权与发布 |
 | [DataHub](https://github.com/datahub-project/datahub) | 元数据目录、发现、血缘 | 2 | 2 | 2 | 3 | 5 | P1/P2 | 与OpenMetadata二选一；不要两套目录并行 |
-| [Apache DevLake](https://github.com/apache/incubator-devlake) | DevOps 数据采集、分析和工程效能 | 4 | 3 | 3 | 2 | 2 | 参考/适配候选 | 面向DevOps，不是通用报表数据中心；主题和许可证/版本边界需评估 |
+| [Apache DevLake](https://github.com/apache/devlake) | DevOps 数据采集、分析和工程效能 | 4 | 3 | 3 | 2 | 2 | 参考/适配候选 | 面向DevOps，不是通用报表数据中心；主题和许可证/版本边界需评估 |
 | [Apache Doris](https://github.com/apache/doris) | MPP/实时分析查询存储 | 2 | 2 | 2 | 2 | 3 | 存储PoC | 数据库迁移、运维、资源隔离和报表SQL兼容性 |
 | [Airbyte](https://github.com/airbytehq/airbyte) | API/数据库/文件数据移动和连接器 | 5 | 3 | 2 | 3 | 2 | 合规后评估 | GitHub仓库显示混合许可证信息；不能只看仓库顶部一个License字段 |
 | [Apache Hop](https://github.com/apache/hop) | 可视化数据编排/ETL | 4 | 4 | 3 | 2 | 2 | 备选 | 与SeaTunnel+调度器叠加后职责重合，需证明收益 |
@@ -42,6 +45,28 @@
 截至 2026-09-10 的公开 API 快照中，候选仓库均为非归档且默认分支在截止时间前有提交；Stars 仅作发现信号。示例观测：SeaTunnel约9,628、DolphinScheduler约14,462、Airflow约46,799、dbt Core约13,796、OpenMetadata约15,158。完整数值、提交时间、分支、许可证字段和 Release 见 JSON 快照。
 
 调研脚本为 `tools/research-github.mjs`，可在未来以指定截止日期重跑。它不调用 GitHub 登录凭据，也不把当前仓库的 GitHub 活跃度猜测成历史活跃度。
+
+### 3.1 逐仓库证据（时间均为 UTC）
+
+| 仓库 | Stars观测值 | 默认分支提交日期 | API观测Release（不等于正式稳定版） | 发布日期 | 许可证字段 |
+|---|---:|---|---|---|---|
+| [apache/seatunnel](https://github.com/apache/seatunnel) | 9628 | [2026-09-10](https://github.com/apache/seatunnel/commit/a9cda80f4b197bc855b4b7eeb3ba1a3f3e83f017) | [2.3.13](https://github.com/apache/seatunnel/releases/tag/2.3.13) | 2026-03-14 | Apache-2.0 |
+| [apache/dolphinscheduler](https://github.com/apache/dolphinscheduler) | 14462 | [2026-09-09](https://github.com/apache/dolphinscheduler/commit/def57c5eb07acbfa624c8b5d4ce2e2e17c0b5633) | [3.4.3](https://github.com/apache/dolphinscheduler/releases/tag/3.4.3) | 2026-09-06 | Apache-2.0 |
+| [apache/airflow](https://github.com/apache/airflow) | 46799 | [2026-09-10](https://github.com/apache/airflow/commit/1952520a9eedb63c530be89eade6863ea975bb2e) | [3.3.1](https://github.com/apache/airflow/releases/tag/3.3.1) | 2026-08-12 | Apache-2.0 |
+| [dagster-io/dagster](https://github.com/dagster-io/dagster) | 16132 | [2026-09-09](https://github.com/dagster-io/dagster/commit/ce3c6c68b2edd8f943ca121dde28634791b2300b) | [1.13.21](https://github.com/dagster-io/dagster/releases/tag/1.13.21) | 2026-09-03 | Apache-2.0 |
+| [dbt-labs/dbt-core](https://github.com/dbt-labs/dbt-core) | 13796 | [2026-09-10](https://github.com/dbt-labs/dbt-core/commit/5bdd13c3bb405579eb91dcf5912e751c425bf2fd) | [v1.12.4](https://github.com/dbt-labs/dbt-core/releases/tag/v1.12.4) | 2026-09-08 | Apache-2.0 |
+| [SQLMesh/sqlmesh](https://github.com/SQLMesh/sqlmesh) | 3282 | [2026-09-10](https://github.com/SQLMesh/sqlmesh/commit/8d0b4de7dbdfabb5a57551bca3c8f21e3930e014) | [v0.236.2](https://github.com/SQLMesh/sqlmesh/releases/tag/v0.236.2) | 2026-09-08 | Apache-2.0 |
+| [datahub-project/datahub](https://github.com/datahub-project/datahub) | 12663 | [2026-09-09](https://github.com/datahub-project/datahub/commit/8c77e88c874d8b8b2988de51eae800574f703e8d) | [v1.7.0.1](https://github.com/datahub-project/datahub/releases/tag/v1.7.0.1) | 2026-09-03 | Apache-2.0 |
+| [open-metadata/OpenMetadata](https://github.com/open-metadata/OpenMetadata) | 15158 | [2026-09-09](https://github.com/open-metadata/OpenMetadata/commit/bb8c1c11bfcdc5f665ee34a77abb35d59c27a651) | [1.13.5-release](https://github.com/open-metadata/OpenMetadata/releases/tag/1.13.5-release) | 2026-09-03 | Apache-2.0 |
+| [apache/doris](https://github.com/apache/doris) | 15877 | [2026-09-10](https://github.com/apache/doris/commit/958aaf46c8f6b7bd6fb661a18e5b7cbbf5c40999) | [4.0.8](https://github.com/apache/doris/releases/tag/4.0.8) | 2026-08-14 | Apache-2.0 |
+| [apache/hop](https://github.com/apache/hop) | 1458 | [2026-09-09](https://github.com/apache/hop/commit/446bb7ea04b6b40ef09cba21637f37dfaa4a9c1a) | [2.19.0-rc1](https://github.com/apache/hop/releases/tag/2.19.0-rc1) | 2026-08-12 | Apache-2.0 |
+| [apache/devlake](https://github.com/apache/devlake) | 3133 | [2026-09-07](https://github.com/apache/devlake/commit/43b5728b2ef153e1059efd0c1da8e290da21f003) | [v1.0.3-beta16](https://github.com/apache/devlake/releases/tag/v1.0.3-beta16) | 2026-08-27 | Apache-2.0 |
+| [fivetran/great_expectations](https://github.com/fivetran/great_expectations) | 11778 | [2026-09-09](https://github.com/fivetran/great_expectations/commit/4b5dd52306872ec130f7bc0093eb4aebf6b7515b) | [1.22.0](https://github.com/fivetran/great_expectations/releases/tag/1.22.0) | 2026-08-31 | Apache-2.0 |
+| [airbytehq/airbyte](https://github.com/airbytehq/airbyte) | 22021 | [2026-09-10](https://github.com/airbytehq/airbyte/commit/693bbdb0ebc160c530c66efde713ed635d01a507) | [v2.0.0](https://github.com/airbytehq/airbyte/releases/tag/v2.0.0) | 2025-10-15 | NOASSERTION |
+
+这些证据支持“近期有默认分支活动”的初筛，不代表已检查提交质量、维护者人数、Issue响应时长、安全修复SLA或生产稳定性。dbt默认分支README已描述v2.0方向，不能把默认分支文档视为所观测v1.12.4发行版的兼容性说明。Apache Hop标签含rc、DevLake标签含beta，必须另查正式发行渠道再锁生产版本。
+
+[GitHub仓库搜索记录](research/github-discovery-2026-09-10.json)用于候选发现。宽泛查询混有清单和AI项目，已按数据中心职责筛选；本报告并非穷尽所有活跃项目。
 
 ## 4. 组件组合的边界
 
@@ -111,3 +136,15 @@ Apache-2.0 候选通常更易纳入企业内部部署，但仍需保留 NOTICE�
 - [ ] 通过 ADR 冻结一期组合，明确替换路径。
 - [ ] 只在冻结后创建生产部署目录和依赖锁定文件。
 
+
+## 9. 复核与重跑
+
+在项目根目录执行：
+
+```powershell
+node tools/research-github.mjs 2026-09-10
+node tools/collect-primary-sources.mjs 2026-09-10
+node tools/check-docs.mjs
+```
+
+重跑会刷新公开观测值，不能重建指定日期的Stars历史；请先提交原有证据。脚本使用匿名GitHub API，可能遇到限流，错误字段必须人工复核，不能把API失败视作仓库不活跃。更换日期时需同步新建报告；不覆写旧的日期报告。
