@@ -1,9 +1,11 @@
 import { readFile, writeFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDetailsSql, parseDetailsOutput } from './mysql-metadata.mjs';
+
+import { buildSamplingSql, parseSamplingOutput, summarizeSamples, sourceFingerprint, validateSeedReference } from './devops-history-sampling.mjs';
 
 export const IMAGE = 'sha256:8f51417dfdbf3f6c2434b2fff64530fba6e0f244c616cb62846faaaf18f65135';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -64,28 +66,49 @@ export function inspectSession(text) {
   };
 }
 
-export async function runDiscovery({ allowUnverifiedTestTls = false, details = false } = {}) {
-  const report = { recorded_at: new Date().toISOString(), image_id: IMAGE,
-    authorization: 'existing-test-account-all-visible-schemas-metadata-only',
-    phase: details ? 'details' : 'inventory',
-    completeness_scope: 'selected-metadata-queries-not-entire-source',
+export async function runDiscovery({ allowUnverifiedTestTls = false, details = false, samplePhase = null, allowTestBusinessSamples = false } = {}) {
+  const report = { run_id: randomUUID(), recorded_at: new Date().toISOString(), image_id: IMAGE,
+    authorization: samplePhase ? 'user-continue-bounded-test-business-samples' : 'existing-test-account-all-visible-schemas-metadata-only',
+    phase: samplePhase ? `sample-${samplePhase}` : details ? 'details' : 'inventory',
+    completeness_scope: samplePhase ? 'bounded-convenience-sample-not-full-history' : 'selected-metadata-queries-not-entire-source',
     tls_mode: allowUnverifiedTestTls ? 'REQUIRED' : 'VERIFY_IDENTITY',
     tls_identity_exception: allowUnverifiedTestTls ? 'user-confirmed-test-discovery-only' : null, source_modified: false };
   let temporary;
   let containerName;
   let stage = 'CONFIG';
+  let configHash;
+  let sampleRows;
+  let sampleSchema;
   try {
-    if (typeof details !== 'boolean') throw new Error('INVALID_PHASE');
-    const config = JSON.parse(await readFile(path.join(ROOT, 'secrets/devops-db.local.json'), 'utf8'));
+    if (typeof details !== 'boolean' || ![null,'seeds','history'].includes(samplePhase) || typeof allowTestBusinessSamples !== 'boolean' || (samplePhase && (details || !allowTestBusinessSamples)) || (!samplePhase && allowTestBusinessSamples)) throw new Error('INVALID_PHASE_OR_AUTHORIZATION');
+    const configBytes = await readFile(path.join(ROOT, 'secrets/devops-db.local.json'));
+    configHash = createHash('sha256').update(configBytes).digest('hex');
+    const config = JSON.parse(configBytes.toString('utf8'));
+    sampleSchema = config.database;
     // Validate before materializing any credential. Schema scope is this investigation's
     // explicit user authorization, not a generic interpretation of an empty allowlist.
     makeOptions(config, SYSTEM_CA, allowUnverifiedTestTls);
     const sqlLimit = config.limits?.query_timeout_seconds ?? 15;
     if (!Number.isInteger(sqlLimit) || sqlLimit < 1) throw new Error('INVALID_LIMIT');
     const timeoutMs = Math.min(sqlLimit, 15) * 1000;
-    const sql = details
+    let sql = details
       ? buildDetailsSql(JSON.parse(await readFile(path.join(ROOT, 'work/mysql-metadata-targets.json'), 'utf8')), timeoutMs)
       : (await readFile(path.join(ROOT, 'tools/sql/mysql-discover-metadata.sql'), 'utf8')).replaceAll('15000', String(timeoutMs));
+    if (samplePhase) {
+      const dictionary = JSON.parse(await readFile(path.join(ROOT, 'work/mysql-source-dictionary.json'), 'utf8'));
+      let seeds;
+      if (samplePhase === 'history') {
+        const pointer = JSON.parse(await readFile(path.join(ROOT, 'work/mysql-sample-seeds.json'), 'utf8'));
+        validateSeedReference(pointer, config.database, configHash);
+        const bytes = await readFile(path.join(ROOT, 'work', pointer.file));
+        if (createHash('sha256').update(bytes).digest('hex') !== pointer.sha256) throw new Error('SEED_HASH_MISMATCH');
+        seeds = JSON.parse(bytes);
+      }
+      if (samplePhase === 'seeds') await writeFile(path.join(ROOT,'work/mysql-sample-seeds.json'),JSON.stringify({status:'pending',run_id:report.run_id})+'\n',{mode:0o600});
+      sql = buildSamplingSql({schema:config.database,records:dictionary.records,phase:samplePhase,seeds,authorized:allowTestBusinessSamples,timeoutMs});
+    }
+    report.sql_sha256 = createHash('sha256').update(sql).digest('hex');
+    if (samplePhase) report.sampling_module_sha256 = createHash('sha256').update(await readFile(path.join(ROOT,'tools/devops-history-sampling.mjs'))).digest('hex');
     temporary = await mkdtemp(path.join(ROOT, 'secrets/mysql-client-'));
     if (temporary.includes(',')) throw new Error('UNSUPPORTED_MOUNT_PATH');
     let caPath = SYSTEM_CA;
@@ -112,10 +135,16 @@ export async function runDiscovery({ allowUnverifiedTestTls = false, details = f
     // Preserve successful and partial metadata privately; never dump stdout to terminal.
     if (result.stdout) {
       await mkdir(path.join(ROOT, 'work'), { recursive: true });
-      const name = `mysql-metadata-${containerName.slice('bydw-discovery-'.length)}.tsv`;
+      const name = `${samplePhase ? 'mysql-sample' : 'mysql-metadata'}-${containerName.slice('bydw-discovery-'.length)}.tsv`;
       await writeFile(path.join(ROOT, 'work', name), result.stdout, { mode: 0o600, flag: 'wx' });
-      report.local_metadata_file = `work/${name}`;
-      report.metadata_may_be_partial = true;
+      if (samplePhase) {
+        report.local_sample_file = `work/${name}`;
+        sampleRows = parseSamplingOutput(result.stdout);
+        report.sample_summary = summarizeSamples(sampleRows);
+        await writeFile(path.join(ROOT, 'work', name.replace('.tsv','.json')), JSON.stringify(sampleRows,null,2)+'\n', {mode:0o600,flag:'wx'});
+      } else report.local_metadata_file = `work/${name}`;
+      if (samplePhase) report.sample_may_be_partial = true;
+      else report.metadata_may_be_partial = true;
       if (details) {
         const parsed = parseDetailsOutput(result.stdout);
         report.metadata_record_count = parsed.records.length;
@@ -148,16 +177,27 @@ export async function runDiscovery({ allowUnverifiedTestTls = false, details = f
       }
     }
   }
+  if (configHash) {
+    report.connection_file_unchanged = createHash('sha256').update(await readFile(path.join(ROOT, 'secrets/devops-db.local.json'))).digest('hex') === configHash;
+    if (!report.connection_file_unchanged) { report.status='failed'; report.category='CONNECTION_FILE_CHANGED'; }
+  }
+  if (samplePhase === 'seeds' && report.status === 'succeeded' && report.container_cleanup_ok && report.credential_cleanup_ok) {
+    const file=path.basename(report.local_sample_file).replace('.tsv','.json');
+    const bytes=await readFile(path.join(ROOT,'work',file));
+    await writeFile(path.join(ROOT,'work/mysql-sample-seeds.json'),JSON.stringify({status:'ready',run_id:report.run_id,config_fingerprint:configHash,source_fingerprint:sourceFingerprint(sampleSchema),file,sha256:createHash('sha256').update(bytes).digest('hex')},null,2)+'\n',{mode:0o600});
+  }
   await mkdir(path.join(ROOT, 'work'), { recursive: true });
-  await writeFile(path.join(ROOT, 'work/mysql-discovery-result.json'), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
+  await writeFile(path.join(ROOT, samplePhase ? 'work/mysql-sampling-result.json' : 'work/mysql-discovery-result.json'), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
+  if (samplePhase) await writeFile(path.join(ROOT,`work/mysql-sampling-run-${report.run_id}.json`),JSON.stringify(report,null,2)+'\n',{mode:0o600,flag:'wx'});
   return report;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const args = process.argv.slice(2);
-    if (new Set(args).size !== args.length || args.some(arg => !['--allow-unverified-test-tls', '--details'].includes(arg))) throw new Error('INVALID_ARGUMENT');
-    const report = await runDiscovery({ allowUnverifiedTestTls: args.includes('--allow-unverified-test-tls'), details: args.includes('--details') });
+    if (new Set(args).size !== args.length || args.some(arg => !['--allow-unverified-test-tls', '--details', '--sample-devops-seeds', '--sample-devops-history', '--allow-test-business-samples'].includes(arg))) throw new Error('INVALID_ARGUMENT');
+    if (args.includes('--sample-devops-seeds') && args.includes('--sample-devops-history')) throw new Error('INVALID_ARGUMENT');
+    const report = await runDiscovery({ samplePhase: args.includes('--sample-devops-seeds') ? 'seeds' : args.includes('--sample-devops-history') ? 'history' : null, allowTestBusinessSamples: args.includes('--allow-test-business-samples'), allowUnverifiedTestTls: args.includes('--allow-unverified-test-tls'), details: args.includes('--details') });
     console.log(JSON.stringify(report, null, 2));
     if (report.status !== 'succeeded' || report.credential_cleanup_ok === false || report.container_cleanup_ok === false) process.exitCode = 1;
   } catch { console.error('DISCOVERY_LOCAL_FAILURE'); process.exitCode = 1; }
