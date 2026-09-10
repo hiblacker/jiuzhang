@@ -269,9 +269,9 @@ Git标签如 `v0.1.0`（首个实验性可运行版本）、`v0.1.0-rc.1`（候�
 
 ## 10. Docker商用许可补充
 
-Docker Desktop与Linux服务器上的Docker Engine不是同一授权产品。Docker官方说明：Desktop免费商业范围要求企业少于250名员工且年收入低于1000万美元；更大组织和政府机构等需要付费订阅。不能把“用Docker发布”解释为“公司开发机可以免费用Desktop”。本项目不强制Desktop；开发可连接经批准的Linux Engine环境，生产采用批准的服务器运行时。详见下方官方许可页面。
+Docker Desktop与Linux服务器上的Docker Engine应分别进行许可审查，不能把“用Docker发布”解释为“公司开发机可以免费用Desktop”。本轮Docker官方许可页面访问失败，因此不在本基线中将具体免费门槛表述为已核实的当前条款；引入Desktop前必须按当时官方条款核查组织规模、用途及订阅要求。本项目不强制Desktop；开发可连接经批准的Linux Engine环境，生产采用批准的服务器运行时。详见下方官方参考页面。
 
-## 11. 官方来源与适用范围（2026-09-10复核）
+## 11. 官方来源与适用范围（2026-09-10记录）
 
 - [Apache-2.0原文](https://www.apache.org/licenses/LICENSE-2.0)：商用/分发授权及NOTICE、变更声明等条件。
 - [SeaTunnel许可证](https://raw.githubusercontent.com/apache/seatunnel/dev/LICENSE)、[DolphinScheduler许可证](https://raw.githubusercontent.com/apache/dolphinscheduler/dev/LICENSE)、[dbt Core许可证](https://raw.githubusercontent.com/dbt-labs/dbt-core/main/LICENSE)：当前分支声明，生产仍需固定发行物复核。
@@ -281,6 +281,6 @@ Docker Desktop与Linux服务器上的Docker Engine不是同一授权产品。Doc
 - [已保存的固定提交资料索引](research/primary-sources-2026-09-10.json)：此前组件调研证据。
 
 - [语义化版本规范](https://semver.org/lang/zh-CN/)：软件版本递增与不可变发布原则。
-- [本轮许可复核记录](research/license-verification-2026-09-10.json)：保留直接访问失败与后续独立核查，非全依赖合规批准。
+- [本轮许可复核记录](research/license-verification-2026-09-10.json)：保留成功和失败的HTTP访问记录；浏览工具未返回可用证据，不作为复核依据。SeaTunnel/DolphinScheduler采用此前固定提交资料；参考链接不代表全部已在本轮成功访问，亦非全依赖合规批准。
 
 本文不是具体交付合同的法律意见；对外分发/托管的最终许可审查按固定制品清单由组织负责。

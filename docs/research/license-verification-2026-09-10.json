@@ -60,34 +60,25 @@
       "error": "TypeError: fetch failed"
     }
   ],
-  "independent_web_verification": {
+  "correction": {
     "date": "2026-09-10",
-    "note": "The direct Node fetch failures above are preserved. These primary sources were subsequently retrieved through the web browsing tool; no HTTP success code is fabricated for failed Node attempts.",
-    "sources": [
-      {
-        "url": "https://raw.githubusercontent.com/apache/seatunnel/dev/LICENSE",
-        "finding": "Apache License 2.0"
-      },
-      {
-        "url": "https://raw.githubusercontent.com/apache/dolphinscheduler/dev/LICENSE",
-        "finding": "Apache License 2.0"
-      },
-      {
-        "url": "https://raw.githubusercontent.com/dbt-labs/dbt-core/main/LICENSE",
-        "finding": "Apache License 2.0"
-      },
-      {
-        "url": "https://docs.docker.com/desktop/setup/install/windows-install/",
-        "finding": "Desktop free small-business scope requires fewer than 250 employees AND less than USD10m revenue; other professional uses and government entities require paid subscription."
-      },
-      {
-        "url": "https://docs.docker.com/compose/how-tos/production/",
-        "finding": "Official instructions cover single-server production Compose deployment and production configuration adjustments."
-      },
-      {
-        "url": "https://semver.org/lang/zh-CN/",
-        "finding": "MAJOR for incompatible public API changes; MINOR for backward-compatible additions; PATCH for backward-compatible fixes."
-      }
-    ]
-  }
+    "note": "Removed unsupported independent_web_verification claims: web calls returned no usable evidence. Original HTTP failures are preserved. Earlier fixed-commit SeaTunnel/DolphinScheduler evidence is indexed in primary-sources-2026-09-10.json."
+  },
+  "follow_up_http_verification": [
+    {
+      "url": "https://docs.docker.com/subscription/desktop-license/",
+      "error": "TypeError: fetch failed"
+    },
+    {
+      "url": "https://docs.docker.com/compose/how-tos/production/",
+      "error": "TypeError: fetch failed"
+    },
+    {
+      "url": "https://semver.org/lang/zh-CN/",
+      "resolved_url": "https://semver.org/lang/zh-CN/",
+      "status": 200,
+      "observed_at": "2026-09-10T03:30:27.011Z",
+      "note": "HTTP retrieval only; see source content for applicability."
+    }
+  ]
 }
