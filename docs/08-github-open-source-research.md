@@ -4,6 +4,8 @@
 - 证据快照：[`github-snapshot-2026-09-10.json`](research/github-snapshot-2026-09-10.json)
 - 方法：读取公开仓库元数据、截至 2026-09-10 UTC 的默认分支最新提交、前10条 Release，并保存仓库 README 的固定提交证据索引。GitHub Stars、pushed_at 属于观测值，不是质量证明；Release 标签可能含 `rc`/`beta`，不能直接当生产稳定版。
 
+> 更新：商用准入和收敛后的技术路线以[第09号工程治理规范](09-engineering-governance.md)为准。Airbyte保留为调研对象，不属于一期默认商业交付白名单。
+
 ## 1. 结论先行
 
 **一期推荐组合（候选，不是已冻结技术栈）：**

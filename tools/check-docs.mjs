@@ -11,6 +11,8 @@ async function walk(directory){
   if(!entry.name.endsWith('.md')) continue;
   count++;
   const text=await fs.readFile(full,'utf8');
+  if(/\|`n\|/.test(text)) failures.push(`${full}: literal PowerShell newline in Markdown table`);
+  if(/\n[ \t]*\n$/.test(text)) failures.push(`${full}: extra blank line at EOF`);
   if(text.includes('\ufffd')) failures.push(`${full}: invalid replacement character`);
   for(const match of text.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)){
    const target=match[1].split('#')[0];

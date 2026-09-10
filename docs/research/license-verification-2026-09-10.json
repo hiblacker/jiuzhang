@@ -1,0 +1,93 @@
+{
+  "note": "Primary-source HTTP verification only, not a complete license/dependency audit or legal approval. Sources on moving branches must be rechecked at fixed artifact versions.",
+  "sources": [
+    {
+      "url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "resolved_url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "status": 200,
+      "observed_at": "2026-09-10T03:25:10.533Z"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/apache/seatunnel/dev/LICENSE",
+      "error": "TypeError: fetch failed"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/apache/dolphinscheduler/dev/LICENSE",
+      "error": "TypeError: fetch failed"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/dbt-labs/dbt-core/main/LICENSE",
+      "resolved_url": "https://raw.githubusercontent.com/dbt-labs/dbt-core/main/LICENSE",
+      "status": 200,
+      "observed_at": "2026-09-10T03:25:50.144Z"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/spring-projects/spring-boot/main/LICENSE.txt",
+      "resolved_url": "https://raw.githubusercontent.com/spring-projects/spring-boot/main/LICENSE.txt",
+      "status": 200,
+      "observed_at": "2026-09-10T03:25:50.413Z"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/vuejs/core/main/LICENSE",
+      "resolved_url": "https://raw.githubusercontent.com/vuejs/core/main/LICENSE",
+      "status": 200,
+      "observed_at": "2026-09-10T03:25:50.705Z"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/element-plus/element-plus/dev/LICENSE",
+      "resolved_url": "https://raw.githubusercontent.com/element-plus/element-plus/dev/LICENSE",
+      "status": 200,
+      "observed_at": "2026-09-10T03:25:51.221Z"
+    },
+    {
+      "url": "https://www.postgresql.org/about/licence/",
+      "resolved_url": "https://www.postgresql.org/about/licence/",
+      "status": 200,
+      "observed_at": "2026-09-10T03:25:51.789Z"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/airbytehq/airbyte/master/LICENSE",
+      "resolved_url": "https://raw.githubusercontent.com/airbytehq/airbyte/master/LICENSE",
+      "status": 200,
+      "observed_at": "2026-09-10T03:25:52.092Z"
+    },
+    {
+      "url": "https://docs.docker.com/subscription-billing/desktop-license/",
+      "error": "TypeError: fetch failed"
+    },
+    {
+      "url": "https://docs.docker.com/compose/how-tos/production/",
+      "error": "TypeError: fetch failed"
+    }
+  ],
+  "independent_web_verification": {
+    "date": "2026-09-10",
+    "note": "The direct Node fetch failures above are preserved. These primary sources were subsequently retrieved through the web browsing tool; no HTTP success code is fabricated for failed Node attempts.",
+    "sources": [
+      {
+        "url": "https://raw.githubusercontent.com/apache/seatunnel/dev/LICENSE",
+        "finding": "Apache License 2.0"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/apache/dolphinscheduler/dev/LICENSE",
+        "finding": "Apache License 2.0"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/dbt-labs/dbt-core/main/LICENSE",
+        "finding": "Apache License 2.0"
+      },
+      {
+        "url": "https://docs.docker.com/desktop/setup/install/windows-install/",
+        "finding": "Desktop free small-business scope requires fewer than 250 employees AND less than USD10m revenue; other professional uses and government entities require paid subscription."
+      },
+      {
+        "url": "https://docs.docker.com/compose/how-tos/production/",
+        "finding": "Official instructions cover single-server production Compose deployment and production configuration adjustments."
+      },
+      {
+        "url": "https://semver.org/lang/zh-CN/",
+        "finding": "MAJOR for incompatible public API changes; MINOR for backward-compatible additions; PATCH for backward-compatible fixes."
+      }
+    ]
+  }
+}
