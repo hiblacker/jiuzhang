@@ -1,0 +1,385 @@
+{
+  "as_of_date": "2026-09-10",
+  "cutoff_utc": "2026-09-10T23:59:59Z",
+  "observed_at": "2026-09-10T02:48:14.169Z",
+  "method": "Public GitHub REST API without authentication. Star/pushed/archive/license fields are live observations, not historical reconstruction. Default-branch commit filtered by cutoff; stable release selected from first 10 only.",
+  "repositories": [
+    {
+      "requested_repository": "apache/seatunnel",
+      "repository": "apache/seatunnel",
+      "url": "https://github.com/apache/seatunnel",
+      "description": "SeaTunnel is a multimodal, high-performance, distributed, massive data integration tool.",
+      "archived": false,
+      "stars_observed": 9628,
+      "default_branch": "dev",
+      "license_spdx": "Apache-2.0",
+      "license_api": "https://api.github.com/licenses/apache-2.0",
+      "pushed_at_observed": "2026-09-10T02:10:02Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "a9cda80f4b197bc855b4b7eeb3ba1a3f3e83f017",
+        "date": "2026-09-10T00:47:02Z",
+        "url": "https://github.com/apache/seatunnel/commit/a9cda80f4b197bc855b4b7eeb3ba1a3f3e83f017"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/apache/seatunnel",
+        "https://api.github.com/repos/apache/seatunnel/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/apache/seatunnel/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "2.3.13",
+        "date": "2026-03-14T02:52:02Z",
+        "url": "https://github.com/apache/seatunnel/releases/tag/2.3.13"
+      }
+    },
+    {
+      "requested_repository": "apache/dolphinscheduler",
+      "repository": "apache/dolphinscheduler",
+      "url": "https://github.com/apache/dolphinscheduler",
+      "description": "Apache DolphinScheduler is the modern data orchestration platform. Agile to create high performance workflow with low-code",
+      "archived": false,
+      "stars_observed": 14462,
+      "default_branch": "dev",
+      "license_spdx": "Apache-2.0",
+      "license_api": "https://api.github.com/licenses/apache-2.0",
+      "pushed_at_observed": "2026-09-09T08:54:47Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "def57c5eb07acbfa624c8b5d4ce2e2e17c0b5633",
+        "date": "2026-09-09T08:54:47Z",
+        "url": "https://github.com/apache/dolphinscheduler/commit/def57c5eb07acbfa624c8b5d4ce2e2e17c0b5633"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/apache/dolphinscheduler",
+        "https://api.github.com/repos/apache/dolphinscheduler/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/apache/dolphinscheduler/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "3.4.3",
+        "date": "2026-09-06T03:26:05Z",
+        "url": "https://github.com/apache/dolphinscheduler/releases/tag/3.4.3"
+      }
+    },
+    {
+      "requested_repository": "apache/airflow",
+      "repository": "apache/airflow",
+      "url": "https://github.com/apache/airflow",
+      "description": "Apache Airflow - A platform to programmatically author, schedule, and monitor workflows",
+      "archived": false,
+      "stars_observed": 46799,
+      "default_branch": "main",
+      "license_spdx": "Apache-2.0",
+      "license_api": "https://api.github.com/licenses/apache-2.0",
+      "pushed_at_observed": "2026-09-10T02:42:53Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "1952520a9eedb63c530be89eade6863ea975bb2e",
+        "date": "2026-09-10T02:18:54Z",
+        "url": "https://github.com/apache/airflow/commit/1952520a9eedb63c530be89eade6863ea975bb2e"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/apache/airflow",
+        "https://api.github.com/repos/apache/airflow/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/apache/airflow/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "3.3.1",
+        "date": "2026-08-12T09:50:17Z",
+        "url": "https://github.com/apache/airflow/releases/tag/3.3.1"
+      }
+    },
+    {
+      "requested_repository": "dagster-io/dagster",
+      "repository": "dagster-io/dagster",
+      "url": "https://github.com/dagster-io/dagster",
+      "description": "An orchestration platform for the development, production, and observation of data assets.",
+      "archived": false,
+      "stars_observed": 16132,
+      "default_branch": "master",
+      "license_spdx": "Apache-2.0",
+      "license_api": "https://api.github.com/licenses/apache-2.0",
+      "pushed_at_observed": "2026-09-09T20:06:33Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "ce3c6c68b2edd8f943ca121dde28634791b2300b",
+        "date": "2026-09-09T20:06:26Z",
+        "url": "https://github.com/dagster-io/dagster/commit/ce3c6c68b2edd8f943ca121dde28634791b2300b"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/dagster-io/dagster",
+        "https://api.github.com/repos/dagster-io/dagster/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/dagster-io/dagster/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "1.13.21",
+        "date": "2026-09-03T20:03:16Z",
+        "url": "https://github.com/dagster-io/dagster/releases/tag/1.13.21"
+      }
+    },
+    {
+      "requested_repository": "dbt-labs/dbt-core",
+      "repository": "dbt-labs/dbt-core",
+      "url": "https://github.com/dbt-labs/dbt-core",
+      "description": "dbt enables data analysts and engineers to transform their data using the same practices that software engineers use to build applications.",
+      "archived": false,
+      "stars_observed": 13796,
+      "default_branch": "main",
+      "license_spdx": "Apache-2.0",
+      "license_api": "https://api.github.com/licenses/apache-2.0",
+      "pushed_at_observed": "2026-09-10T02:32:53Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "5bdd13c3bb405579eb91dcf5912e751c425bf2fd",
+        "date": "2026-09-10T02:32:51Z",
+        "url": "https://github.com/dbt-labs/dbt-core/commit/5bdd13c3bb405579eb91dcf5912e751c425bf2fd"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/dbt-labs/dbt-core",
+        "https://api.github.com/repos/dbt-labs/dbt-core/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/dbt-labs/dbt-core/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "v1.12.4",
+        "date": "2026-09-08T10:00:57Z",
+        "url": "https://github.com/dbt-labs/dbt-core/releases/tag/v1.12.4"
+      }
+    },
+    {
+      "requested_repository": "SQLMesh/sqlmesh",
+      "repository": "SQLMesh/sqlmesh",
+      "url": "https://github.com/SQLMesh/sqlmesh",
+      "description": "Scalable and efficient data transformation framework - backwards compatible with dbt.",
+      "archived": false,
+      "stars_observed": 3282,
+      "default_branch": "main",
+      "license_spdx": "Apache-2.0",
+      "license_api": "https://api.github.com/licenses/apache-2.0",
+      "pushed_at_observed": "2026-09-10T00:48:28Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "8d0b4de7dbdfabb5a57551bca3c8f21e3930e014",
+        "date": "2026-09-10T00:48:27Z",
+        "url": "https://github.com/SQLMesh/sqlmesh/commit/8d0b4de7dbdfabb5a57551bca3c8f21e3930e014"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/SQLMesh/sqlmesh",
+        "https://api.github.com/repos/SQLMesh/sqlmesh/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/SQLMesh/sqlmesh/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "v0.236.2",
+        "date": "2026-09-08T20:49:56Z",
+        "url": "https://github.com/SQLMesh/sqlmesh/releases/tag/v0.236.2"
+      }
+    },
+    {
+      "requested_repository": "datahub-project/datahub",
+      "repository": "datahub-project/datahub",
+      "url": "https://github.com/datahub-project/datahub",
+      "description": "The Context Platform for your Data and AI Stack",
+      "archived": false,
+      "stars_observed": 12663,
+      "default_branch": "master",
+      "license_spdx": "Apache-2.0",
+      "license_api": "https://api.github.com/licenses/apache-2.0",
+      "pushed_at_observed": "2026-09-10T00:29:59Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "8c77e88c874d8b8b2988de51eae800574f703e8d",
+        "date": "2026-09-09T22:25:05Z",
+        "url": "https://github.com/datahub-project/datahub/commit/8c77e88c874d8b8b2988de51eae800574f703e8d"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/datahub-project/datahub",
+        "https://api.github.com/repos/datahub-project/datahub/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/datahub-project/datahub/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "v1.7.0.1",
+        "date": "2026-09-03T19:36:36Z",
+        "url": "https://github.com/datahub-project/datahub/releases/tag/v1.7.0.1"
+      }
+    },
+    {
+      "requested_repository": "open-metadata/OpenMetadata",
+      "repository": "open-metadata/OpenMetadata",
+      "url": "https://github.com/open-metadata/OpenMetadata",
+      "description": "The Open Context Layer for Data and AI ,  OpenMetadata is the open platform for building trusted data context and business semantics for humans, AI assistants, and agents.",
+      "archived": false,
+      "stars_observed": 15158,
+      "default_branch": "main",
+      "license_spdx": "Apache-2.0",
+      "license_api": "https://api.github.com/licenses/apache-2.0",
+      "pushed_at_observed": "2026-09-10T02:43:53Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "bb8c1c11bfcdc5f665ee34a77abb35d59c27a651",
+        "date": "2026-09-09T13:41:24Z",
+        "url": "https://github.com/open-metadata/OpenMetadata/commit/bb8c1c11bfcdc5f665ee34a77abb35d59c27a651"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/open-metadata/OpenMetadata",
+        "https://api.github.com/repos/open-metadata/OpenMetadata/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/open-metadata/OpenMetadata/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "1.13.5-release",
+        "date": "2026-09-03T08:30:13Z",
+        "url": "https://github.com/open-metadata/OpenMetadata/releases/tag/1.13.5-release"
+      }
+    },
+    {
+      "requested_repository": "apache/doris",
+      "repository": "apache/doris",
+      "url": "https://github.com/apache/doris",
+      "description": "Apache Doris is a real-time analytics and hybrid search database for AI agents.",
+      "archived": false,
+      "stars_observed": 15877,
+      "default_branch": "master",
+      "license_spdx": "Apache-2.0",
+      "license_api": "https://api.github.com/licenses/apache-2.0",
+      "pushed_at_observed": "2026-09-10T02:44:30Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "958aaf46c8f6b7bd6fb661a18e5b7cbbf5c40999",
+        "date": "2026-09-10T02:44:30Z",
+        "url": "https://github.com/apache/doris/commit/958aaf46c8f6b7bd6fb661a18e5b7cbbf5c40999"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/apache/doris",
+        "https://api.github.com/repos/apache/doris/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/apache/doris/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "4.0.8",
+        "date": "2026-08-14T07:11:13Z",
+        "url": "https://github.com/apache/doris/releases/tag/4.0.8"
+      }
+    },
+    {
+      "requested_repository": "apache/hop",
+      "repository": "apache/hop",
+      "url": "https://github.com/apache/hop",
+      "description": "Hop Orchestration Platform",
+      "archived": false,
+      "stars_observed": 1458,
+      "default_branch": "main",
+      "license_spdx": "Apache-2.0",
+      "license_api": "https://api.github.com/licenses/apache-2.0",
+      "pushed_at_observed": "2026-09-09T19:26:42Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "446bb7ea04b6b40ef09cba21637f37dfaa4a9c1a",
+        "date": "2026-09-09T19:26:41Z",
+        "url": "https://github.com/apache/hop/commit/446bb7ea04b6b40ef09cba21637f37dfaa4a9c1a"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/apache/hop",
+        "https://api.github.com/repos/apache/hop/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/apache/hop/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "2.19.0-rc1",
+        "date": "2026-08-12T12:38:06Z",
+        "url": "https://github.com/apache/hop/releases/tag/2.19.0-rc1"
+      }
+    },
+    {
+      "requested_repository": "apache/incubator-devlake",
+      "repository": "apache/devlake",
+      "url": "https://github.com/apache/devlake",
+      "description": "Apache DevLake is an open-source dev data platform to ingest, analyze, and visualize the fragmented data from DevOps tools, extracting insights for engineering excellence, developer experience, and community growth.",
+      "archived": false,
+      "stars_observed": 3133,
+      "default_branch": "main",
+      "license_spdx": "Apache-2.0",
+      "license_api": "https://api.github.com/licenses/apache-2.0",
+      "pushed_at_observed": "2026-09-07T18:02:03Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "43b5728b2ef153e1059efd0c1da8e290da21f003",
+        "date": "2026-09-07T18:02:01Z",
+        "url": "https://github.com/apache/devlake/commit/43b5728b2ef153e1059efd0c1da8e290da21f003"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/apache/incubator-devlake",
+        "https://api.github.com/repos/apache/incubator-devlake/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/apache/incubator-devlake/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "v1.0.3-beta16",
+        "date": "2026-08-27T12:53:16Z",
+        "url": "https://github.com/apache/devlake/releases/tag/v1.0.3-beta16"
+      }
+    },
+    {
+      "requested_repository": "great-expectations/great_expectations",
+      "repository": "fivetran/great_expectations",
+      "url": "https://github.com/fivetran/great_expectations",
+      "description": "Always know what to expect from your data.",
+      "archived": false,
+      "stars_observed": 11778,
+      "default_branch": "develop",
+      "license_spdx": "Apache-2.0",
+      "license_api": "https://api.github.com/licenses/apache-2.0",
+      "pushed_at_observed": "2026-09-09T15:35:47Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "4b5dd52306872ec130f7bc0093eb4aebf6b7515b",
+        "date": "2026-09-09T15:13:37Z",
+        "url": "https://github.com/fivetran/great_expectations/commit/4b5dd52306872ec130f7bc0093eb4aebf6b7515b"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/great-expectations/great_expectations",
+        "https://api.github.com/repos/great-expectations/great_expectations/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/great-expectations/great_expectations/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "1.22.0",
+        "date": "2026-08-31T13:16:06Z",
+        "url": "https://github.com/fivetran/great_expectations/releases/tag/1.22.0"
+      }
+    },
+    {
+      "requested_repository": "airbytehq/airbyte",
+      "repository": "airbytehq/airbyte",
+      "url": "https://github.com/airbytehq/airbyte",
+      "description": "Open-source data movement for ELT pipelines and AI agents — from APIs, databases & files to warehouses, lakes, and AI applications. Both self-hosted and Cloud.",
+      "archived": false,
+      "stars_observed": 22021,
+      "default_branch": "master",
+      "license_spdx": "NOASSERTION",
+      "license_api": null,
+      "pushed_at_observed": "2026-09-10T02:08:29Z",
+      "default_branch_commit_at_or_before_cutoff": {
+        "sha": "693bbdb0ebc160c530c66efde713ed635d01a507",
+        "date": "2026-09-10T00:33:29Z",
+        "url": "https://github.com/airbytehq/airbyte/commit/693bbdb0ebc160c530c66efde713ed635d01a507"
+      },
+      "release_search_note": "First 10 GitHub releases only; selected using published_at and API prerelease/draft flags. Tags may still contain beta/rc. Not a verified latest stable distribution.",
+      "sources": [
+        "https://api.github.com/repos/airbytehq/airbyte",
+        "https://api.github.com/repos/airbytehq/airbyte/commits?per_page=1&until=2026-09-10T23%3A59%3A59Z",
+        "https://api.github.com/repos/airbytehq/airbyte/releases?per_page=10"
+      ],
+      "errors": [],
+      "observed_github_release": {
+        "tag": "v2.0.0",
+        "date": "2025-10-15T21:21:41Z",
+        "url": "https://github.com/airbytehq/airbyte/releases/tag/v2.0.0"
+      }
+    }
+  ]
+}

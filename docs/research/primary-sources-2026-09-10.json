@@ -1,0 +1,76 @@
+{
+  "observed_at": "2026-09-10T02:51:54.977Z",
+  "sources": [
+    {
+      "repository": "apache/seatunnel",
+      "readme_url": "https://raw.githubusercontent.com/apache/seatunnel/a9cda80f4b197bc855b4b7eeb3ba1a3f3e83f017/README.md",
+      "sha": "a9cda80f4b197bc855b4b7eeb3ba1a3f3e83f017"
+    },
+    {
+      "repository": "apache/dolphinscheduler",
+      "readme_url": "https://raw.githubusercontent.com/apache/dolphinscheduler/def57c5eb07acbfa624c8b5d4ce2e2e17c0b5633/README.md",
+      "sha": "def57c5eb07acbfa624c8b5d4ce2e2e17c0b5633"
+    },
+    {
+      "repository": "apache/airflow",
+      "readme_url": "https://raw.githubusercontent.com/apache/airflow/1952520a9eedb63c530be89eade6863ea975bb2e/README.md",
+      "sha": "1952520a9eedb63c530be89eade6863ea975bb2e"
+    },
+    {
+      "repository": "dagster-io/dagster",
+      "readme_url": "https://raw.githubusercontent.com/dagster-io/dagster/ce3c6c68b2edd8f943ca121dde28634791b2300b/README.md",
+      "sha": "ce3c6c68b2edd8f943ca121dde28634791b2300b"
+    },
+    {
+      "repository": "dbt-labs/dbt-core",
+      "readme_url": "https://raw.githubusercontent.com/dbt-labs/dbt-core/5bdd13c3bb405579eb91dcf5912e751c425bf2fd/README.md",
+      "sha": "5bdd13c3bb405579eb91dcf5912e751c425bf2fd"
+    },
+    {
+      "repository": "SQLMesh/sqlmesh",
+      "readme_url": "https://raw.githubusercontent.com/SQLMesh/sqlmesh/8d0b4de7dbdfabb5a57551bca3c8f21e3930e014/README.md",
+      "sha": "8d0b4de7dbdfabb5a57551bca3c8f21e3930e014"
+    },
+    {
+      "repository": "datahub-project/datahub",
+      "readme_url": "https://raw.githubusercontent.com/datahub-project/datahub/8c77e88c874d8b8b2988de51eae800574f703e8d/README.md",
+      "sha": "8c77e88c874d8b8b2988de51eae800574f703e8d"
+    },
+    {
+      "repository": "open-metadata/OpenMetadata",
+      "readme_url": "https://raw.githubusercontent.com/open-metadata/OpenMetadata/bb8c1c11bfcdc5f665ee34a77abb35d59c27a651/README.md",
+      "sha": "bb8c1c11bfcdc5f665ee34a77abb35d59c27a651"
+    },
+    {
+      "repository": "apache/doris",
+      "readme_url": "https://raw.githubusercontent.com/apache/doris/958aaf46c8f6b7bd6fb661a18e5b7cbbf5c40999/README.md",
+      "sha": "958aaf46c8f6b7bd6fb661a18e5b7cbbf5c40999"
+    },
+    {
+      "repository": "apache/hop",
+      "readme_url": "https://raw.githubusercontent.com/apache/hop/446bb7ea04b6b40ef09cba21637f37dfaa4a9c1a/README.md",
+      "sha": "446bb7ea04b6b40ef09cba21637f37dfaa4a9c1a"
+    },
+    {
+      "repository": "apache/devlake",
+      "readme_url": "https://raw.githubusercontent.com/apache/devlake/43b5728b2ef153e1059efd0c1da8e290da21f003/README.md",
+      "sha": "43b5728b2ef153e1059efd0c1da8e290da21f003"
+    },
+    {
+      "repository": "fivetran/great_expectations",
+      "readme_url": "https://raw.githubusercontent.com/fivetran/great_expectations/4b5dd52306872ec130f7bc0093eb4aebf6b7515b/README.md",
+      "sha": "4b5dd52306872ec130f7bc0093eb4aebf6b7515b"
+    },
+    {
+      "repository": "airbytehq/airbyte",
+      "readme_url": "https://raw.githubusercontent.com/airbytehq/airbyte/693bbdb0ebc160c530c66efde713ed635d01a507/README.md",
+      "sha": "693bbdb0ebc160c530c66efde713ed635d01a507"
+    },
+    {
+      "repository": "airbytehq/airbyte",
+      "license_url": "https://raw.githubusercontent.com/airbytehq/airbyte/693bbdb0ebc160c530c66efde713ed635d01a507/LICENSE",
+      "license_title": "Elastic License 2.0 (ELv2)",
+      "http_status": 200
+    }
+  ]
+}
