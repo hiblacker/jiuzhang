@@ -22,7 +22,7 @@
 | [测试、验收与运维](docs/06-acceptance-operations.md) | 可执行的验收场景、运行手册和上线门禁 |
 | [待确认事项与决策记录](docs/07-decisions-risks.md) | 事实、假设、决策状态和风险 |
 | [GitHub开源项目选型](docs/08-github-open-source-research.md) | 13个候选、近期活跃证据、推荐组合和PoC |
-| [开发与 Git 协作规范](CONTRIBUTING.md) | 分支、及时提交、变更检查和密钥规则 |
+| [开发与 Git 协作规范](CONTRIBUTING.md) | 分支、及时提交、变更检查和密钥规则 |`n| [工程治理规范](docs/09-engineering-governance.md) | 商用开源、技术栈、AI编码、Git、PoC、版本与发布 |
 
 ## 一期交付主线
 
@@ -46,3 +46,4 @@ git diff --check
 ```
 
 调研证据位于 `docs/research`，包含公开GitHub API快照、搜索记录与固定提交的一手资料索引。候选调研不等于组件已部署或兼容性已验证。
+
