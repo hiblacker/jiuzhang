@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { optionValue, makeOptions, classifyResult, IMAGE } from '../tools/mysql-discover.mjs';
+import { optionValue, makeOptions, classifyResult, inspectSession, IMAGE } from '../tools/mysql-discover.mjs';
 const fixture = () => ({ engine: 'mysql', host: 'synthetic.invalid', port: 3306,
   username: 'synthetic-user', password: 'synthetic-password',
   tls: { require_encryption: true, verify_server_certificate: true } });
@@ -51,4 +51,23 @@ test('TLS errors have redacted reasons, not assumed authentication success', () 
     assert.deepEqual(classifyResult({ status: 1, stderr: 'ERROR 2026 ' + message }),
       { status: 'failed', category: 'TLS_CONNECTION_FAILED', mysql_error_code: 2026, tls_reason: reason });
   }
+});
+
+test('explicit test-only TLS exception keeps encryption mandatory without a CA', () => {
+  const options = makeOptions(fixture(), '/unused/ca.pem', true);
+  assert.match(options, /^ssl-mode=REQUIRED$/m);
+  assert.doesNotMatch(options, /ssl-ca=|DISABLED|PREFERRED/);
+  assert.match(makeOptions(fixture()), /^ssl-mode=VERIFY_IDENTITY$/m);
+  assert.throws(() => makeOptions(fixture(), undefined, 'true'));
+  const unsafe = fixture(); unsafe.tls.require_encryption = false;
+  assert.throws(() => makeOptions(unsafe, undefined, true));
+});
+
+test('session evidence confirms TLS and read-only without returning source values', () => {
+  const text='Variable_name\tValue\nSsl_cipher\tTLS_AES_256_GCM_SHA384\nSsl_version\tTLSv1.3\nsession_read_only\tselect_timeout_ms\n1\t15000\n';
+  assert.deepEqual(inspectSession(text), {session_tls_confirmed:true,session_tls_version:'TLSv1.3',session_read_only_confirmed:true});
+  assert.equal(inspectSession('Ssl_cipher\t\n').session_tls_confirmed,false);
+  assert.equal(inspectSession('Ssl_cipher\t   \n').session_tls_confirmed,false);
+  assert.equal(inspectSession('Ssl_version\tprivate-server-value\n').session_tls_version,null);
+  assert.equal(inspectSession(text.replace('1\t15000','0\t15000')).session_read_only_confirmed,false);
 });

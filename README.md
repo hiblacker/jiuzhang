@@ -7,7 +7,7 @@
 ## 当前状态
 
 - 2026-09-10：形成设计和开发规划基线；尚未实现平台代码、部署组件或完成性能验证。
-- 已提供MySQL无认证预检及固定缓存Docker客户端的只读发现工具；本地Docker可用，真实连接因TLS证书信任校验失败而停止，尚未成功登录或取得表结构。
+- 已在用户明确授权的测试库TLS例外下成功连接MySQL 8.1.0，完成两个源库共21个选定对象的元数据调查；业务样本、历史可还原性、指标与完整PoC尚未验证。
 - 一期建议采用批处理、SQL 优先、复用开源执行能力、薄控制台的路径。
 - 技术组件和版本须通过 PoC 后冻结；规划中的周期和性能指标是待确认的验收目标，不是已验证能力。
 
@@ -24,7 +24,8 @@
 | [待确认事项与决策记录](docs/07-decisions-risks.md) | 事实、假设、决策状态和风险 |
 | [GitHub开源项目选型](docs/08-github-open-source-research.md) | 13个候选、近期活跃证据、推荐组合和PoC |
 | [开发与 Git 协作规范](CONTRIBUTING.md) | 分支、及时提交、变更检查和密钥规则 |
-| [测试库发现执行记录](docs/14-mysql-test-discovery.md) | 已授权现有测试账号、固定客户端、TLS实际阻断、NAS选定Compose v2.40.3 |
+| [源库元数据发现](docs/15-source-metadata-findings.md) | TLS授权例外、真实连接和结构事实、三类指标缺口及本地字典 |
+| [测试库发现执行记录](docs/14-mysql-test-discovery.md) | 初次严格TLS失败历史、固定客户端与NAS Compose v2.40.3 |
 | [MySQL预检与Compose双版本](docs/13-mysql-preflight-compose.md) | 初次网络预检历史、已更新的账号/客户端状态与NAS入口管理 |
 | [只读数据库交接](docs/12-source-db-discovery.md) | 本地连接模板、STORY/DEFECT和历史表发现、安全及只读边界 |
 | [PoC已确认输入](docs/11-poc-confirmed-inputs.md) | 用户确认基线、DevOps资料包、状态/团队历史、月报更正和NAS核验 |

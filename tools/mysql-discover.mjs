@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildDetailsSql, parseDetailsOutput } from './mysql-metadata.mjs';
 
 export const IMAGE = 'sha256:8f51417dfdbf3f6c2434b2fff64530fba6e0f244c616cb62846faaaf18f65135';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -16,7 +17,8 @@ export function optionValue(value) {
   return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t')}"`;
 }
 
-export function makeOptions(config, caPath = SYSTEM_CA) {
+export function makeOptions(config, caPath = SYSTEM_CA, allowUnverifiedTestTls = false) {
+  if (typeof allowUnverifiedTestTls !== 'boolean') throw new Error('INVALID_TLS_EXCEPTION');
   if (config.engine?.toLowerCase() !== 'mysql' ||
       !['host', 'username', 'password'].every(key => typeof config[key] === 'string' && config[key].length > 0) ||
       !Number.isInteger(config.port) || config.port < 1 || config.port > 65535 ||
@@ -27,7 +29,8 @@ export function makeOptions(config, caPath = SYSTEM_CA) {
   if (!Number.isInteger(requested) || requested < 1) throw new Error('INVALID_LIMIT');
   return ['[client]', `host=${optionValue(config.host)}`, `port=${config.port}`,
     `user=${optionValue(config.username)}`, `password=${optionValue(config.password)}`,
-    'protocol=TCP', 'ssl-mode=VERIFY_IDENTITY', `ssl-ca=${optionValue(caPath)}`,
+    'protocol=TCP', `ssl-mode=${allowUnverifiedTestTls ? 'REQUIRED' : 'VERIFY_IDENTITY'}`,
+    ...(allowUnverifiedTestTls ? [] : [`ssl-ca=${optionValue(caPath)}`]),
     `connect-timeout=${Math.min(requested, 10)}`, 'local-infile=0', 'default-character-set=utf8mb4', ''].join('\n');
 }
 
@@ -51,32 +54,48 @@ export function classifyResult(result) {
   return safe;
 }
 
-export async function runDiscovery() {
+export function inspectSession(text) {
+  const cipher = text.match(/^Ssl_cipher\t([^\r\n]+)$/m)?.[1];
+  const version = text.match(/^Ssl_version\t([^\r\n]+)$/m)?.[1];
+  return {
+    session_tls_confirmed: Boolean(cipher?.trim()),
+    session_tls_version: /^TLSv[0-9.]+$/.test(version ?? '') ? version : null,
+    session_read_only_confirmed: /^session_read_only\tselect_timeout_ms\r?\n1\t[0-9]+$/m.test(text),
+  };
+}
+
+export async function runDiscovery({ allowUnverifiedTestTls = false, details = false } = {}) {
   const report = { recorded_at: new Date().toISOString(), image_id: IMAGE,
     authorization: 'existing-test-account-all-visible-schemas-metadata-only',
-    tls_mode: 'VERIFY_IDENTITY', source_modified: false };
+    phase: details ? 'details' : 'inventory',
+    completeness_scope: 'selected-metadata-queries-not-entire-source',
+    tls_mode: allowUnverifiedTestTls ? 'REQUIRED' : 'VERIFY_IDENTITY',
+    tls_identity_exception: allowUnverifiedTestTls ? 'user-confirmed-test-discovery-only' : null, source_modified: false };
   let temporary;
   let containerName;
   let stage = 'CONFIG';
   try {
+    if (typeof details !== 'boolean') throw new Error('INVALID_PHASE');
     const config = JSON.parse(await readFile(path.join(ROOT, 'secrets/devops-db.local.json'), 'utf8'));
     // Validate before materializing any credential. Schema scope is this investigation's
     // explicit user authorization, not a generic interpretation of an empty allowlist.
-    makeOptions(config);
+    makeOptions(config, SYSTEM_CA, allowUnverifiedTestTls);
     const sqlLimit = config.limits?.query_timeout_seconds ?? 15;
     if (!Number.isInteger(sqlLimit) || sqlLimit < 1) throw new Error('INVALID_LIMIT');
-    const sql = (await readFile(path.join(ROOT, 'tools/sql/mysql-discover-metadata.sql'), 'utf8'))
-      .replaceAll('15000', String(Math.min(sqlLimit, 15) * 1000));
+    const timeoutMs = Math.min(sqlLimit, 15) * 1000;
+    const sql = details
+      ? buildDetailsSql(JSON.parse(await readFile(path.join(ROOT, 'work/mysql-metadata-targets.json'), 'utf8')), timeoutMs)
+      : (await readFile(path.join(ROOT, 'tools/sql/mysql-discover-metadata.sql'), 'utf8')).replaceAll('15000', String(timeoutMs));
     temporary = await mkdtemp(path.join(ROOT, 'secrets/mysql-client-'));
     if (temporary.includes(',')) throw new Error('UNSUPPORTED_MOUNT_PATH');
     let caPath = SYSTEM_CA;
-    if (config.tls.ca_cert_file) {
+    if (!allowUnverifiedTestTls && config.tls.ca_cert_file) {
       // Relative certificate paths resolve against the project, never the container cwd.
       const ca = await readFile(path.resolve(ROOT, config.tls.ca_cert_file));
       await writeFile(path.join(temporary, 'ca.pem'), ca, { mode: 0o600, flag: 'wx' });
       caPath = '/run/secrets/mysql/ca.pem';
     }
-    await writeFile(path.join(temporary, 'client.cnf'), makeOptions(config, caPath), { mode: 0o600, flag: 'wx' });
+    await writeFile(path.join(temporary, 'client.cnf'), makeOptions(config, caPath, allowUnverifiedTestTls), { mode: 0o600, flag: 'wx' });
     containerName = `bydw-discovery-${randomUUID()}`;
     stage = 'CLIENT';
     const result = spawnSync('docker', ['run', '--rm', '--pull=never', '--name', containerName,
@@ -96,6 +115,18 @@ export async function runDiscovery() {
       const name = `mysql-metadata-${containerName.slice('bydw-discovery-'.length)}.tsv`;
       await writeFile(path.join(ROOT, 'work', name), result.stdout, { mode: 0o600, flag: 'wx' });
       report.local_metadata_file = `work/${name}`;
+      report.metadata_may_be_partial = true;
+      if (details) {
+        const parsed = parseDetailsOutput(result.stdout);
+        report.metadata_record_count = parsed.records.length;
+        report.capped_group_count = parsed.capped_groups.length;
+        report.metadata_may_be_partial = report.status !== 'succeeded' || parsed.capped_groups.length > 0;
+        await writeFile(path.join(ROOT, 'work', name.replace('.tsv', '.json')), JSON.stringify(parsed, null, 2) + '\n', { mode: 0o600, flag: 'wx' });
+      }
+    }
+    Object.assign(report, inspectSession(result.stdout ?? ''));
+    if (report.status === 'succeeded' && (!report.session_tls_confirmed || !report.session_read_only_confirmed)) {
+      report.status = 'failed'; report.category = 'SESSION_GUARD_NOT_CONFIRMED';
       report.metadata_may_be_partial = true;
     }
   } catch {
@@ -124,8 +155,9 @@ export async function runDiscovery() {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    if (process.argv.length !== 2) throw new Error('NO_ARGUMENTS_ALLOWED');
-    const report = await runDiscovery();
+    const args = process.argv.slice(2);
+    if (new Set(args).size !== args.length || args.some(arg => !['--allow-unverified-test-tls', '--details'].includes(arg))) throw new Error('INVALID_ARGUMENT');
+    const report = await runDiscovery({ allowUnverifiedTestTls: args.includes('--allow-unverified-test-tls'), details: args.includes('--details') });
     console.log(JSON.stringify(report, null, 2));
     if (report.status !== 'succeeded' || report.credential_cleanup_ok === false || report.container_cleanup_ok === false) process.exitCode = 1;
   } catch { console.error('DISCOVERY_LOCAL_FAILURE'); process.exitCode = 1; }

@@ -1,5 +1,5 @@
--- Initial metadata discovery only. NOT EXECUTED by the preflight utility.
--- Use an approved MySQL client and a least-privilege source account.
+-- Fixed initial metadata discovery. Not used by the unauthenticated preflight.
+-- Existing test account explicitly authorized; production requires least privilege.
 -- User authorized metadata discovery across all account-visible databases.
 -- System schemas are not searched for application history tables.
 -- Results may be sensitive: keep them in ignored work/, not in Git.
@@ -7,6 +7,11 @@
 SET SESSION transaction_read_only = ON;
 SET SESSION max_execution_time = 15000;
 START TRANSACTION READ ONLY;
+
+SHOW SESSION STATUS LIKE 'Ssl_cipher';
+SHOW SESSION STATUS LIKE 'Ssl_version';
+SELECT @@SESSION.transaction_read_only AS session_read_only,
+       @@SESSION.max_execution_time AS select_timeout_ms;
 
 SELECT /*+ MAX_EXECUTION_TIME(15000) */ VERSION() AS server_version;
 
