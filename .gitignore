@@ -1,0 +1,23 @@
+# Local credentials / secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+# Local runtime and generated assets
+work/
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+logs/
+*.log
+dist/
+build/
+coverage/
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
