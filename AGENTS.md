@@ -2,7 +2,7 @@
 
 ## Scope and current stage
 
-This is a general-purpose reporting data center. DevOps is the first business domain, not the platform core. Read README.md, docs/02-architecture.md, docs/03-data-processing.md, docs/07-decisions-risks.md and docs/09-engineering-governance.md before implementation. Current repository is a documentation baseline, not a running service.
+This is a general-purpose reporting data center. DevOps is the first business domain, not the platform core. Read README.md, docs/02-architecture.md, docs/03-data-processing.md, docs/07-decisions-risks.md and docs/09-engineering-governance.md before implementation. Current repository contains a documentation baseline and an isolated synthetic SQL PoC; it is not a production platform.
 
 ## Before changing code
 

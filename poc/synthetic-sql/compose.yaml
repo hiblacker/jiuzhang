@@ -1,0 +1,37 @@
+name: bdw-synthetic-p0
+services:
+  warehouse:
+    image: postgres@sha256:44c4ee9810eff91f7eab4d822642e01115b1a9eccce4bcbdde7604752d68eac6
+    platform: linux/amd64
+    pull_policy: never
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/poc_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      TZ: Asia/Shanghai
+    secrets:
+      - poc_password
+    volumes:
+      - warehouse_data:/var/lib/postgresql/data
+    networks:
+      - isolated
+    # No host port. Tests use docker exec and the container-local Unix socket.
+    cpus: 1.0
+    mem_limit: 768m
+    pids_limit: 150
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres -d postgres]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    command: [postgres, -c, shared_buffers=128MB, -c, max_connections=30, -c, listen_addresses=, -c, timezone=Asia/Shanghai]
+secrets:
+  poc_password:
+    file: ../../secrets/synthetic-poc-password.txt
+volumes:
+  warehouse_data:
+networks:
+  isolated:
+    internal: true

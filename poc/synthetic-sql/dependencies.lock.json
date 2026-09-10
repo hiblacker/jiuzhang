@@ -1,0 +1,328 @@
+{
+  "scope": "P0 local synthetic experiment only; NOT distribution, vulnerability or legal clearance",
+  "observedOn": "2026-09-10",
+  "node": "22.23.2",
+  "dockerEngine": "27.5.1",
+  "localCompose": "2.32.4-desktop.1",
+  "nasCompose": "2.40.3 (not tested)",
+  "postgres": "16.15",
+  "alpine": "3.24.1",
+  "image": "postgres@sha256:44c4ee9810eff91f7eab4d822642e01115b1a9eccce4bcbdde7604752d68eac6",
+  "imageId": "sha256:75f5a96988cdf694a215073c3e9c001b706b371e2f94df3967f2efdec2787f6b",
+  "platform": "linux/amd64",
+  "additionalNpmDependencies": [],
+  "nonApkComponents": [
+    {
+      "name": "PostgreSQL",
+      "license": "PostgreSQL",
+      "version": "16.15"
+    },
+    {
+      "name": "docker-library/postgres scripts",
+      "license": "MIT",
+      "note": "Public current Dockerfile consistent with observed PG/gosu versions; not a signed image-to-source attestation."
+    },
+    {
+      "name": "gosu",
+      "version": "1.19",
+      "license": "Apache-2.0",
+      "dependencies": [
+        {
+          "name": "github.com/moby/sys/user",
+          "version": "0.1.0",
+          "license": "Apache-2.0"
+        },
+        {
+          "name": "golang.org/x/sys",
+          "version": "0.1.0",
+          "license": "BSD-3-Clause"
+        },
+        {
+          "name": "Go runtime",
+          "version": "1.24.6",
+          "license": "BSD-3-Clause"
+        }
+      ]
+    },
+    {
+      "name": "Node.js existing host test runtime",
+      "version": "22.23.2",
+      "license": "MIT plus bundled third-party notices in versioned LICENSE",
+      "note": "Not included in a customer image; no npm dependencies added."
+    }
+  ],
+  "packages": [
+    {
+      "name": ".postgresql-rundeps",
+      "version": "20260813.191808",
+      "license": "",
+      "review": "Virtual dependency-only package, installed size 0 B, no files; licenses reviewed via its constituent packages, not an unknown binary."
+    },
+    {
+      "name": "alpine-baselayout",
+      "version": "3.7.2-r1",
+      "license": "GPL-2.0-only"
+    },
+    {
+      "name": "alpine-baselayout-data",
+      "version": "3.7.2-r1",
+      "license": "GPL-2.0-only"
+    },
+    {
+      "name": "alpine-keys",
+      "version": "2.6-r0",
+      "license": "MIT"
+    },
+    {
+      "name": "alpine-release",
+      "version": "3.24.1-r0",
+      "license": "MIT"
+    },
+    {
+      "name": "apk-tools",
+      "version": "3.0.6-r0",
+      "license": "GPL-2.0-only"
+    },
+    {
+      "name": "bash",
+      "version": "5.3.9-r1",
+      "license": "GPL-3.0-or-later"
+    },
+    {
+      "name": "busybox",
+      "version": "1.37.0-r31",
+      "license": "GPL-2.0-only"
+    },
+    {
+      "name": "busybox-binsh",
+      "version": "1.37.0-r31",
+      "license": "GPL-2.0-only"
+    },
+    {
+      "name": "ca-certificates-bundle",
+      "version": "20260611-r0",
+      "license": "MPL-2.0 AND MIT"
+    },
+    {
+      "name": "gdbm",
+      "version": "1.26-r0",
+      "license": "GPL-3.0-or-later"
+    },
+    {
+      "name": "icu-data-full",
+      "version": "78.1-r0",
+      "license": "ICU"
+    },
+    {
+      "name": "icu-libs",
+      "version": "78.1-r0",
+      "license": "ICU"
+    },
+    {
+      "name": "keyutils-libs",
+      "version": "1.6.3-r4",
+      "license": "GPL-2.0-or-later AND LGPL-2.0-or-later"
+    },
+    {
+      "name": "krb5-conf",
+      "version": "1.0-r2",
+      "license": "MIT"
+    },
+    {
+      "name": "krb5-libs",
+      "version": "1.22.2-r1",
+      "license": "MIT"
+    },
+    {
+      "name": "libapk",
+      "version": "3.0.6-r0",
+      "license": "GPL-2.0-only"
+    },
+    {
+      "name": "libcom_err",
+      "version": "1.47.4-r0",
+      "license": "GPL-2.0-or-later AND LGPL-2.0-or-later AND BSD-3-Clause AND MIT"
+    },
+    {
+      "name": "libcrypto3",
+      "version": "3.5.7-r0",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "libedit",
+      "version": "20260508.3.1-r1",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "libffi",
+      "version": "3.5.2-r1",
+      "license": "MIT"
+    },
+    {
+      "name": "libgcc",
+      "version": "15.2.0-r5",
+      "license": "GPL-2.0-or-later AND LGPL-2.1-or-later"
+    },
+    {
+      "name": "libldap",
+      "version": "2.6.14-r0",
+      "license": "OLDAP-2.8"
+    },
+    {
+      "name": "libncursesw",
+      "version": "6.6_p20260516-r0",
+      "license": "X11"
+    },
+    {
+      "name": "libsasl",
+      "version": "2.1.28-r9",
+      "license": "BSD-3-Clause-Attribution AND BSD-4-Clause"
+    },
+    {
+      "name": "libssl3",
+      "version": "3.5.7-r0",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "libstdc++",
+      "version": "15.2.0-r5",
+      "license": "GPL-2.0-or-later AND LGPL-2.1-or-later"
+    },
+    {
+      "name": "libuuid",
+      "version": "2.42.1-r0",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "libverto",
+      "version": "0.3.2-r2",
+      "license": "MIT"
+    },
+    {
+      "name": "libxml2",
+      "version": "2.13.9-r2",
+      "license": "MIT"
+    },
+    {
+      "name": "libxslt",
+      "version": "1.1.43-r3",
+      "license": "X11"
+    },
+    {
+      "name": "llvm21-libs",
+      "version": "21.1.8-r1",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "lz4-libs",
+      "version": "1.10.0-r1",
+      "license": "BSD-2-Clause AND GPL-2.0-or-later"
+    },
+    {
+      "name": "musl",
+      "version": "1.2.6-r2",
+      "license": "MIT"
+    },
+    {
+      "name": "musl-utils",
+      "version": "1.2.6-r2",
+      "license": "MIT AND BSD-2-Clause AND GPL-2.0-or-later"
+    },
+    {
+      "name": "ncurses-terminfo-base",
+      "version": "6.6_p20260516-r0",
+      "license": "X11"
+    },
+    {
+      "name": "nss_wrapper",
+      "version": "1.1.12-r1",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "readline",
+      "version": "8.3.3-r1",
+      "license": "GPL-3.0-or-later"
+    },
+    {
+      "name": "scanelf",
+      "version": "1.3.9-r1",
+      "license": "GPL-2.0-only"
+    },
+    {
+      "name": "ssl_client",
+      "version": "1.37.0-r31",
+      "license": "GPL-2.0-only"
+    },
+    {
+      "name": "tzdata",
+      "version": "2026c-r0",
+      "license": "Public-Domain"
+    },
+    {
+      "name": "xz-libs",
+      "version": "5.8.3-r0",
+      "license": "GPL-2.0-or-later AND 0BSD AND Public-Domain AND LGPL-2.1-or-later"
+    },
+    {
+      "name": "zlib",
+      "version": "1.3.2-r0",
+      "license": "Zlib"
+    },
+    {
+      "name": "zstd",
+      "version": "1.5.7-r2",
+      "license": "BSD-3-Clause OR GPL-2.0-or-later"
+    },
+    {
+      "name": "zstd-libs",
+      "version": "1.5.7-r2",
+      "license": "BSD-3-Clause OR GPL-2.0-or-later"
+    }
+  ],
+  "evidence": [
+    {
+      "artifact": "pg-source-0",
+      "sha256": "0b7ded1cfdf32c6e31083d009075cf8e8c65568e37ab4f2e722a183e77911fb1"
+    },
+    {
+      "artifact": "pg-source-1",
+      "sha256": "87ffd2c45e3f90cfa3407b5c40ef8333e87c3e875e4895f8b64df758198deafc"
+    },
+    {
+      "artifact": "pg-source-2",
+      "sha256": "54babedd2b3c70e08dd94a9edd00c2207c81f013a6df12a8e3cd675ed2c65527"
+    },
+    {
+      "artifact": "pg-source-3",
+      "sha256": "ddafd6f62068ea2f9ce3e99979ffbdd65d5e6eca01abfa6a657f3a2c83cc074e"
+    },
+    {
+      "artifact": "pg-source-4",
+      "sha256": "ac1db9854259c93b840716ddb1fcb9289e1487d50fb78d882558590e0d99f01e"
+    },
+    {
+      "artifact": "gosu-license",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "artifact": "gosu-mod",
+      "sha256": "0475f1708db81d718b633faf2d9dd64695037eabdc8562125060607bcb01b2ba"
+    },
+    {
+      "artifact": "go-license",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "artifact": "node-license",
+      "sha256": "c738ae413cf561f174e34f6961f8ca458aae2369a73640dda6234c629b98bcc4"
+    },
+    {
+      "artifact": "moby-user-license",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "artifact": "x-sys-license",
+      "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+    }
+  ]
+}
