@@ -23,6 +23,7 @@
 | [待确认事项与决策记录](docs/07-decisions-risks.md) | 事实、假设、决策状态和风险 |
 | [GitHub开源项目选型](docs/08-github-open-source-research.md) | 13个候选、近期活跃证据、推荐组合和PoC |
 | [开发与 Git 协作规范](CONTRIBUTING.md) | 分支、及时提交、变更检查和密钥规则 |
+| [只读数据库交接](docs/12-source-db-discovery.md) | 本地连接模板、STORY/DEFECT和历史表发现、安全及只读边界 |
 | [PoC已确认输入](docs/11-poc-confirmed-inputs.md) | 用户确认基线、DevOps资料包、状态/团队历史、月报更正和NAS核验 |
 | [PoC准入确认清单](docs/10-poc-readiness.md) | 用户待确认项、建议默认值、技术核验责任与启动门槛 |
 | [工程治理规范](docs/09-engineering-governance.md) | 商用开源、技术栈、AI编码、Git、PoC、版本与发布 |

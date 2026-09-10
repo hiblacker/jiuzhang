@@ -1,0 +1,29 @@
+{
+  "config_version": 1,
+  "engine": "",
+  "server_version": "",
+  "environment": "",
+  "host": "",
+  "port": null,
+  "database": "",
+  "service_name": "",
+  "username": "",
+  "password": "",
+  "tls": {
+    "require_encryption": true,
+    "verify_server_certificate": true,
+    "ca_cert_file": ""
+  },
+  "network_notes": "",
+  "access": {
+    "allowed_schemas": [],
+    "seed_tables": ["STORY", "DEFECT"],
+    "metadata_only": true,
+    "allow_business_row_samples": false
+  },
+  "limits": {
+    "max_parallel_queries": 1,
+    "connect_timeout_seconds": 10,
+    "query_timeout_seconds": 15
+  }
+}
