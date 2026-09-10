@@ -7,6 +7,7 @@
 ## 当前状态
 
 - 2026-09-10：形成设计和开发规划基线；尚未实现平台代码、部署组件或完成性能验证。
+- 已提供不依赖第三方包的MySQL无认证预检工具；这不代表已完成源库登录、表结构发现或PoC。
 - 一期建议采用批处理、SQL 优先、复用开源执行能力、薄控制台的路径。
 - 技术组件和版本须通过 PoC 后冻结；规划中的周期和性能指标是待确认的验收目标，不是已验证能力。
 
@@ -23,6 +24,7 @@
 | [待确认事项与决策记录](docs/07-decisions-risks.md) | 事实、假设、决策状态和风险 |
 | [GitHub开源项目选型](docs/08-github-open-source-research.md) | 13个候选、近期活跃证据、推荐组合和PoC |
 | [开发与 Git 协作规范](CONTRIBUTING.md) | 分支、及时提交、变更检查和密钥规则 |
+| [MySQL预检与Compose双版本](docs/13-mysql-preflight-compose.md) | 已完成网络预检、账号/驱动准入阻断、NAS双版本入口管理 |
 | [只读数据库交接](docs/12-source-db-discovery.md) | 本地连接模板、STORY/DEFECT和历史表发现、安全及只读边界 |
 | [PoC已确认输入](docs/11-poc-confirmed-inputs.md) | 用户确认基线、DevOps资料包、状态/团队历史、月报更正和NAS核验 |
 | [PoC准入确认清单](docs/10-poc-readiness.md) | 用户待确认项、建议默认值、技术核验责任与启动门槛 |

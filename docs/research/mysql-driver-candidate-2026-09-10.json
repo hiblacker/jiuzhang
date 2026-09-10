@@ -1,0 +1,19 @@
+{
+  "observed_at": "2026-09-10T05:57:46.554Z",
+  "source": "https://registry.npmjs.org/mysql2/3.23.3",
+  "name": "mysql2",
+  "version": "3.23.3",
+  "license": "MIT",
+  "integrity": "sha512-ehp9HEKr4wVJaBOUVxNFa+CNrsCCCZ6363/jbGhb7WpEmSRNIXjHBjFs5K2s2cXn7j/RhDieejsQJ6nfUwD6vQ==",
+  "dependencies": {
+    "long": "^5.3.2",
+    "lru.min": "^1.1.4",
+    "iconv-lite": "^0.7.3",
+    "sql-escaper": "^1.5.1",
+    "aws-ssl-profiles": "^1.1.2",
+    "generate-function": "^2.3.1",
+    "named-placeholders": "^1.1.6"
+  },
+  "status": "candidate_only_not_approved_not_installed",
+  "note": "Registry metadata only, not artifact/transitive license audit or vulnerability clearance."
+}
