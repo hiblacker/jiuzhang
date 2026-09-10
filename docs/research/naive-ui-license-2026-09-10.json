@@ -1,0 +1,9 @@
+{
+  "observed_at": "2026-09-10T05:11:14.070Z",
+  "repository": "tusen-ai/naive-ui",
+  "sha": "42a52e6436b38bed456fee19eb0b89cdcd00fcc2",
+  "license_url": "https://raw.githubusercontent.com/tusen-ai/naive-ui/42a52e6436b38bed456fee19eb0b89cdcd00fcc2/LICENSE",
+  "license_heading": "MIT License",
+  "permission_clause_present": true,
+  "note": "Root LICENSE evidence only. No release selected, installed, compatibility-tested or transitive dependency audit completed. Web search returned no usable result; collected through direct GitHub HTTP."
+}

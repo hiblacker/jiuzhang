@@ -38,9 +38,11 @@ Apache 组件许可证不等于无需履行义务；生产镜像必须带许可�
 
 ### 推荐基线
 
+2026-09-10用户确认：前端UI库改用Naive UI，替换此前Element Plus候选。本次只更新选型；未安装依赖，具体版本及兼容组合仍需在PoC前锁定。根MIT许可证的固定提交证据见[Naive UI许可记录](research/naive-ui-license-2026-09-10.json)，不代表传递依赖已审查。
+
 ```text
 控制面：Java 21 + Spring Boot + Spring Security + JDBC（模块化单体）
-控制台：Vue 3 + TypeScript + Vite + Element Plus
+控制台：Vue 3 + TypeScript + Vite + Naive UI
 接入：Apache SeaTunnel（通过本项目适配器）
 编排：Apache DolphinScheduler（一期只选一个调度器）
 转换：dbt Core + dbt-postgres + SQL（锁定兼容组合，隔离Python运行镜像）
@@ -58,7 +60,7 @@ Apache 组件许可证不等于无需履行义务；生产镜像必须带许可�
 | 模块 | 推荐选择 | 决策边界 |
 |---|---|---|
 | 后端 | Java 21、Spring Boot、Spring Security、JDBC | Spring选择仍在社区支持期且与Java21兼容的发行线；不在文档阶段随意写最新patch |
-| 前端 | Vue 3、TypeScript、Vite、Element Plus | 具体版本在工程骨架阶段验证后锁定 |
+| 前端 | Vue 3、TypeScript、Vite、Naive UI | 具体版本在工程骨架阶段验证后锁定 |
 | 构建 | Maven Wrapper、pnpm锁文件 | 禁止SNAPSHOT、动态版本及未审查安装脚本 |
 | 元数据 | PostgreSQL | 独立数据库、角色、备份；不与调度器共用其内部表 |
 | 业务数据 | PostgreSQL起步，表/分区按容量规划 | RAW、明细、汇总/发布分权限；性能不足才引入Doris |
