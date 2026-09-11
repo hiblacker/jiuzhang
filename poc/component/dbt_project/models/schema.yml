@@ -1,0 +1,12 @@
+version: 2
+models:
+  - name: stg_story_current
+    description: Latest landing batch of mock source objects, for inspection only.
+    columns:
+      - name: id
+        tests: [not_null, unique]
+  - name: stg_status_current
+    description: Latest landing batch of mock source status events, for inspection only.
+    columns:
+      - name: event_id
+        tests: [not_null, unique]

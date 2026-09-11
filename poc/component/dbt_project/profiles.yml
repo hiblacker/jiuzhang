@@ -1,0 +1,13 @@
+poc01:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_HOST') }}"
+      user: postgres
+      password: "{{ env_var('DBT_PASSWORD') }}"
+      port: 5432
+      dbname: "{{ env_var('DBT_DBNAME') }}"
+      schema: public
+      threads: 1
+      retries: 1

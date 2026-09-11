@@ -1,0 +1,139 @@
+name: bdw-poc01
+services:
+  source-mysql:
+    image: mysql:8.0.43
+    platform: linux/amd64
+    pull_policy: never
+    environment:
+      MYSQL_DATABASE: devops_src
+      MYSQL_USER: poc_ro
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      TZ: Asia/Shanghai
+    secrets:
+      - mysql_password
+      - mysql_root_password
+    volumes:
+      - ./mysql/init:/docker-entrypoint-initdb.d/:ro
+      - source_data:/var/lib/mysql
+    networks: [internal]
+    command: [mysqld, --character-set-server=utf8mb4, --default-time-zone=+08:00]
+    healthcheck:
+      test: [CMD-SHELL, mysqladmin ping -uroot -p"$$MYSQL_ROOT_PASSWORD" >/dev/null 2>&1]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 150
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+
+  warehouse:
+    image: postgres:16.15
+    platform: linux/amd64
+    pull_policy: never
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      TZ: Asia/Shanghai
+    secrets: [pg_password]
+    volumes:
+      - warehouse_data:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres -d postgres]
+      interval: 3s
+      timeout: 3s
+      retries: 60
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 200
+    security_opt: [no-new-privileges:true]
+    command: [postgres, -c, shared_buffers=128MB, -c, max_connections=40, -c, timezone=Asia/Shanghai]
+
+  seatunnel:
+    build:
+      context: .
+      dockerfile: Dockerfile.st
+    image: bdw-poc01-seatunnel:2.3.13
+    pull_policy: never
+    hostname: seatunnel
+    volumes:
+      - ./st/hazelcast.yaml:/opt/seatunnel/config/hazelcast.yaml:ro
+    networks: [internal]
+    command: [bash, -c, "/opt/seatunnel/bin/seatunnel-cluster.sh -r master,worker"]
+    healthcheck:
+      test: [CMD-SHELL, "curl -s --max-time 3 http://localhost:5801/hazelcast/rest/maps/cluster-state >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    cpus: 1.0
+    mem_limit: 2g
+    pids_limit: 300
+    security_opt: [no-new-privileges:true]
+
+  adapter:
+    build:
+      context: .
+      dockerfile: Dockerfile.adapter
+    image: bdw-poc01-adapter:1.12.4
+    pull_policy: never
+    hostname: adapter
+    environment:
+      DBT_HOST: warehouse
+      TZ: Asia/Shanghai
+    secrets:
+      - pg_password
+    volumes:
+      - ./dbt_project:/opt/dbt_project:ro
+      - ./adapter/app.py:/app/app.py:ro
+    networks: [internal]
+    command: [python, /app/app.py]
+    healthcheck:
+      test: [CMD-SHELL, "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8080/health', timeout=3)\""]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+    depends_on:
+      warehouse: {condition: service_healthy}
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 200
+    security_opt: [no-new-privileges:true]
+
+  scheduler:
+    image: apache/dolphinscheduler-standalone-server:3.4.3
+    platform: linux/amd64
+    pull_policy: never
+    hostname: scheduler
+    environment:
+      TZ: Asia/Shanghai
+    networks: [internal]
+    healthcheck:
+      test: [CMD-SHELL, "curl -s -o /dev/null --max-time 5 -w '%{http_code}' http://localhost:12345/dolphinscheduler/ui/ | grep -q 200"]
+      interval: 10s
+      timeout: 6s
+      retries: 30
+    depends_on:
+      adapter: {condition: service_healthy}
+    cpus: 1.5
+    mem_limit: 2g
+    pids_limit: 400
+    security_opt: [no-new-privileges:true]
+
+secrets:
+  pg_password:
+    file: ../../secrets/poc01-pg-password.txt
+  mysql_password:
+    file: ../../secrets/poc01-mysql-password.txt
+  mysql_root_password:
+    file: ../../secrets/poc01-mysql-root-password.txt
+
+volumes:
+  warehouse_data:
+  source_data:
+
+networks:
+  internal:
+    internal: true

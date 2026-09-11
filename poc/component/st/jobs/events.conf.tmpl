@@ -1,0 +1,27 @@
+env {
+  parallelism = 1
+  job.mode = "BATCH"
+}
+
+source {
+  Jdbc {
+    url = "jdbc:mysql://source-mysql:3306/devops_src?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai"
+    driver = "com.mysql.cj.jdbc.Driver"
+    user = "__MYSQL_USER__"
+    password = "__MYSQL_PASSWORD__"
+    query = "SELECT event_id, object_id, object_type, operation, status_code, started_at, event_time, logged_at FROM status_log WHERE logged_at > '__CURSOR__' AND logged_at <= '__UPPER__' ORDER BY logged_at, event_id"
+    fetch_size = 10
+  }
+}
+
+sink {
+  Jdbc {
+    url = "jdbc:postgresql://warehouse:5432/__DBNAME__"
+    driver = "org.postgresql.Driver"
+    user = "postgres"
+    password = "__PG_PASSWORD__"
+    generate_sink_sql = true
+    database = "poc01"
+    table = "raw_landing.status_batch"
+  }
+}

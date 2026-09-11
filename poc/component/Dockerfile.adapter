@@ -1,0 +1,5 @@
+FROM python:3.12-slim
+# Top-level pins; the resolved 59-package set is verified at runtime against
+# the license record in dependencies.lock.json (name+version equality).
+RUN pip install --no-cache-dir dbt-core==1.12.4 dbt-postgres==1.11.0
+WORKDIR /app
