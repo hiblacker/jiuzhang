@@ -11,6 +11,7 @@ This is a general-purpose reporting data center. DevOps is the first business do
 - Follow the recommended stack in document 09, but do not install unpinned or unapproved dependencies. Exact experiment versions must be recorded before PoC.
 - Do not spawn agents unless the user separately authorizes delegation.
 - Work on a short feature/fix/docs/poc branch; do not reset, force-push or delete branches/work without authorization. Creating a remote repository or pushing requires user direction.
+- Local merges to `main` are pre-authorized once all completion checks pass (tests, `node tools/check-docs.mjs`, `git diff --check`, staged sensitive-content scan) — no per-merge approval needed (see CONTRIBUTING.md local merge autonomy, user-authorized 2026-09-11). Every such merge must state that no human peer review occurred; this does not constitute release, acceptance or production approval.
 
 ## Design and security
 
