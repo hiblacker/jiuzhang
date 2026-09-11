@@ -1,0 +1,54 @@
+{
+  "recorded_on": "2026-09-11",
+  "purpose": "Component PoC (POC-01) dependency candidate facts; evidence only, not approval",
+  "method": "HTTP GET via curl; WebFetch model processing failed (recorded honestly) so raw endpoints were parsed locally",
+  "items": [
+    {
+      "component": "dbt-core",
+      "source": "https://pypi.org/pypi/dbt-core/json",
+      "fetched": true,
+      "latest_version": "1.12.4",
+      "latest_1x_upload": "2026-09-08",
+      "requires_python": ">=3.10",
+      "license_field": "Apache-2.0",
+      "key_requires_dist": ["dbt-adapters<2.0,>=1.24.5", "dbt-common<2.0,>=1.37.5"],
+      "note": "dbt Core v1 is the maintained Python line; main branch hosts v2.0 beta (Rust/Fusion), out of scope per doc 09."
+    },
+    {
+      "component": "dbt-postgres",
+      "source": "https://pypi.org/pypi/dbt-postgres/json",
+      "fetched": true,
+      "latest_version": "1.11.0",
+      "upload_date": "2026-07-16",
+      "requires_python": ">=3.10.0",
+      "license_field": null,
+      "license_field_note": "PyPI license field is null; repository LICENSE/NOTICE must be verified at install-lock time, tag-pinned.",
+      "key_requires_dist": ["dbt-adapters<2.0,>=1.24.1", "dbt-common<2.0,>=1.0.4"],
+      "pairing_note": "1.11.0 released the same day as dbt-core 1.12.0 (2026-07-16); adapter constraint satisfies core 1.12.4's dbt-adapters>=1.24.5. Actual compatibility is verified by running the PoC, not assumed."
+    },
+    {
+      "component": "apache-seatunnel",
+      "source": "https://raw.githubusercontent.com/apache/seatunnel/2.3.13/pom.xml",
+      "fetched": true,
+      "tag": "2.3.13",
+      "build_java_target": "1.8",
+      "evidence": "<java.version>1.8</java.version> with maven.compiler.source/target=${java.version}",
+      "license": "Apache-2.0 per docs/08 snapshot and docs/09 records"
+    },
+    {
+      "component": "apache-dolphinscheduler",
+      "source": "https://raw.githubusercontent.com/apache/dolphinscheduler/3.4.3/pom.xml",
+      "fetched": true,
+      "tag": "3.4.3",
+      "build_java_target": "1.8",
+      "evidence": "<java.version>1.8</java.version>",
+      "license": "Apache-2.0 per docs/08 snapshot and docs/09 records"
+    }
+  ],
+  "failed_attempts": [
+    "WebFetch on https://pypi.org/pypi/dbt-core/json and /dbt-postgres/json: model request failed (tool), switched to curl + local parse",
+    "WebFetch on https://seatunnel.apache.org/docs/2.3.13/start-v2/locally: HTTP 404; curl of same path returned a page without JDK text, so pom.xml from the release tag was used as first-hand evidence",
+    "https://dolphinscheduler.apache.org/en-us/docs/latest/guide/installation/: SPA shell without server-rendered content; pom.xml from the release tag used instead"
+  ],
+  "boundaries": "Version facts observed on 2026-09-11. Nothing installed, no image pulled, no transitive dependency reviewed yet; the install lock (digests, pip freeze, licenses) is a separate approved step."
+}

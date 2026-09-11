@@ -27,6 +27,7 @@
 | [开发与 Git 协作规范](CONTRIBUTING.md) | 分支、及时提交、变更检查和密钥规则 |
 | [合成数据 SQL PoC](docs/17-synthetic-sql-poc.md) | P0范围、精确版本与许可边界、合成口径、运行结果与后续切片 |
 | [历史限量采样结果](docs/16-devops-history-sampling.md) | 缺陷日志覆盖、状态单值候选、起止缺失、成员历史缺口与合成PoC输入 |
+| [组件PoC依赖矩阵](docs/18-component-poc-matrix.md) | POC-01候选版本与兼容性事实、安装锁定要求、执行设计与GOV-01签字清单 |
 | [源库元数据发现](docs/15-source-metadata-findings.md) | TLS授权例外、真实连接和结构事实、三类指标缺口及本地字典 |
 | [测试库发现执行记录](docs/14-mysql-test-discovery.md) | 初次严格TLS失败历史、固定客户端与NAS Compose v2.40.3 |
 | [MySQL预检与Compose双版本](docs/13-mysql-preflight-compose.md) | 初次网络预检历史、已更新的账号/客户端状态与NAS入口管理 |
