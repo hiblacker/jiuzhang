@@ -1,0 +1,492 @@
+{
+ "recorded_on": "2026-09-11",
+ "purpose": "POC-01 component install lock; images digest-pinned, dbt transitive deps license-recorded. Approvals: docs/18 section 7.",
+ "provenance": {
+  "network": "Docker Hub unreachable from host (registry-1.docker.io timeout); user enabled proxy 2026-09-11, then pulls succeeded via Docker Desktop proxy (http.docker.internal:3128). PyPI reached directly.",
+  "registries": "docker.io official images; PyPI direct"
+ },
+ "images": [
+  {
+   "reference": "python:3.12-slim",
+   "repoDigest": "python@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea",
+   "architecture": "amd64",
+   "role": "dbt runtime, isolated Python image"
+  },
+  {
+   "reference": "apache/seatunnel:2.3.13",
+   "repoDigest": "apache/seatunnel@sha256:2b1d327df210fb35c2ec12487b0db52c95dc845a77864d3ee04f1886cdcd60e1",
+   "architecture": "amd64",
+   "role": "ingest engine (POC-A)",
+   "bundledRuntime": "OpenJDK 1.8.0_342",
+   "licenseFiles": [
+    "/opt/seatunnel/LICENSE (Apache-2.0)",
+    "/opt/seatunnel/NOTICE"
+   ]
+  },
+  {
+   "reference": "apache/dolphinscheduler-standalone-server:3.4.3",
+   "repoDigest": "apache/dolphinscheduler-standalone-server@sha256:34ce695512b072f25fc44273ae8b644fc0089c50554e8db6643a2600f673cc7e",
+   "architecture": "amd64",
+   "role": "scheduler (POC-B)",
+   "bundledRuntime": "OpenJDK 1.8.0_502",
+   "licenseFiles": [
+    "/opt/dolphinscheduler/LICENSE",
+    "/opt/dolphinscheduler/NOTICE"
+   ]
+  },
+  {
+   "reference": "postgres@sha256:44c4ee9810eff91f7eab4d822642e01115b1a9eccce4bcbdde7604752d68eac6",
+   "repoDigest": "(previously locked, see ../synthetic-sql/dependencies.lock.json)",
+   "role": "target warehouse and reporting store",
+   "note": "cached image reused, no new pull"
+  },
+  {
+   "reference": "mysql:8.0.43",
+   "repoDigest": "(cached client image, see docs/14)",
+   "role": "mock DevOps source server + client, synthetic data only",
+   "note": "cached image reused, no new pull; GPL license boundary unchanged"
+  }
+ ],
+ "dbt": {
+  "core": "1.12.4",
+  "adapter": "dbt-postgres 1.11.0",
+  "requires_python": ">=3.10",
+  "packages": [
+   {
+    "name": "agate",
+    "version": "1.9.1",
+    "license": "MIT",
+    "license_classifiers": [
+     "MIT License"
+    ]
+   },
+   {
+    "name": "annotated-types",
+    "version": "0.8.0",
+    "license": "MIT",
+    "license_classifiers": [
+     "MIT License"
+    ]
+   },
+   {
+    "name": "attrs",
+    "version": "26.1.0",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "babel",
+    "version": "2.18.0",
+    "license": "BSD-3-Clause",
+    "license_classifiers": [
+     "BSD License"
+    ]
+   },
+   {
+    "name": "certifi",
+    "version": "2026.7.22",
+    "license": "MPL-2.0",
+    "license_classifiers": [
+     "Mozilla Public License 2.0 (MPL 2.0)"
+    ]
+   },
+   {
+    "name": "charset-normalizer",
+    "version": "3.5.1",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "click",
+    "version": "8.5.0",
+    "license": "BSD-3-Clause",
+    "license_classifiers": []
+   },
+   {
+    "name": "colorama",
+    "version": "0.4.6",
+    "license": "",
+    "license_classifiers": [
+     "BSD License"
+    ]
+   },
+   {
+    "name": "daff",
+    "version": "1.4.2",
+    "license": "MIT",
+    "license_classifiers": [
+     "MIT License"
+    ]
+   },
+   {
+    "name": "dbt-adapters",
+    "version": "1.24.5",
+    "license": "",
+    "license_classifiers": [
+     "Apache Software License"
+    ]
+   },
+   {
+    "name": "dbt-common",
+    "version": "1.39.0",
+    "license": "Apache-2.0",
+    "license_classifiers": [
+     "Apache Software License"
+    ]
+   },
+   {
+    "name": "dbt-core",
+    "version": "1.12.4",
+    "license": "Apache-2.0",
+    "license_classifiers": []
+   },
+   {
+    "name": "dbt-core-experimental-parser",
+    "version": "2.0.0rc2",
+    "license": "Apache-2.0",
+    "license_classifiers": []
+   },
+   {
+    "name": "dbt-extractor",
+    "version": "0.6.0",
+    "license": "Apache-2.0",
+    "license_classifiers": [
+     "Apache Software License"
+    ]
+   },
+   {
+    "name": "dbt-postgres",
+    "version": "1.11.0",
+    "license": "",
+    "license_classifiers": [
+     "Apache Software License"
+    ]
+   },
+   {
+    "name": "dbt-protos",
+    "version": "1.0.565",
+    "license": "Apache-2.0",
+    "license_classifiers": [
+     "Apache Software License"
+    ]
+   },
+   {
+    "name": "deepdiff",
+    "version": "8.6.2",
+    "license": "",
+    "license_classifiers": [
+     "MIT License"
+    ]
+   },
+   {
+    "name": "idna",
+    "version": "3.19",
+    "license": "BSD-3-Clause",
+    "license_classifiers": []
+   },
+   {
+    "name": "importlib_metadata",
+    "version": "9.0.1",
+    "license": "Apache-2.0",
+    "license_classifiers": []
+   },
+   {
+    "name": "isodate",
+    "version": "0.7.2",
+    "license": "Copyright (c) 2021, Hugo van Kemenade and contributors\n        Copyright (c) 2009-2018, Gerhard Weis and contributors\n        Copyright (c) 2009, Gerhard Weis\n        All rights reserved.\n        \n        Redistribution and use in source and binary forms, with or without\n        modification, are permitted provided that the following conditions are met:\n            * Redistributions of source code must retain the above copyright\n              notice, this list of conditions and the following disclaimer.\n            * Redistributions in binary form must reproduce the above copyright\n              notice, this list of conditions and the following disclaimer in the\n              documentation and/or other materials provided with the distribution.\n            * Neither the name of the <organization> nor the\n              names of its contributors may be used to endorse or promote products\n              derived from this software without specific prior written permission.\n        \n        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND\n        ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED\n        WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\n        DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY\n        DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES\n        (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;\n        LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND\n        ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n        (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS\n        SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n        ",
+    "license_classifiers": [
+     "BSD License"
+    ]
+   },
+   {
+    "name": "Jinja2",
+    "version": "3.1.6",
+    "license": "",
+    "license_classifiers": [
+     "BSD License"
+    ]
+   },
+   {
+    "name": "jsonschema",
+    "version": "4.26.0",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "jsonschema-specifications",
+    "version": "2025.9.1",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "leather",
+    "version": "0.4.1",
+    "license": "MIT",
+    "license_classifiers": [
+     "MIT License"
+    ]
+   },
+   {
+    "name": "MarkupSafe",
+    "version": "3.0.3",
+    "license": "BSD-3-Clause",
+    "license_classifiers": []
+   },
+   {
+    "name": "mashumaro",
+    "version": "3.17",
+    "license": "Apache-2.0",
+    "license_classifiers": []
+   },
+   {
+    "name": "metricflow",
+    "version": "0.213.0",
+    "license": "Apache-2.0",
+    "license_classifiers": []
+   },
+   {
+    "name": "more-itertools",
+    "version": "10.8.0",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "msgpack",
+    "version": "1.2.2",
+    "license": "Apache-2.0",
+    "license_classifiers": []
+   },
+   {
+    "name": "networkx",
+    "version": "3.6.1",
+    "license": "BSD-3-Clause",
+    "license_classifiers": []
+   },
+   {
+    "name": "opentelemetry-api",
+    "version": "1.44.0",
+    "license": "Apache-2.0",
+    "license_classifiers": []
+   },
+   {
+    "name": "orderly-set",
+    "version": "5.5.0",
+    "license": "",
+    "license_classifiers": [
+     "MIT License"
+    ]
+   },
+   {
+    "name": "packaging",
+    "version": "26.3",
+    "license": "Apache-2.0 OR BSD-2-Clause",
+    "license_classifiers": []
+   },
+   {
+    "name": "parsedatetime",
+    "version": "2.6",
+    "license": "Apache License 2.0",
+    "license_classifiers": [
+     "Apache Software License"
+    ]
+   },
+   {
+    "name": "pathspec",
+    "version": "1.0.4",
+    "license": "",
+    "license_classifiers": [
+     "Mozilla Public License 2.0 (MPL 2.0)"
+    ]
+   },
+   {
+    "name": "protobuf",
+    "version": "6.33.6",
+    "license": "3-Clause BSD License",
+    "license_classifiers": []
+   },
+   {
+    "name": "psycopg2-binary",
+    "version": "2.9.13",
+    "license": "LGPL with exceptions",
+    "license_classifiers": [
+     "GNU Library or Lesser General Public License (LGPL)"
+    ]
+   },
+   {
+    "name": "pydantic",
+    "version": "2.13.5",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "pydantic_core",
+    "version": "2.46.5",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "python-dateutil",
+    "version": "2.9.0.post0",
+    "license": "Dual License",
+    "license_classifiers": [
+     "BSD License",
+     "Apache Software License"
+    ]
+   },
+   {
+    "name": "python-dotenv",
+    "version": "1.2.3",
+    "license": "BSD-3-Clause",
+    "license_classifiers": []
+   },
+   {
+    "name": "python-slugify",
+    "version": "9.0.0",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "pytimeparse",
+    "version": "1.1.8",
+    "license": "License :: OSI Approved :: MIT License",
+    "license_classifiers": [
+     "MIT License"
+    ]
+   },
+   {
+    "name": "pytz",
+    "version": "2026.3.post1",
+    "license": "MIT",
+    "license_classifiers": [
+     "MIT License"
+    ]
+   },
+   {
+    "name": "PyYAML",
+    "version": "6.0.3",
+    "license": "MIT",
+    "license_classifiers": [
+     "MIT License"
+    ]
+   },
+   {
+    "name": "RapidFuzz",
+    "version": "3.14.6",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "referencing",
+    "version": "0.37.0",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "requests",
+    "version": "2.34.2",
+    "license": "Apache-2.0",
+    "license_classifiers": [
+     "Apache Software License"
+    ]
+   },
+   {
+    "name": "rpds-py",
+    "version": "2026.6.3",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "six",
+    "version": "1.17.0",
+    "license": "MIT",
+    "license_classifiers": [
+     "MIT License"
+    ]
+   },
+   {
+    "name": "snowplow-tracker",
+    "version": "1.1.0",
+    "license": "Apache License 2.0",
+    "license_classifiers": [
+     "Apache Software License"
+    ]
+   },
+   {
+    "name": "sqlglot",
+    "version": "30.18.0",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "sqlparse",
+    "version": "0.6.0",
+    "license": "",
+    "license_classifiers": [
+     "BSD License"
+    ]
+   },
+   {
+    "name": "tabulate",
+    "version": "0.10.0",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "text-unidecode",
+    "version": "1.3",
+    "license": "Artistic License",
+    "license_classifiers": [
+     "Artistic License",
+     "GNU General Public License (GPL)",
+     "GNU General Public License v2 or later (GPLv2+)"
+    ]
+   },
+   {
+    "name": "typing_extensions",
+    "version": "4.16.0",
+    "license": "PSF-2.0",
+    "license_classifiers": []
+   },
+   {
+    "name": "typing-inspection",
+    "version": "0.4.4",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "urllib3",
+    "version": "2.7.0",
+    "license": "MIT",
+    "license_classifiers": []
+   },
+   {
+    "name": "zipp",
+    "version": "4.1.0",
+    "license": "MIT",
+    "license_classifiers": []
+   }
+  ],
+  "reviewFlags": {
+   "psycopg2-binary": "LGPL-3.0-with-linking-exception (psycopg standard license); acceptable for internal use/PoC; record NOTICE at delivery time",
+   "text-unidecode": "Dual license (Artistic / GPLv2+); proceed under the Artistic path; confirm Artistic version at delivery time"
+  },
+  "packageCount": 59
+ },
+ "smoke": {
+  "seatunnel": {
+   "command": "seatunnel.sh --config v2.batch.config.template -e local",
+   "result": "Job ended with state FINISHED",
+   "connectorsVersion": "2.3.13"
+  },
+  "dolphinscheduler": {
+   "boot": "API HTTP 200 after ~50s",
+   "login": "POST /dolphinscheduler/login default admin returned code=0 sessionId",
+   "container": "ephemeral smoke, removed after evidence capture",
+   "jar": "dolphinscheduler-standalone-server-3.4.3.jar"
+  },
+  "dbt": {
+   "version": "dbt --version: Core 1.12.4, postgres plugin 1.11.0 in pinned python:3.12-slim"
+  }
+ },
+ "boundaries": "PoC images are pulled for local experiment only; enterprise delivery requires SBOM, CVE scan and full license clearance per docs/09. DS standalone uses default admin credentials only inside ephemeral smoke container; PoC deployment must generate credentials at runtime."
+}

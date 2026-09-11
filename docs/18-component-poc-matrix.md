@@ -69,3 +69,12 @@ SeaTunnel 约1–1.5GB、DolphinScheduler standalone 约2GB、MySQL+PostgreSQL �
 2. **GOV-01签字（"批准全部9项"）**：第5节9项指标作为一期指标口径基线。真实源数据条件核实前，对应指标在交付物中标记"未验证"；不可计算者标记"受限/P1"，口径不删除。
 
 签字主体：项目用户（聊天记录为准）；本记录由AI据回复代记，用户可随时修订。
+
+## 8. 安装锁定与冒烟记录（2026-09-11，POC-01前置完成）
+
+用户开启系统代理后拉取成功；证据与锁文件见 [poc/component](../poc/component/README.md)：
+
+- 三个新镜像已按digest固定并拉取：`python:3.12-slim`、`apache/seatunnel:2.3.13`（内置JDK 1.8.0_342，LICENSE/NOTICE齐备）、`apache/dolphinscheduler-standalone-server:3.4.3`（内置JDK 1.8.0_502）。PostgreSQL 16.15 与 mysql:8.0.43 复用已锁缓存，无新增拉取。
+- dbt传递依赖锁：59个包逐包登记许可证；`psycopg2-binary`（LGPL+链接例外）与`text-unidecode`（Artistic/GPL双许可，走Artistic路径）标记为"内部使用/交付期复核"。
+- 冒烟：dbt --version 确认 core 1.12.4 + postgres 1.11.0 配对可运行；SeaTunnel FakeSource→Console 批作业以 `-e local` 运行结束状态 `FINISHED`；DS standalone 约50秒启动后 API 200、登录端点返回会话，临时容器已清理。
+- 边界：冒烟只证明二进制可在本机运行；不是POC-A/B验收、不是ADR-007冻结、不是NAS或容量结果。下一步工作包为POC-01链路执行（模拟源建表→SeaTunnel JDBC接入→dbt日指标→DS调度与补数→旧运行拒绝覆盖）。
