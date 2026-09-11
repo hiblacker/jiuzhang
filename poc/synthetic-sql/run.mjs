@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 export const directory = path.dirname(fileURLToPath(import.meta.url));
 export const root = path.resolve(directory, '../..');
 export const sqlFiles = Object.freeze([
- 'migrations/V001__warehouse.sql', 'migrations/V002__release_guard.sql',
+ 'migrations/V001__warehouse.sql', 'migrations/V002__release_guard.sql', 'migrations/V003__flow_gate_roles.sql',
  'models/lifecycle.sql', 'fixtures/baseline.sql', 'tests/acceptance.sql',
 ]);
 export function databaseName(token) {
@@ -71,19 +71,32 @@ async function main() {
  try {
   const migrationLock = JSON.parse(await readFile(path.join(directory, 'sql.lock.json'), 'utf8'));
   let migration = 'BEGIN; CREATE TABLE public.p0_migration(version text PRIMARY KEY, sha256 text NOT NULL, applied_at timestamptz NOT NULL DEFAULT clock_timestamp());\n';
-  for (const file of sqlFiles.slice(0, 2)) {
+  for (const file of sqlFiles.slice(0, 3)) {
    migration += await readFile(path.join(directory, file), 'utf8');
    migration += `\nINSERT INTO public.p0_migration(version,sha256) VALUES ('${file}','${migrationLock[file]}');\n`;
   }
   await psql(migration + 'COMMIT;');
-  for (const file of sqlFiles.slice(2)) await psql(await readFile(path.join(directory, file), 'utf8'));
+  // Report login passwords are runtime-only: hex bytes sent on stdin, never in argv,
+  // migration files, logs or run reports. V003 provisions the LOGIN roles without secrets.
+  await psql(`ALTER ROLE p0_report_a LOGIN PASSWORD '${randomBytes(24).toString('hex')}';\n`
+   + `ALTER ROLE p0_report_b LOGIN PASSWORD '${randomBytes(24).toString('hex')}';`);
+  for (const file of sqlFiles.slice(3)) await psql(await readFile(path.join(directory, file), 'utf8'));
   const checked = (await psql('SELECT label FROM verification.result ORDER BY label;')).split('\n').filter(Boolean);
+  // Login identities must really resolve to the database role in a separate session.
+  const scram = await psql(`SELECT count(*) FROM pg_authid WHERE rolname LIKE 'p0_report_%' AND rolpassword LIKE 'SCRAM-SHA-256$%';`);
+  if (scram !== '2') throw new Error('Report login passwords are not SCRAM-stored');
+  const loginProbe = await docker(['exec', '-u', 'postgres', container, 'psql', '-X', '-qAt', '--dbname', db,
+   '-U', 'p0_report_a', '-c', 'SELECT session_user;']);
+  if (loginProbe !== 'p0_report_a') throw new Error('Report login session identity mismatch');
+  const localAuth = await psql(`SELECT coalesce(string_agg(DISTINCT auth_method::text, ','), 'none') FROM pg_hba_file_rules WHERE type='local';`);
   // Real independent database sessions contend on the same release pointer.
   const candidates = await psql(`
    SELECT warehouse.build('2026-02-06 00:00+08', :'rule_version',true);
    SELECT warehouse.build('2026-02-06 00:00+08', :'rule_version',true);
    INSERT INTO warehouse.approval(release_id,approver,reason)
     SELECT release_id,'synthetic-approver','concurrent publication simulation' FROM warehouse.release WHERE state='READY' AND input_cutoff='2026-02-06 00:00+08';
+   INSERT INTO warehouse.flow_exception(release_id,domain,approver,reason)
+    SELECT release_id,'devops','synthetic-approver','concurrent publication simulation' FROM warehouse.release WHERE state='READY' AND input_cutoff='2026-02-06 00:00+08';
   `);
   const ids = candidates.split('\n').filter(x => /^\d+$/.test(x));
   if (ids.length !== 2) throw new Error('Expected two concurrent candidates');
@@ -101,6 +114,12 @@ async function main() {
   result.passed = result.assertions.length;
   result.activeRelease = current;
   result.monthlyMetrics = JSON.parse(await psql(`SELECT json_agg(m ORDER BY release_id,domain,team) FROM warehouse.metric m WHERE period_id='2026-01';`));
+  result.reportLogin = {
+   passwordStorage: 'SCRAM-SHA-256 (verified for p0_report_a/p0_report_b)',
+   loginProbeSession: loginProbe,
+   localSocketAuthMethod: localAuth,
+   boundaryNote: 'Image-local socket auth is trust; password+TLS enforcement over TCP is production work, not validated here.',
+  };
   result.status = 'PASS';
  } catch (error) {
   result.status = 'FAIL'; result.error = error.message; throw error;

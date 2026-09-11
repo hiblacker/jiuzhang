@@ -35,3 +35,26 @@ test('PoC dependency manifest records all image packages including virtual excep
  assert.deepEqual(manifest.additionalNpmDependencies, []);
  for (const pkg of manifest.packages) assert.ok(pkg.license || pkg.review, pkg.name);
 });
+test('PoC V003 gates flow integrity and separates roles without embedded secrets', async () => {
+ const v3 = await readFile(path.join(directory, 'migrations/V003__flow_gate_roles.sql'), 'utf8');
+ assert.match(v3, /flow integrity exception required/);
+ assert.match(v3, /SECURITY DEFINER/);
+ assert.match(v3, /immutable_flow_status/);
+ assert.match(v3, /p0_worker/);
+ assert.match(v3, /p0_publisher/);
+ assert.match(v3, /security_barrier=true/);
+ assert.doesNotMatch(v3, /PASSWORD\s+'/);
+ const lock = JSON.parse(await readFile(path.join(directory, 'sql.lock.json'), 'utf8'));
+ assert.match(lock['migrations/V003__flow_gate_roles.sql'], /^[a-f0-9]{64}$/);
+});
+test('PoC acceptance covers flow gate recovery, worker and publisher boundaries', async () => {
+ const sql = await readFile(path.join(directory, 'tests/acceptance.sql'), 'utf8');
+ assert.match(sql, /failed publish preserves ready state for retry/);
+ assert.match(sql, /SET SESSION AUTHORIZATION p0_worker/);
+ assert.match(sql, /SET SESSION AUTHORIZATION p0_publisher/);
+ assert.match(sql, /worker cannot read raw or warehouse tables directly/);
+ assert.match(sql, /publisher cannot alter release state directly/);
+ const model = await readFile(path.join(directory, 'models/lifecycle.sql'), 'utf8');
+ assert.match(model, /warehouse\.flow_status/);
+ assert.match(model, /GRANT EXECUTE ON FUNCTION warehouse\.build/);
+});

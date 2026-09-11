@@ -1,7 +1,8 @@
 {
-  "migrations/V001__warehouse.sql": "56e373015531868ed3eaaf1477bf3b0a32b4abf15e8fe532486ac58b10ec4f74",
-  "migrations/V002__release_guard.sql": "89dd66aa72f5dca8e6b1f2ba292a5c9f098b66d8cee87f357a0b7de6e7425275",
-  "models/lifecycle.sql": "4b94fde436a2471ce7432d1eabc3c32608cbe40f12ef1128658fe51014a7a5e6",
-  "fixtures/baseline.sql": "f082e98c640cf0e818d84fa5497084c5740ceec4b71396925f712c979a6b5584",
-  "tests/acceptance.sql": "2befeae6fc045031c94d4b13a5b73a3db01c391ff93a1335ab61266fab9ed53a"
+ "migrations/V001__warehouse.sql": "56e373015531868ed3eaaf1477bf3b0a32b4abf15e8fe532486ac58b10ec4f74",
+ "migrations/V002__release_guard.sql": "89dd66aa72f5dca8e6b1f2ba292a5c9f098b66d8cee87f357a0b7de6e7425275",
+ "migrations/V003__flow_gate_roles.sql": "a6beca561e8431cd73b8f683ac266f3300cb3397f797588a5a5093b3d8711fef",
+ "models/lifecycle.sql": "115ce0c5f9a8928c2e7f77baa6a7748dac1a1cb14c2495e0b08b37673c6f55f2",
+ "fixtures/baseline.sql": "f082e98c640cf0e818d84fa5497084c5740ceec4b71396925f712c979a6b5584",
+ "tests/acceptance.sql": "c714e6f9ce345efd53c43d1a64b538e3cb2f2c389cb542a08d42e358a142c902"
 }

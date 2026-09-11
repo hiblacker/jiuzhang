@@ -62,7 +62,26 @@ SELECT verification.assert((SELECT completion_events=1 AND completed_objects=1 A
  'second domain reuses shared calculation model');
 SELECT verification.assert((SELECT inventory=1 FROM warehouse.metric WHERE release_id=:r1 AND period_id='2026-01' AND team='UNKNOWN'),
  'missing team is explicit UNKNOWN without losing object');
+-- Flow gate: the devops domain carries a synthetic unknown state and incomplete
+-- history, so the first publication attempt must be rejected until an approved
+-- exemption exists; the failed attempt must leave a retryable state.
+DO $$ BEGIN
+ BEGIN
+  PERFORM warehouse.publish((SELECT max(release_id) FROM warehouse.release),NULL);
+  RAISE EXCEPTION 'expected flow gate';
+ EXCEPTION WHEN raise_exception THEN
+  IF SQLERRM<>'flow integrity exception required' THEN RAISE; END IF;
+ END;
+ PERFORM verification.assert(true,'publish blocks on incomplete flow integrity');
+END $$;
+SELECT verification.assert((SELECT state='READY' FROM warehouse.release WHERE release_id=:r1)
+ AND (SELECT release_id IS NULL FROM warehouse.active_release),
+ 'failed publish preserves ready state for retry');
+INSERT INTO warehouse.flow_exception(release_id,domain,approver,reason)
+ VALUES(:r1,'devops','synthetic-approver','synthetic unknown state and incomplete history; not a real exemption');
 SELECT warehouse.publish(:r1,NULL);
+SELECT verification.assert((SELECT release_id=:r1 FROM warehouse.active_release),
+ 'publish recovers after per-domain flow exception');
 
 DO $$ BEGIN
  BEGIN
@@ -129,7 +148,19 @@ DO $$ BEGIN
  PERFORM verification.assert(true,'initial month close requires approval');
 END $$;
 INSERT INTO warehouse.approval(release_id,approver,reason) VALUES(:closed,'synthetic-approver','simulated first month close; not user acceptance');
+DO $$ BEGIN
+ BEGIN
+  PERFORM warehouse.publish((SELECT max(release_id) FROM warehouse.release),1);
+  RAISE EXCEPTION 'expected flow gate after approval';
+ EXCEPTION WHEN raise_exception THEN
+  IF SQLERRM<>'flow integrity exception required' THEN RAISE; END IF;
+ END;
+ PERFORM verification.assert(true,'flow exception still required after month close approval');
+END $$;
+INSERT INTO warehouse.flow_exception(release_id,domain,approver,reason) VALUES(:closed,'devops','synthetic-approver','simulated month close exemption; not a real exemption');
 SELECT warehouse.publish(:closed,:r1);
+SELECT verification.assert((SELECT release_id=:closed FROM warehouse.active_release),
+ 'finalized month publishes with approval and flow exception');
 DO $$ BEGIN
  BEGIN
   PERFORM warehouse.publish(2,3);
@@ -150,10 +181,85 @@ DO $$ BEGIN
  PERFORM verification.assert(true,'closed month revision requires separate approval');
 END $$;
 INSERT INTO warehouse.approval(release_id,approver,reason) VALUES(:revision,'synthetic-approver','simulated month B revision; not user acceptance');
+INSERT INTO warehouse.flow_exception(release_id,domain,approver,reason) VALUES(:revision,'devops','synthetic-approver','simulated month B revision exemption; not a real exemption');
 SELECT warehouse.publish(:revision,:closed);
 SELECT verification.assert((SELECT count(*)=3 FROM warehouse.release WHERE state='PUBLISHED')
  AND (SELECT completion_events=4 FROM warehouse.metric WHERE release_id=:r1 AND period_id='2026-01' AND team='alpha'),
  'month B revisions retain immutable earlier published results');
+
+-- Independent execution and publication identities. The worker only reaches ingest and
+-- build through SECURITY DEFINER functions; the publisher only reaches publish plus the
+-- approval/exemption tables. Neither has direct table access on raw or warehouse data.
+GRANT USAGE ON SCHEMA verification TO p0_worker,p0_publisher;
+GRANT INSERT ON verification.result TO p0_worker,p0_publisher;
+SET SESSION AUTHORIZATION p0_worker;
+SELECT warehouse.build('2026-02-05 12:00+08', :'rule_version', true) AS worker_built \gset
+DO $$ BEGIN
+ BEGIN
+  PERFORM warehouse.publish((SELECT max(release_id) FROM warehouse.release),NULL);
+  RAISE EXCEPTION 'publish unexpectedly accessible';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+ PERFORM verification.assert(true,'worker cannot publish');
+ BEGIN
+  INSERT INTO warehouse.approval(release_id,approver,reason)
+   SELECT max(release_id),'synthetic-approver','should fail' FROM warehouse.release;
+  RAISE EXCEPTION 'approval unexpectedly accessible';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+ PERFORM verification.assert(true,'worker cannot approve releases');
+ BEGIN
+  PERFORM 1 FROM raw.event;
+  RAISE EXCEPTION 'raw unexpectedly accessible';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+ PERFORM verification.assert(true,'worker cannot read raw or warehouse tables directly');
+ BEGIN
+  PERFORM 1 FROM reporting.metrics;
+  RAISE EXCEPTION 'reporting unexpectedly accessible';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+ PERFORM verification.assert(true,'worker cannot read reporting data');
+END $$;
+RESET SESSION AUTHORIZATION;
+SELECT verification.assert((SELECT state='READY' FROM warehouse.release WHERE release_id=:worker_built),
+ 'worker builds release independently');
+SET SESSION AUTHORIZATION p0_publisher;
+INSERT INTO warehouse.approval(release_id,approver,reason) VALUES(:worker_built,'synthetic-approver','simulated publisher approval; not user acceptance');
+INSERT INTO warehouse.flow_exception(release_id,domain,approver,reason) VALUES(:worker_built,'devops','synthetic-approver','simulated publisher flow exemption; not a real exemption');
+SELECT warehouse.publish(:worker_built,(SELECT release_id FROM warehouse.active_release));
+DO $$ BEGIN
+ BEGIN
+  PERFORM warehouse.build('2026-02-05 13:00+08','invalid');
+  RAISE EXCEPTION 'build unexpectedly accessible';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+ PERFORM verification.assert(true,'publisher cannot build');
+ BEGIN
+  PERFORM raw.ingest('devops','pub-test','2026-02-05 13:00+08',
+   '{"id":"px","object":"A","at":"2026-02-05T13:00:00+08:00","updated":"2026-02-05T13:00:00+08:00","status":"todo"}');
+  RAISE EXCEPTION 'ingest unexpectedly accessible';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+ PERFORM verification.assert(true,'publisher cannot ingest events');
+ BEGIN
+  UPDATE warehouse.release SET state='PUBLISHED' WHERE release_id=(SELECT max(release_id) FROM warehouse.release);
+  RAISE EXCEPTION 'release state unexpectedly writable';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+ PERFORM verification.assert(true,'publisher cannot alter release state directly');
+ BEGIN
+  PERFORM 1 FROM raw.event;
+  RAISE EXCEPTION 'raw unexpectedly accessible';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+ PERFORM verification.assert(true,'publisher cannot read raw data');
+END $$;
+RESET SESSION AUTHORIZATION;
+SELECT verification.assert((SELECT release_id=:worker_built FROM warehouse.active_release),
+ 'publisher approves and publishes worker release');
+REVOKE ALL ON SCHEMA verification FROM p0_worker,p0_publisher;
+REVOKE ALL ON verification.result FROM p0_worker,p0_publisher;
 
 -- session_user is the database identity, not a caller-controlled tenant setting.
 GRANT USAGE ON SCHEMA verification TO p0_report_a,p0_report_b;
@@ -167,6 +273,10 @@ SELECT verification.assert(NOT EXISTS(SELECT FROM reporting.events WHERE domain<
 SELECT verification.assert((SELECT count(*)=4 FROM reporting.events WHERE release_id=:r1 AND state='done'
  AND event_at>='2026-01-01 00:00+08' AND event_at<'2026-02-01 00:00+08'),
  'pinned old release drilldown stays consistent after revision');
+SELECT verification.assert(EXISTS(SELECT 1 FROM reporting.release_flow
+  WHERE release_id=:revision AND domain='devops' AND NOT flow_complete)
+ AND NOT EXISTS(SELECT 1 FROM reporting.release_flow WHERE domain<>'devops'),
+ 'reporter sees per-domain flow completeness');
 DO $$ BEGIN
  BEGIN
   PERFORM 1 FROM raw.event;
@@ -189,7 +299,7 @@ DO $$ BEGIN
 END $$;
 RESET SESSION AUTHORIZATION;
 SET SESSION AUTHORIZATION p0_report_b;
-SELECT verification.assert((SELECT count(*)=3 FROM reporting.metrics WHERE period_id='2026-01')
+SELECT verification.assert((SELECT count(*)=4 FROM reporting.metrics WHERE period_id='2026-01')
  AND NOT EXISTS(SELECT FROM reporting.metrics WHERE domain<>'helpdesk'),
  'reporter B sees second domain only');
 RESET SESSION AUTHORIZATION;

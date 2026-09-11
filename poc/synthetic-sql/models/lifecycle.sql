@@ -1,6 +1,6 @@
 -- Shared lifecycle model. No DevOps table names or source status literals here.
 CREATE FUNCTION warehouse.build(p_cutoff timestamptz,p_rule text,p_finalized boolean DEFAULT false)
-RETURNS bigint LANGUAGE plpgsql AS $$
+RETURNS bigint LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE rid bigint;
 BEGIN
  IF EXISTS(SELECT 1 FROM raw.team_history a JOIN raw.team_history b
@@ -54,6 +54,17 @@ BEGIN
  SELECT DISTINCT rid,domain,object_id,'incomplete_snapshot',NULL,'warning'
  FROM warehouse.snapshot_detail WHERE release_id=rid AND NOT complete;
 
+ -- Per-domain flow integrity: unknown states, unattributed objects or incomplete
+ -- snapshots mark the domain incomplete; publication then needs an approved exemption.
+ INSERT INTO warehouse.flow_status(release_id,domain,flow_complete)
+ SELECT rid,d.domain,bool_and(d.ok)
+ FROM (
+  SELECT domain,(state<>'unknown' AND team<>'UNKNOWN') AS ok
+   FROM warehouse.event_detail WHERE release_id=rid
+  UNION ALL
+  SELECT domain,complete FROM warehouse.snapshot_detail WHERE release_id=rid
+ ) d GROUP BY d.domain;
+
  INSERT INTO warehouse.metric
  WITH flows AS (
   SELECT p.period_id,e.domain,e.team,count(*) AS events,count(DISTINCT e.object_id) AS objects,
@@ -72,14 +83,17 @@ BEGIN
   CASE WHEN s.complete IS DISTINCT FROM true THEN 'incomplete_history_or_period' END
  FROM flows f FULL JOIN stocks s USING(period_id,domain,team);
 
- -- A quality warning must not silently become zero or a fabricated duration.
- IF EXISTS(SELECT FROM warehouse.metric WHERE release_id=rid AND (
-  completed_objects>completion_events OR valid_samples>completion_events OR duration_sum_seconds<0
-  OR (valid_samples=0 AND duration_mean_seconds IS NOT NULL)
-  OR (inventory IS NULL AND inventory_reason IS NULL))) THEN
+ -- A quality warning must not silently become zero or a fabricated duration, and every
+ -- metric domain must have a flow verdict before the release can become READY.
+ IF EXISTS(SELECT 1 FROM warehouse.metric m WHERE m.release_id=rid AND (
+  m.completed_objects>m.completion_events OR m.valid_samples>m.completion_events OR m.duration_sum_seconds<0
+  OR (m.valid_samples=0 AND m.duration_mean_seconds IS NOT NULL)
+  OR (m.inventory IS NULL AND m.inventory_reason IS NULL)
+  OR NOT EXISTS(SELECT 1 FROM warehouse.flow_status f WHERE f.release_id=rid AND f.domain=m.domain))) THEN
   RAISE EXCEPTION 'metric quality gate failed';
  END IF;
  UPDATE warehouse.release SET state='READY' WHERE release_id=rid;
  RETURN rid;
 END $$;
 REVOKE ALL ON FUNCTION warehouse.build(timestamptz,text,boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION warehouse.build(timestamptz,text,boolean) TO p0_worker;
