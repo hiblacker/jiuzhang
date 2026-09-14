@@ -6,7 +6,7 @@
 
 ## 当前状态
 
-- 2026-09-11：合成 SQL PoC（P0）切片2完成——按数据集流程完整性门禁与审批豁免、执行/发布/登录账号分离、发布失败恢复已验证；组件PoC依赖矩阵获用户批准，三个组件镜像已digest固定并完成冒烟（dbt 1.12.4+postgres 1.11.0、SeaTunnel 2.3.13作业FINISHED、DolphinScheduler 3.4.3 API就绪）；尚未执行POC-01链路、正式平台、NAS部署或容量验证。
+- 2026-09-14：POC-01 本地合成链路已验证——MySQL→SeaTunnel→PostgreSQL RAW→dbt→DolphinScheduler，覆盖重放、迟到、陈旧发布拒绝和失败重试；仍未验证正式平台、NAS部署、容量或真实源全量接入。
 - 2026-09-10：已形成设计规划、完成限量源库调查，并跑通本地合成数据 SQL PoC（P0）。
 - 已在用户明确授权的测试库TLS例外下成功连接MySQL 8.1.0，完成两个源库共21个选定对象的元数据调查；另已完成5对象的限量业务采样，发现任务/缺陷状态日志及成员事件候选，但完整历史还原、指标与完整PoC尚未验证。
 - 一期建议采用批处理、SQL 优先、复用开源执行能力、薄控制台的路径。
@@ -28,6 +28,7 @@
 | [合成数据 SQL PoC](docs/17-synthetic-sql-poc.md) | P0范围、精确版本与许可边界、合成口径、运行结果与后续切片 |
 | [历史限量采样结果](docs/16-devops-history-sampling.md) | 缺陷日志覆盖、状态单值候选、起止缺失、成员历史缺口与合成PoC输入 |
 | [组件PoC依赖矩阵](docs/18-component-poc-matrix.md) | POC-01候选版本与兼容性事实、安装锁定要求、执行设计与GOV-01签字清单 |
+| [DevOps首主题域契约](docs/19-devops-domain-contract.md) | 首条真实接入范围、指标发布边界、质量门禁与待确认业务规则 |
 | [源库元数据发现](docs/15-source-metadata-findings.md) | TLS授权例外、真实连接和结构事实、三类指标缺口及本地字典 |
 | [测试库发现执行记录](docs/14-mysql-test-discovery.md) | 初次严格TLS失败历史、固定客户端与NAS Compose v2.40.3 |
 | [MySQL预检与Compose双版本](docs/13-mysql-preflight-compose.md) | 初次网络预检历史、已更新的账号/客户端状态与NAS入口管理 |
