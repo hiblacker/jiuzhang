@@ -9,6 +9,8 @@ const TABLES = {
   PROJECT_DYNAMICS: ['ID','PROJECT_ID','EVENT_TYPE','OPERATE_TYPE','FIELD_TYPE','SOURCE_VALUE','TARGET_VALUE','CREATE_TIME'],
 };
 export const STATUS_TOKENS = ['未开始','处理中','已完成','待处理','待验证','已拒绝','已关闭','重新打开'];
+const STATUS_DICTIONARY_LIMIT = 201;
+const STATUS_OBJECT_SAMPLE_LIMIT = 200;
 const hex = value => `CONVERT(X'${Buffer.from(value,'utf8').toString('hex')}' USING utf8mb4)`;
 const name = value => {
   if (typeof value !== 'string' || !value.length || [...value].length > 64 || /[\x00-\x1f\x7f]/u.test(value)) throw new Error('INVALID_IDENTIFIER');
@@ -78,8 +80,44 @@ export function buildSamplingSql({schema,records,phase,seeds,authorized=false,ti
   }
   return [...sql,'COMMIT;',''].join('\n');
 }
+export function buildStatusSamplingSql({schema,records,authorized=false,timeoutMs=15000}) {
+  if (authorized !== true) throw new Error('BUSINESS_SAMPLE_AUTHORIZATION_REQUIRED');
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 15000) throw new Error('INVALID_STATUS_SAMPLE_LIMIT');
+  name(schema);
+  const required = {
+    NODE_STATUS: ['ID','NODE_TYPE','STATUS_NAME','STATUS_CODE','STATUS','BEGIN','PROJECT_ID','DELETE_FLAG'],
+    STORY: ['ID','TYPE','STATUS','STATUS_CODE','STATUS_NAME','DELETE_FLAG'],
+    DEFECT: ['ID','TYPE','STATUS','STATUS_CODE','STATUS_NAME','DELETE_FLAG'],
+  };
+  for (const [table, columns] of Object.entries(required)) {
+    for (const column of columns) if (!records?.some(r => r.kind === 'column' && r.schema === schema && r.table === table && r.name === column)) throw new Error('UNVERIFIED_STATUS_COLUMN');
+    if (!records.some(r => r.kind === 'index' && r.schema === schema && r.table === table && r.name === 'PRIMARY' && r.position === 1 && r.column === 'ID')) throw new Error('UNVERIFIED_STATUS_INDEX');
+  }
+  const estimate = records.find(r => r.kind === 'table' && r.schema === schema && r.table === 'NODE_STATUS')?.estimated_rows;
+  if (!Number.isInteger(estimate) || estimate < 0 || estimate > 10000) throw new Error('STATUS_DICTIONARY_TOO_LARGE');
+  const table = value => `${name(schema)}.${name(value)}`;
+  const sql = ['SET SESSION transaction_read_only = ON;',`SET SESSION max_execution_time = ${timeoutMs};`,'START TRANSACTION READ ONLY;',
+    "SHOW SESSION STATUS LIKE 'Ssl_cipher';", "SHOW SESSION STATUS LIKE 'Ssl_version';",
+    'SELECT @@SESSION.transaction_read_only AS session_read_only, @@SESSION.max_execution_time AS select_timeout_ms;'];
+  sql.push(bound(`SELECT JSON_OBJECT('kind','status_dictionary','node_type',NODE_TYPE,'status_name',STATUS_NAME,'status_code',STATUS_CODE,'coarse_status',STATUS,'is_begin',BEGIN,'project_scoped',CASE WHEN PROJECT_ID IS NULL THEN 0 ELSE 1 END,'delete_flag',DELETE_FLAG) AS sample_json FROM (SELECT NODE_TYPE,STATUS_NAME,STATUS_CODE,STATUS,BEGIN,PROJECT_ID,DELETE_FLAG FROM ${table('NODE_STATUS')} WHERE DELETE_FLAG = 0 LIMIT ${STATUS_DICTIONARY_LIMIT}) sampled LIMIT ${STATUS_DICTIONARY_LIMIT}`));
+  for (const objectTable of ['STORY','DEFECT']) {
+    sql.push(bound(`SELECT JSON_OBJECT('kind','status_sample','object_kind','${objectTable}','object_type',TYPE,'coarse_status',STATUS,'status_code',STATUS_CODE,'status_name',STATUS_NAME,'delete_flag',DELETE_FLAG,'sample_count',COUNT(*)) AS sample_json FROM (SELECT TYPE,STATUS,STATUS_CODE,STATUS_NAME,DELETE_FLAG FROM ${table(objectTable)} FORCE INDEX (PRIMARY) LIMIT ${STATUS_OBJECT_SAMPLE_LIMIT}) sampled GROUP BY TYPE,STATUS,STATUS_CODE,STATUS_NAME,DELETE_FLAG LIMIT 51`));
+  }
+  return [...sql,'COMMIT;',''].join('\n');
+}
 export function parseSamplingOutput(text) {
   return text.split(/\r?\n/).filter(line=>line.startsWith('{')).map(line=>JSON.parse(unescapeBatch(line)));
+}
+export function summarizeStatusSamples(rows) {
+  const dictionary = rows.filter(row => row.kind === 'status_dictionary');
+  const samples = rows.filter(row => row.kind === 'status_sample');
+  return {
+    dictionary_group_count: dictionary.length,
+    dictionary_at_limit: dictionary.length === STATUS_DICTIONARY_LIMIT,
+    story_status_group_count: samples.filter(row => row.object_kind === 'STORY').length,
+    defect_status_group_count: samples.filter(row => row.object_kind === 'DEFECT').length,
+    completeness: 'bounded-status-dictionary-and-first-200-object-samples',
+  };
 }
 const yes = value => value === true || value === 1;
 export function summarizeSamples(rows) {

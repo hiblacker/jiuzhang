@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildSamplingSql, validateSeeds, parseSamplingOutput, summarizeSamples, sourceFingerprint, validateSeedReference } from '../tools/devops-history-sampling.mjs';
+import { buildSamplingSql, buildStatusSamplingSql, validateSeeds, parseSamplingOutput, summarizeSamples, summarizeStatusSamples, sourceFingerprint, validateSeedReference } from '../tools/devops-history-sampling.mjs';
 const schema='synthetic_source';
 const fields={STORY:['ID','PROJECT_ID','TYPE','STATUS','STATUS_CODE','CREATE_TIME','UPDATE_TIME','ACTUAL_BEGIN_TIME','ACTUAL_END_TIME','DELETE_FLAG'],DEFECT:['ID','PROJECT_ID','TYPE','STATUS','STATUS_CODE','CREATE_TIME','UPDATE_TIME','ACTUAL_BEGIN_TIME','ACTUAL_END_TIME','DELETE_FLAG'],STORY_LOG:['ID','PROJECT_ID','STORY_ID','STORY_TYPE','OPERATE_TYPE','CONTENT','CREATE_TIME','DELETE_FLAG'],PROJECT_DYNAMICS:['ID','PROJECT_ID','EVENT_TYPE','OPERATE_TYPE','FIELD_TYPE','SOURCE_VALUE','TARGET_VALUE','CREATE_TIME']};
 const records=Object.entries(fields).flatMap(([table,names])=>[...names.map(name=>({kind:'column',schema,table,name})),{kind:'index',schema,table,name:'PRIMARY',position:1,column:'ID'}]);
@@ -62,4 +62,17 @@ test('seed provenance refuses pending, changed config/source, path traversal and
 test('member candidates use observed event code, not the unverified comment literal alone',()=>{
  const summary=summarizeSamples([{kind:'project_history',event_code:'projectMember'},{kind:'project_history',event_code:'projectBaseInfo'}]);
  assert.equal(summary.member_candidate_count,1);
+});
+test('status sampling is bounded, metadata-gated and excludes object identities',()=>{
+ const fields={NODE_STATUS:['ID','NODE_TYPE','STATUS_NAME','STATUS_CODE','STATUS','BEGIN','PROJECT_ID','DELETE_FLAG'],STORY:['ID','TYPE','STATUS','STATUS_CODE','STATUS_NAME','DELETE_FLAG'],DEFECT:['ID','TYPE','STATUS','STATUS_CODE','STATUS_NAME','DELETE_FLAG']};
+ const statusRecords=Object.entries(fields).flatMap(([table,names])=>[...names.map(name=>({kind:'column',schema,table,name})),{kind:'index',schema,table,name:'PRIMARY',position:1,column:'ID'}]);
+ statusRecords.push({kind:'table',schema,table:'NODE_STATUS',estimated_rows:2462});
+ const sql=buildStatusSamplingSql({schema,records:statusRecords,authorized:true});
+ const templates=[...sql.matchAll(/SET @template = CONVERT\(X'([a-f0-9]+)' USING utf8mb4\);/g)].map(match=>Buffer.from(match[1],'hex').toString('utf8'));
+ assert.match(sql,/START TRANSACTION READ ONLY/); assert.match(templates[0],/LIMIT 201/); assert.match(templates[1],/LIMIT 200/);
+ assert.doesNotMatch(templates.join('\n'),/'id',ID|PROJECT_ID AS|TITLE|DESCRIPTION|HANDLER|CREATE_USER/);
+ assert.throws(()=>buildStatusSamplingSql({schema,records:statusRecords,authorized:false}));
+ assert.throws(()=>buildStatusSamplingSql({schema,records:statusRecords.filter(r=>r.name!=='STATUS_CODE'),authorized:true}));
+ assert.throws(()=>buildStatusSamplingSql({schema,records:statusRecords.map(r=>r.kind==='table'?{...r,estimated_rows:10001}:r),authorized:true}));
+ assert.deepEqual(summarizeStatusSamples([{kind:'status_dictionary'},{kind:'status_sample',object_kind:'STORY'},{kind:'status_sample',object_kind:'DEFECT'}]),{dictionary_group_count:1,dictionary_at_limit:false,story_status_group_count:1,defect_status_group_count:1,completeness:'bounded-status-dictionary-and-first-200-object-samples'});
 });

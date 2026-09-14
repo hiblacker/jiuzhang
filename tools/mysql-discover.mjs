@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDetailsSql, parseDetailsOutput } from './mysql-metadata.mjs';
 
-import { buildSamplingSql, parseSamplingOutput, summarizeSamples, sourceFingerprint, validateSeedReference } from './devops-history-sampling.mjs';
+import { buildSamplingSql, buildStatusSamplingSql, parseSamplingOutput, summarizeSamples, summarizeStatusSamples, sourceFingerprint, validateSeedReference } from './devops-history-sampling.mjs';
 
 export const IMAGE = 'sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -80,7 +80,7 @@ export async function runDiscovery({ allowUnverifiedTestTls = false, details = f
   let sampleRows;
   let sampleSchema;
   try {
-    if (typeof details !== 'boolean' || ![null,'seeds','history'].includes(samplePhase) || typeof allowTestBusinessSamples !== 'boolean' || (samplePhase && (details || !allowTestBusinessSamples)) || (!samplePhase && allowTestBusinessSamples)) throw new Error('INVALID_PHASE_OR_AUTHORIZATION');
+    if (typeof details !== 'boolean' || ![null,'seeds','history','statuses'].includes(samplePhase) || typeof allowTestBusinessSamples !== 'boolean' || (samplePhase && (details || !allowTestBusinessSamples)) || (!samplePhase && allowTestBusinessSamples)) throw new Error('INVALID_PHASE_OR_AUTHORIZATION');
     const configBytes = await readFile(path.join(ROOT, 'secrets/devops-db.local.json'));
     configHash = createHash('sha256').update(configBytes).digest('hex');
     const config = JSON.parse(configBytes.toString('utf8'));
@@ -105,7 +105,9 @@ export async function runDiscovery({ allowUnverifiedTestTls = false, details = f
         seeds = JSON.parse(bytes);
       }
       if (samplePhase === 'seeds') await writeFile(path.join(ROOT,'work/mysql-sample-seeds.json'),JSON.stringify({status:'pending',run_id:report.run_id})+'\n',{mode:0o600});
-      sql = buildSamplingSql({schema:config.database,records:dictionary.records,phase:samplePhase,seeds,authorized:allowTestBusinessSamples,timeoutMs});
+      sql = samplePhase === 'statuses'
+        ? buildStatusSamplingSql({schema:config.database,records:dictionary.records,authorized:allowTestBusinessSamples,timeoutMs})
+        : buildSamplingSql({schema:config.database,records:dictionary.records,phase:samplePhase,seeds,authorized:allowTestBusinessSamples,timeoutMs});
     }
     report.sql_sha256 = createHash('sha256').update(sql).digest('hex');
     if (samplePhase) report.sampling_module_sha256 = createHash('sha256').update(await readFile(path.join(ROOT,'tools/devops-history-sampling.mjs'))).digest('hex');
@@ -140,7 +142,7 @@ export async function runDiscovery({ allowUnverifiedTestTls = false, details = f
       if (samplePhase) {
         report.local_sample_file = `work/${name}`;
         sampleRows = parseSamplingOutput(result.stdout);
-        report.sample_summary = summarizeSamples(sampleRows);
+        report.sample_summary = samplePhase === 'statuses' ? summarizeStatusSamples(sampleRows) : summarizeSamples(sampleRows);
         await writeFile(path.join(ROOT, 'work', name.replace('.tsv','.json')), JSON.stringify(sampleRows,null,2)+'\n', {mode:0o600,flag:'wx'});
       } else report.local_metadata_file = `work/${name}`;
       if (samplePhase) report.sample_may_be_partial = true;
@@ -195,9 +197,9 @@ export async function runDiscovery({ allowUnverifiedTestTls = false, details = f
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const args = process.argv.slice(2);
-    if (new Set(args).size !== args.length || args.some(arg => !['--allow-unverified-test-tls', '--details', '--sample-devops-seeds', '--sample-devops-history', '--allow-test-business-samples'].includes(arg))) throw new Error('INVALID_ARGUMENT');
-    if (args.includes('--sample-devops-seeds') && args.includes('--sample-devops-history')) throw new Error('INVALID_ARGUMENT');
-    const report = await runDiscovery({ samplePhase: args.includes('--sample-devops-seeds') ? 'seeds' : args.includes('--sample-devops-history') ? 'history' : null, allowTestBusinessSamples: args.includes('--allow-test-business-samples'), allowUnverifiedTestTls: args.includes('--allow-unverified-test-tls'), details: args.includes('--details') });
+    if (new Set(args).size !== args.length || args.some(arg => !['--allow-unverified-test-tls', '--details', '--sample-devops-seeds', '--sample-devops-history', '--sample-devops-statuses', '--allow-test-business-samples'].includes(arg))) throw new Error('INVALID_ARGUMENT');
+    if ([args.includes('--sample-devops-seeds'),args.includes('--sample-devops-history'),args.includes('--sample-devops-statuses')].filter(Boolean).length > 1) throw new Error('INVALID_ARGUMENT');
+    const report = await runDiscovery({ samplePhase: args.includes('--sample-devops-seeds') ? 'seeds' : args.includes('--sample-devops-history') ? 'history' : args.includes('--sample-devops-statuses') ? 'statuses' : null, allowTestBusinessSamples: args.includes('--allow-test-business-samples'), allowUnverifiedTestTls: args.includes('--allow-unverified-test-tls'), details: args.includes('--details') });
     console.log(JSON.stringify(report, null, 2));
     if (report.status !== 'succeeded' || report.credential_cleanup_ok === false || report.container_cleanup_ok === false) process.exitCode = 1;
   } catch { console.error('DISCOVERY_LOCAL_FAILURE'); process.exitCode = 1; }
