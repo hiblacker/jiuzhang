@@ -17,9 +17,7 @@ NAS统一使用 `/root/.docker/cli-plugins/docker-compose` **v2.40.3**，替代1
 | 项目 | 固定值/证据 |
 |---|---|
 | 本机Docker client/server | 27.5.1 / 27.5.1，本轮本机实测 |
-| 已缓存客户端镜像标签 | mysql:8.0.43，不拉取新镜像 |
-| 实际执行镜像ID | sha256:8f51417dfdbf3f6c2434b2fff64530fba6e0f244c616cb62846faaaf18f65135 |
-| 缓存RepoDigest | mysql@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10 |
+| 客户端镜像版本 | `mysql:8.0.43`，运行参数只使用该版本标签，不拉取新镜像 |
 | 客户端实测 | mysql Ver 8.0.43 for Linux on x86_64 (MySQL Community Server - GPL) |
 | 系统信任库 | 已确认镜像内/etc/pki/tls/certs/ca-bundle.crt可读 |
 
@@ -53,5 +51,5 @@ CA配置完成后在项目目录执行node tools/mysql-discover.mjs。恢复后�
 - Node测试：预检6项、发现工具7项，共13项；涵盖合成配置转义、TLS强制、连接超时、数字错误分类/脱敏及既有握手测试。
 - 本地实测：固定客户端版本、系统CA可读、上述受控连接尝试与临时资源清理。
 - 未验证：真实登录、只读SQL兼容性、元数据分页、历史关系、业务指标、NAS部署及性能。单元测试不代替这些验证。
-- 工具定位为一次性调查辅助，固定本机缓存image ID；换机必须重新核验镜像，而不是自动下载未知版本。进程被强制终止/宿主崩溃不保证finally执行，需检查本项目secrets/mysql-client-*和bydw-discovery-*残留；Windows主机文件ACL沿用现有secrets目录，应限制给当前用户。Docker管理员能够访问容器密钥，不能把只读挂载视为防管理员隔离。
+- 工具定位为一次性调查辅助，固定使用 `mysql:8.0.43` 版本标签；换机必须重新核验版本和架构，而不是自动下载未知版本。进程被强制终止/宿主崩溃不保证finally执行，需检查本项目secrets/mysql-client-*和bydw-discovery-*残留；Windows主机文件ACL沿用现有secrets目录，应限制给当前用户。Docker管理员能够访问容器密钥，不能把只读挂载视为防管理员隔离。
 - 文档检查及Git差异/敏感内容检查在提交前执行；这些检查不代表许可清关或部署验收。

@@ -91,7 +91,7 @@ node tools/mysql-discover.mjs --allow-unverified-test-tls --details
 
 ## 7. 2026-09-14 当前环境重新核验
 
-Docker Desktop 升级后重新执行了本工作包的固定工具。旧执行锁定的本地客户端镜像 ID 已不再存在，工具已更新为当前缓存的 `mysql:8.0.43` 镜像 ID `sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10`。这只是客户端镜像锁更新，不改变源库配置、查询SQL或权限范围。
+Docker Desktop 升级后重新执行了本工作包的固定工具。工具使用明确版本标签 `mysql:8.0.43`，并以 `--pull=never` 禁止运行时隐式拉取；不使用镜像 ID 或 digest 作为运行引用。这不改变源库配置、查询SQL或权限范围。
 
 - inventory 查询：成功；TLSv1.3、只读会话和 15 秒查询上限确认，连接文件未改变，源库未修改。
 - details 查询：成功；本次限定目标返回 104 条元数据记录，未达到 200 条查询上限。

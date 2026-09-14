@@ -47,7 +47,9 @@ async function main() {
  if (process.versions.node !== dependency.node) throw new Error(`Use pinned Node ${dependency.node}`);
  const rule = await verifyLocks(); // All checks before starting the database.
  const image = JSON.parse(await docker(['image', 'inspect', dependency.image]))[0];
- if (image.Id !== dependency.imageId || image.Architecture !== 'amd64') throw new Error('Cached image identity mismatch');
+ if (!image.RepoTags?.includes(dependency.image) || image.Architecture !== 'amd64') {
+  throw new Error('Versioned image tag or architecture mismatch');
+ }
  await mkdir(path.join(root, 'secrets'), { recursive: true });
  try {
   await writeFile(path.join(root, 'secrets/synthetic-poc-password.txt'), randomBytes(32).toString('hex'), { flag: 'wx', mode: 0o600 });

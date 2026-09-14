@@ -67,7 +67,7 @@ export function inspectSession(text) {
 }
 
 export async function runDiscovery({ allowUnverifiedTestTls = false, details = false, samplePhase = null, allowTestBusinessSamples = false } = {}) {
-  const report = { run_id: randomUUID(), recorded_at: new Date().toISOString(), image_id: IMAGE,
+  const report = { run_id: randomUUID(), recorded_at: new Date().toISOString(), image_ref: IMAGE,
     authorization: samplePhase ? 'user-continue-bounded-test-business-samples' : 'existing-test-account-all-visible-schemas-metadata-only',
     phase: samplePhase ? `sample-${samplePhase}` : details ? 'details' : 'inventory',
     completeness_scope: samplePhase ? 'bounded-convenience-sample-not-full-history' : 'selected-metadata-queries-not-entire-source',

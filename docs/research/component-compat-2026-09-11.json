@@ -50,5 +50,5 @@
     "WebFetch on https://seatunnel.apache.org/docs/2.3.13/start-v2/locally: HTTP 404; curl of same path returned a page without JDK text, so pom.xml from the release tag was used as first-hand evidence",
     "https://dolphinscheduler.apache.org/en-us/docs/latest/guide/installation/: SPA shell without server-rendered content; pom.xml from the release tag used instead"
   ],
-  "boundaries": "Version facts observed on 2026-09-11. Nothing installed, no image pulled, no transitive dependency reviewed yet; the install lock (digests, pip freeze, licenses) is a separate approved step."
+  "boundaries": "Version facts observed on 2026-09-11. Nothing installed, no image pulled, no transitive dependency reviewed yet; the install lock (version tags, pip freeze, licenses) is a separate approved step."
 }

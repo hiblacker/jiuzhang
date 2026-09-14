@@ -85,13 +85,7 @@ SeaTunnel 约1–1.5GB、DolphinScheduler standalone 约2GB、MySQL+PostgreSQL �
 
 Docker Desktop 升级后验证环境为 Docker client/server `29.7.2`、API `1.55`、Docker Desktop CLI plugin `v0.4.3`，`docker desktop status` 持续为 `running`。Compose 使用本地 `docker compose` v2 插件；本轮不触碰 NAS。
 
-| 镜像 | 实测摘要 |
-|---|---|
-| `mysql:8.0.43` | `sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10` |
-| `postgres:16.15` | `sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94` |
-| `python:3.12-slim` | `sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea` |
-| `apache/seatunnel:2.3.13` | `sha256:2b1d327df210fb35c2ec12487b0db52c95dc845a77864d3ee04f1886cdcd60e1` |
-| `apache/dolphinscheduler-standalone-server:3.4.3` | `sha256:34ce695512b072f25fc44273ae8b644fc0089c50554e8db6643a2600f673cc7e` |
+本轮运行仅使用以下明确版本标签：`mysql:8.0.43`、`postgres:16.15`、`python:3.12-slim`、`apache/seatunnel:2.3.13`、`apache/dolphinscheduler-standalone-server:3.4.3`。运行配置和命令均不得改用镜像 ID 或 digest。
 
 ### 9.2 结果
 

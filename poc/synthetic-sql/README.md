@@ -13,7 +13,7 @@ node poc/synthetic-sql/run.mjs
 
 The runner verifies SQL checksums and the exact cached image, generates a password only if absent in ignored `secrets/`, validates Compose, then starts **only** project `bdw-synthetic-p0`. It never pulls images, uses a host port, accesses the real source, or deploys NAS. The container listens only on its local Unix socket. A new randomly suffixed `p0_...` database is created per run; existing databases are not cleared. Local privileged Docker access is trusted in this experiment; this is not a hardened production security boundary.
 
-Actual versions and license review limits: [dependency lock](dependencies.lock.json). Local Compose is 2.32.4-desktop.1, not the NAS-selected 2.40.3. The image digest is a manifest digest; the runner also verifies local image ID and architecture. No third-party Node modules.
+Actual versions and license review limits: [dependency lock](dependencies.lock.json). Local Compose is 2.32.4-desktop.1, not the NAS-selected 2.40.3. The runner verifies the explicit `postgres:16.15` tag and `linux/amd64` architecture; it does not run by image ID or digest. No third-party Node modules.
 
 ## Artifacts and boundaries
 
