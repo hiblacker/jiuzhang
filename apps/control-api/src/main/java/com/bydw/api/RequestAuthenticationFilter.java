@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -21,17 +22,33 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class RequestAuthenticationFilter extends OncePerRequestFilter {
   public static final String REQUEST_ID_ATTRIBUTE = "bydw.requestId";
   public static final String PRINCIPAL_ATTRIBUTE = "bydw.principal";
-  private static final String PRINCIPAL = "local-admin";
+  private static final String ADMIN_PRINCIPAL = "local-admin";
+  private static final String WORKER_PRINCIPAL = "local-worker";
+  private static final Pattern BATCH_START = Pattern.compile(
+      "^/api/v1/ingestion-jobs/[^/]+/batches/?$");
+  private static final Pattern BATCH_MUTATION = Pattern.compile(
+      "^/api/v1/ingestion-batches/[^/]+/(?:complete|fail)/?$");
+  private static final Pattern CHECKPOINT_READ = Pattern.compile(
+      "^/api/v1/ingestion-jobs/[^/]+/checkpoint/?$");
 
-  private final byte[] expectedToken;
+  private final byte[] adminToken;
+  private final byte[] workerToken;
   private final ObjectMapper objectMapper;
 
   public RequestAuthenticationFilter(
-      @Value("${bydw.security.admin-token}") String adminToken, ObjectMapper objectMapper) {
-    if (adminToken == null || adminToken.length() < 24) {
-      throw new IllegalArgumentException("CONTROL_API_ADMIN_TOKEN must contain at least 24 characters");
+      @Value("${bydw.security.admin-token}") String configuredAdminToken,
+      @Value("${bydw.security.worker-token}") String configuredWorkerToken,
+      ObjectMapper objectMapper) {
+    if (configuredAdminToken == null || configuredAdminToken.length() < 24
+        || configuredWorkerToken == null || configuredWorkerToken.length() < 24) {
+      throw new IllegalArgumentException("Admin and worker tokens must each contain at least 24 characters");
     }
-    this.expectedToken = adminToken.getBytes(StandardCharsets.UTF_8);
+    if (MessageDigest.isEqual(configuredAdminToken.getBytes(StandardCharsets.UTF_8),
+        configuredWorkerToken.getBytes(StandardCharsets.UTF_8))) {
+      throw new IllegalArgumentException("Admin and worker tokens must be different");
+    }
+    this.adminToken = configuredAdminToken.getBytes(StandardCharsets.UTF_8);
+    this.workerToken = configuredWorkerToken.getBytes(StandardCharsets.UTF_8);
     this.objectMapper = objectMapper;
   }
 
@@ -53,7 +70,12 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
     byte[] supplied = authorization != null && authorization.startsWith("Bearer ")
         ? authorization.substring(7).getBytes(StandardCharsets.UTF_8)
         : new byte[0];
-    if (!MessageDigest.isEqual(expectedToken, supplied)) {
+    Access access = accessFor(request.getMethod(), request.getRequestURI());
+    boolean admin = MessageDigest.isEqual(adminToken, supplied);
+    boolean worker = MessageDigest.isEqual(workerToken, supplied);
+    boolean accepted = access == Access.ADMIN ? admin
+        : access == Access.WORKER ? worker : admin || worker;
+    if (!accepted) {
       response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
       response.setContentType(MediaType.APPLICATION_JSON_VALUE);
       objectMapper.writeValue(response.getOutputStream(),
@@ -61,12 +83,21 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
       return;
     }
 
-    request.setAttribute(PRINCIPAL_ATTRIBUTE, PRINCIPAL);
+    request.setAttribute(PRINCIPAL_ATTRIBUTE, worker ? WORKER_PRINCIPAL : ADMIN_PRINCIPAL);
     filterChain.doFilter(request, response);
+  }
+
+  private Access accessFor(String method, String path) {
+    if ("POST".equals(method) && (BATCH_START.matcher(path).matches()
+        || BATCH_MUTATION.matcher(path).matches())) return Access.WORKER;
+    if ("GET".equals(method) && CHECKPOINT_READ.matcher(path).matches()) return Access.EITHER;
+    return Access.ADMIN;
   }
 
   private boolean isPublicPath(String path) {
     return path.equals("/api/v1/status") || path.equals("/actuator/health")
         || path.startsWith("/actuator/health/");
   }
+
+  private enum Access { ADMIN, WORKER, EITHER }
 }

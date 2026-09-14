@@ -49,5 +49,5 @@ Java 测试共 9 项：既有服务身份 1 项、认证过滤器 4 项、来源
 
 1. 增加来源更新/禁用的并发版本控制，禁止覆盖已变更记录。
 2. 增加受限凭证解析器和目标主机/端口白名单，再实现只读连接测试。
-3. ingestion job 登记已在[接入任务契约](23-ingestion-job-contract.md)完成；下一步实现检查点和批次状态机，执行仍交给 Worker，不放入 HTTP 请求线程。
+3. ingestion job 登记、批次状态机和 RAW 完成门禁已分别在[接入任务契约](23-ingestion-job-contract.md)、[接入批次与检查点](24-ingestion-batch-checkpoint.md)和[RAW 批次门禁](25-raw-batch-evidence.md)完成；执行仍交给独立 Worker，不放入 HTTP 请求线程。
 4. 将本地管理 Token 替换为可配置身份提供方和角色策略；SQL 报表账号单独设计。

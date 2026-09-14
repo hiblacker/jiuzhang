@@ -48,6 +48,15 @@ public class JdbcBatchRepository implements BatchRepository {
   }
 
   @Override
+  public Optional<RawBatchEvidence> rawEvidence(long batchId) {
+    return jdbc.query("SELECT record_count, checksum, writer_principal, sealed_at"
+        + " FROM raw.ingestion_batch_manifest WHERE batch_id = ?",
+        (result, row) -> new RawBatchEvidence(
+            result.getLong(1), result.getString(2), result.getString(3),
+            result.getObject(4, OffsetDateTime.class)), batchId).stream().findFirst();
+  }
+
+  @Override
   @Transactional
   public boolean complete(long batchId, long jobId, long expectedCheckpointVersion,
       String nextCheckpointJson, long rowCount, String checksum) {

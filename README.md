@@ -9,6 +9,7 @@
 - 2026-09-14：POC-01 本地合成链路已验证——MySQL→SeaTunnel→PostgreSQL RAW→dbt→DolphinScheduler，覆盖重放、迟到、陈旧发布拒绝和失败重试；仍未验证正式平台、NAS部署、容量或真实源全量接入。
 - 2026-09-14：正式平台 PLT-01 第一切片已完成本地验证——Spring Boot 控制 API、PostgreSQL 版本化迁移和 Compose 启动链路可运行；身份、真实接入、Naive UI 与 NAS 部署仍待后续切片。
 - 2026-09-14：PLT-02/ING-01 第一切片已完成本地验证——管理 Token、来源登记/查询、敏感配置拒绝和审计可运行；真实连接测试、角色授权与抽取仍未实现。
+- 2026-09-14：ING-02 RAW 批次完成门禁已完成本地验证——RAW 幂等信封、批次封存清单、证据匹配和 Worker/管理员 HTTP 身份隔离已通过；真实 Worker 和独立数据库角色仍待实现。
 - 2026-09-10：已形成设计规划、完成限量源库调查，并跑通本地合成数据 SQL PoC（P0）。
 - 已在用户明确授权的测试库TLS例外下成功连接MySQL 8.1.0，完成两个源库共21个选定对象的元数据调查；另已完成5对象的限量业务采样，发现任务/缺陷状态日志及成员事件候选，但完整历史还原、指标与完整PoC尚未验证。
 - 一期建议采用批处理、SQL 优先、复用开源执行能力、薄控制台的路径。
@@ -36,6 +37,7 @@
 | [来源登记 API 第一切片](docs/22-source-registry.md) | 最小身份校验、来源登记/查询、安全边界和本地集成证据 |
 | [接入任务契约第一切片](docs/23-ingestion-job-contract.md) | 增量游标、删除规则、V002 迁移和本地集成证据 |
 | [接入批次与检查点](docs/24-ingestion-batch-checkpoint.md) | 批次状态机、幂等重放、陈旧检查点保护和 V003/V004 |
+| [RAW 批次信封与完成门禁](docs/25-raw-batch-evidence.md) | RAW 记录幂等、批次封存清单、完成前证据校验和身份边界 |
 | [源库元数据发现](docs/15-source-metadata-findings.md) | TLS授权例外、真实连接和结构事实、三类指标缺口及本地字典 |
 | [测试库发现执行记录](docs/14-mysql-test-discovery.md) | 初次严格TLS失败历史、固定客户端与NAS Compose v2.40.3 |
 | [MySQL预检与Compose双版本](docs/13-mysql-preflight-compose.md) | 初次网络预检历史、已更新的账号/客户端状态与NAS入口管理 |

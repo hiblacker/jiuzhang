@@ -2,7 +2,7 @@
 
 - 日期：2026-09-14。
 - 工作包：ING-02 第二切片。
-- 状态：批次开始、幂等重放、成功/失败、检查点 CAS 和陈旧批次拒绝已通过本地镜像及 PostgreSQL 验证；尚未接入抽取 Worker 和 RAW 数据事务。
+- 状态：批次开始、幂等重放、成功/失败、检查点 CAS 和陈旧批次拒绝已通过本地镜像及 PostgreSQL 验证；后续 RAW 完成门禁见[25号文档](25-raw-batch-evidence.md)，真实抽取 Worker 仍未实现。
 
 ## 1. 状态与接口
 
@@ -35,7 +35,7 @@
 
 在同一控制库事务中先按 jobId/version 比较并更新检查点，再将 RUNNING 批次更新为 SUCCEEDED。若检查点已经推进，批次更新为 STALE、错误码为 STALE_CHECKPOINT，API 返回 HTTP 409；不修改当前检查点。若批次状态在事务中并发变化，整个检查点更新回滚。
 
-该事务只覆盖控制元数据。后续 Worker 必须先保证 RAW 批次内容完整持久化，再调用 complete；跨数据库不宣称原子事务。
+该事务只覆盖控制元数据。V005 已要求 Worker 先封存 RAW 批次清单并通过行数/校验值匹配，再调用 complete；跨数据库不宣称原子事务。
 
 ## 3. 迁移与恢复
 
@@ -63,8 +63,7 @@ Java 测试共 22 项，其中批次服务 8 项，覆盖 ACTIVE 门禁、服务
 
 ## 5. 未完成项
 
-1. Worker 身份与控制 API 管理员身份分离。
-2. RAW 批次信封、数据写入完成标记和 complete 前证据校验。
-3. 失败重试 attempt、超时租约、取消和失联批次对账。
-4. 按 UPDATED_AT_KEYSET 语义校验 nextCheckpoint 不倒退；通用 JSON 版本 CAS 本身不能比较业务水位大小。
-5. 批次列表、运行日志引用和告警投影。
+1. 数据库登录角色和真实 Worker 进程；HTTP Worker 身份隔离及 RAW 完成门禁已在[25号文档](25-raw-batch-evidence.md)完成。
+2. 失败重试 attempt、超时租约、取消和失联批次对账。
+3. 按 UPDATED_AT_KEYSET 语义校验 nextCheckpoint 不倒退；通用 JSON 版本 CAS 本身不能比较业务水位大小。
+4. 批次列表、运行日志引用和告警投影。

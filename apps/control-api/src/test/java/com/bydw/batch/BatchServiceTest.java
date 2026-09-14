@@ -42,10 +42,10 @@ class BatchServiceTest {
     IngestionBatch batch = batch(5, "RUNNING", 3);
     when(repository.start(2, "daily-001", cursorTo.toString())).thenReturn(Optional.of(batch));
 
-    IngestionBatch result = service.start(2, new StartBatchRequest("daily-001", cursorTo), "local-admin");
+    IngestionBatch result = service.start(2, new StartBatchRequest("daily-001", cursorTo), "local-worker");
 
     assertThat(result).isEqualTo(batch);
-    verify(sourceRepository).audit(eq("local-admin"), eq("INGESTION_BATCH_START"),
+    verify(sourceRepository).audit(eq("local-worker"), eq("INGESTION_BATCH_START"),
         eq("ingestion-batch/5"), anyString());
   }
 
@@ -59,9 +59,9 @@ class BatchServiceTest {
     when(repository.start(2, "daily-001", cursorTo.toString())).thenReturn(Optional.empty());
     when(repository.findByRunKey(2, "daily-001")).thenReturn(Optional.of(existing));
 
-    assertThat(service.start(2, new StartBatchRequest("daily-001", cursorTo), "local-admin"))
+    assertThat(service.start(2, new StartBatchRequest("daily-001", cursorTo), "local-worker"))
         .isEqualTo(existing);
-    verify(sourceRepository).audit(eq("local-admin"), eq("INGESTION_BATCH_REPLAY"),
+    verify(sourceRepository).audit(eq("local-worker"), eq("INGESTION_BATCH_REPLAY"),
         eq("ingestion-batch/5"), anyString());
   }
 
@@ -76,7 +76,7 @@ class BatchServiceTest {
     when(repository.findByRunKey(2, "daily-001")).thenReturn(Optional.of(existing));
 
     assertThatThrownBy(() -> service.start(2,
-        new StartBatchRequest("daily-001", requested), "local-admin"))
+        new StartBatchRequest("daily-001", requested), "local-worker"))
         .isInstanceOfSatisfying(ApiException.class,
             exception -> assertThat(exception.code()).isEqualTo("BATCH_RUN_KEY_MISMATCH"));
   }
@@ -85,13 +85,13 @@ class BatchServiceTest {
   void refusesDraftJobAndEmptyUpperBound() throws Exception {
     when(jobRepository.findById(2)).thenReturn(Optional.of(job("DRAFT")));
     assertThatThrownBy(() -> service.start(2,
-        new StartBatchRequest("daily-001", objectMapper.createObjectNode()), "local-admin"))
+        new StartBatchRequest("daily-001", objectMapper.createObjectNode()), "local-worker"))
         .isInstanceOfSatisfying(ApiException.class,
             exception -> assertThat(exception.code()).isEqualTo("INGESTION_JOB_DISABLED"));
 
     when(jobRepository.findById(3)).thenReturn(Optional.of(job("ACTIVE")));
     assertThatThrownBy(() -> service.start(3,
-        new StartBatchRequest("daily-002", objectMapper.createObjectNode()), "local-admin"))
+        new StartBatchRequest("daily-002", objectMapper.createObjectNode()), "local-worker"))
         .isInstanceOfSatisfying(ApiException.class,
             exception -> assertThat(exception.code()).isEqualTo("INVALID_CURSOR_TO"));
   }
@@ -101,13 +101,14 @@ class BatchServiceTest {
     IngestionBatch running = batch(5, "RUNNING", 3);
     when(repository.find(5)).thenReturn(Optional.of(running), Optional.of(batch(5, "SUCCEEDED", 4)));
     JsonNode next = objectMapper.readTree("{\"updatedAt\":\"2026-09-14T01:00:00Z\",\"id\":99}");
+    when(repository.rawEvidence(5)).thenReturn(Optional.of(evidence(12, "a".repeat(64))));
     when(repository.complete(5, 2, 3, next.toString(), 12, "a".repeat(64))).thenReturn(true);
 
     IngestionBatch completed = service.complete(5,
-        new CompleteBatchRequest(3, next, 12, "a".repeat(64)), "local-admin");
+        new CompleteBatchRequest(3, next, 12, "A".repeat(64)), "local-worker");
 
     assertThat(completed.state()).isEqualTo("SUCCEEDED");
-    verify(sourceRepository).audit(eq("local-admin"), eq("INGESTION_BATCH_COMPLETE"),
+    verify(sourceRepository).audit(eq("local-worker"), eq("INGESTION_BATCH_COMPLETE"),
         eq("ingestion-batch/5"), anyString());
   }
 
@@ -117,16 +118,61 @@ class BatchServiceTest {
     JsonNode next = objectMapper.readTree("{\"id\":99}");
     when(repository.find(5)).thenReturn(Optional.of(running));
     assertThatThrownBy(() -> service.complete(5,
-        new CompleteBatchRequest(2, next, 1, null), "local-admin"))
+        new CompleteBatchRequest(2, next, 1, null), "local-worker"))
         .isInstanceOfSatisfying(ApiException.class,
             exception -> assertThat(exception.code()).isEqualTo("BATCH_CHECKPOINT_VERSION_MISMATCH"));
 
-    when(repository.complete(5, 2, 3, next.toString(), 1, null)).thenReturn(false);
+    when(repository.complete(5, 2, 3, next.toString(), 1, "b".repeat(64))).thenReturn(false);
+    when(repository.rawEvidence(5)).thenReturn(Optional.of(evidence(1, "b".repeat(64))));
     when(repository.find(5)).thenReturn(Optional.of(running), Optional.of(batch(5, "STALE", 3)));
     assertThat(service.complete(5,
-        new CompleteBatchRequest(3, next, 1, null), "local-admin").state()).isEqualTo("STALE");
-    verify(sourceRepository).audit(eq("local-admin"), eq("INGESTION_BATCH_STALE"),
+        new CompleteBatchRequest(3, next, 1, "b".repeat(64)), "local-worker").state())
+        .isEqualTo("STALE");
+    verify(sourceRepository).audit(eq("local-worker"), eq("INGESTION_BATCH_STALE"),
         eq("ingestion-batch/5"), anyString());
+  }
+
+  @Test
+  void requiresMatchingSealedRawEvidence() throws Exception {
+    IngestionBatch running = batch(5, "RUNNING", 3);
+    JsonNode next = objectMapper.readTree("{\"id\":99}");
+    when(repository.find(5)).thenReturn(Optional.of(running));
+    when(repository.rawEvidence(5)).thenReturn(
+        Optional.empty(), Optional.of(evidence(2, "c".repeat(64))));
+
+    assertThatThrownBy(() -> service.complete(5,
+        new CompleteBatchRequest(3, next, 2, "c".repeat(64)), "local-worker"))
+        .isInstanceOfSatisfying(ApiException.class,
+            exception -> assertThat(exception.code()).isEqualTo("RAW_BATCH_NOT_SEALED"));
+    assertThatThrownBy(() -> service.complete(5,
+        new CompleteBatchRequest(3, next, 3, "c".repeat(64)), "local-worker"))
+        .isInstanceOfSatisfying(ApiException.class,
+            exception -> assertThat(exception.code()).isEqualTo("RAW_BATCH_EVIDENCE_MISMATCH"));
+  }
+
+  @Test
+  void requiresEvidenceFromCallingWorker() throws Exception {
+    when(repository.find(5)).thenReturn(Optional.of(batch(5, "RUNNING", 3)));
+    when(repository.rawEvidence(5)).thenReturn(Optional.of(new RawBatchEvidence(
+        1, "d".repeat(64), "different-worker",
+        OffsetDateTime.parse("2026-09-14T00:30:00Z"))));
+    JsonNode next = objectMapper.readTree("{\"id\":99}");
+
+    assertThatThrownBy(() -> service.complete(5,
+        new CompleteBatchRequest(3, next, 1, "d".repeat(64)), "local-worker"))
+        .isInstanceOfSatisfying(ApiException.class,
+            exception -> assertThat(exception.code()).isEqualTo("RAW_BATCH_EVIDENCE_MISMATCH"));
+  }
+
+  @Test
+  void requiresAResultChecksum() throws Exception {
+    when(repository.find(5)).thenReturn(Optional.of(batch(5, "RUNNING", 3)));
+    JsonNode next = objectMapper.readTree("{\"id\":99}");
+
+    assertThatThrownBy(() -> service.complete(5,
+        new CompleteBatchRequest(3, next, 0, null), "local-worker"))
+        .isInstanceOfSatisfying(ApiException.class,
+            exception -> assertThat(exception.code()).isEqualTo("INVALID_BATCH_CHECKSUM"));
   }
 
   @Test
@@ -134,11 +180,11 @@ class BatchServiceTest {
     when(repository.fail(5, "SOURCE_TIMEOUT", "run/daily-001.log")).thenReturn(true);
     when(repository.find(5)).thenReturn(Optional.of(batch(5, "FAILED", 3)));
     assertThat(service.fail(5,
-        new FailBatchRequest("SOURCE_TIMEOUT", "run/daily-001.log"), "local-admin").state())
+        new FailBatchRequest("SOURCE_TIMEOUT", "run/daily-001.log"), "local-worker").state())
         .isEqualTo("FAILED");
 
     assertThatThrownBy(() -> service.fail(6,
-        new FailBatchRequest("SOURCE_TIMEOUT", "raw error contains spaces"), "local-admin"))
+        new FailBatchRequest("SOURCE_TIMEOUT", "raw error contains spaces"), "local-worker"))
         .isInstanceOfSatisfying(ApiException.class,
             exception -> assertThat(exception.code()).isEqualTo("INVALID_DIAGNOSTIC_REF"));
   }
@@ -162,5 +208,10 @@ class BatchServiceTest {
     return new IngestionBatch(id, 2, "daily-001", 1, objectMapper.createObjectNode(),
         objectMapper.createObjectNode(), state, 0, null, null, null, checkpointVersion,
         OffsetDateTime.parse("2026-09-14T00:00:00Z"), null, null);
+  }
+
+  private RawBatchEvidence evidence(long rowCount, String checksum) {
+    return new RawBatchEvidence(rowCount, checksum, "local-worker",
+        OffsetDateTime.parse("2026-09-14T00:30:00Z"));
   }
 }

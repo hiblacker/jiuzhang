@@ -86,12 +86,21 @@ public class BatchService {
       throw new ApiException(HttpStatus.CONFLICT, "BATCH_CHECKPOINT_VERSION_MISMATCH",
           "Expected checkpoint version does not match the batch input");
     }
-    if (request.checksum() != null && !CHECKSUM.matcher(request.checksum()).matches()) {
+    if (request.checksum() == null || !CHECKSUM.matcher(request.checksum()).matches()) {
       throw badRequest("INVALID_BATCH_CHECKSUM", "checksum must be a SHA-256 hexadecimal value");
     }
     validateSize(request.nextCheckpoint(), "CHECKPOINT_TOO_LARGE");
+    String checksum = request.checksum().toLowerCase(java.util.Locale.ROOT);
+    RawBatchEvidence evidence = repository.rawEvidence(batchId)
+        .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "RAW_BATCH_NOT_SEALED",
+            "RAW batch must be durably sealed before checkpoint commit"));
+    if (evidence.rowCount() != request.rowCount() || !evidence.checksum().equals(checksum)
+        || !evidence.writerPrincipal().equals(principal)) {
+      throw new ApiException(HttpStatus.CONFLICT, "RAW_BATCH_EVIDENCE_MISMATCH",
+          "Batch result does not match the sealed RAW manifest");
+    }
     boolean committed = repository.complete(batchId, jobId, request.expectedCheckpointVersion(),
-        json(request.nextCheckpoint()), request.rowCount(), request.checksum());
+        json(request.nextCheckpoint()), request.rowCount(), checksum);
     if (!committed) {
       IngestionBatch stale = repository.find(batchId)
           .orElseThrow(() -> new IllegalStateException("Stale batch disappeared"));

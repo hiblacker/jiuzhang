@@ -4,7 +4,7 @@
 
 ## 本地启动
 
-1. 在 `deploy/` 创建不提交的 `.env`，设置高强度 `WAREHOUSE_DB_PASSWORD` 和至少 24 字符的 `CONTROL_API_ADMIN_TOKEN`；可参考 `.env.example`。两者不得复用。
+1. 在 `deploy/` 创建不提交的 `.env`，设置高强度 `WAREHOUSE_DB_PASSWORD`，以及至少 24 字符且互不相同的 `CONTROL_API_ADMIN_TOKEN`、`CONTROL_API_WORKER_TOKEN`；可参考 `.env.example`。三者不得复用。
 2. 在仓库根目录执行：
 
 ```powershell
@@ -12,7 +12,7 @@ docker compose -p bydw -f deploy/compose.yaml config
 docker compose -p bydw -f deploy/compose.yaml up -d --build
 ```
 
-3. 检查 `http://127.0.0.1:8080/actuator/health` 和 `http://127.0.0.1:8080/api/v1/status`。除健康/状态接口外，请求必须携带 `Authorization: Bearer <CONTROL_API_ADMIN_TOKEN>`。
+3. 检查 `http://127.0.0.1:8080/actuator/health` 和 `http://127.0.0.1:8080/api/v1/status`。来源/任务管理接口使用 Admin Token；批次开始、完成和失败接口使用 Worker Token；检查点读取允许两者。除健康/状态接口外均须携带对应的 Bearer Token。
 
 迁移服务必须成功退出后 API 才会启动。已经执行的迁移按文件名和 SHA-256 记录；不要修改已有迁移文件，变更使用新的 `VNNN__name.sql`。
 

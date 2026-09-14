@@ -19,3 +19,4 @@ management:
 bydw:
   security:
     admin-token: ${CONTROL_API_ADMIN_TOKEN}
+    worker-token: ${CONTROL_API_WORKER_TOKEN}
