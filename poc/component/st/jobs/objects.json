@@ -1,0 +1,24 @@
+{
+ "env": {"job.mode": "batch"},
+ "source": [{
+  "plugin_name": "Jdbc",
+  "url": "jdbc:mysql://source-mysql:3306/__SOURCE_DB__?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+  "driver": "com.mysql.cj.jdbc.Driver",
+  "user": "__MYSQL_USER__",
+  "password": "__MYSQL_PASSWORD__",
+  "query": "SELECT id, project_id, object_type, status_code, is_deleted, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at, DATE_FORMAT(updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at, DATE_FORMAT(actual_start, '%Y-%m-%d %H:%i:%s') AS actual_start, DATE_FORMAT(actual_end, '%Y-%m-%d %H:%i:%s') AS actual_end, '__BATCH__' AS batch_id FROM story WHERE updated_at > '__CURSOR__' AND updated_at <= '__UPPER__' ORDER BY updated_at, id",
+  "fetch_size": 10
+ }],
+ "transform": [],
+ "sink": [{
+  "plugin_name": "Jdbc",
+  "url": "jdbc:postgresql://warehouse:5432/__DBNAME__",
+  "driver": "org.postgresql.Driver",
+  "user": "postgres",
+  "password": "__PG_PASSWORD__",
+  "generate_sink_sql": true,
+  "enable_upsert": false,
+  "database": "__DBNAME__",
+  "table": "raw_landing.story_batch"
+ }]
+}

@@ -1,0 +1,24 @@
+{
+ "env": {"job.mode": "batch"},
+ "source": [{
+  "plugin_name": "Jdbc",
+  "url": "jdbc:mysql://source-mysql:3306/__SOURCE_DB__?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+  "driver": "com.mysql.cj.jdbc.Driver",
+  "user": "__MYSQL_USER__",
+  "password": "__MYSQL_PASSWORD__",
+  "query": "SELECT event_id, object_id, object_type, operation, status_code, DATE_FORMAT(started_at, '%Y-%m-%d %H:%i:%s') AS started_at, DATE_FORMAT(event_time, '%Y-%m-%d %H:%i:%s') AS event_time, DATE_FORMAT(logged_at, '%Y-%m-%d %H:%i:%s') AS logged_at, '__BATCH__' AS batch_id FROM status_log WHERE logged_at > '__CURSOR__' AND logged_at <= '__UPPER__' ORDER BY logged_at, event_id",
+  "fetch_size": 10
+ }],
+ "transform": [],
+ "sink": [{
+  "plugin_name": "Jdbc",
+  "url": "jdbc:postgresql://warehouse:5432/__DBNAME__",
+  "driver": "org.postgresql.Driver",
+  "user": "postgres",
+  "password": "__PG_PASSWORD__",
+  "generate_sink_sql": true,
+  "enable_upsert": false,
+  "database": "__DBNAME__",
+  "table": "raw_landing.status_batch"
+ }]
+}

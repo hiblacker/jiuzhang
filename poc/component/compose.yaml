@@ -62,9 +62,9 @@ services:
     volumes:
       - ./st/hazelcast.yaml:/opt/seatunnel/config/hazelcast.yaml:ro
     networks: [internal]
-    command: [bash, -c, "/opt/seatunnel/bin/seatunnel-cluster.sh -r master,worker"]
+    command: [bash, -c, "/opt/seatunnel/bin/seatunnel-cluster.sh"]
     healthcheck:
-      test: [CMD-SHELL, "curl -s --max-time 3 http://localhost:5801/hazelcast/rest/maps/cluster-state >/dev/null || exit 1"]
+      test: [CMD, bash, -c, "exec 3<>/dev/tcp/localhost/5801"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -85,9 +85,11 @@ services:
       TZ: Asia/Shanghai
     secrets:
       - pg_password
+      - mysql_password
     volumes:
       - ./dbt_project:/opt/dbt_project:ro
       - ./adapter/app.py:/app/app.py:ro
+      - ./st/jobs:/opt/seatunnel_jobs:ro
     networks: [internal]
     command: [python, /app/app.py]
     healthcheck:
