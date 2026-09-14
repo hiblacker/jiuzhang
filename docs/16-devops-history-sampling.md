@@ -71,3 +71,15 @@ node tools/mysql-discover.mjs --sample-devops-history --allow-test-business-samp
 提交前执行：三个调查模块的Node语法检查、node --test tests/*.test.mjs、node tools/check-docs.mjs、git diff --check、暂存差异与敏感内容检查。文档检查仅校验本地链接和既有研究证据，不代表业务逻辑、许可、远程CI或部署通过。
 
 未测试：真实全量/增量同步、CDC、正式模型/接口/Naive UI、日月指标对账、源历史完整性、300 QPS、NAS部署/恢复；当前不是完整PoC验收。
+
+## 6. 2026-09-14 重新执行摘要
+
+在 Docker Desktop `29.7.2` 和当前缓存 MySQL 客户端镜像上重新执行了 seeds/history 两阶段，均返回成功：
+
+- seeds：5 个对象，生成可校验的种子引用；
+- history：20 条对象历史，覆盖 5 个对象，其中 STORY 历史 13 条、DEFECT 历史 7 条；
+- 项目历史：20 条，达到固定上限，19 条为成员事件候选；
+- 内容形状：1 条 JSON 标量、3 条 NULL，其余为非 JSON 文本；固定状态词只作为候选证据；
+- 会话：TLSv1.3、只读、15 秒查询上限；源库未修改，连接文件未修改，临时资源已清理。
+
+这次执行修复了发现工具引用已失效客户端镜像 ID 的环境问题；没有放宽采样数量、查询语句、敏感字段或源库权限。结果仍然是方便样本，不代表全历史完整性，也不能据此自动发布真实日报/月报。
