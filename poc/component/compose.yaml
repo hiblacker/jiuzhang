@@ -111,6 +111,8 @@ services:
     hostname: scheduler
     environment:
       TZ: Asia/Shanghai
+      JAVA_OPTS: >-
+        -server -Xms512m -Xmx1280m -Xss512k -XX:ActiveProcessorCount=2
     networks: [internal]
     healthcheck:
       test: [CMD-SHELL, "curl -s -o /dev/null --max-time 5 -w '%{http_code}' http://localhost:12345/dolphinscheduler/ui/ | grep -q 200"]

@@ -10,7 +10,7 @@
 | ADR-004 | 一套主要调度器；模型内部依赖单一权威 | 设计约束 | 防止两套系统同时触发同一模型 |
 | ADR-005 | 数据集不可变发布清单+活动指针 | 设计约束，待存储验证 | 保证失败保旧和数据版本一致 |
 | ADR-006 | 不将所有主题压成单一JSON/键值表 | 设计约束 | 保留粒度、类型约束和查询能力 |
-| ADR-007 | Vue3/TS、Java21/Spring Boot、PostgreSQL、SeaTunnel、DolphinScheduler、dbt Core | 推荐基线，精确版本待PoC | 见09工程治理；兼容性、许可证及组织约束通过后批准 |
+| ADR-007 | Vue3/TS、Java21/Spring Boot、PostgreSQL、SeaTunnel、DolphinScheduler、dbt Core | 实测候选已冻结（待正式版本评审） | POC-01 已完成本地合成链路；正式交付仍须完成真实源联调、NAS部署、容量、安全与许可证门禁 |
 | ADR-008 | 商用宽松许可证优先，发行物/连接器/依赖逐项准入 | 设计约束 | 未批准组件不得入正式镜像；不强制本项目代码开源 |
 | ADR-010 | 前端组件库使用Naive UI，替换Element Plus | 用户已确认，2026-09-10 | 仅确认组件选择；版本、依赖许可与构建兼容性仍需验证 |
 | ADR-009 | 不可变OCI镜像，按环境能力使用Compose或现有Kubernetes | 推荐基线 | 无平台时不为一期额外建K8s；单机不承诺HA |
@@ -70,3 +70,9 @@
 ## 10. 2026-09-11批准更新
 
 聊天确认两项（代记，详见[18号批准记录](18-component-poc-matrix.md)）：组件PoC依赖矩阵批准（锁后安装：传递依赖锁+镜像digest入Git后再安装，本地Docker执行POC-01）；GOV-01全部9项候选指标批准为一期口径基线，真实源条件核实前标记"未验证"。另授权本地合并自治规则（见CONTRIBUTING.md）：检查全过后本地合入main无需逐次批准；推送远程、标签、删除、生产与验收仍需明确指示。ADR-007仍未冻结，待POC-01实测证据。
+
+## 11. 2026-09-14 Docker升级验证与POC-01更新
+
+Docker Desktop 29.7.2 在高镜像下载、Compose 构建、五容器健康启动及完整 POC-01 运行期间保持 `running`，未复现后端崩溃。已定位并修正两个 PoC运行问题：只读 dbt 项目目录导致测试失败；DolphinScheduler 默认 4 GiB JVM/约400线程打满 2 GiB/400 PID 容器边界。完整证据和 Docker 网络/原子 Rename 风险边界见[18号组件矩阵](18-component-poc-matrix.md)。
+
+本次结果只冻结“组件候选可在本机合成链路运行”的事实，不冻结生产部署方案；NAS 资源约束、真实 DevOps 历史可追溯性、300 QPS、CVE/SBOM/交付许可证和正式验收仍为后续门禁。

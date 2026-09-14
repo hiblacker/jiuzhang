@@ -1,7 +1,7 @@
 # 18 组件PoC依赖矩阵与执行设计
 
 - 日期：2026-09-11。
-- 状态：候选矩阵待用户批准；未安装、未拉取、未运行任何新依赖。
+- 状态：组件矩阵已获批准；POC-01 已在本地 Docker Desktop 完成端到端实测，ADR-007 可进入“实测候选已冻结”评审。
 - 目的：完成 [一期计划](04-phase-one-plan.md) 的 POC-01（接入+编排+SQL执行适配），为冻结 ADR-007 提供实测证据；对应 [开源调研](08-github-open-source-research.md) 的 POC-A/POC-B 范围。
 - 版本事实证据：[component-compat-2026-09-11.json](research/component-compat-2026-09-11.json)；仓库活跃度证据沿用 [2026-09-10 快照](research/github-snapshot-2026-09-10.json)。
 - 边界：本地 Docker Desktop 实验；不连接真实 DevOps 源库、不部署 NAS、不对外服务；执行仍受 [PoC准入](10-poc-readiness.md) 与 [工程治理](09-engineering-governance.md) 约束。
@@ -78,3 +78,39 @@ SeaTunnel 约1–1.5GB、DolphinScheduler standalone 约2GB、MySQL+PostgreSQL �
 - dbt传递依赖锁：59个包逐包登记许可证；`psycopg2-binary`（LGPL+链接例外）与`text-unidecode`（Artistic/GPL双许可，走Artistic路径）标记为"内部使用/交付期复核"。
 - 冒烟：dbt --version 确认 core 1.12.4 + postgres 1.11.0 配对可运行；SeaTunnel FakeSource→Console 批作业以 `-e local` 运行结束状态 `FINISHED`；DS standalone 约50秒启动后 API 200、登录端点返回会话，临时容器已清理。
 - 边界：冒烟只证明二进制可在本机运行；不是POC-A/B验收、不是ADR-007冻结、不是NAS或容量结果。下一步工作包为POC-01链路执行（模拟源建表→SeaTunnel JDBC接入→dbt日指标→DS调度与补数→旧运行拒绝覆盖）。
+
+## 9. Docker Desktop 升级后验证与 POC-01 实测结果（2026-09-14）
+
+### 9.1 环境与镜像
+
+Docker Desktop 升级后验证环境为 Docker client/server `29.7.2`、API `1.55`、Docker Desktop CLI plugin `v0.4.3`，`docker desktop status` 持续为 `running`。Compose 使用本地 `docker compose` v2 插件；本轮不触碰 NAS。
+
+| 镜像 | 实测摘要 |
+|---|---|
+| `mysql:8.0.43` | `sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10` |
+| `postgres:16.15` | `sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94` |
+| `python:3.12-slim` | `sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea` |
+| `apache/seatunnel:2.3.13` | `sha256:2b1d327df210fb35c2ec12487b0db52c95dc845a77864d3ee04f1886cdcd60e1` |
+| `apache/dolphinscheduler-standalone-server:3.4.3` | `sha256:34ce695512b072f25fc44273ae8b644fc0089c50554e8db6643a2600f673cc7e` |
+
+### 9.2 结果
+
+单次完整报告：[poc01-20260914065750_4de84df7.json](../work/poc01-20260914065750_4de84df7.json)。结果为 `PASS`，覆盖：
+
+- Compose 五服务健康启动；
+- MySQL→SeaTunnel JDBC→PostgreSQL RAW，21 个事件、12 个对象；
+- 重放幂等、迟到数据重建、陈旧发布拒绝且活动指针不变；
+- DolphinScheduler 工作流成功并验证失败重试策略；
+- dbt Core 1.12.4 + dbt-postgres 1.11.0 的 4 个数据测试通过。
+
+### 9.3 本轮修正
+
+- dbt 项目只读挂载时显式指定 `--project-dir /opt/dbt_project`，并把 `--target-path`、`--log-path` 指向 `/tmp`，避免容器内写只读目录。
+- runner 错误信息同时保留 stdout 和 stderr，避免 dbt 将诊断输出写 stdout 时出现空错误。
+- DolphinScheduler 3.4.3 默认以 `-Xms4g -Xmx4g` 和约 400 线程启动，在 2 GiB/400 PIDs 容器限制下会导致 `procReady not received`，并使后续 `docker exec` 无法创建进程。Compose 已将 PoC JVM 调整为 `-Xms512m -Xmx1280m -Xss512k -XX:ActiveProcessorCount=2`；实测约 1.36 GiB、195 PIDs，`docker exec` 和完整链路均正常。
+
+### 9.4 网络与边界
+
+Docker Hub 及 Maven/PyPI 下载过程中仍观察到代理 `EOF`、TLS handshake timeout、closed pipe；有限重试后镜像和依赖均完成。该问题属于当前 Clash Verge 节点网络稳定性，不是 Docker Desktop 后端崩溃。C 盘用户目录的原子 Rename 失败仍高度疑似 Sangfor UEM 文件过滤驱动拦截，不能通过升级 Docker Desktop 认定已修复；正式修复仍需终端安全管理员放行 Docker 目录 Rename 或升级 UEM 客户端。
+
+本结果不覆盖真实 DevOps 源库、NAS 部署、生产数据、300 QPS、CVE 扫描、SBOM、正式许可证交付清单或高可用能力。

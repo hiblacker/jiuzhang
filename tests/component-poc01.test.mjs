@@ -21,6 +21,14 @@ test('POC-01 creates token-scoped workflow names and HTTP retry task', async () 
  assert.match(runner, /failRetryTimes: 1/);
 });
 
+test('POC-01 runs dbt from the mounted project and preserves command output on failure', async () => {
+ const runner = await readFile(path.join(directory, 'run.mjs'), 'utf8');
+ assert.match(runner, /'--project-dir', '\/opt\/dbt_project'/);
+ assert.match(runner, /'--target-path', '\/tmp\/dbt-target'/);
+ assert.match(runner, /'--log-path', '\/tmp\/dbt-logs'/);
+ assert.ok(runner.includes("[stdout, stderr].filter(Boolean).join('\\n')"));
+});
+
 test('POC-01 preserves explicit Shanghai conversion at the landing boundary', async () => {
  const macro = await readFile(path.join(directory, 'dbt_project/macros/poc01_ops.sql'), 'utf8');
  const compose = await readFile(path.join(directory, 'compose.yaml'), 'utf8');
@@ -36,4 +44,5 @@ test('POC-01 remains an internal-only Compose stack', async () => {
  assert.match(compose, /postgres:16\.15/);
  assert.match(compose, /seatunnel:2\.3\.13/);
  assert.match(compose, /dolphinscheduler-standalone-server:3\.4\.3/);
+ assert.match(compose, /JAVA_OPTS:[\s\S]*-Xms512m -Xmx1280m[\s\S]*-XX:ActiveProcessorCount=2/);
 });

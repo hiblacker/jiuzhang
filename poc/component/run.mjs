@@ -43,7 +43,10 @@ async function docker(args, input = '', timeoutMs = 180000, attempt = 0) {
     await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
     try { resolve(await docker(args, input, timeoutMs, attempt + 1)); }
     catch (error) { reject(error); }
-   } else if (code !== 0) reject(new Error(`docker ${args.slice(0, 3).join(' ')} failed (${code}): ${stderr.slice(-3000)}`));
+   } else if (code !== 0) {
+    const output = [stdout, stderr].filter(Boolean).join('\n').slice(-3000);
+    reject(new Error(`docker ${args.slice(0, 3).join(' ')} failed (${code}): ${output}`));
+   }
    else resolve(stdout);
   });
   if (input) child.stdin.end(input); else child.stdin.end();
@@ -375,7 +378,9 @@ async function main() {
   // Stage 6: dbt schema tests on the latest models.
   const dbtTest = await docker(['exec', '-e', `DBT_DBNAME=${db}`,
    '-e', `DBT_PASSWORD=${secrets['poc01-pg-password.txt']}`,
-   await serviceContainer('adapter'), 'dbt', 'test', '--profiles-dir', '/opt/dbt_project']);
+   await serviceContainer('adapter'), 'dbt', 'test', '--project-dir', '/opt/dbt_project',
+   '--profiles-dir', '/opt/dbt_project', '--target-path', '/tmp/dbt-target',
+   '--log-path', '/tmp/dbt-logs']);
   if (!/PASS=?\s*\d|All tests passed|Success/i.test(dbtTest) && !/PASS/.test(dbtTest)) {
    throw new Error(`dbt test failed: ${dbtTest.slice(-800)}`);
   }
