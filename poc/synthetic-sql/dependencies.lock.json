@@ -7,8 +7,7 @@
   "nasCompose": "2.40.3 (not tested)",
   "postgres": "16.15",
   "alpine": "3.24.1",
-  "image": "postgres@sha256:44c4ee9810eff91f7eab4d822642e01115b1a9eccce4bcbdde7604752d68eac6",
-  "imageId": "sha256:75f5a96988cdf694a215073c3e9c001b706b371e2f94df3967f2efdec2787f6b",
+  "image": "postgres:16.15",
   "platform": "linux/amd64",
   "additionalNpmDependencies": [],
   "nonApkComponents": [

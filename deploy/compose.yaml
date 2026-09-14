@@ -1,0 +1,42 @@
+services:
+  warehouse-db:
+    image: postgres:16.15
+    environment:
+      POSTGRES_DB: warehouse
+      POSTGRES_USER: warehouse
+      POSTGRES_PASSWORD: ${WAREHOUSE_DB_PASSWORD:?set WAREHOUSE_DB_PASSWORD}
+    volumes:
+      - warehouse-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U warehouse -d warehouse"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  migrate:
+    image: postgres:16.15
+    environment:
+      PGHOST: warehouse-db
+      PGDATABASE: warehouse
+      PGUSER: warehouse
+      PGPASSWORD: ${WAREHOUSE_DB_PASSWORD:?set WAREHOUSE_DB_PASSWORD}
+    volumes:
+      - ../migrations:/migrations:ro
+      - ./scripts/migrate.sh:/scripts/migrate.sh:ro
+    command: ["/bin/bash", "/scripts/migrate.sh"]
+    depends_on:
+      warehouse-db:
+        condition: service_healthy
+  control-api:
+    image: bydw/control-api:0.1.0-dev
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    environment:
+      WAREHOUSE_DB_PASSWORD: ${WAREHOUSE_DB_PASSWORD:?set WAREHOUSE_DB_PASSWORD}
+    ports:
+      - "${CONTROL_API_PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+volumes:
+  warehouse-db-data:

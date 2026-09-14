@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+!.env.example
+secrets
+work
+node_modules
+**/target
+**/dist
+logs
+coverage
+poc

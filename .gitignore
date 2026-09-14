@@ -8,6 +8,7 @@ secrets/
 # Local runtime and generated assets
 work/
 node_modules/
+**/target/
 .venv/
 __pycache__/
 *.pyc

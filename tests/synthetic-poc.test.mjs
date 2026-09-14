@@ -14,9 +14,9 @@ test('PoC SQL artifacts match the immutable experiment checksums', async () => {
  assert.match(await verifyLocks(), /^[a-f0-9]{64}$/);
  assert.equal(sha256('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
 });
-test('PoC compose is digest pinned, isolated and has no published port', async () => {
+test('PoC compose is version pinned, isolated and has no published port', async () => {
  const text = await readFile(path.join(directory, 'compose.yaml'), 'utf8');
- assert.match(text, /image: postgres@sha256:[a-f0-9]{64}/);
+ assert.match(text, /image: postgres:16\.15/);
  assert.match(text, /pull_policy: never/);
  assert.match(text, /internal: true/);
  assert.match(text, /listen_addresses=/);

@@ -1,0 +1,13 @@
+FROM maven:3.9.11-eclipse-temurin-21 AS build
+WORKDIR /src
+COPY apps/control-api/pom.xml apps/control-api/pom.xml
+RUN mvn -q -Dmaven.wagon.http.retryHandler.count=5 -f apps/control-api/pom.xml dependency:go-offline
+COPY apps/control-api/src apps/control-api/src
+RUN mvn -q -Dmaven.wagon.http.retryHandler.count=5 -f apps/control-api/pom.xml package
+
+FROM eclipse-temurin:21.0.12_8-jre-jammy
+WORKDIR /app
+COPY --from=build /src/apps/control-api/target/control-api-0.1.0-SNAPSHOT.jar /app/control-api.jar
+USER 10001:10001
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app/control-api.jar"]

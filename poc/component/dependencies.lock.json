@@ -1,6 +1,6 @@
 {
  "recorded_on": "2026-09-11",
- "purpose": "POC-01 component install lock; images digest-pinned, dbt transitive deps license-recorded. Approvals: docs/18 section 7.",
+ "purpose": "POC-01 component install lock; images use explicit version tags, dbt transitive deps license-recorded. Approvals: docs/18 section 7.",
  "provenance": {
   "network": "Docker Hub unreachable from host (registry-1.docker.io timeout); user enabled proxy 2026-09-11, then pulls succeeded via Docker Desktop proxy (http.docker.internal:3128). PyPI reached directly.",
   "registries": "docker.io official images; PyPI direct"
@@ -8,13 +8,11 @@
  "images": [
   {
    "reference": "python:3.12-slim",
-   "repoDigest": "python@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea",
    "architecture": "amd64",
    "role": "dbt runtime, isolated Python image"
   },
   {
    "reference": "apache/seatunnel:2.3.13",
-   "repoDigest": "apache/seatunnel@sha256:2b1d327df210fb35c2ec12487b0db52c95dc845a77864d3ee04f1886cdcd60e1",
    "architecture": "amd64",
    "role": "ingest engine (POC-A)",
    "bundledRuntime": "OpenJDK 1.8.0_342",
@@ -25,7 +23,6 @@
   },
   {
    "reference": "apache/dolphinscheduler-standalone-server:3.4.3",
-   "repoDigest": "apache/dolphinscheduler-standalone-server@sha256:34ce695512b072f25fc44273ae8b644fc0089c50554e8db6643a2600f673cc7e",
    "architecture": "amd64",
    "role": "scheduler (POC-B)",
    "bundledRuntime": "OpenJDK 1.8.0_502",
@@ -35,14 +32,12 @@
    ]
   },
   {
-   "reference": "postgres@sha256:44c4ee9810eff91f7eab4d822642e01115b1a9eccce4bcbdde7604752d68eac6",
-   "repoDigest": "(previously locked, see ../synthetic-sql/dependencies.lock.json)",
+   "reference": "postgres:16.15",
    "role": "target warehouse and reporting store",
    "note": "cached image reused, no new pull"
   },
   {
    "reference": "mysql:8.0.43",
-   "repoDigest": "(cached client image, see docs/14)",
    "role": "mock DevOps source server + client, synthetic data only",
    "note": "cached image reused, no new pull; GPL license boundary unchanged"
   }

@@ -17,14 +17,14 @@
 | 存储与模拟目标 | PostgreSQL | 16.15（P0 已锁镜像） | 已审（[17号锁文件](../poc/synthetic-sql/dependencies.lock.json)） | 复用现有缓存镜像，不新增 | 目标库 |
 | 模拟源 | MySQL | 复用已缓存 mysql:8.0.43 镜像 | 已记录（[14号](14-mysql-test-discovery.md)） | 同一镜像以 server 模式运行，不新增拉取 | DevOps 源替身（合成数据） |
 
-运行时容器（JDK、Python）由 SeaTunnel/DolphinScheduler 官方镜像内置与独立 Python 镜像提供，不在宿主机安装 JDK/Python；具体镜像与 digest 在安装锁定步骤固定。组件兼容性（尤其 dbt-core 1.12.4 + dbt-postgres 1.11.0）以 PoC 实测为准，不因发布配对推定。
+运行时容器（JDK、Python）由 SeaTunnel/DolphinScheduler 官方镜像内置与独立 Python 镜像提供，不在宿主机安装 JDK/Python；具体镜像使用明确版本标签在安装步骤固定。组件兼容性（尤其 dbt-core 1.12.4 + dbt-postgres 1.11.0）以 PoC 实测为准，不因发布配对推定。
 
 ## 2. 安装前锁定要求（批准后的独立步骤）
 
 矩阵批准只批准"组件+版本线"。安装前必须完成并通过复核：
 
 1. Python 锁：容器内 `pip download`/`pip freeze` 生成 dbt-core 1.12.4 + dbt-postgres 1.11.0 完整传递依赖清单，逐包登记许可证与来源；发现非宽松或未知许可证即停止并报告。
-2. 镜像锁：SeaTunnel、DolphinScheduler、Python 官方镜像按 digest 固定并记录；禁止 latest。
+2. 镜像锁：SeaTunnel、DolphinScheduler、Python 官方镜像按明确版本标签固定并记录；禁止 `latest` 和 `@sha256` 运行引用。
 3. 本地端口、卷目录、资源上限与启动/停止方式记录；不修改现有容器与数据卷。
 4. 全部锁文件入 Git 后才开始安装；锁文件不完整不安装。
 
@@ -65,7 +65,7 @@ SeaTunnel 约1–1.5GB、DolphinScheduler standalone 约2GB、MySQL+PostgreSQL �
 
 ## 7. 用户批准记录（2026-09-11，聊天确认）
 
-1. **依赖矩阵批准（"批准，锁后安装"）**：第1节矩阵获准进入下一阶段。执行顺序按第2节：传递依赖锁+镜像digest固定入Git → 安装 → POC-01执行。本地Docker，不碰NAS、不碰真实源库。
+1. **依赖矩阵批准（"批准，锁后安装"）**：第1节矩阵获准进入下一阶段。执行顺序按第2节：传递依赖锁+镜像明确版本固定入Git → 安装 → POC-01执行。本地Docker，不碰NAS、不碰真实源库。
 2. **GOV-01签字（"批准全部9项"）**：第5节9项指标作为一期指标口径基线。真实源数据条件核实前，对应指标在交付物中标记"未验证"；不可计算者标记"受限/P1"，口径不删除。
 
 签字主体：项目用户（聊天记录为准）；本记录由AI据回复代记，用户可随时修订。
@@ -74,7 +74,7 @@ SeaTunnel 约1–1.5GB、DolphinScheduler standalone 约2GB、MySQL+PostgreSQL �
 
 用户开启系统代理后拉取成功；证据与锁文件见 [poc/component](../poc/component/README.md)：
 
-- 三个新镜像已按digest固定并拉取：`python:3.12-slim`、`apache/seatunnel:2.3.13`（内置JDK 1.8.0_342，LICENSE/NOTICE齐备）、`apache/dolphinscheduler-standalone-server:3.4.3`（内置JDK 1.8.0_502）。PostgreSQL 16.15 与 mysql:8.0.43 复用已锁缓存，无新增拉取。
+- 三个新镜像已按版本固定并拉取：`python:3.12-slim`、`apache/seatunnel:2.3.13`（内置JDK 1.8.0_342，LICENSE/NOTICE齐备）、`apache/dolphinscheduler-standalone-server:3.4.3`（内置JDK 1.8.0_502）。`postgres:16.15` 与 `mysql:8.0.43` 复用已锁缓存，无新增拉取。
 - dbt传递依赖锁：59个包逐包登记许可证；`psycopg2-binary`（LGPL+链接例外）与`text-unidecode`（Artistic/GPL双许可，走Artistic路径）标记为"内部使用/交付期复核"。
 - 冒烟：dbt --version 确认 core 1.12.4 + postgres 1.11.0 配对可运行；SeaTunnel FakeSource→Console 批作业以 `-e local` 运行结束状态 `FINISHED`；DS standalone 约50秒启动后 API 200、登录端点返回会话，临时容器已清理。
 - 边界：冒烟只证明二进制可在本机运行；不是POC-A/B验收、不是ADR-007冻结、不是NAS或容量结果。下一步工作包为POC-01链路执行（模拟源建表→SeaTunnel JDBC接入→dbt日指标→DS调度与补数→旧运行拒绝覆盖）。

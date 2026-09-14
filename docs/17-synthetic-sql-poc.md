@@ -12,7 +12,7 @@ P0 验收：固定合成输入 → 留存来源与批次 → 标准事件和团�
 
 ## 2. 执行前版本与依赖审查
 
-精确值见 [实验依赖锁](../poc/synthetic-sql/dependencies.lock.json)。本机观察：Node 22.23.2、Docker Engine 27.5.1、Compose 2.32.4-desktop.1；NAS指定2.40.3尚未运行。现有缓存镜像内实际 PostgreSQL 16.15、Alpine 3.24.1，按digest且仅允许使用本机缓存；不根据浮动tag猜版本，不称其为“最新稳定版”。没有新增npm包、JDBC驱动或Python依赖。
+精确值见 [实验依赖锁](../poc/synthetic-sql/dependencies.lock.json)。本机观察：Node 22.23.2、Docker Engine 27.5.1、Compose 2.32.4-desktop.1；NAS指定2.40.3尚未运行。运行引用使用明确版本 `postgres:16.15` 且仅允许使用本机缓存；不使用 `latest`，也不称其为“最新稳定版”。没有新增npm包、JDBC驱动或Python依赖。
 
 已检查45个APK包名称/版本/许可证，以及另行构建的PostgreSQL、镜像脚本、gosu 1.19及其Go运行时/moby user/x/sys依赖。`.postgresql-rundeps`没有许可证字符串，但实查为0字节、无文件的虚拟依赖包，不是未识别程序；实际依赖逐项列入锁文件。APK中包含GPL/LGPL、Apache、MIT/BSD等，不能把镜像整体称为PostgreSQL许可。现有Node版本的LICENSE含其内置第三方声明；测试工具不随客户镜像分发。
 

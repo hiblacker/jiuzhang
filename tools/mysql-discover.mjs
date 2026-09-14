@@ -7,7 +7,7 @@ import { buildDetailsSql, parseDetailsOutput } from './mysql-metadata.mjs';
 
 import { buildSamplingSql, buildStatusSamplingSql, parseSamplingOutput, summarizeSamples, summarizeStatusSamples, sourceFingerprint, validateSeedReference } from './devops-history-sampling.mjs';
 
-export const IMAGE = 'sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10';
+export const IMAGE = 'mysql:8.0.43';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SYSTEM_CA = '/etc/pki/tls/certs/ca-bundle.crt';
 

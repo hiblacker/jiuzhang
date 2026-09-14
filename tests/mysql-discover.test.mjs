@@ -5,8 +5,8 @@ const fixture = () => ({ engine: 'mysql', host: 'synthetic.invalid', port: 3306,
   username: 'synthetic-user', password: 'synthetic-password',
   tls: { require_encryption: true, verify_server_certificate: true } });
 
-test('pinned cached image ID has no mutable tag', () => {
-  assert.match(IMAGE, /^sha256:[a-f0-9]{64}$/);
+test('discovery client uses an explicit image version', () => {
+  assert.equal(IMAGE, 'mysql:8.0.43');
 });
 test('option escaping blocks line injection and preserves special characters', () => {
   assert.equal(optionValue('a\\b"c\nd\re\tf#;'), '"a\\\\b\\"c\\nd\\re\\tf#;"');
