@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,8 +49,13 @@ public class SourceService {
     if (configJson.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_CONFIG_BYTES) {
       throw badRequest("SOURCE_CONFIG_TOO_LARGE", "Source config exceeds 16384 bytes");
     }
-    SourceConnection source = repository.create(
-        request.code(), request.sourceType(), configJson, request.credentialRef());
+    SourceConnection source;
+    try {
+      source = repository.create(
+          request.code(), request.sourceType(), configJson, request.credentialRef());
+    } catch (DuplicateKeyException exception) {
+      throw new ApiException(HttpStatus.CONFLICT, "SOURCE_CONFLICT", "Source code already exists");
+    }
     repository.audit(principal, "SOURCE_CREATE", "source/" + source.id(),
         json(Map.of("code", source.code(), "sourceType", source.sourceType())));
     return source;

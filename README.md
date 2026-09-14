@@ -34,6 +34,7 @@
 | [正式平台骨架实施](docs/20-platform-foundation.md) | 控制 API、元数据迁移、锁定镜像与本地 Compose 验证记录 |
 | [后续规划与里程碑](docs/21-next-milestones.md) | 从 PLT-01 起点开始的执行顺序、出口条件、阻断项和近期工作 |
 | [来源登记 API 第一切片](docs/22-source-registry.md) | 最小身份校验、来源登记/查询、安全边界和本地集成证据 |
+| [接入任务契约第一切片](docs/23-ingestion-job-contract.md) | 增量游标、删除规则、V002 迁移和本地集成证据 |
 | [源库元数据发现](docs/15-source-metadata-findings.md) | TLS授权例外、真实连接和结构事实、三类指标缺口及本地字典 |
 | [测试库发现执行记录](docs/14-mysql-test-discovery.md) | 初次严格TLS失败历史、固定客户端与NAS Compose v2.40.3 |
 | [MySQL预检与Compose双版本](docs/13-mysql-preflight-compose.md) | 初次网络预检历史、已更新的账号/客户端状态与NAS入口管理 |

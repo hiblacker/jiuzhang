@@ -1,7 +1,6 @@
 package com.bydw.api;
 
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -23,11 +22,6 @@ public class ApiExceptionHandler {
   @ExceptionHandler(HttpMessageNotReadableException.class)
   ResponseEntity<ApiError> malformed(HttpServletRequest request) {
     return error(HttpStatus.BAD_REQUEST, "MALFORMED_JSON", "Request body is not valid JSON", request);
-  }
-
-  @ExceptionHandler(DuplicateKeyException.class)
-  ResponseEntity<ApiError> conflict(HttpServletRequest request) {
-    return error(HttpStatus.CONFLICT, "SOURCE_CONFLICT", "Source code already exists", request);
   }
 
   @ExceptionHandler(MethodArgumentTypeMismatchException.class)
