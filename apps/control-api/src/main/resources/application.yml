@@ -16,3 +16,6 @@ management:
     health:
       probes:
         enabled: true
+bydw:
+  security:
+    admin-token: ${CONTROL_API_ADMIN_TOKEN}

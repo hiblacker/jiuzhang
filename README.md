@@ -8,6 +8,7 @@
 
 - 2026-09-14：POC-01 本地合成链路已验证——MySQL→SeaTunnel→PostgreSQL RAW→dbt→DolphinScheduler，覆盖重放、迟到、陈旧发布拒绝和失败重试；仍未验证正式平台、NAS部署、容量或真实源全量接入。
 - 2026-09-14：正式平台 PLT-01 第一切片已完成本地验证——Spring Boot 控制 API、PostgreSQL 版本化迁移和 Compose 启动链路可运行；身份、真实接入、Naive UI 与 NAS 部署仍待后续切片。
+- 2026-09-14：PLT-02/ING-01 第一切片已完成本地验证——管理 Token、来源登记/查询、敏感配置拒绝和审计可运行；真实连接测试、角色授权与抽取仍未实现。
 - 2026-09-10：已形成设计规划、完成限量源库调查，并跑通本地合成数据 SQL PoC（P0）。
 - 已在用户明确授权的测试库TLS例外下成功连接MySQL 8.1.0，完成两个源库共21个选定对象的元数据调查；另已完成5对象的限量业务采样，发现任务/缺陷状态日志及成员事件候选，但完整历史还原、指标与完整PoC尚未验证。
 - 一期建议采用批处理、SQL 优先、复用开源执行能力、薄控制台的路径。
@@ -32,6 +33,7 @@
 | [DevOps首主题域契约](docs/19-devops-domain-contract.md) | 首条真实接入范围、指标发布边界、质量门禁与待确认业务规则 |
 | [正式平台骨架实施](docs/20-platform-foundation.md) | 控制 API、元数据迁移、锁定镜像与本地 Compose 验证记录 |
 | [后续规划与里程碑](docs/21-next-milestones.md) | 从 PLT-01 起点开始的执行顺序、出口条件、阻断项和近期工作 |
+| [来源登记 API 第一切片](docs/22-source-registry.md) | 最小身份校验、来源登记/查询、安全边界和本地集成证据 |
 | [源库元数据发现](docs/15-source-metadata-findings.md) | TLS授权例外、真实连接和结构事实、三类指标缺口及本地字典 |
 | [测试库发现执行记录](docs/14-mysql-test-discovery.md) | 初次严格TLS失败历史、固定客户端与NAS Compose v2.40.3 |
 | [MySQL预检与Compose双版本](docs/13-mysql-preflight-compose.md) | 初次网络预检历史、已更新的账号/客户端状态与NAS入口管理 |

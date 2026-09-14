@@ -1,9 +1,11 @@
 FROM maven:3.9.11-eclipse-temurin-21 AS build
 WORKDIR /src
 COPY apps/control-api/pom.xml apps/control-api/pom.xml
-RUN mvn -q -Dmaven.wagon.http.retryHandler.count=5 -f apps/control-api/pom.xml dependency:go-offline
+RUN --mount=type=cache,id=bydw-maven,target=/root/.m2,sharing=locked \
+    mvn -q -Dmaven.wagon.http.retryHandler.count=5 -f apps/control-api/pom.xml dependency:go-offline
 COPY apps/control-api/src apps/control-api/src
-RUN mvn -q -Dmaven.wagon.http.retryHandler.count=5 -f apps/control-api/pom.xml package
+RUN --mount=type=cache,id=bydw-maven,target=/root/.m2,sharing=locked \
+    mvn -q -Dmaven.wagon.http.retryHandler.count=5 -f apps/control-api/pom.xml package
 
 FROM eclipse-temurin:21.0.12_8-jre-jammy
 WORKDIR /app

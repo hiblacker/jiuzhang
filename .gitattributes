@@ -8,3 +8,5 @@
 *.sql text eol=lf
 *.sh text eol=lf
 Dockerfile* text eol=lf
+*.java text eol=lf
+.env.example text eol=lf
