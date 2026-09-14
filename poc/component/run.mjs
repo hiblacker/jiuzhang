@@ -27,7 +27,7 @@ export function sourceDatabaseName(token) {
  return `src_${token}`;
 }
 
-function docker(args, input = '', timeoutMs = 180000) {
+async function docker(args, input = '', timeoutMs = 180000, attempt = 0) {
  return new Promise((resolve, reject) => {
   const child = spawn('docker', args, { cwd: root, shell: false, windowsHide: true,
    stdio: ['pipe', 'pipe', 'pipe'] });
@@ -36,9 +36,14 @@ function docker(args, input = '', timeoutMs = 180000) {
   child.stdout.on('data', d => { stdout += d; });
   child.stderr.on('data', d => { stderr += d; });
   child.on('error', e => { clearTimeout(timer); reject(e); });
-  child.on('close', code => {
+  child.on('close', async code => {
    clearTimeout(timer);
-   if (code !== 0) reject(new Error(`docker ${args.slice(0, 3).join(' ')} failed (${code}): ${stderr.slice(-3000)}`));
+   const transientExec = args.includes('exec') && (code === 126 || /OCI runtime exec|connection reset by peer/i.test(stderr));
+   if (code !== 0 && transientExec && attempt < 2) {
+    await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+    try { resolve(await docker(args, input, timeoutMs, attempt + 1)); }
+    catch (error) { reject(error); }
+   } else if (code !== 0) reject(new Error(`docker ${args.slice(0, 3).join(' ')} failed (${code}): ${stderr.slice(-3000)}`));
    else resolve(stdout);
   });
   if (input) child.stdin.end(input); else child.stdin.end();
@@ -51,6 +56,13 @@ let warehouseCid = null;
 async function warehouseContainer() {
  if (!warehouseCid) warehouseCid = (await compose('ps', '-q', 'warehouse')).trim();
  return warehouseCid;
+}
+const serviceContainers = new Map();
+async function serviceContainer(service) {
+ if (!serviceContainers.has(service)) {
+  serviceContainers.set(service, (await compose('ps', '-q', service)).trim());
+ }
+ return serviceContainers.get(service);
 }
 const psql = async (db, input) => docker(['exec', '-i', '-u', 'postgres',
  await warehouseContainer(), 'psql', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1', '-d', db], input);
@@ -111,8 +123,7 @@ async function seedSource(sourceDb, secrets) {
 }
 
 async function httpIn(container, method, url, body, cookie) {
- const args = ['compose', '-f', path.join(root, 'poc/component/compose.yaml'), 'exec', '-T', container,
-  'curl', '-s', '--max-time', '30', '-X', method];
+ const args = ['exec', await serviceContainer(container), 'curl', '-s', '--max-time', '30', '-X', method];
  if (cookie) args.push('-H', `Cookie: sessionId=${cookie}`);
  if (body) for (const [k, v] of Object.entries(body)) args.push('--data-urlencode', `${k}=${v}`);
  args.push(url);
@@ -132,9 +143,9 @@ async function adapterCall(method, url, body) {
   + "req.add_header('Content-Type','application/json')\n"
   + "try:\n r=urllib.request.urlopen(req, timeout=120); print(r.read().decode())\n"
   + "except urllib.error.HTTPError as e:\n sys.stdout.write(e.read().decode()); raise SystemExit(1)\n";
- const args = ['compose', '-f', path.join(root, 'poc/component/compose.yaml'), 'exec', '-T'];
+ const args = ['exec'];
  if (body) args.push('-e', `BDY=${JSON.stringify(body)}`);
- args.push('adapter', 'python', '-c', py);
+ args.push(await serviceContainer('adapter'), 'python', '-c', py);
  const out = await docker(args, '', 150000);
  try { return JSON.parse(out.trim().split('\n').pop()); }
  catch { throw new Error(`Adapter ${url} returned non-JSON: ${out.slice(0, 400)}`); }
@@ -288,7 +299,7 @@ async function main() {
      httpParams: [], httpCheckCondition: 'STATUS_CODE_DEFAULT', condition: '',
      connectTimeout: 60000, socketTimeout: 300000 },
     flag: 'YES', taskPriority: 'MEDIUM', workerGroup: 'default', failRetryTimes: 1,
-    failRetryInterval: 5, timeoutFlag: 'CLOSE', timeoutNotifyStrategy: '', timeout: 0,
+    failRetryInterval: 1, timeoutFlag: 'CLOSE', timeoutNotifyStrategy: '', timeout: 0,
     delayTime: 0, environmentCode: -1, description: '' }),
   };
   await record('scheduler', { projectCode, defs });
@@ -354,14 +365,17 @@ async function main() {
   if (retry.state !== 'SUCCESS') throw new Error(`retry workflow state ${retry.state}`);
   const tasks = await schedulerCall('GET',
    `/dolphinscheduler/projects/${projectCode}/workflow-instances/${retry.instanceId}/tasks`, undefined, cookie);
-  const taskList = tasks.data?.totalList ?? tasks.data ?? [];
-  const retryEvidence = taskList.map(t => ({ name: t.name, state: t.state, retryNum: t.retryNum ?? t.retryTimes ?? null }));
+  const taskPayload = tasks.data?.totalList ?? tasks.data ?? [];
+  const taskList = Array.isArray(taskPayload) ? taskPayload
+   : Object.values(taskPayload ?? {}).filter(value => value && typeof value === 'object');
+  const retryEvidence = taskList.map(t => ({ name: t.name ?? t.taskName ?? null,
+   state: t.state ?? t.taskState ?? null, retryNum: t.retryNum ?? t.retryTimes ?? null }));
   await record('retry', { instance: retry.instanceId, state: retry.state, tasks: retryEvidence });
 
   // Stage 6: dbt schema tests on the latest models.
-  const dbtTest = await compose('exec', '-T', '-e', `DBT_DBNAME=${db}`,
+  const dbtTest = await docker(['exec', '-e', `DBT_DBNAME=${db}`,
    '-e', `DBT_PASSWORD=${secrets['poc01-pg-password.txt']}`,
-   'adapter', 'dbt', 'test', '--profiles-dir', '/opt/dbt_project');
+   await serviceContainer('adapter'), 'dbt', 'test', '--profiles-dir', '/opt/dbt_project']);
   if (!/PASS=?\s*\d|All tests passed|Success/i.test(dbtTest) && !/PASS/.test(dbtTest)) {
    throw new Error(`dbt test failed: ${dbtTest.slice(-800)}`);
   }
