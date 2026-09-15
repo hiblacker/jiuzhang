@@ -30,7 +30,7 @@ public class JdbcBatchRepository implements BatchRepository {
         + "(job_id, run_key, cursor_from, cursor_to, state, checkpoint_version)"
         + " SELECT id, ?, checkpoint, CAST(? AS jsonb), 'RUNNING', checkpoint_version"
         + " FROM control.ingestion_job WHERE id = ?"
-        + " ON CONFLICT (job_id, run_key) DO NOTHING RETURNING " + COLUMNS;
+        + " ON CONFLICT (job_id, run_key, attempt) DO NOTHING RETURNING " + COLUMNS;
     return jdbc.query(sql, this::map, runKey, cursorToJson, jobId).stream().findFirst();
   }
 
@@ -41,10 +41,10 @@ public class JdbcBatchRepository implements BatchRepository {
   }
 
   @Override
-  public Optional<IngestionBatch> findByRunKey(long jobId, String runKey) {
-    return jdbc.query("SELECT " + COLUMNS
-        + " FROM control.ingestion_batch WHERE job_id = ? AND run_key = ?", this::map,
-        jobId, runKey).stream().findFirst();
+  public Optional<IngestionBatch> findLatestByRunKey(long jobId, String runKey) {
+    return jdbc.query("SELECT " + COLUMNS + " FROM control.ingestion_batch"
+        + " WHERE job_id = ? AND run_key = ? ORDER BY attempt DESC, id DESC LIMIT 1",
+        this::map, jobId, runKey).stream().findFirst();
   }
 
   @Override
@@ -54,6 +54,16 @@ public class JdbcBatchRepository implements BatchRepository {
         (result, row) -> new RawBatchEvidence(
             result.getLong(1), result.getString(2), result.getString(3),
             result.getObject(4, OffsetDateTime.class)), batchId).stream().findFirst();
+  }
+
+  @Override
+  public Optional<IngestionBatch> retry(long batchId) {
+    String sql = "INSERT INTO control.ingestion_batch"
+        + "(job_id, run_key, attempt, cursor_from, cursor_to, state, checkpoint_version)"
+        + " SELECT job_id, run_key, attempt + 1, cursor_from, cursor_to, 'RUNNING', checkpoint_version"
+        + " FROM control.ingestion_batch WHERE id = ? AND state IN ('FAILED','CANCELLED')"
+        + " ON CONFLICT (job_id, run_key, attempt) DO NOTHING RETURNING " + COLUMNS;
+    return jdbc.query(sql, this::map, batchId).stream().findFirst();
   }
 
   @Override
@@ -84,6 +94,13 @@ public class JdbcBatchRepository implements BatchRepository {
     return jdbc.update("UPDATE control.ingestion_batch"
         + " SET state = 'FAILED', error_code = ?, diagnostic_ref = ?, finished_at = now()"
         + " WHERE id = ? AND state = 'RUNNING'", errorCode, diagnosticRef, batchId) == 1;
+  }
+
+  @Override
+  public boolean cancel(long batchId) {
+    return jdbc.update("UPDATE control.ingestion_batch"
+        + " SET state = 'CANCELLED', error_code = 'CANCELLED_BY_WORKER', finished_at = now()"
+        + " WHERE id = ? AND state = 'RUNNING'", batchId) == 1;
   }
 
   @Override

@@ -24,7 +24,11 @@ function explicitVersion(reference) {
   const value = reference.replace(/^['"]|['"]$/g, '');
   const lastSlash = value.lastIndexOf('/');
   const lastColon = value.lastIndexOf(':');
-  return !value.includes('@') && lastColon > lastSlash && value.slice(lastColon + 1) !== 'latest';
+  const version = value.slice(lastColon + 1);
+  return !value.includes('@')
+    && lastColon > lastSlash
+    && version !== 'latest'
+    && !(value.startsWith('bydw/') && /-dev$/.test(version));
 }
 
 function imageReferences(file, source) {

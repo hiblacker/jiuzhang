@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -59,7 +60,7 @@ public class BatchService {
               "checkpointVersion", batch.checkpointVersion())));
       return batch;
     }
-    IngestionBatch existing = repository.findByRunKey(jobId, request.runKey())
+    IngestionBatch existing = repository.findLatestByRunKey(jobId, request.runKey())
         .orElseThrow(() -> new IllegalStateException("Existing batch runKey was not readable"));
     if (!existing.cursorTo().equals(cursorTo)) {
       throw new ApiException(HttpStatus.CONFLICT, "BATCH_RUN_KEY_MISMATCH",
@@ -133,6 +134,44 @@ public class BatchService {
     sourceRepository.audit(principal, "INGESTION_BATCH_FAIL", "ingestion-batch/" + batchId,
         json(Map.of("jobId", failed.jobId(), "errorCode", request.errorCode())));
     return failed;
+  }
+
+  @Transactional
+  public IngestionBatch retry(long batchId, String principal) {
+    IngestionBatch batch = repository.find(batchId).orElseThrow(() -> notFound(batchId));
+    if (!Set.of("FAILED", "CANCELLED").contains(batch.state())) {
+      throw new ApiException(HttpStatus.CONFLICT, "BATCH_NOT_RETRYABLE",
+          "Only a failed or cancelled batch can be retried");
+    }
+    IngestionBatch latest = repository.findLatestByRunKey(batch.jobId(), batch.runKey())
+        .orElseThrow(() -> new IllegalStateException("Latest batch attempt was not readable"));
+    if (latest.attempt() > batch.attempt()) return latest;
+    IngestionBatch retried = repository.retry(batchId).orElse(null);
+    if (retried == null) {
+      retried = repository.findLatestByRunKey(batch.jobId(), batch.runKey())
+          .filter(candidate -> candidate.attempt() > batch.attempt())
+          .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "BATCH_RETRY_CONFLICT",
+              "A retry was created concurrently or the batch is no longer retryable"));
+    }
+    sourceRepository.audit(principal, "INGESTION_BATCH_RETRY", "ingestion-batch/" + batchId,
+        json(Map.of("jobId", batch.jobId(), "runKey", batch.runKey(),
+            "attempt", retried.attempt(), "retryBatchId", retried.id())));
+    return retried;
+  }
+
+  @Transactional
+  public IngestionBatch cancel(long batchId, String principal) {
+    IngestionBatch batch = repository.find(batchId).orElseThrow(() -> notFound(batchId));
+    if (!"RUNNING".equals(batch.state())) {
+      throw new ApiException(HttpStatus.CONFLICT, "BATCH_NOT_RUNNING", "Only a running batch can cancel");
+    }
+    if (!repository.cancel(batchId)) {
+      throw new ApiException(HttpStatus.CONFLICT, "BATCH_NOT_RUNNING", "Only a running batch can cancel");
+    }
+    IngestionBatch cancelled = repository.find(batchId).orElseThrow(() -> notFound(batchId));
+    sourceRepository.audit(principal, "INGESTION_BATCH_CANCEL", "ingestion-batch/" + batchId,
+        json(Map.of("jobId", cancelled.jobId())));
+    return cancelled;
   }
 
   @Transactional

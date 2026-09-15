@@ -13,7 +13,7 @@
 | `POST /api/v1/ingestion-batches/{batchId}/fail` | 仅 RUNNING 可失败；保存稳定错误码和可选诊断引用，不保存任意原始错误文本 |
 | `GET /api/v1/ingestion-jobs/{jobId}/checkpoint` | 返回当前检查点 JSON 及单调递增版本 |
 
-状态范围为 RUNNING、SUCCEEDED、FAILED、CANCELLED、STALE。CANCELLED 尚未提供 API；不能通过直接改表模拟控制面操作。
+状态范围为 RUNNING、SUCCEEDED、FAILED、CANCELLED、STALE。CANCELLED 通过 Worker 的 cancel 接口产生；不能通过直接改表模拟控制面操作。
 
 ## 2. 一致性约束
 
@@ -64,6 +64,6 @@ Java 测试共 22 项，其中批次服务 8 项，覆盖 ACTIVE 门禁、服务
 ## 5. 未完成项
 
 1. 数据库登录角色和真实 Worker 进程；HTTP Worker 身份隔离及 RAW 完成门禁已在[25号文档](25-raw-batch-evidence.md)完成。
-2. 失败重试 attempt、超时租约、取消和失联批次对账。
+2. 失败重试 attempt 和取消已在[26号文档](26-batch-retry-cancel.md)完成；超时租约和失联批次对账仍待实现。
 3. 按 UPDATED_AT_KEYSET 语义校验 nextCheckpoint 不倒退；通用 JSON 版本 CAS 本身不能比较业务水位大小。
 4. 批次列表、运行日志引用和告警投影。

@@ -220,7 +220,7 @@ release_id
 
 ### 开源依赖版本
 
-使用锁定的 Release/tag 或经审核的 commit，不使用 `latest`；Docker Compose、Dockerfile 和临时验证命令只使用明确版本标签，不使用镜像 ID 或 digest 引用；同时保存SBOM、许可证/NOTICE和漏洞扫描结果。升级先在独立分支做兼容性、数据回放、性能和恢复测试，再生成变更记录。
+使用锁定的 Release/tag 或经审核的 commit，不使用 `latest`；Docker Compose、Dockerfile 和临时验证命令只使用明确版本标签，不使用镜像 ID 或 digest 引用。项目自建镜像的每次代码变化必须递增版本，禁止覆盖已被容器使用的标签；同时保存SBOM、许可证/NOTICE和漏洞扫描结果。升级先在独立分支做兼容性、数据回放、性能和恢复测试，再生成变更记录。
 
 ## 7. Docker还是其他发布方式
 

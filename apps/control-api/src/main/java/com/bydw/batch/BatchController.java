@@ -40,6 +40,16 @@ public class BatchController {
     return service.fail(batchId, request, principal(httpRequest));
   }
 
+  @PostMapping("/api/v1/ingestion-batches/{batchId}/retry")
+  public IngestionBatch retry(@PathVariable long batchId, HttpServletRequest httpRequest) {
+    return service.retry(batchId, principal(httpRequest));
+  }
+
+  @PostMapping("/api/v1/ingestion-batches/{batchId}/cancel")
+  public IngestionBatch cancel(@PathVariable long batchId, HttpServletRequest httpRequest) {
+    return service.cancel(batchId, principal(httpRequest));
+  }
+
   @GetMapping("/api/v1/ingestion-jobs/{jobId}/checkpoint")
   public CheckpointView checkpoint(@PathVariable long jobId, HttpServletRequest request) {
     return service.checkpoint(jobId, principal(request));

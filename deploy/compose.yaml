@@ -27,7 +27,7 @@ services:
       warehouse-db:
         condition: service_healthy
   control-api:
-    image: bydw/control-api:0.1.0-dev
+    image: bydw/control-api:0.1.0-dev.1
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api

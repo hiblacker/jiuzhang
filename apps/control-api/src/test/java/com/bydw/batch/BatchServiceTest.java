@@ -57,7 +57,7 @@ class BatchServiceTest {
         objectMapper.createObjectNode(), cursorTo, "RUNNING", 0, null, null, null, 3,
         OffsetDateTime.parse("2026-09-14T00:00:00Z"), null, null);
     when(repository.start(2, "daily-001", cursorTo.toString())).thenReturn(Optional.empty());
-    when(repository.findByRunKey(2, "daily-001")).thenReturn(Optional.of(existing));
+    when(repository.findLatestByRunKey(2, "daily-001")).thenReturn(Optional.of(existing));
 
     assertThat(service.start(2, new StartBatchRequest("daily-001", cursorTo), "local-worker"))
         .isEqualTo(existing);
@@ -73,7 +73,7 @@ class BatchServiceTest {
         objectMapper.createObjectNode(), objectMapper.readTree("{\"id\":1}"), "RUNNING",
         0, null, null, null, 3, OffsetDateTime.parse("2026-09-14T00:00:00Z"), null, null);
     when(repository.start(2, "daily-001", requested.toString())).thenReturn(Optional.empty());
-    when(repository.findByRunKey(2, "daily-001")).thenReturn(Optional.of(existing));
+    when(repository.findLatestByRunKey(2, "daily-001")).thenReturn(Optional.of(existing));
 
     assertThatThrownBy(() -> service.start(2,
         new StartBatchRequest("daily-001", requested), "local-worker"))
@@ -190,6 +190,55 @@ class BatchServiceTest {
   }
 
   @Test
+  void retryCreatesNextAttemptAndAudits() {
+    IngestionBatch failed = batchWithAttempt(5, "FAILED", 1, 3);
+    IngestionBatch retried = batchWithAttempt(6, "RUNNING", 2, 3);
+    when(repository.find(5)).thenReturn(Optional.of(failed));
+    when(repository.findLatestByRunKey(2, "daily-001")).thenReturn(Optional.of(failed));
+    when(repository.retry(5)).thenReturn(Optional.of(retried));
+
+    assertThat(service.retry(5, "local-worker")).isEqualTo(retried);
+    verify(sourceRepository).audit(eq("local-worker"), eq("INGESTION_BATCH_RETRY"),
+        eq("ingestion-batch/5"), anyString());
+  }
+
+  @Test
+  void concurrentOrRepeatedRetryReturnsTheLatestAttempt() {
+    IngestionBatch failed = batchWithAttempt(5, "FAILED", 1, 3);
+    IngestionBatch latest = batchWithAttempt(6, "RUNNING", 2, 3);
+    when(repository.find(5)).thenReturn(Optional.of(failed));
+    when(repository.findLatestByRunKey(2, "daily-001"))
+        .thenReturn(Optional.of(failed), Optional.of(latest));
+    when(repository.retry(5)).thenReturn(Optional.empty());
+
+    assertThat(service.retry(5, "local-worker")).isEqualTo(latest);
+  }
+
+  @Test
+  void retryRejectsRunningAndCancelIsIdempotentlyBounded() {
+    IngestionBatch running = batchWithAttempt(5, "RUNNING", 1, 3);
+    when(repository.find(5)).thenReturn(Optional.of(running));
+    assertThatThrownBy(() -> service.retry(5, "local-worker"))
+        .isInstanceOfSatisfying(ApiException.class,
+            exception -> assertThat(exception.code()).isEqualTo("BATCH_NOT_RETRYABLE"));
+
+    when(repository.cancel(5)).thenReturn(true);
+    when(repository.find(5)).thenReturn(Optional.of(running), Optional.of(batchWithAttempt(
+        5, "CANCELLED", 1, 3)));
+    assertThat(service.cancel(5, "local-worker").state()).isEqualTo("CANCELLED");
+    verify(sourceRepository).audit(eq("local-worker"), eq("INGESTION_BATCH_CANCEL"),
+        eq("ingestion-batch/5"), anyString());
+  }
+
+  @Test
+  void cancelRejectsFinishedBatch() {
+    when(repository.find(5)).thenReturn(Optional.of(batchWithAttempt(5, "SUCCEEDED", 1, 3)));
+    assertThatThrownBy(() -> service.cancel(5, "local-worker"))
+        .isInstanceOfSatisfying(ApiException.class,
+            exception -> assertThat(exception.code()).isEqualTo("BATCH_NOT_RUNNING"));
+  }
+
+  @Test
   void returnsCheckpointWithVersionAndAudits() throws Exception {
     CheckpointView view = new CheckpointView(objectMapper.readTree("{\"id\":7}"), 4);
     when(repository.currentCheckpoint(2)).thenReturn(view);
@@ -205,7 +254,11 @@ class BatchServiceTest {
   }
 
   private IngestionBatch batch(long id, String state, long checkpointVersion) {
-    return new IngestionBatch(id, 2, "daily-001", 1, objectMapper.createObjectNode(),
+    return batchWithAttempt(id, state, 1, checkpointVersion);
+  }
+
+  private IngestionBatch batchWithAttempt(long id, String state, int attempt, long checkpointVersion) {
+    return new IngestionBatch(id, 2, "daily-001", attempt, objectMapper.createObjectNode(),
         objectMapper.createObjectNode(), state, 0, null, null, null, checkpointVersion,
         OffsetDateTime.parse("2026-09-14T00:00:00Z"), null, null);
   }
