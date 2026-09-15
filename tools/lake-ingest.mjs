@@ -376,4 +376,4 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   }
 }
 
-export { buildSnapshotSql, columnExpression, identifier, parseArgs, runSnapshot };
+export { buildSnapshotSql, columnExpression, identifier, parseArgs, runSnapshot, validateAuthorization, writeOptions, selectMysqlCli };

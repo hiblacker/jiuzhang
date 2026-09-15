@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { atomicJson, readJson, withLock } from '../../tools/lake-runtime.mjs';
 import { buildManifestRequest } from '../../tools/lake-register.mjs';
+import { verifyCurrentSchema } from '../../tools/lake-discover.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const CODE = /^[a-z][a-z0-9_-]{1,99}$/u;
@@ -93,11 +94,15 @@ async function execute(registry, task, signal) {
   const common = ['--lake-root', registry.lakeRoot];
   let result, manifest;
   if (task.kind === 'MYSQL_SNAPSHOT') {
+    await verifyCurrentSchema(profile, registry.lakeRoot);
+    if (signal.aborted) fail('WORKER_EXECUTION_ABORTED');
     const args = [...common, '--daily', '--window', task.business_date, '--source-code', profile.sourceCode,
       '--batch-id', batch, '--config', profile.config, '--inventory', profile.inventory];
     if (profile.allowUnverifiedTestTls === true) args.push('--allow-unverified-test-tls');
     if (profile.mysqlCli) args.push('--mysql-cli', profile.mysqlCli);
     result = await child('tools/lake-ingest.mjs', args, signal);
+    await verifyCurrentSchema(profile, registry.lakeRoot);
+    if (signal.aborted) fail('WORKER_EXECUTION_ABORTED');
     const local = path.join(registry.lakeRoot, 'batches', result.batchId, 'batch.json');
     manifest = await buildManifestRequest(local, await readJson(local), { lakeRoot: registry.lakeRoot,
       sourceCode: profile.sourceCode, planVersion: task.inventory_version });
@@ -174,10 +179,15 @@ export async function run(options) {
     let stopping = false;
     const stop = () => { stopping = true; };
     process.on('SIGTERM', stop); process.on('SIGINT', stop);
+    let lastMessage;
     try {
     do {
-      const result = await runOnce(options, registry);
-      if (result.state !== 'IDLE') console.log(JSON.stringify(result));
+      let result;
+      try { result = await runOnce(options, registry); }
+      catch (error) { if (options.once) throw error; result = { state: 'CONTROL_API_UNAVAILABLE' }; }
+      const message = JSON.stringify(result);
+      if (result.state !== 'IDLE' && message !== lastMessage) console.log(message);
+      lastMessage = message;
       if (options.once) return result;
       await pause(options.pollMs);
     } while (!stopping);
