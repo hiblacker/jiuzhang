@@ -1,0 +1,36 @@
+{
+  "observed_at": "2026-09-15T14:32:36.690Z",
+  "scope": "provided-database-metadata-only",
+  "source_modified": false,
+  "client": "MySQL CLI 9.7.1 (existing local installation)",
+  "greeting": {
+    "status": "GREETING_RECEIVED",
+    "protocol": 10,
+    "server_version_numeric": "8.1.0",
+    "tls_advertised": true
+  },
+  "discovery": {
+    "status": "failed",
+    "category": "TLS_CONNECTION_FAILED",
+    "mysql_error_code": 2026,
+    "tls_reason": "CERTIFICATE_TRUST_FAILED"
+  },
+  "authentication_succeeded": false,
+  "metadata_sql_executed": false,
+  "raw_ingestion_executed": false,
+  "scope_note": "Only the user-provided database was targeted. No source host, account, password or business payload is included.",
+  "official_sources": [
+    {
+      "url": "https://dev.mysql.com/doc/refman/8.0/en/innodb-consistent-read.html",
+      "supports": "One transaction at REPEATABLE READ shares a read snapshot; DDL limitations apply."
+    },
+    {
+      "url": "https://dev.mysql.com/doc/refman/8.0/en/mysqldump.html",
+      "supports": "Single-transaction consistent export is scoped to transactional tables and has DDL constraints."
+    },
+    {
+      "url": "https://dev.mysql.com/doc/mysql-infoschema-excerpt/5.7/en/information-schema-tables-table.html",
+      "supports": "InnoDB TABLE_ROWS is an estimate, not an exact count."
+    }
+  ]
+}
