@@ -35,6 +35,8 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
       "^/api/v1/ingestion-jobs/[^/]+/?$");
   private static final Pattern LAKE_MANIFEST_WRITE = Pattern.compile(
       "^/api/v1/lake/manifests/?$");
+  private static final Pattern LAKE_EXECUTION_WORKER = Pattern.compile(
+      "^/api/v1/lake/executions/(?:claim|[0-9]+/(?:heartbeat|finish))/?$");
   private static final Pattern WORKER_INSTANCE = Pattern.compile(
       "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$");
 
@@ -122,6 +124,7 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
     if ("POST".equals(method) && (BATCH_START.matcher(path).matches()
         || BATCH_MUTATION.matcher(path).matches())) return Access.WORKER;
     if ("POST".equals(method) && LAKE_MANIFEST_WRITE.matcher(path).matches()) return Access.WORKER;
+    if ("POST".equals(method) && LAKE_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
     if ("GET".equals(method) && (CHECKPOINT_READ.matcher(path).matches()
         || JOB_READ.matcher(path).matches())) return Access.EITHER;
     return Access.ADMIN;

@@ -83,6 +83,16 @@ public class LakeRegistrationService {
   @Transactional
   public LakeManifestResponse registerManifest(RegisterManifestRequest request, String principal) {
     if (request == null) bad("INVALID_MANIFEST", "Manifest request is required");
+    validateCode(request.sourceCode());
+    if (jdbc.queryForObject("SELECT count(*) FROM lake.ingestion_plan p JOIN control.source_connection s ON s.id = p.source_id WHERE s.code = ?", Long.class, request.sourceCode()) > 0) {
+      throw new ApiException(HttpStatus.CONFLICT, "SCHEDULED_SOURCE_REQUIRES_EXECUTION", "Scheduled sources must commit with an active execution lease");
+    }
+    return registerScheduledManifest(request, principal);
+  }
+
+  @Transactional
+  public LakeManifestResponse registerScheduledManifest(RegisterManifestRequest request, String principal) {
+    if (request == null) bad("INVALID_MANIFEST", "Manifest request is required");
     String sourceCode = validateCode(request.sourceCode());
     if (request.planVersion() < 1 || request.runKey() == null || !RUN_KEY.matcher(request.runKey()).matches()) bad("INVALID_RUN_KEY", "runKey is invalid");
     if (request.mode() == null || request.state() == null || !MODES.contains(request.mode()) || !RUN_STATES.contains(request.state())) bad("INVALID_RUN_CONTRACT", "mode or state is invalid");

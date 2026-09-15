@@ -42,7 +42,7 @@ services:
       migrate:
         condition: service_completed_successfully
   control-api:
-    image: jiuzhang/control-api:0.1.0-dev.8
+    image: jiuzhang/control-api:0.1.0-dev.9
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api
@@ -52,6 +52,7 @@ services:
       CONTROL_API_ADMIN_TOKEN: ${CONTROL_API_ADMIN_TOKEN:?set CONTROL_API_ADMIN_TOKEN}
       CONTROL_API_WORKER_TOKEN: ${CONTROL_API_WORKER_TOKEN:?set CONTROL_API_WORKER_TOKEN}
       CONTROL_API_ALLOWED_ORIGINS: ${CONTROL_API_ALLOWED_ORIGINS:-}
+      LAKE_CALENDAR_DRIVER: ${LAKE_CALENDAR_DRIVER:-external}
       BATCH_LEASE_DURATION_SECONDS: ${BATCH_LEASE_DURATION_SECONDS:-300}
     ports:
       - "${CONTROL_API_PORT:-8080}:8080"

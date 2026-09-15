@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.HexFormat;
 import java.util.UUID;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -189,6 +190,65 @@ class LakeDatabaseIntegrationTest {
     Files.writeString(repo.resolve("work/lake-review/registration-evidence.json"), json.createObjectNode()
         .put("state", "COMPLETE").put("registeredObjects", manifest.get("tables").size())
         .put("registeredRows", expectedRows).put("runId", runId).toPrettyString());
+  }
+
+  @Test
+  void calendarFindsGapsAndExecutionLeasesFenceRetriesAndCancellation() throws Exception {
+    String source = "calendar_" + UUID.randomUUID().toString().replace("-", "");
+    var sourceBody = json.createObjectNode().put("code", source).put("sourceType", "FILE")
+        .put("credentialRef", "env://SYNTHETIC_FOLDER");
+    sourceBody.putObject("config");
+    assertStatus(post("/api/v1/sources", ADMIN, sourceBody), 201);
+    var today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+    var plan = json.createObjectNode().put("sourceCode", source).put("expectedVersion", 0)
+        .put("kind", "FILE_SCAN").put("runtimeRef", source).put("timezone", "Asia/Shanghai")
+        .put("triggerTime", "00:00:00").put("startDate", today.minusDays(1).toString())
+        .put("historicalRead", true).put("maxAttempts", 3).put("timeoutSeconds", 300);
+    plan.putObject("contract").put("deliveryMode", "DAILY");
+    var saved = post("/api/v1/lake/plans", ADMIN, plan); assertStatus(saved, 200);
+    long planId = json.readTree(saved.body()).get("id").asLong();
+    try {
+      // A manual current-day trigger must not hide the prior missing schedule day.
+      var trigger = json.createObjectNode().put("day", today.toString()).put("revision", false).put("reason", "synthetic review");
+      assertStatus(post("/api/v1/lake/plans/" + planId + "/trigger", ADMIN, trigger), 200);
+      var service = app.getBean(LakeExecutionService.class);
+      service.reconcile(java.time.Instant.now()); service.reconcile(java.time.Instant.now());
+      assertThat(service.windows(planId)).hasSize(2);
+      assertThat(service.attempts(planId)).hasSize(2);
+      var capabilities = json.createObjectNode(); capabilities.putArray("runtimeRefs").add(source);
+      var firstClaim = http.sendAsync(request("/api/v1/lake/executions/claim", WORKER, capabilities), HttpResponse.BodyHandlers.ofString());
+      var secondClaim = http.sendAsync(request("/api/v1/lake/executions/claim", WORKER, capabilities), HttpResponse.BodyHandlers.ofString());
+      assertStatus(firstClaim.get(), 200); assertStatus(secondClaim.get(), 200);
+      JsonNode a = json.readTree(firstClaim.get().body()), b = json.readTree(secondClaim.get().body());
+      JsonNode claimed = a.path("state").asText().equals("RUNNING") ? a : b;
+      assertThat(List.of(a.path("state").asText(), b.path("state").asText())).containsExactlyInAnyOrder("RUNNING", "IDLE");
+      assertThat(claimed.at("/contract/deliveryMode").asText()).isEqualTo("DAILY");
+      long id = claimed.get("id").asLong();
+      String lease = claimed.get("leaseToken").asText();
+      var wrongLease = json.createObjectNode().put("leaseToken", UUID.randomUUID().toString());
+      assertStatus(post("/api/v1/lake/executions/" + id + "/heartbeat", WORKER, wrongLease), 409);
+      // Simulate a stopped worker by advancing only this lease in the isolated DB.
+      try (var owner = owner(); var statement = owner.prepareStatement("UPDATE lake.execution_attempt SET lease_expires_at = clock_timestamp() - interval '1 second' WHERE id = ?")) {
+        statement.setLong(1, id); statement.executeUpdate();
+      }
+      service.reconcile(java.time.Instant.now());
+      var completion = json.createObjectNode().put("leaseToken", lease).put("state", "COMPLETE");
+      completion.putObject("result").put("rows", 0);
+      assertStatus(post("/api/v1/lake/executions/" + id + "/finish", WORKER, completion), 409);
+      var retry = post("/api/v1/lake/executions/" + id + "/retry", ADMIN, json.createObjectNode()); assertStatus(retry, 200);
+      long retryId = json.readTree(retry.body()).get("id").asLong();
+      var nextClaim = post("/api/v1/lake/executions/claim", WORKER, capabilities); assertStatus(nextClaim, 200);
+      JsonNode next = json.readTree(nextClaim.body()); assertThat(next.get("id").asLong()).isEqualTo(retryId);
+      assertThat(next.get("leaseToken").asText()).isNotEqualTo(lease);
+      assertStatus(post("/api/v1/lake/executions/" + retryId + "/cancel", ADMIN, json.createObjectNode()), 200);
+      var heartbeat = json.createObjectNode().put("leaseToken", next.get("leaseToken").asText());
+      assertThat(json.readTree(post("/api/v1/lake/executions/" + retryId + "/heartbeat", WORKER, heartbeat).body()).path("state").asText()).isEqualTo("CANCEL_REQUESTED");
+      completion.put("leaseToken", next.get("leaseToken").asText());
+      assertThat(json.readTree(post("/api/v1/lake/executions/" + retryId + "/finish", WORKER, completion).body()).path("state").asText()).isEqualTo("CANCELLED");
+      var repeatedRetry = json.readTree(post("/api/v1/lake/executions/" + id + "/retry", ADMIN, json.createObjectNode()).body());
+      assertThat(repeatedRetry.get("id").asLong()).isEqualTo(retryId);
+      assertThat(service.windows(planId).stream().filter(w -> ((Number) w.get("id")).longValue() == next.get("window_id").asLong()).findFirst().orElseThrow().get("state")).isEqualTo("CANCELLED");
+    } finally { app.getBean(LakeExecutionService.class).setState(planId, "PAUSED", "local-review"); }
   }
 
   private static HttpRequest request(String path, String token, JsonNode body) {

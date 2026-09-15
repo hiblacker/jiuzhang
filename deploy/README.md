@@ -4,7 +4,7 @@
 
 ## 名称与兼容性
 
-产品名称为九章 · Jiuzhang，完整名称为九章数据平台 / JiuzhangData Platform。当前本地构建镜像为 `jiuzhang/control-api:0.1.0-dev.8` 和 `jiuzhang/ingestion-worker:0.1.0-dev.2`；这些名称不表示镜像已经构建或推送到远程仓库。
+产品名称为九章 · Jiuzhang，完整名称为九章数据平台 / JiuzhangData Platform。当前本地构建镜像为 `jiuzhang/control-api:0.1.0-dev.9` 和 `jiuzhang/ingestion-worker:0.1.0-dev.2`；这些名称不表示镜像已经构建或推送到远程仓库。
 
 Compose 示例继续使用 `-p bydw`，服务键和数据卷键保持原值，保证现有部署在更新镜像时继续定位原有资源。已有环境须沿用实际创建时的项目名（如 `bydw` 或 `bydw-foundation`）；仅修改项目名会创建另一组容器和数据卷，不会迁移原数据。重命名仓库目录后仍应显式指定同一项目名。
 
@@ -63,6 +63,8 @@ REST API 配置只保存批准的 HTTPS 域名、分页契约和环境变量名�
 ### 本轮复核后的升级与验证
 
 当前完成情况以 [复核记录](../docs/35-lake-review-and-remediation.md) 为准。V011 增加受限的 `lake.register_manifest` 提交函数，撤回 Worker 对湖批次/原始对象的直接写权限；HTTP Worker 身份经控制 API 校验后，由控制数据库角色调用函数。迁移后再启动 dev.8 API。已完成清单不可改写；错误批次使用新 runKey/attempt 重试。
+
+dev.9 API 需要 V012，新增的计划/日历/执行 API 见 [实施进度](../docs/36-product-implementation-progress.md)。`LAKE_CALENDAR_DRIVER=local` 开启本地后台日历，`external` 留给外部调度器。V012 只创建新表，无数据重写；回退 dev.8 前暂停新计划并停止新 Worker，保留新增账本供前向恢复，不删除表。
 
 V011 不修改旧迁移，也不回写原始文件。旧 inventory 没有完整契约 JSON，同版本重新登记会冲突；应重新发现结构、建立新 planVersion 和对应新快照，保留旧记录。旧终态 run 缺少 manifest_json 时，不把新请求当作可验证的相同重放；保留旧批次并新建运行。旧版本 API 依赖直接表写入，不能在 V011 后直接回退旧 API；应用修复采用新镜像/前向迁移。
 

@@ -17,6 +17,8 @@ management:
       probes:
         enabled: true
 bydw:
+  lake:
+    calendar-driver: ${LAKE_CALENDAR_DRIVER:external}
   web:
     allowed-origins: ${CONTROL_API_ALLOWED_ORIGINS:}
   security:
