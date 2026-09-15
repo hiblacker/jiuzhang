@@ -2,7 +2,7 @@ server:
   port: ${SERVER_PORT:8080}
 spring:
   application:
-    name: by-data-warehouse-control-api
+    name: jiuzhang-control-api
   datasource:
     url: ${WAREHOUSE_DB_URL:jdbc:postgresql://warehouse-db:5432/warehouse}
     username: ${CONTROL_API_DB_USERNAME:bydw_control_api_login}

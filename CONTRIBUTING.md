@@ -1,4 +1,4 @@
-# 开发与 Git 协作规范
+# 九章数据平台开发与 Git 协作规范
 
 详细规则见[工程治理规范](docs/09-engineering-governance.md)。AI先读取[AGENTS.md](AGENTS.md)。
 

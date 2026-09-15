@@ -1,8 +1,25 @@
-# by-data-warehouse · 通用报表数据中心
+# 九章 · Jiuzhang
 
-统一接入业务系统，清洗和加工业务数据，向报表系统发布可追溯、可授权、可版本化的数据集。
+**九章数据平台 / JiuzhangData Platform**
+
+九章数据平台是面向多业务领域的通用报表数据中心，统一接入业务系统，清洗和加工业务数据，向报表系统发布可追溯、可授权、可版本化的数据集。
 
 **DevOps 是首个业务主题，不是平台边界。** 第二个业务主题应主要通过新增连接配置、模型、SQL 和数据集完成接入，而不是修改平台核心。
+
+## 项目命名
+
+| 用途 | 名称 |
+|---|---|
+| 品牌名 | 九章 · Jiuzhang |
+| 中文全称 | 九章数据平台 |
+| 英文全称 | JiuzhangData Platform |
+| 建议 Git 仓库名 | `jiuzhang-data-platform` |
+| 控制 API 服务名 | `jiuzhang-control-api` |
+| 接入 Worker 服务名 | `jiuzhang-ingestion-worker` |
+
+名称取意于《九章算术》，强调用系统的方法处理数据与实际业务问题。文档与产品展示统一使用上述名称。
+
+原工程名为 `by-data-warehouse`。现有 `com.bydw` Java/Maven 命名空间、`bydw.*` 配置键和数据库角色保留兼容；历史 PoC 与验证记录保留当时的标识。部署项目名和数据卷的兼容说明见[部署入口](deploy/README.md)。本地目录和 Git 远程地址不由产品改名自动变更。
 
 ## 当前状态
 

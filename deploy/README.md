@@ -1,6 +1,16 @@
-# 部署入口
+# 九章数据平台部署入口
 
 当前 Compose 是正式平台骨架的开发/测试部署入口，可在本地 Docker Desktop 和后续 NAS Compose v2.40.3 使用。它不会启动 `poc/` 中的实验组件。
+
+## 名称与兼容性
+
+产品名称为九章 · Jiuzhang，完整名称为九章数据平台 / JiuzhangData Platform。当前本地构建镜像为 `jiuzhang/control-api:0.1.0-dev.7` 和 `jiuzhang/ingestion-worker:0.1.0-dev.2`；这些名称不表示镜像已经推送到远程仓库。
+
+Compose 示例继续使用 `-p bydw`，服务键和数据卷键保持原值，保证现有部署在更新镜像时继续定位原有资源。已有环境须沿用实际创建时的项目名（如 `bydw` 或 `bydw-foundation`）；仅修改项目名会创建另一组容器和数据卷，不会迁移原数据。重命名仓库目录后仍应显式指定同一项目名。
+
+Java/Maven 命名空间 `com.bydw`、`bydw.*` 配置键、数据库名和角色名保持兼容，已执行迁移无需变更。API 状态接口的 `service` 字段改为 `jiuzhang-control-api`；依赖旧服务名的监控匹配规则需同步更新。Worker 的 Spring 应用名为 `jiuzhang-ingestion-worker`。旧版本验证记录中的镜像名称仍表示当时实际使用的制品。
+
+应用回退使用原有明确版本镜像，并同步恢复监控匹配规则；本次改名不需要数据库迁移或数据重算。
 
 ## 本地启动
 
@@ -14,7 +24,7 @@ docker compose -p bydw -f deploy/compose.yaml up -d --build
 
 3. 检查 `http://127.0.0.1:8080/actuator/health` 和 `http://127.0.0.1:8080/api/v1/status`。来源/任务管理和失联批次对账接口使用 Admin Token；批次开始、心跳、完成、失败、重试和取消接口使用 Worker Token；检查点读取允许两者。除健康/状态接口外均须携带对应的 Bearer Token。
 
-迁移服务必须成功退出，随后 `provision-roles` 为 `bydw_control_api_login` 和 `bydw_ingestion_worker_login` 设置登录密码，API 才会以受限控制角色启动。已经执行的迁移按文件名和 SHA-256 记录；不要修改已有迁移文件，变更使用新的 `VNNN__name.sql`。失败或取消批次通过 Worker Token 调用 retry/cancel 接口，不能直接修改数据库状态。独立 Worker 镜像 `bydw/ingestion-worker:0.1.0-dev.1` 使用 Worker Token 和 `bydw_ingestion_worker_login`。先由管理员创建并激活任务，再执行 `docker compose -p bydw -f deploy/compose.yaml --profile worker run --rm ingestion-worker`。本切片只读取合成夹具，不连接 DevOps MySQL。
+迁移服务必须成功退出，随后 `provision-roles` 为 `bydw_control_api_login` 和 `bydw_ingestion_worker_login` 设置登录密码，API 才会以受限控制角色启动。已经执行的迁移按文件名和 SHA-256 记录；不要修改已有迁移文件，变更使用新的 `VNNN__name.sql`。失败或取消批次通过 Worker Token 调用 retry/cancel 接口，不能直接修改数据库状态。独立 Worker 镜像 `jiuzhang/ingestion-worker:0.1.0-dev.2` 使用 Worker Token 和 `bydw_ingestion_worker_login`。先由管理员创建并激活任务，再执行 `docker compose -p bydw -f deploy/compose.yaml --profile worker run --rm ingestion-worker`。本切片只读取合成夹具，不连接 DevOps MySQL。
 
 本项目镜像必须使用明确且唯一的版本标签。代码变化后递增开发版本序号，例如从 `0.1.0-dev.1` 升至 `0.1.0-dev.2`；禁止覆盖已被容器使用的标签，否则旧容器会在 Docker 界面中退回显示内部镜像 ID。Compose、Dockerfile 和运行命令均不得使用 `latest`、镜像 ID 或 digest 引用。
 

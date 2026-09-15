@@ -13,7 +13,7 @@ Worker 是独立 Java 进程，不提供业务 HTTP API，不在控制 API 请�
 | HTTP | Worker Token，可选 `X-Worker-Instance` | 读取任务/检查点，开始批次，心跳，完成/失败 |
 | JDBC | `bydw_ingestion_worker_login` | 只调用 `raw.ingest_record` 和 `raw.seal_ingestion_batch` |
 
-控制 API 镜像为 `bydw/control-api:0.1.0-dev.6`。Worker 镜像为 `bydw/ingestion-worker:0.1.0-dev.1`。Worker 不接收管理 Token 或数据库拥有者密码。
+本切片验证时控制 API 镜像为 `bydw/control-api:0.1.0-dev.6`，Worker 镜像为 `bydw/ingestion-worker:0.1.0-dev.1`。九章命名后的当前镜像及兼容说明见[部署入口](../deploy/README.md)。Worker 不接收管理 Token 或数据库拥有者密码。
 
 未携带实例头时租约持有者为 `local-worker`；携带合法 `X-Worker-Instance` 时，租约、封存 `writer_principal` 和完成证据使用同一实例名。非法实例名返回 400 `INVALID_WORKER_INSTANCE`。
 

@@ -12,6 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthController {
   @GetMapping("/status")
   public Map<String, Object> status() {
-    return Map.of("service", "by-data-warehouse-control-api", "status", "UP", "time", OffsetDateTime.now(ZoneOffset.UTC));
+    return Map.of("service", "jiuzhang-control-api", "status", "UP", "time", OffsetDateTime.now(ZoneOffset.UTC));
   }
 }

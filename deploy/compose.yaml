@@ -42,7 +42,7 @@ services:
       migrate:
         condition: service_completed_successfully
   control-api:
-    image: bydw/control-api:0.1.0-dev.6
+    image: jiuzhang/control-api:0.1.0-dev.7
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api
@@ -59,7 +59,7 @@ services:
         condition: service_completed_successfully
   ingestion-worker:
     profiles: ["worker"]
-    image: bydw/ingestion-worker:0.1.0-dev.1
+    image: jiuzhang/ingestion-worker:0.1.0-dev.2
     build:
       context: ..
       dockerfile: deploy/Dockerfile.worker

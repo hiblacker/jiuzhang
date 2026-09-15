@@ -15,7 +15,7 @@ test('ingestion worker uses the worker database login and never the owner or adm
   assert.match(config, /username: \$\{INGESTION_WORKER_DB_USERNAME:bydw_ingestion_worker_login\}/);
   assert.doesNotMatch(config, /CONTROL_API_ADMIN_TOKEN/);
   assert.doesNotMatch(config, /WAREHOUSE_DB_USERNAME/);
-  assert.match(compose, /image: bydw\/ingestion-worker:0\.1\.0-dev\.1/);
+  assert.match(compose, /image: jiuzhang\/ingestion-worker:0\.1\.0-dev\.2/);
   assert.match(compose, /INGESTION_WORKER_DB_USERNAME: bydw_ingestion_worker_login/);
   assert.doesNotMatch(compose, /ingestion-worker:[\s\S]*CONTROL_API_ADMIN_TOKEN/);
   assert.doesNotMatch(compose, /ingestion-worker:[\s\S]*WAREHOUSE_DB_PASSWORD:/);

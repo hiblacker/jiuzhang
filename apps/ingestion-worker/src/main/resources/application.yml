@@ -1,6 +1,6 @@
 spring:
   application:
-    name: by-data-warehouse-ingestion-worker
+    name: jiuzhang-ingestion-worker
   main:
     web-application-type: none
   datasource:

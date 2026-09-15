@@ -3,7 +3,7 @@ const repos = ['apache/seatunnel','apache/dolphinscheduler','apache/airflow','da
 const asOf = process.argv[2] || '2026-09-10';
 if (!/^\d{4}-\d{2}-\d{2}$/.test(asOf)) throw new Error('Expected YYYY-MM-DD');
 const cutoff = `${asOf}T23:59:59Z`;
-const headers = {'User-Agent':'by-data-warehouse-public-research','Accept':'application/vnd.github+json'};
+const headers = {'User-Agent':'jiuzhang-data-platform-public-research','Accept':'application/vnd.github+json'};
 async function get(path) {
   const url = `https://api.github.com${path}`;
   const response = await fetch(url, {headers, signal: AbortSignal.timeout(45000)});

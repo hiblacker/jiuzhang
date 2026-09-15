@@ -10,8 +10,8 @@
 |---|---|---|
 | Spring Boot | 3.5.16 | Java 21 控制 API；选择 3.5 维护线，不采用里程碑版本 |
 | PostgreSQL JDBC | 42.7.7 | 控制元数据库连接 |
-| 控制 API 镜像 | `bydw/control-api:0.1.0-dev.6` | 当前开发构建版本；每次代码变化递增末尾序号，正式发布时改为对应 SemVer |
-| 接入 Worker 镜像 | `bydw/ingestion-worker:0.1.0-dev.1` | 独立执行进程；夹具 RAW 写入，不连接业务源库 |
+| 控制 API 镜像 | `jiuzhang/control-api:0.1.0-dev.7` | 当前开发构建版本；每次代码变化递增末尾序号，正式发布时改为对应 SemVer |
+| 接入 Worker 镜像 | `jiuzhang/ingestion-worker:0.1.0-dev.2` | 独立执行进程；夹具 RAW 写入，不连接业务源库 |
 | Maven 构建镜像 | `maven:3.9.11-eclipse-temurin-21` | Maven 3.9.11 + Temurin 21，多阶段构建 |
 | Temurin JRE | `eclipse-temurin:21.0.12_8-jre-jammy` | API 运行时，非 root 用户 |
 | PostgreSQL | `postgres:16.15` | 控制元数据库与迁移服务 |

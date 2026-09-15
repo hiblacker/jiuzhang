@@ -28,7 +28,7 @@ function explicitVersion(reference) {
   return !value.includes('@')
     && lastColon > lastSlash
     && version !== 'latest'
-    && !(value.startsWith('bydw/') && /-dev$/.test(version));
+    && !(/^(?:bydw|jiuzhang)\//.test(value) && /-dev$/.test(version));
 }
 
 function imageReferences(file, source) {
