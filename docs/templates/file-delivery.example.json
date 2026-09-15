@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "mode": "DAILY_SET",
+  "expectedFiles": ["orders.csv", "customers.csv"],
+  "readiness": "DONE",
+  "dueTime": "03:00",
+  "dueDayOffset": 1,
+  "maxFiles": 1000,
+  "maxDepth": 2,
+  "allowEmpty": false,
+  "allowContentRevision": false,
+  "parser": { "encoding": "utf-8-sig", "delimiter": ",", "nullValues": ["\\N"] }
+}

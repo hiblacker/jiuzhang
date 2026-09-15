@@ -67,6 +67,7 @@ function readyFor(file, assumeReady, markerExists = false) { return Boolean(assu
 async function runParser(options, format, input, output) {
   const parserArgs = [path.join(ROOT, 'tools/file-parser.py'), '--format', format, '--input', input, '--output', output, '--max-rows', String(options.maxRows)];
   if (options.jsonRecordsPath && (format === 'json' || format === 'jsonl')) parserArgs.push('--records-path', options.jsonRecordsPath);
+  if (options.parserContract) parserArgs.push('--settings', JSON.stringify(options.parserContract));
   const child = spawn(options.parserPython, parserArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
   let stdout = '';
   child.stdout.on('data', (chunk) => { stdout = (stdout + chunk.toString('utf8')).slice(0, 4000); });
@@ -84,7 +85,11 @@ async function scanUnlocked(options) {
   options.maxRows ??= 10_000_000;
   options.jsonRecordsPath ??= '';
   const deliveryDate = options.deliveryDate ?? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date());
-  const files = await walk(options.inbox);
+  const files = options.onlyRelativePaths
+    ? options.onlyRelativePaths.map(relative => {
+      if (typeof relative !== 'string' || !relative || path.isAbsolute(relative) || relative.split(/[\\/]/u).includes('..')) fail('INVALID_DELIVERY_PATH');
+      return path.join(options.inbox, relative);
+    }) : await walk(options.inbox);
   const ledgerFile = path.join(options.lakeRoot, 'file-ledger.json');
   const ledger = await readJson(ledgerFile, { version: 1, deliveries: {} });
   if (!options.dryRun) await mkdir(options.lakeRoot, { recursive: true, mode: 0o700 });
@@ -98,7 +103,8 @@ async function scanUnlocked(options) {
     if (!fileStat.isFile()) continue;
     const actualFile = await resolveInside(options.inbox, relativePath);
     const identity = fileStat.size > options.maxFileBytes ? { bytes: fileStat.size, sha256: null } : await hashFile(actualFile);
-    const key = `${options.sourceCode}|${deliveryDate}|${relativePath}|${identity.sha256}`;
+    if (options.expectedHashes?.[relativePath] && identity.sha256 !== options.expectedHashes[relativePath]) fail('DELIVERY_HASH_MISMATCH');
+    const key = `${options.sourceCode}|${deliveryDate}|${options.logicalIds?.[relativePath] ?? relativePath}|${identity.sha256}|${options.parserVersion ?? 'parser-v2'}`;
     if (ledger.deliveries[key]?.state === 'PARSED') {
       const previous = await readJson(await resolveInside(options.lakeRoot, `file-batches/${ledger.deliveries[key].batchId}/batch.json`));
       const evidence = previous.entries.find(item => item.key === key && item.state === 'PARSED');
@@ -110,7 +116,7 @@ async function scanUnlocked(options) {
         const actual = await hashFile(await resolveInside(options.lakeRoot, asset.path));
         if (actual.sha256 !== asset.sha256 || actual.bytes !== asset.bytes) fail('FILE_REPLAY_INTEGRITY_MISMATCH');
       }
-      entries.push({ relativePath, state: 'DUPLICATE', key, originalBatchId: previous.batchId }); continue;
+      entries.push({ ...evidence, relativePath, state: 'DUPLICATE', key, originalBatchId: previous.batchId }); continue;
     }
     if (!format) { entries.push({ relativePath, format: path.extname(file).toLowerCase().slice(1), state: 'UNSUPPORTED_FORMAT', key }); continue; }
     if (identity.bytes > options.maxFileBytes) {

@@ -22,6 +22,7 @@ export function validateRegistry(value) {
         || !CODE.test(profile.sourceCode ?? '')) fail('INVALID_RUNTIME_PROFILE');
     const fields = profile.kind === 'MYSQL_SNAPSHOT' ? ['config', 'inventory'] : profile.kind === 'FILE_SCAN' ? ['inboxRoot'] : ['config'];
     for (const field of fields) if (!path.isAbsolute(profile[field] ?? '')) fail('RUNTIME_PATH_MUST_BE_ABSOLUTE');
+    if (profile.deliveryContract && !path.isAbsolute(profile.deliveryContract)) fail('RUNTIME_PATH_MUST_BE_ABSOLUTE');
   }
   return value;
 }
@@ -114,7 +115,8 @@ async function execute(registry, task, signal) {
     if (profile.parserPython) args.push('--parser-python', profile.parserPython);
     if (profile.maxRows) args.push('--max-rows', String(profile.maxRows));
     if (profile.maxFileBytes) args.push('--max-file-bytes', String(profile.maxFileBytes));
-    result = await child('tools/file-ingest.mjs', args, signal);
+    if (profile.deliveryContract) args.push('--contract', profile.deliveryContract);
+    result = await child(profile.deliveryContract ? 'tools/file-delivery.mjs' : 'tools/file-ingest.mjs', args, signal);
   } else {
     result = await child('tools/rest-ingest.mjs', [...common, '--config', profile.config,
       '--window', task.business_date, '--batch-id', batch], signal);
