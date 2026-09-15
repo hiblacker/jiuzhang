@@ -24,12 +24,17 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
   public static final String PRINCIPAL_ATTRIBUTE = "bydw.principal";
   private static final String ADMIN_PRINCIPAL = "local-admin";
   private static final String WORKER_PRINCIPAL = "local-worker";
+  private static final String WORKER_INSTANCE_HEADER = "X-Worker-Instance";
   private static final Pattern BATCH_START = Pattern.compile(
       "^/api/v1/ingestion-jobs/[^/]+/batches/?$");
   private static final Pattern BATCH_MUTATION = Pattern.compile(
       "^/api/v1/ingestion-batches/[^/]+/(?:complete|fail|retry|cancel|heartbeat)/?$");
   private static final Pattern CHECKPOINT_READ = Pattern.compile(
       "^/api/v1/ingestion-jobs/[^/]+/checkpoint/?$");
+  private static final Pattern JOB_READ = Pattern.compile(
+      "^/api/v1/ingestion-jobs/[^/]+/?$");
+  private static final Pattern WORKER_INSTANCE = Pattern.compile(
+      "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$");
 
   private final byte[] adminToken;
   private final byte[] workerToken;
@@ -83,14 +88,32 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
       return;
     }
 
-    request.setAttribute(PRINCIPAL_ATTRIBUTE, worker ? WORKER_PRINCIPAL : ADMIN_PRINCIPAL);
+    if (worker) {
+      String instance = request.getHeader(WORKER_INSTANCE_HEADER);
+      if (instance != null && !instance.isBlank()) {
+        if (!WORKER_INSTANCE.matcher(instance).matches()) {
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+          objectMapper.writeValue(response.getOutputStream(),
+              new ApiError("INVALID_WORKER_INSTANCE",
+                  "X-Worker-Instance must be a stable bounded identifier", requestId));
+          return;
+        }
+        request.setAttribute(PRINCIPAL_ATTRIBUTE, instance);
+      } else {
+        request.setAttribute(PRINCIPAL_ATTRIBUTE, WORKER_PRINCIPAL);
+      }
+    } else {
+      request.setAttribute(PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL);
+    }
     filterChain.doFilter(request, response);
   }
 
   private Access accessFor(String method, String path) {
     if ("POST".equals(method) && (BATCH_START.matcher(path).matches()
         || BATCH_MUTATION.matcher(path).matches())) return Access.WORKER;
-    if ("GET".equals(method) && CHECKPOINT_READ.matcher(path).matches()) return Access.EITHER;
+    if ("GET".equals(method) && (CHECKPOINT_READ.matcher(path).matches()
+        || JOB_READ.matcher(path).matches())) return Access.EITHER;
     return Access.ADMIN;
   }
 

@@ -42,7 +42,7 @@ services:
       migrate:
         condition: service_completed_successfully
   control-api:
-    image: bydw/control-api:0.1.0-dev.5
+    image: bydw/control-api:0.1.0-dev.6
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api
@@ -57,5 +57,31 @@ services:
     depends_on:
       provision-roles:
         condition: service_completed_successfully
+  ingestion-worker:
+    profiles: ["worker"]
+    image: bydw/ingestion-worker:0.1.0-dev.1
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.worker
+    environment:
+      CONTROL_API_BASE_URL: http://control-api:8080
+      CONTROL_API_WORKER_TOKEN: ${CONTROL_API_WORKER_TOKEN:?set CONTROL_API_WORKER_TOKEN}
+      WAREHOUSE_DB_URL: jdbc:postgresql://warehouse-db:5432/warehouse
+      INGESTION_WORKER_DB_USERNAME: bydw_ingestion_worker_login
+      INGESTION_WORKER_DB_PASSWORD: ${INGESTION_WORKER_DB_PASSWORD:?set INGESTION_WORKER_DB_PASSWORD}
+      WORKER_INSTANCE_ID: ${WORKER_INSTANCE_ID:-local-worker}
+      INGESTION_JOB_ID: ${INGESTION_JOB_ID:?set INGESTION_JOB_ID}
+      INGESTION_RUN_KEY: ${INGESTION_RUN_KEY:?set INGESTION_RUN_KEY}
+      INGESTION_CURSOR_TO: ${INGESTION_CURSOR_TO:?set INGESTION_CURSOR_TO}
+      INGESTION_FIXTURE_PATH: /fixtures/synthetic-story.jsonl
+      BATCH_LEASE_DURATION_SECONDS: ${BATCH_LEASE_DURATION_SECONDS:-300}
+      WORKER_HEARTBEAT_INTERVAL_SECONDS: ${WORKER_HEARTBEAT_INTERVAL_SECONDS:-0}
+    volumes:
+      - ./fixtures:/fixtures:ro
+    depends_on:
+      control-api:
+        condition: service_started
+      warehouse-db:
+        condition: service_healthy
 volumes:
   warehouse-db-data:

@@ -101,6 +101,26 @@ class IngestionJobServiceTest {
   }
 
   @Test
+  void activatesDraftJobsAndRejectsDisabledJobs() {
+    var stored = job(objectMapper.createObjectNode(), objectMapper.createObjectNode());
+    var active = new IngestionJob(stored.id(), stored.sourceId(), stored.objectName(),
+        stored.strategy(), stored.cursorSpec(), stored.deleteSpec(), "ACTIVE", stored.version(),
+        stored.createdAt(), stored.updatedAt());
+    when(repository.activate(3)).thenReturn(Optional.of(active));
+    assertThat(service.activate(3, "local-admin").state()).isEqualTo("ACTIVE");
+    verify(sourceRepository).audit(eq("local-admin"), eq("INGESTION_JOB_ACTIVATE"),
+        eq("ingestion-job/3"), anyString());
+
+    when(repository.activate(4)).thenReturn(Optional.empty());
+    when(repository.findById(4)).thenReturn(Optional.of(new IngestionJob(
+        4, 1, "STORY", "FULL", stored.cursorSpec(), stored.deleteSpec(), "DISABLED", 0,
+        stored.createdAt(), stored.updatedAt())));
+    assertThatThrownBy(() -> service.activate(4, "local-admin"))
+        .isInstanceOfSatisfying(ApiException.class,
+            exception -> assertThat(exception.code()).isEqualTo("INGESTION_JOB_DISABLED"));
+  }
+
+  @Test
   void listsWithBoundedPagination() {
     when(repository.list(20, 0)).thenReturn(List.of());
     assertThat(service.list(20, 0, "local-admin").count()).isZero();

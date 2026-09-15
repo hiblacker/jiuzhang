@@ -48,7 +48,7 @@ test('Compose runs migrations and role provisioning before the restricted API lo
   const config = await read('apps/control-api/src/main/resources/application.yml');
   const envExample = await read('deploy/.env.example');
   assert.match(compose, /provision-roles:/);
-  assert.match(compose, /image: bydw\/control-api:0\.1\.0-dev\.5/);
+  assert.match(compose, /image: bydw\/control-api:0\.1\.0-dev\.6/);
   assert.match(compose, /CONTROL_API_DB_USERNAME: bydw_control_api_login/);
   assert.match(compose, /CONTROL_API_DB_PASSWORD: \$\{CONTROL_API_DB_PASSWORD:\?set CONTROL_API_DB_PASSWORD\}/);
   assert.match(compose, /INGESTION_WORKER_DB_PASSWORD: \$\{INGESTION_WORKER_DB_PASSWORD:\?set INGESTION_WORKER_DB_PASSWORD\}/);

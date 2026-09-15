@@ -2,7 +2,7 @@
 
 - 日期：2026-09-14。
 - 工作包：ING-02 第二切片。
-- 状态：批次开始、幂等重放、成功/失败、检查点 CAS 和陈旧批次拒绝已通过本地镜像及 PostgreSQL 验证；后续 RAW 完成门禁见[25号文档](25-raw-batch-evidence.md)，真实抽取 Worker 仍未实现。
+- 状态：批次开始、幂等重放、成功/失败、检查点 CAS 和陈旧批次拒绝已通过本地镜像及 PostgreSQL 验证；后续 RAW 完成门禁见[25号文档](25-raw-batch-evidence.md)，夹具 Worker 见[29号文档](29-ingestion-worker.md)。
 
 ## 1. 状态与接口
 

@@ -8,4 +8,5 @@ public interface IngestionJobRepository {
       String cursorSpecJson, String deleteSpecJson);
   List<IngestionJob> list(int limit, int offset);
   Optional<IngestionJob> findById(long id);
+  Optional<IngestionJob> activate(long id);
 }

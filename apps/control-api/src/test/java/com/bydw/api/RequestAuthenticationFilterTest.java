@@ -93,6 +93,46 @@ class RequestAuthenticationFilterTest {
   }
 
   @Test
+  void workerInstanceHeaderBecomesLeasePrincipal() throws Exception {
+    var request = new MockHttpServletRequest("POST", "/api/v1/ingestion-batches/7/heartbeat");
+    request.addHeader("Authorization", "Bearer " + WORKER_TOKEN);
+    request.addHeader("X-Worker-Instance", "worker-a");
+    filter().doFilter(request, new MockHttpServletResponse(), (req, res) -> {});
+    assertThat(request.getAttribute(RequestAuthenticationFilter.PRINCIPAL_ATTRIBUTE))
+        .isEqualTo("worker-a");
+  }
+
+  @Test
+  void rejectsInvalidWorkerInstanceWithoutInvokingApplication() throws Exception {
+    var request = new MockHttpServletRequest("POST", "/api/v1/ingestion-jobs/7/batches");
+    request.addHeader("Authorization", "Bearer " + WORKER_TOKEN);
+    request.addHeader("X-Worker-Instance", "bad instance");
+    var response = new MockHttpServletResponse();
+    var invoked = new AtomicBoolean(false);
+    filter().doFilter(request, response, (req, res) -> invoked.set(true));
+    assertThat(invoked).isFalse();
+    assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
+    assertThat(response.getContentAsString()).contains("INVALID_WORKER_INSTANCE");
+  }
+
+  @Test
+  void workerCanReadOneJobButNotListJobs() throws Exception {
+    var read = new MockHttpServletRequest("GET", "/api/v1/ingestion-jobs/7");
+    read.addHeader("Authorization", "Bearer " + WORKER_TOKEN);
+    var readInvoked = new AtomicBoolean(false);
+    filter().doFilter(read, new MockHttpServletResponse(), (req, res) -> readInvoked.set(true));
+    assertThat(readInvoked).isTrue();
+
+    var list = new MockHttpServletRequest("GET", "/api/v1/ingestion-jobs");
+    list.addHeader("Authorization", "Bearer " + WORKER_TOKEN);
+    var listResponse = new MockHttpServletResponse();
+    var listInvoked = new AtomicBoolean(false);
+    filter().doFilter(list, listResponse, (req, res) -> listInvoked.set(true));
+    assertThat(listInvoked).isFalse();
+    assertThat(listResponse.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
+  }
+
+  @Test
   void workerCannotUseAdminApiButCanReadCheckpoint() throws Exception {
     var filter = filter();
     var sourceRequest = new MockHttpServletRequest("GET", "/api/v1/sources");

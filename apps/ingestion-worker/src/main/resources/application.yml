@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: by-data-warehouse-ingestion-worker
+  main:
+    web-application-type: none
+  datasource:
+    url: ${WAREHOUSE_DB_URL:jdbc:postgresql://warehouse-db:5432/warehouse}
+    username: ${INGESTION_WORKER_DB_USERNAME:bydw_ingestion_worker_login}
+    password: ${INGESTION_WORKER_DB_PASSWORD}
+bydw:
+  worker:
+    api-base-url: ${CONTROL_API_BASE_URL:http://control-api:8080}
+    worker-token: ${CONTROL_API_WORKER_TOKEN}
+    instance-id: ${WORKER_INSTANCE_ID:local-worker}
+    job-id: ${INGESTION_JOB_ID}
+    run-key: ${INGESTION_RUN_KEY}
+    cursor-to: ${INGESTION_CURSOR_TO}
+    fixture-path: ${INGESTION_FIXTURE_PATH}
+    lease-duration-seconds: ${BATCH_LEASE_DURATION_SECONDS:300}
+    heartbeat-interval-seconds: ${WORKER_HEARTBEAT_INTERVAL_SECONDS:0}
+    api-wait-seconds: ${WORKER_API_WAIT_SECONDS:60}

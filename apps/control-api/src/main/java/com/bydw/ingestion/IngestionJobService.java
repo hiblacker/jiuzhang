@@ -88,6 +88,22 @@ public class IngestionJobService {
     return job;
   }
 
+  @Transactional
+  public IngestionJob activate(long id, String principal) {
+    if (id < 1) throw badRequest("INVALID_INGESTION_JOB_ID", "Ingestion job id must be positive");
+    IngestionJob activated = repository.activate(id).orElse(null);
+    if (activated != null) {
+      sourceRepository.audit(principal, "INGESTION_JOB_ACTIVATE", "ingestion-job/" + id,
+          json(Map.of("state", activated.state())));
+      return activated;
+    }
+    IngestionJob existing = repository.findById(id)
+        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
+            "INGESTION_JOB_NOT_FOUND", "Ingestion job not found"));
+    throw new ApiException(HttpStatus.CONFLICT, "INGESTION_JOB_DISABLED",
+        "Disabled ingestion job cannot be activated");
+  }
+
   private void validateCursor(String strategy, JsonNode spec) {
     requireObject(spec, "INVALID_CURSOR_SPEC", "Cursor spec must be a JSON object");
     rejectUnknownKeys(spec, CURSOR_KEYS, "UNKNOWN_CURSOR_FIELD");

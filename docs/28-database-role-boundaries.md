@@ -2,7 +2,7 @@
 
 - 日期：2026-09-15。
 - 工作包：ING-02 第六切片。
-- 状态：V008、受限登录角色开通和 Compose 启动顺序已通过本地构建、全新迁移、权限拒绝和隔离 HTTP 验证。真实 Worker 进程仍未实现。
+- 状态：V008、受限登录角色开通和 Compose 启动顺序已通过本地构建、全新迁移、权限拒绝和隔离 HTTP 验证。独立 Worker 进程见[29号文档](29-ingestion-worker.md)。
 
 ## 1. 角色模型
 
@@ -59,6 +59,6 @@ V008 是不可修改的前向迁移。已有对象和数据不删除。失败时
 
 ## 6. 后续工作
 
-1. 实现真实 Worker：使用 `bydw_ingestion_worker_login` 调用 RAW 函数，并按租约发送心跳。
+1. 独立 Worker 进程已使用 `bydw_ingestion_worker_login` 调用 RAW 函数并发送心跳，见[接入 Worker](29-ingestion-worker.md)。
 2. 完成 DevOps 测试源只读连接测试和凭证运行时解析。
 3. 建立 STORY/DEFECT RAW/ODS 最小链路；状态方向和历史团队归属未确认前不发布对应指标。

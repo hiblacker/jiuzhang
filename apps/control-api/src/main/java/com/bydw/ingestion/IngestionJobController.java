@@ -41,6 +41,11 @@ public class IngestionJobController {
     return service.find(id, principal(request));
   }
 
+  @PostMapping("/{id}/activate")
+  public IngestionJob activate(@PathVariable long id, HttpServletRequest request) {
+    return service.activate(id, principal(request));
+  }
+
   private String principal(HttpServletRequest request) {
     Object value = request.getAttribute(RequestAuthenticationFilter.PRINCIPAL_ATTRIBUTE);
     if (value instanceof String principal) return principal;

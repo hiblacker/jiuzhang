@@ -45,6 +45,13 @@ public class JdbcIngestionJobRepository implements IngestionJobRepository {
         + " FROM control.ingestion_job WHERE id = ?", this::map, id).stream().findFirst();
   }
 
+  @Override
+  public Optional<IngestionJob> activate(long id) {
+    return jdbc.query("UPDATE control.ingestion_job SET state = 'ACTIVE', updated_at = now()"
+        + " WHERE id = ? AND state IN ('DRAFT','ACTIVE') RETURNING " + COLUMNS, this::map, id)
+        .stream().findFirst();
+  }
+
   private IngestionJob map(ResultSet result, int rowNumber) throws SQLException {
     try {
       return new IngestionJob(

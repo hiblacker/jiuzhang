@@ -52,5 +52,5 @@ V007 是不可修改的前向迁移。失败时修复迁移原因后重跑；已
 ## 6. 后续工作
 
 1. 控制 API 与 Worker 的 PostgreSQL 登录角色已分离，见[数据库角色边界](28-database-role-boundaries.md)。
-2. 实现真实 Worker 的周期心跳、管理端定时对账调用、退避和最大 attempt 契约。
+2. Worker 周期心跳已在[接入 Worker](29-ingestion-worker.md)落地；管理端定时对账、退避和最大 attempt 仍待实现。
 3. 增加批次列表、租约状态、错误分类和告警投影，供 Naive UI 控制台展示。

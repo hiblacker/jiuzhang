@@ -1,0 +1,14 @@
+FROM maven:3.9.11-eclipse-temurin-21 AS build
+WORKDIR /src
+COPY apps/ingestion-worker/pom.xml apps/ingestion-worker/pom.xml
+RUN --mount=type=cache,id=bydw-maven,target=/root/.m2,sharing=locked \
+    mvn -q -Dmaven.wagon.http.retryHandler.count=5 -f apps/ingestion-worker/pom.xml dependency:go-offline
+COPY apps/ingestion-worker/src apps/ingestion-worker/src
+RUN --mount=type=cache,id=bydw-maven,target=/root/.m2,sharing=locked \
+    mvn -q -Dmaven.wagon.http.retryHandler.count=5 -f apps/ingestion-worker/pom.xml package
+
+FROM eclipse-temurin:21.0.12_8-jre-jammy
+WORKDIR /app
+COPY --from=build /src/apps/ingestion-worker/target/ingestion-worker-0.1.0-SNAPSHOT.jar /app/ingestion-worker.jar
+USER 10001:10001
+ENTRYPOINT ["java", "-jar", "/app/ingestion-worker.jar"]

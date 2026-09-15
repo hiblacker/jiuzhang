@@ -1,0 +1,4 @@
+{"sourceRecordKey":{"ID":1},"payload":{"ID":1,"TYPE":0,"DELETE_FLAG":0},"sourceUpdatedAt":"2026-09-15T08:00:00+08:00"}
+{"sourceRecordKey":{"ID":2},"payload":{"ID":2,"TYPE":0,"DELETE_FLAG":0},"sourceUpdatedAt":"2026-09-15T10:00:00+08:00"}
+{"sourceRecordKey":{"ID":3},"payload":{"ID":3,"TYPE":1,"DELETE_FLAG":0},"sourceUpdatedAt":"2026-09-15T11:30:00+08:00"}
+{"sourceRecordKey":{"ID":4},"payload":{"ID":4,"TYPE":0,"DELETE_FLAG":1},"sourceUpdatedAt":"2026-09-15T12:00:00+08:00"}
