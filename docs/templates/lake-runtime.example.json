@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "lakeRoot": "/data/jiuzhang",
+  "profiles": {
+    "mysql-primary": {
+      "kind": "MYSQL_SNAPSHOT",
+      "sourceCode": "mysql-test-source",
+      "config": "/run/secrets/mysql-source.json",
+      "inventory": "/data/config/mysql-inventory.json",
+      "allowUnverifiedTestTls": false
+    },
+    "daily-files": {
+      "kind": "FILE_SCAN",
+      "sourceCode": "folder-source",
+      "inboxRoot": "/data/inbox/folder-source",
+      "datePartitioned": true,
+      "assumeReady": false,
+      "maxRows": 10000000,
+      "maxFileBytes": 1073741824
+    },
+    "rest-primary": {
+      "kind": "REST_PULL",
+      "sourceCode": "example-api",
+      "config": "/data/config/rest-source.json"
+    }
+  }
+}

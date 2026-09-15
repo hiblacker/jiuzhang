@@ -1,0 +1,61 @@
+// Opt-in browser regression; uses the bundled, pinned Playwright test runtime.
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { mkdir } from 'node:fs/promises';
+const require = createRequire(import.meta.url);
+assert.equal(require('playwright/package.json').version, '1.62.1');
+const { chromium } = require('playwright');
+const { LAKE_UI_URL: ui, LAKE_UI_API: api, LAKE_UI_TOKEN: token } = process.env;
+assert.ok(ui && api && token, 'Set the local UI/API/token environment variables');
+for (const value of [ui, api]) assert.ok(['127.0.0.1', 'localhost'].includes(new URL(value).hostname));
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 1280, height: 960 } });
+const errors = []; page.on('pageerror', error => errors.push(error.message));
+const source = `ui_review_${Date.now()}`;
+let planId;
+try {
+  await page.goto(ui);
+  await page.locator('#base-url').fill(api); await page.locator('#token').fill(token);
+  await page.locator('#refresh').click();
+  await page.getByText(/^已更新 /).waitFor();
+  await page.getByText('登记来源', { exact: true }).first().click();
+  await page.locator('#new-source').fill(source);
+  await page.locator('#new-source-type').selectOption('FILE');
+  await page.locator('#credential-ref').fill('env://SYNTHETIC_UI_FOLDER');
+  await page.locator('#source-form button').click();
+  await page.locator(`#plan-source option[value="${source}"]`).waitFor({ state: 'attached' });
+  await page.getByText('新建或修改计划', { exact: true }).click();
+  await page.locator('#plan-source').selectOption(source);
+  await page.locator('#plan-kind').selectOption('FILE_SCAN');
+  await page.locator('#runtime-ref').fill(source);
+  await page.locator('#historical-read').check();
+  await page.locator('#plan-form button').click();
+  const row = page.locator('#plans tr').filter({ hasText: source });
+  await row.waitFor();
+  await row.getByRole('button', { name: '暂停', exact: true }).click();
+  await row.getByText('PAUSED', { exact: true }).waitFor();
+  await row.getByRole('button', { name: '恢复', exact: true }).click();
+  await row.getByText('ACTIVE', { exact: true }).waitFor();
+  planId = await page.locator('#trigger-plan option').filter({ hasText: source }).getAttribute('value');
+  await page.locator('#trigger-plan').selectOption(planId);
+  await page.locator('#trigger-form button[type="submit"]').click();
+  const execution = page.locator('#executions tr').filter({ hasText: source }).first();
+  await execution.getByText('QUEUED', { exact: true }).waitFor();
+  await execution.getByRole('button', { name: '取消', exact: true }).click();
+  await execution.getByText('CANCELLED', { exact: true }).waitFor();
+  await execution.getByRole('button', { name: '重试', exact: true }).click();
+  await execution.getByText('QUEUED', { exact: true }).waitFor();
+  await page.locator('#source-code').fill(source); await page.locator('#refresh').click();
+  await page.getByText(/^已更新 /).waitFor();
+  await mkdir('work/lake-review/ui', { recursive: true });
+  await page.screenshot({ path: 'work/lake-review/ui/desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Mobile viewport overflow');
+  await page.screenshot({ path: 'work/lake-review/ui/mobile.png', fullPage: true });
+  assert.deepEqual(errors, []);
+  console.log(JSON.stringify({ state: 'PASS', operations: ['load', 'source', 'plan', 'pause', 'resume', 'trigger', 'cancel', 'retry'], pageErrors: errors.length }));
+} finally {
+  if (planId) await fetch(`${api}/api/v1/lake/plans/${planId}/state`, { method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ state: 'PAUSED' }) });
+  await browser.close();
+}

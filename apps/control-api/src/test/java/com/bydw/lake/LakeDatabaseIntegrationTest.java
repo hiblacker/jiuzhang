@@ -251,6 +251,58 @@ class LakeDatabaseIntegrationTest {
     } finally { app.getBean(LakeExecutionService.class).setState(planId, "PAUSED", "local-review"); }
   }
 
+  @Test
+  void independentWorkerReceivesAndParsesADirectoryDeliveryThroughTheQueue() throws Exception {
+    Path repo = Path.of(System.getenv("LAKE_REVIEW_REPO"));
+    Path root = Files.createTempDirectory("jiuzhang-worker-integration-");
+    Path inbox = Files.createDirectory(root.resolve("inbox"));
+    Path lake = root.resolve("lake");
+    Files.writeString(inbox.resolve("data.csv"), "id,name\n001,example\n");
+    Files.writeString(inbox.resolve("data.csv.done"), "");
+    String source = "worker_" + UUID.randomUUID().toString().replace("-", "");
+    var sourceBody = json.createObjectNode().put("code", source).put("sourceType", "FILE")
+        .put("credentialRef", "env://SYNTHETIC_FOLDER");
+    sourceBody.putObject("config"); assertStatus(post("/api/v1/sources", ADMIN, sourceBody), 201);
+    var day = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+    var plan = json.createObjectNode().put("sourceCode", source).put("expectedVersion", 0)
+        .put("kind", "FILE_SCAN").put("runtimeRef", source).put("timezone", "Asia/Shanghai")
+        .put("triggerTime", "00:00:00").put("startDate", day.toString())
+        .put("historicalRead", true).put("maxAttempts", 3).put("timeoutSeconds", 300);
+    plan.putObject("contract");
+    var saved = post("/api/v1/lake/plans", ADMIN, plan); assertStatus(saved, 200);
+    long planId = json.readTree(saved.body()).get("id").asLong();
+    try {
+      assertStatus(post("/api/v1/lake/plans/" + planId + "/trigger", ADMIN,
+          json.createObjectNode().put("day", day.toString()).put("reason", "directory integration")), 200);
+      var registry = json.createObjectNode().put("version", 1).put("lakeRoot", lake.toString());
+      registry.putObject("profiles").putObject(source).put("kind", "FILE_SCAN")
+          .put("sourceCode", source).put("inboxRoot", inbox.toString());
+      Path registryFile = root.resolve("registry.json"); Files.writeString(registryFile, registry.toString());
+      var builder = new ProcessBuilder("node", repo.resolve("apps/ingestion-worker/lake-runtime.mjs").toString(),
+          "--registry", registryFile.toString(), "--control-api", base, "--instance", source, "--once");
+      builder.environment().put("CONTROL_API_WORKER_TOKEN", WORKER);
+      Path output = root.resolve("worker-output.json"); builder.redirectErrorStream(true).redirectOutput(output.toFile());
+      var process = builder.start(); boolean finished = process.waitFor(30, TimeUnit.SECONDS);
+      if (!finished) process.destroyForcibly(); assertThat(finished).isTrue();
+      assertThat(process.exitValue()).as("Worker output: %s", Files.readString(output)).isZero();
+      var attempts = app.getBean(LakeExecutionService.class).attempts(planId);
+      assertThat(attempts).hasSize(1); assertThat(attempts.getFirst().get("state")).isEqualTo("COMPLETE");
+      var result = (JsonNode) attempts.getFirst().get("result");
+      assertThat(result.get("parsed").asInt()).isEqualTo(1);
+      JsonNode batch = json.readTree(Files.readString(lake.resolve("file-batches").resolve(result.get("batchId").asText()).resolve("batch.json")));
+      Path parsed = lake.resolve(batch.at("/entries/0/parsedPath").asText());
+      assertThat(json.readTree(Files.readString(parsed)).get("id").asText()).isEqualTo("001");
+      try (var receipts = Files.list(lake.resolve("worker-outbox").resolve(source))) {
+        var receipt = json.readTree(Files.readString(receipts.findFirst().orElseThrow()));
+        assertThat(receipt.get("acknowledged").asBoolean()).isTrue();
+      }
+    } finally {
+      app.getBean(LakeExecutionService.class).setState(planId, "PAUSED", "local-review");
+      // Only this test-created synthetic directory is removed.
+      try (var files = Files.walk(root)) { for (Path file : files.sorted(java.util.Comparator.reverseOrder()).toList()) Files.delete(file); }
+    }
+  }
+
   private static HttpRequest request(String path, String token, JsonNode body) {
     return HttpRequest.newBuilder(URI.create(base + path)).timeout(Duration.ofSeconds(15))
         .header("Authorization", "Bearer " + token).header("Content-Type", "application/json")
