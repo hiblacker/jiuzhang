@@ -6,7 +6,6 @@ import csv
 import datetime as dt
 import decimal
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -29,7 +28,7 @@ def emit(rows, output, max_rows):
                 raise ValueError("ROW_LIMIT_EXCEEDED")
             if not isinstance(row, dict):
                 raise ValueError("ROW_MUST_BE_OBJECT")
-            handle.write(json.dumps(row, ensure_ascii=False, default=json_default, separators=(",", ":")))
+            handle.write(json.dumps(row, ensure_ascii=False, default=json_default, allow_nan=False, separators=(",", ":")))
             handle.write("\n")
             count += 1
     return count
@@ -56,6 +55,8 @@ def parse_csv(source, output, max_rows):
                 raise ValueError("CSV_EMPTY_HEADER")
             seen[name] = seen.get(name, 0) + 1
             fields.append(name if seen[name] == 1 else f"{name}__{seen[name]}")
+        if len(set(fields)) != len(fields):
+            raise ValueError("CSV_HEADER_COLLISION")
         def rows():
             for values in reader:
                 if len(values) > len(fields):
@@ -87,14 +88,14 @@ def parse_json(source, output, jsonl, max_rows, records_path):
             with source.open("r", encoding="utf-8-sig") as handle:
                 for line in handle:
                     if line.strip():
-                        value = value_at(json.loads(line), records_path)
+                        value = value_at(json.loads(line, parse_float=decimal.Decimal), records_path)
                         if isinstance(value, list):
                             yield from value
                         else:
                             yield value
         return emit(rows(), output, max_rows)
     with source.open("r", encoding="utf-8-sig") as handle:
-        value = value_at(json.load(handle), records_path)
+        value = value_at(json.load(handle, parse_float=decimal.Decimal), records_path)
     if isinstance(value, list):
         return emit(value, output, max_rows)
     return emit([value], output, max_rows)
@@ -124,6 +125,8 @@ def parse_xlsx(source, output, max_rows):
                         name = f"column_{index + 1}"
                     seen[name] = seen.get(name, 0) + 1
                     names.append(name if seen[name] == 1 else f"{name}__{seen[name]}")
+                if len(set(names)) != len(names) or "_sheet" in names:
+                    raise ValueError("XLSX_HEADER_COLLISION")
                 for values in rows:
                     if not any(value is not None for value in values):
                         continue
@@ -131,7 +134,7 @@ def parse_xlsx(source, output, max_rows):
                         raise ValueError("ROW_LIMIT_EXCEEDED")
                     row = {"_sheet": sheet.title}
                     row.update({names[i]: values[i] if i < len(values) else None for i in range(len(names))})
-                    handle.write(json.dumps(row, ensure_ascii=False, default=json_default, separators=(",", ":")))
+                    handle.write(json.dumps(row, ensure_ascii=False, default=json_default, allow_nan=False, separators=(",", ":")))
                     handle.write("\n")
                     total += 1
     finally:
@@ -151,7 +154,7 @@ def parse_parquet(source, output, max_rows):
             for row in batch.to_pylist():
                 if total >= max_rows:
                     raise ValueError("ROW_LIMIT_EXCEEDED")
-                handle.write(json.dumps(row, ensure_ascii=False, default=json_default, separators=(",", ":")))
+                handle.write(json.dumps(row, ensure_ascii=False, default=json_default, allow_nan=False, separators=(",", ":")))
                 handle.write("\n")
                 total += 1
     return total
@@ -181,5 +184,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as exc:  # keep stderr free of payloads and source paths
-        print(str(exc).split(":", 1)[0], file=sys.stderr)
+        print("FILE_PARSE_FAILED", file=sys.stderr)
         sys.exit(1)

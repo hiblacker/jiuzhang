@@ -1,10 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import { access, copyFile, lstat, mkdir, readFile, rename, rm, readdir, stat, writeFile } from 'node:fs/promises';
+import { createReadStream, constants } from 'node:fs';
+import { access, copyFile, lstat, mkdir, readdir } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { atomicJson, digest, durableRename, resolveInside, readJson, validateDay, withLock } from './lake-runtime.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FORMATS = new Map([['.csv', 'csv'], ['.json', 'json'], ['.jsonl', 'jsonl'], ['.xlsx', 'xlsx'], ['.parquet', 'parquet']]);
@@ -14,7 +15,7 @@ const SAFE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/;
 function fail(code) { throw new Error(code); }
 
 function parseArgs(argv) {
-  const options = { inbox: null, lakeRoot: path.join(ROOT, '.lake-data'), sourceCode: 'folder-source', deliveryDate: null, assumeReady: false, dryRun: false, maxFileBytes: 1024 * 1024 * 1024, maxRows: 10_000_000, jsonRecordsPath: '', parserPython: process.env.PYTHON || '/Users/carson/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3' };
+  const options = { inbox: null, lakeRoot: path.join(ROOT, '.lake-data'), sourceCode: 'folder-source', deliveryDate: null, assumeReady: false, dryRun: false, maxFileBytes: 1024 * 1024 * 1024, maxRows: 10_000_000, jsonRecordsPath: '', parserPython: process.env.LAKE_PYTHON || process.env.PYTHON || 'python3' };
   const takes = new Set(['--inbox', '--lake-root', '--source-code', '--delivery-date', '--parser-python', '--max-file-bytes', '--max-rows', '--json-records-path']);
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -35,7 +36,7 @@ function parseArgs(argv) {
   }
   if (!options.inbox) fail('INBOX_REQUIRED');
   if (!SAFE.test(options.sourceCode)) fail('INVALID_SOURCE_CODE');
-  if (options.deliveryDate && !/^\d{4}-\d{2}-\d{2}$/u.test(options.deliveryDate)) fail('INVALID_DELIVERY_DATE');
+  if (options.deliveryDate) { try { validateDay(options.deliveryDate); } catch { fail('INVALID_DELIVERY_DATE'); } }
   if (!Number.isSafeInteger(options.maxFileBytes) || options.maxFileBytes < 1 || options.maxFileBytes > 10 * 1024 * 1024 * 1024) fail('INVALID_MAX_FILE_BYTES');
   if (!Number.isSafeInteger(options.maxRows) || options.maxRows < 1 || options.maxRows > 100_000_000) fail('INVALID_MAX_ROWS');
   if (options.jsonRecordsPath.length > 300) fail('INVALID_JSON_RECORDS_PATH');
@@ -68,34 +69,25 @@ async function runParser(options, format, input, output) {
   if (options.jsonRecordsPath && (format === 'json' || format === 'jsonl')) parserArgs.push('--records-path', options.jsonRecordsPath);
   const child = spawn(options.parserPython, parserArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
   let stdout = '';
-  child.stdout.on('data', (chunk) => { stdout += chunk.toString('utf8').slice(0, 4000); });
-  const stderr = once(child.stderr, 'end');
-  const closeEvent = await once(child, 'close');
-  await stderr.catch(() => {});
+  child.stdout.on('data', (chunk) => { stdout = (stdout + chunk.toString('utf8')).slice(0, 4000); });
+  child.stderr.resume();
+  const timeout = setTimeout(() => child.kill('SIGKILL'), 120000);
+  let closeEvent;
+  try { closeEvent = await once(child, 'close'); } finally { clearTimeout(timeout); }
   const [code] = closeEvent;
   if (code !== 0) fail(`FILE_PARSER_FAILED_${format.toUpperCase()}`);
   try { return JSON.parse(stdout.trim()); } catch { fail('FILE_PARSER_PROTOCOL_FAILED'); }
 }
 
-async function readLedger(file) {
-  try { return JSON.parse(await readFile(file, 'utf8')); } catch { return { version: 1, deliveries: {} }; }
-}
-
-async function atomicJson(file, value) {
-  const temporary = `${file}.${randomUUID()}.part`;
-  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-  await rename(temporary, file);
-}
-
-export async function scanDirectory(options = parseArgs([])) {
+async function scanUnlocked(options) {
   options.maxFileBytes ??= 1024 * 1024 * 1024;
   options.maxRows ??= 10_000_000;
   options.jsonRecordsPath ??= '';
   const deliveryDate = options.deliveryDate ?? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date());
   const files = await walk(options.inbox);
   const ledgerFile = path.join(options.lakeRoot, 'file-ledger.json');
-  const ledger = await readLedger(ledgerFile);
-  await mkdir(options.lakeRoot, { recursive: true, mode: 0o700 });
+  const ledger = await readJson(ledgerFile, { version: 1, deliveries: {} });
+  if (!options.dryRun) await mkdir(options.lakeRoot, { recursive: true, mode: 0o700 });
   const batchId = `files-${deliveryDate.replaceAll('-', '')}-${randomUUID().slice(0, 8)}`;
   const batchRoot = path.join(options.lakeRoot, 'file-batches', batchId);
   const entries = [];
@@ -104,9 +96,22 @@ export async function scanDirectory(options = parseArgs([])) {
     const format = formatFor(file);
     const fileStat = await lstat(file);
     if (!fileStat.isFile()) continue;
-    const identity = await hashFile(file);
+    const actualFile = await resolveInside(options.inbox, relativePath);
+    const identity = fileStat.size > options.maxFileBytes ? { bytes: fileStat.size, sha256: null } : await hashFile(actualFile);
     const key = `${options.sourceCode}|${deliveryDate}|${relativePath}|${identity.sha256}`;
-    if (ledger.deliveries[key]?.state === 'PARSED') { entries.push({ relativePath, state: 'DUPLICATE', key }); continue; }
+    if (ledger.deliveries[key]?.state === 'PARSED') {
+      const previous = await readJson(await resolveInside(options.lakeRoot, `file-batches/${ledger.deliveries[key].batchId}/batch.json`));
+      const evidence = previous.entries.find(item => item.key === key && item.state === 'PARSED');
+      if (!evidence) fail('FILE_REPLAY_EVIDENCE_MISSING');
+      for (const asset of [
+        { path: evidence.rawPath, ...evidence.input },
+        { path: evidence.parsedPath ?? path.join(path.dirname(evidence.rawPath), 'parsed.jsonl'), ...evidence.parsed },
+      ]) {
+        const actual = await hashFile(await resolveInside(options.lakeRoot, asset.path));
+        if (actual.sha256 !== asset.sha256 || actual.bytes !== asset.bytes) fail('FILE_REPLAY_INTEGRITY_MISMATCH');
+      }
+      entries.push({ relativePath, state: 'DUPLICATE', key, originalBatchId: previous.batchId }); continue;
+    }
     if (!format) { entries.push({ relativePath, format: path.extname(file).toLowerCase().slice(1), state: 'UNSUPPORTED_FORMAT', key }); continue; }
     if (identity.bytes > options.maxFileBytes) {
       const entry = { relativePath, format, state: 'TOO_LARGE', input: identity, deliveryDate, key, errorCode: 'FILE_SIZE_LIMIT_EXCEEDED' };
@@ -120,19 +125,23 @@ export async function scanDirectory(options = parseArgs([])) {
     entries.push(entry);
     if (options.dryRun) continue;
     try {
-      const safeName = relativePath.replace(/[\\/]/gu, '__');
+      const safeName = digest(relativePath);
       const staging = path.join(batchRoot, safeName);
       await mkdir(staging, { recursive: true, mode: 0o700 });
       const rawPath = path.join(staging, `original${path.extname(file).toLowerCase()}`);
       const parsedPath = path.join(staging, 'parsed.jsonl.part');
-      await copyFile(file, rawPath);
+      await copyFile(actualFile, `${rawPath}.part`, constants.COPYFILE_EXCL);
+      await durableRename(`${rawPath}.part`, rawPath);
       const copied = await hashFile(rawPath);
       if (copied.sha256 !== identity.sha256 || copied.bytes !== identity.bytes) fail('FILE_CHANGED_DURING_COPY');
+      entry.rawPath = path.relative(options.lakeRoot, rawPath);
+      entry.rawState = 'RAW_COMMITTED';
       entry.state = 'PARSING';
-      const parsed = await runParser(options, format, file, parsedPath);
+      await atomicJson(path.join(batchRoot, 'batch.json.part'), { version: 1, batchId, sourceCode: options.sourceCode, deliveryDate, state: 'RUNNING', entries });
+      const parsed = await runParser(options, format, rawPath, parsedPath);
       const parsedBytes = await hashFile(parsedPath);
-      await rename(parsedPath, path.join(staging, 'parsed.jsonl'));
-      entry.state = 'PARSED'; entry.rows = parsed.rows; entry.parsed = parsedBytes; entry.rawPath = path.relative(options.lakeRoot, rawPath);
+      await durableRename(parsedPath, path.join(staging, 'parsed.jsonl'));
+      entry.state = 'PARSED'; entry.rows = parsed.rows; entry.parsed = parsedBytes; entry.rawPath = path.relative(options.lakeRoot, rawPath); entry.parsedPath = path.relative(options.lakeRoot, path.join(staging, 'parsed.jsonl')); entry.scalarEncoding = 'exact-json-v1';
       ledger.deliveries[key] = { state: 'PARSED', batchId, relativePath, deliveryDate, sha256: identity.sha256, receivedAt: new Date().toISOString() };
     } catch (error) {
       entry.state = 'FAILED';
@@ -140,10 +149,19 @@ export async function scanDirectory(options = parseArgs([])) {
       ledger.deliveries[key] = { state: 'FAILED', batchId, relativePath, deliveryDate, sha256: identity.sha256, errorCode: entry.errorCode, receivedAt: new Date().toISOString() };
     }
   }
-  const summaryState = entries.some((x) => ['FAILED', 'TOO_LARGE'].includes(x.state)) ? 'FAILED' : entries.some((x) => ['WAITING_READY', 'UNSUPPORTED_FORMAT'].includes(x.state)) ? 'INCOMPLETE' : 'COMPLETE';
+  const summaryState = options.dryRun ? 'DRY_RUN' : files.length === 0 ? 'NOT_OBSERVED' : entries.some((x) => ['FAILED', 'TOO_LARGE'].includes(x.state)) ? 'FAILED' : entries.some((x) => ['WAITING_READY', 'UNSUPPORTED_FORMAT'].includes(x.state)) ? 'INCOMPLETE' : 'COMPLETE';
   const summary = { version: 1, batchId, sourceCode: options.sourceCode, deliveryDate, inbox: 'configured-inbox', state: summaryState, entries };
   if (!options.dryRun) { await mkdir(batchRoot, { recursive: true, mode: 0o700 }); await atomicJson(path.join(batchRoot, 'batch.json'), summary); await atomicJson(ledgerFile, ledger); }
   return summary;
+}
+
+export async function scanDirectory(options = parseArgs([])) {
+  const defaults = parseArgs(['--inbox', options.inbox]);
+  options = { ...defaults, ...options };
+  if (options.deliveryDate) validateDay(options.deliveryDate);
+  const relativeLake = path.relative(options.inbox, options.lakeRoot);
+  if (!relativeLake || (!relativeLake.startsWith('..') && !path.isAbsolute(relativeLake))) fail('LAKE_ROOT_INSIDE_INBOX');
+  return options.dryRun ? scanUnlocked(options) : withLock(path.join(options.lakeRoot, 'file-ingest.lock'), () => scanUnlocked(options));
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

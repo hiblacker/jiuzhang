@@ -13,7 +13,8 @@
   },
   "window": {
     "from_param": "start_date",
-    "to_param": "end_date"
+    "to_param": "end_date",
+    "format": "date"
   },
   "pagination": {
     "mode": "page",

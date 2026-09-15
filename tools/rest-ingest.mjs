@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { access, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { atomicJson, dayBounds, digest, durableRename, parseExactJson, readJson, validateDay, withLock } from './lake-runtime.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_LAKE_ROOT = path.join(ROOT, '.lake-data');
@@ -28,7 +29,7 @@ function parseArgs(argv) {
   }
   if (!options.config) fail('API_CONFIG_REQUIRED');
   if (options.batchId && !SAFE.test(options.batchId)) fail('INVALID_BATCH_ID');
-  if (options.window && !/^\d{4}-\d{2}-\d{2}$/u.test(options.window)) fail('INVALID_WINDOW');
+  if (options.window) validateDay(options.window);
   return options;
 }
 
@@ -63,6 +64,7 @@ function validateUrl(raw, allowedHosts, baseOrigin, code = 'API_URL_NOT_ALLOWED'
   if (url.protocol !== 'https:' && !localHttp) fail('API_TLS_REQUIRED');
   if (!hostAllowed(url, allowedHosts)) fail(code);
   if (url.username || url.password) fail('API_URL_CREDENTIALS_FORBIDDEN');
+  if (url.origin !== new URL(baseOrigin).origin) fail('API_ORIGIN_CHANGE_FORBIDDEN');
   return url;
 }
 
@@ -88,12 +90,15 @@ function validateConfig(config) {
   if (config.auth_header !== undefined && (typeof config.auth_header !== 'string' || !/^[A-Za-z][A-Za-z0-9-]{0,63}$/u.test(config.auth_header))) fail('API_AUTH_HEADER_INVALID');
   const pagination = config.pagination ?? { mode: 'none' };
   asObject(pagination, 'API_PAGINATION_INVALID');
-  if (!new Set(['none', 'page', 'offset', 'next']).has(pagination.mode)) fail('API_PAGINATION_MODE_INVALID');
+  if (!new Set(['none', 'page', 'offset', 'next', 'token']).has(pagination.mode)) fail('API_PAGINATION_MODE_INVALID');
   const maxPages = pagination.max_pages ?? 1000;
   if (!Number.isInteger(maxPages) || maxPages < 1 || maxPages > 100000) fail('API_MAX_PAGES_INVALID');
   const pageSize = pagination.page_size ?? 100;
   if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 10000) fail('API_PAGE_SIZE_INVALID');
   if (pagination.records_path !== undefined && typeof pagination.records_path !== 'string') fail('API_RECORDS_PATH_INVALID');
+  if (['next', 'token'].includes(pagination.mode) && !pagination.next_path) fail('API_NEXT_PATH_REQUIRED');
+  if (pagination.mode === 'token' && (typeof pagination.cursor_param !== 'string' || !pagination.cursor_param)) fail('API_CURSOR_PARAM_REQUIRED');
+  if (config.success && (typeof config.success.path !== 'string' || !Object.hasOwn(config.success, 'equals'))) fail('API_SUCCESS_CONTRACT_INVALID');
   const timeout = config.timeout_seconds ?? 60;
   if (!Number.isInteger(timeout) || timeout < 1 || timeout > 300) fail('API_TIMEOUT_INVALID');
   const maxResponseBytes = config.max_response_bytes ?? 50 * 1024 * 1024;
@@ -116,8 +121,9 @@ function buildInitialUrl(config, windowValue) {
   if (windowValue && config.window) {
     const fromParam = config.window.from_param;
     const toParam = config.window.to_param;
-    if (fromParam) url.searchParams.set(fromParam, windowValue);
-    if (toParam) url.searchParams.set(toParam, windowValue);
+    const bounds = dayBounds(windowValue);
+    if (fromParam) url.searchParams.set(fromParam, config.window.format === 'date' ? windowValue : bounds.start);
+    if (toParam) url.searchParams.set(toParam, config.window.format === 'date' ? bounds.nextDay : bounds.end);
   }
   return validateUrl(url.toString(), config.allowedHosts, config.baseUrl.toString());
 }
@@ -140,11 +146,14 @@ function getNextUrl(payload, currentUrl, config) {
   const raw = valueAt(payload, pointer);
   if (raw === null || raw === undefined || raw === '') return null;
   if (typeof raw !== 'string') fail('API_NEXT_LINK_INVALID');
-  return validateUrl(raw, config.allowedHosts, currentUrl.origin, 'API_NEXT_LINK_NOT_ALLOWED');
+  const next = validateUrl(raw, config.allowedHosts, currentUrl.toString(), 'API_NEXT_LINK_NOT_ALLOWED');
+  assertSafeQuery(next, config);
+  return next;
 }
 
 function retryDelay(response, attempt, config) {
-  const retryAfter = Number(response.headers.get('retry-after'));
+  const header = response.headers.get('retry-after');
+  const retryAfter = header === null ? NaN : Number(header);
   const configured = Number.isFinite(retryAfter) && retryAfter >= 0 ? retryAfter * 1000 : 250 * (2 ** (attempt - 1));
   return Math.min(config.retry.max_delay_ms, configured);
 }
@@ -152,7 +161,7 @@ function retryDelay(response, attempt, config) {
 async function sleep(ms) { if (ms > 0) await new Promise((resolve) => setTimeout(resolve, ms)); }
 
 async function readBody(response, maxBytes) {
-  if (!response.body) return '';
+  if (!response.body) return Buffer.alloc(0);
   const reader = response.body.getReader();
   const chunks = [];
   let bytes = 0;
@@ -166,7 +175,7 @@ async function readBody(response, maxBytes) {
     }
     chunks.push(Buffer.from(next.value));
   }
-  return Buffer.concat(chunks).toString('utf8');
+  return Buffer.concat(chunks);
 }
 
 async function requestJson(url, config, token) {
@@ -183,9 +192,7 @@ async function requestJson(url, config, token) {
         continue;
       }
       if (!response.ok) fail(`API_HTTP_${response.status}`);
-      let payload;
-      try { payload = JSON.parse(body); } catch { fail('API_RESPONSE_NOT_JSON'); }
-      return { payload, body, status: response.status };
+      return { body, status: response.status };
     } catch (error) {
       if (error?.name === 'AbortError') {
         if (attempt < config.retry.max_attempts) { await sleep(Math.min(config.retry.max_delay_ms, 250 * (2 ** (attempt - 1)))); continue; }
@@ -211,12 +218,6 @@ async function sha256File(file) {
   return { bytes: bytes.byteLength, sha256: createHash('sha256').update(bytes).digest('hex') };
 }
 
-async function atomicJson(file, value) {
-  const temporary = `${file}.${randomUUID()}.part`;
-  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-  await rename(temporary, file);
-}
-
 async function tokenFromEnv(config, dryRun) {
   if (!config.auth_env) return null;
   if (dryRun) return '<configured-secret-reference>';
@@ -225,29 +226,44 @@ async function tokenFromEnv(config, dryRun) {
   return token;
 }
 
-export async function run(options) {
-  const config = validateConfig(JSON.parse(await readFile(options.config, 'utf8')));
+async function runUnlocked(options) {
+  const configText = await readFile(options.config, 'utf8');
+  const config = validateConfig(JSON.parse(configText));
+  const configSha256 = digest(configText);
+  const ledgerKey = `${config.source_code}|${configSha256}|${options.window}`;
   const ledgerPath = path.join(options.lakeRoot, 'api-ledger.json');
   if (options.window && !options.dryRun) {
-    try {
-      const ledger = JSON.parse(await readFile(ledgerPath, 'utf8'));
-      const existing = ledger.windows?.[`${config.source_code}|${options.window}`];
-      if (existing?.state === 'COMPLETE') return { ...existing, sourceCode: config.source_code, window: options.window, mode: 'REST', reused: true };
-    } catch { /* first window */ }
+    const ledger = await readJson(ledgerPath, { version: 2, windows: {} });
+    const existing = ledger.windows?.[ledgerKey];
+    if (existing?.state === 'COMPLETE') {
+      const previous = await readJson(path.join(options.lakeRoot, 'api', config.source_code, existing.batchId, 'batch.json'));
+      for (const page of previous.pages) {
+        for (const asset of [page.raw, page.normalized]) {
+          const actual = await sha256File(path.join(options.lakeRoot, asset.path));
+          if (actual.sha256 !== asset.sha256 || actual.bytes !== asset.bytes) fail('API_RAW_INTEGRITY_MISMATCH');
+        }
+      }
+      return { ...previous, reused: true };
+    }
   }
   const token = await tokenFromEnv(config, options.dryRun);
   const batchId = options.batchId ?? `api-${new Date().toISOString().replace(/[-:.TZ]/gu, '').slice(0, 14)}-${randomUUID().slice(0, 8)}`;
   if (!SAFE.test(batchId)) fail('INVALID_BATCH_ID');
   const firstUrl = buildInitialUrl(config, options.window);
-  const manifest = { version: 1, batchId, sourceCode: config.source_code, mode: 'REST', window: options.window ?? null, state: options.dryRun ? 'DRY_RUN' : 'RUNNING', startedAt: new Date().toISOString(), pages: [], pagination: config.pagination.mode };
+  assertSafeQuery(firstUrl, config);
+  const manifest = { version: 1, batchId, sourceCode: config.source_code, mode: 'REST', window: options.window ?? null, state: options.dryRun ? 'DRY_RUN' : 'RUNNING', startedAt: new Date().toISOString(), pages: [], pagination: config.pagination.mode, configSha256, scalarEncoding: 'exact-json-v1' };
   if (options.dryRun) return { ...manifest, request: { method: config.method ?? 'GET', url: firstUrl.origin + firstUrl.pathname, auth: config.auth_env ? 'environment-reference' : 'none' } };
   const batchRoot = path.join(options.lakeRoot, 'api', config.source_code, batchId);
   const pageRoot = path.join(batchRoot, 'pages');
-  await mkdir(pageRoot, { recursive: true, mode: 0o700 });
+  await mkdir(path.dirname(batchRoot), { recursive: true, mode: 0o700 });
+  try { await mkdir(batchRoot, { mode: 0o700 }); }
+  catch (error) { if (error.code === 'EEXIST') fail('API_BATCH_EXISTS'); throw error; }
+  await mkdir(pageRoot, { mode: 0o700 });
   let url = firstUrl;
   let page = config.pagination.mode === 'page' ? (config.pagination.start_page ?? 1) : 1;
   let offset = config.pagination.mode === 'offset' ? (config.pagination.start_offset ?? 0) : 0;
   const visited = new Set();
+  const pageHashes = new Set();
   let totalRows = 0;
   try {
     let followNextDirect = false;
@@ -258,18 +274,37 @@ export async function run(options) {
       if (visited.has(requestUrl.toString())) fail('API_PAGINATION_LOOP');
       visited.add(requestUrl.toString());
       const response = await requestJson(requestUrl, config, token);
-      const records = recordsFrom(response.payload, config);
       const index = manifest.pages.length + 1;
       const rawPath = path.join(pageRoot, `page-${String(index).padStart(6, '0')}.json`);
       const recordsPath = path.join(pageRoot, `page-${String(index).padStart(6, '0')}.jsonl`);
-      await writeFile(rawPath, `${JSON.stringify(response.payload, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-      const lines = records.map((record) => JSON.stringify(record, null, 0)).join('\n');
-      await writeFile(recordsPath, lines ? `${lines}\n` : '', { mode: 0o600, flag: 'wx' });
+      await writeFile(`${rawPath}.part`, response.body, { mode: 0o600, flag: 'wx' });
+      await durableRename(`${rawPath}.part`, rawPath);
       const raw = await sha256File(rawPath);
+      const pageEntry = { page: index, request: { url: requestUrl.origin + requestUrl.pathname, queryKeys: [...requestUrl.searchParams.keys()] }, status: response.status, state: 'RAW_COMMITTED', raw: { path: path.relative(options.lakeRoot, rawPath), ...raw } };
+      manifest.pages.push(pageEntry);
+      let payload; try { payload = parseExactJson(response.body.toString('utf8')); } catch { fail('API_RESPONSE_NOT_JSON'); }
+      if (config.success && valueAt(payload, config.success.path) !== config.success.equals) fail('API_BUSINESS_ERROR');
+      const records = recordsFrom(payload, config);
+      if (records.length && pageHashes.has(raw.sha256)) fail('API_DUPLICATE_PAGE');
+      pageHashes.add(raw.sha256);
+      const lines = records.map((record) => JSON.stringify(record, null, 0)).join('\n');
+      await writeFile(`${recordsPath}.part`, lines ? `${lines}\n` : '', { mode: 0o600, flag: 'wx' });
+      await durableRename(`${recordsPath}.part`, recordsPath);
       const normalized = await sha256File(recordsPath);
-      manifest.pages.push({ page: index, request: { url: requestUrl.origin + requestUrl.pathname, queryKeys: [...requestUrl.searchParams.keys()] }, status: response.status, rows: records.length, raw: { path: path.relative(options.lakeRoot, rawPath), ...raw }, normalized: { path: path.relative(options.lakeRoot, recordsPath), ...normalized } });
+      Object.assign(pageEntry, { rows: records.length, state: 'PARSED', normalized: { path: path.relative(options.lakeRoot, recordsPath), ...normalized } });
+      await atomicJson(path.join(batchRoot, 'batch.json.part'), manifest);
       totalRows += records.length;
-      const explicitNext = getNextUrl(response.payload, requestUrl, config);
+      if (config.pagination.mode === 'token') {
+        const cursor = valueAt(payload, config.pagination.next_path);
+        if (cursor === null || cursor === undefined || cursor === '') url = null;
+        else {
+          if (!['string', 'number'].includes(typeof cursor)) fail('API_CURSOR_INVALID');
+          url = new URL(firstUrl); url.searchParams.set(config.pagination.cursor_param, String(cursor));
+          followNextDirect = true;
+        }
+        continue;
+      }
+      const explicitNext = getNextUrl(payload, requestUrl, config);
       if (config.pagination.mode === 'next') { url = explicitNext; followNextDirect = Boolean(explicitNext); }
       else if (explicitNext) { url = explicitNext; followNextDirect = true; }
       else if (config.pagination.mode === 'page' && records.length >= config.pagination.page_size) { page += 1; url = firstUrl; }
@@ -281,9 +316,8 @@ export async function run(options) {
     manifest.finishedAt = new Date().toISOString();
     await atomicJson(path.join(batchRoot, 'batch.json'), manifest);
     if (options.window) {
-      let ledger = { version: 1, windows: {} };
-      try { ledger = JSON.parse(await readFile(ledgerPath, 'utf8')); } catch { /* first window */ }
-      ledger.windows[`${config.source_code}|${options.window}`] = { batchId, state: 'COMPLETE', finishedAt: manifest.finishedAt, pageCount: manifest.pages.length, rowCount: totalRows };
+      const ledger = await readJson(ledgerPath, { version: 2, windows: {} });
+      ledger.windows[ledgerKey] = { batchId, state: 'COMPLETE', finishedAt: manifest.finishedAt, pageCount: manifest.pages.length, rowCount: totalRows };
       await atomicJson(ledgerPath, ledger);
     }
     return manifest;
@@ -294,6 +328,17 @@ export async function run(options) {
     await atomicJson(path.join(batchRoot, 'batch.failed.json'), manifest);
     throw error;
   }
+}
+
+function assertSafeQuery(url, config) {
+  for (const key of url.searchParams.keys()) {
+    if (key !== config.pagination.cursor_param && /(token|secret|password|authorization|cookie|api[-_]?key)/iu.test(key)) fail('API_QUERY_SECRET_FORBIDDEN');
+  }
+}
+
+export async function run(options) {
+  if (options.window) validateDay(options.window);
+  return options.dryRun ? runUnlocked(options) : withLock(path.join(options.lakeRoot, 'api-ingest.lock'), () => runUnlocked(options));
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
