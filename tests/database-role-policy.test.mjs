@@ -43,6 +43,20 @@ test('role provisioning reads secrets from environment and never command argumen
   assert.doesNotMatch(script, /echo[^\n]*(?:CONTROL_API_DB_PASSWORD|INGESTION_WORKER_DB_PASSWORD)/);
 });
 
+test('V010 keeps lake inventory admin-controlled and run evidence worker-controlled', async () => {
+  const migration = await read('migrations/V010__lake_role_boundaries.sql');
+  assert.match(migration, /REVOKE ALL ON SCHEMA lake FROM PUBLIC/);
+  assert.match(migration, /GRANT SELECT ON lake\.inventory, lake\.source_object/);
+  assert.match(migration, /GRANT SELECT, INSERT, UPDATE ON lake\.system_run/);
+  assert.doesNotMatch(migration, /GRANT[^;]*(DELETE|TRUNCATE)[^;]*bydw_/is);
+});
+
+test('lake delivery replay key treats source-level NULL objects as one slot', async () => {
+  const migration = await read('migrations/V009__lake_foundation.sql');
+  assert.match(migration, /CREATE UNIQUE INDEX lake_delivery_ledger_delivery_uk/);
+  assert.match(migration, /COALESCE\(source_object_id, 0\)/);
+});
+
 test('Compose runs migrations and role provisioning before the restricted API login', async () => {
   const compose = await read('deploy/compose.yaml');
   const config = await read('apps/control-api/src/main/resources/application.yml');

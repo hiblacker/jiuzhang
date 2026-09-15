@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "source_code": "example-api",
+  "base_url": "https://api.example.com",
+  "allowed_hosts": ["api.example.com"],
+  "path": "/v1/items",
+  "auth_env": "JIUZHANG_EXAMPLE_API_TOKEN",
+  "auth_header": "Authorization",
+  "auth_prefix": "Bearer ",
+  "method": "GET",
+  "query": {
+    "tenant": "replace-with-approved-value"
+  },
+  "window": {
+    "from_param": "start_date",
+    "to_param": "end_date"
+  },
+  "pagination": {
+    "mode": "page",
+    "page_param": "page",
+    "size_param": "size",
+    "page_size": 100,
+    "max_pages": 1000,
+    "records_path": "data.items"
+  },
+  "timeout_seconds": 60,
+  "max_response_bytes": 52428800,
+  "retry": {
+    "max_attempts": 3,
+    "max_delay_ms": 60000
+  }
+}

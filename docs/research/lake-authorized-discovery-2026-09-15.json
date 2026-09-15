@@ -1,0 +1,50 @@
+{
+  "observed_at": "2026-09-15T14:46:38.536Z",
+  "authorization": "user-explicit-test-source-tls-exception",
+  "tls_mode": "REQUIRED",
+  "client": "9.7.1",
+  "source_modified": false,
+  "scope": "provided-database-all-table-and-column-metadata",
+  "status": "succeeded",
+  "category": "OK",
+  "mysql_error_code": null,
+  "session_tls_confirmed": true,
+  "session_tls_version": "TLSv1.3",
+  "session_read_only_confirmed": true,
+  "server_version": "8.1.0",
+  "table_count": 157,
+  "base_table_count": 157,
+  "view_count": 0,
+  "column_count": 2228,
+  "index_column_count": 421,
+  "engines": [
+    "InnoDB"
+  ],
+  "tables_without_primary_key": 3,
+  "estimated_rows": 1585250,
+  "estimated_data_bytes": 629063680,
+  "data_types": {
+    "varchar": 1424,
+    "int": 321,
+    "datetime": 359,
+    "text": 79,
+    "bigint": 5,
+    "tinyint": 7,
+    "longtext": 1,
+    "date": 21,
+    "float": 1,
+    "mediumtext": 4,
+    "decimal": 5,
+    "char": 1
+  },
+  "raw_ingestion_executed": false,
+  "planning": {
+    "planned_required_tables": 157,
+    "full_snapshot_tables": 157,
+    "tables_without_primary_key": 3,
+    "incremental_tables_approved": 0,
+    "business_rows_read": false,
+    "source_writes": false,
+    "actual_daily_schedule_configured": false
+  }
+}

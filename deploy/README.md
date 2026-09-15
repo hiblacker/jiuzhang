@@ -38,3 +38,24 @@ docker compose -p bydw -f deploy/compose.yaml up -d --build
 - 首次 NAS 部署前导出 `docker compose config` 检查，不直接覆盖现有服务或复用未知数据卷。
 
 当前尚未在 NAS 实测。外部 SSH 端口不可达时，只能完成本地部署验证，不能把 Compose 文件存在视为 NAS 部署完成。
+
+## 入湖执行入口
+
+真实 MySQL 测试源的本地原始接收由仓库根目录的 `tools/lake-ingest.mjs` 执行，默认写入 Git 忽略的 `.lake-data/`。测试源的 TLS 身份例外必须显式传入，不能写进通用默认配置：
+
+```bash
+node tools/lake-ingest.mjs --full --allow-unverified-test-tls
+node tools/lake-ingest.mjs --daily --window 2026-09-15 --allow-unverified-test-tls
+```
+
+每日目录文件由外部传输工具放入管理员配置的 `--inbox`，每个文件用同名 `.done` 标志闭合，或在已完成复制后显式使用 `--assume-ready`。数据库、目录和可选 REST API 可以由单一入口编排，避免重复调度：
+
+```bash
+node tools/lake-daily.mjs --window 2026-09-15 \
+  --inbox /data/inbox/source --allow-unverified-test-tls \
+  --register --control-api http://127.0.0.1:8080
+```
+
+`--register` 会先用 Admin Token 登记清单，再用 Worker Token 登记数据库批次；两个令牌只从 `CONTROL_API_ADMIN_TOKEN` 和 `CONTROL_API_WORKER_TOKEN` 环境变量读取。未提供控制 API 时可省略该选项，原始文件仍按本地 manifest 封存。
+
+REST API 配置只保存批准的 HTTPS 域名、分页契约和环境变量名；令牌通过运行环境注入，不写入 JSON、manifest 或浏览器存储。`apps/console` 是只读控制台，不能替代后台编排，也不需要页面保持打开。

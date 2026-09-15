@@ -60,6 +60,16 @@ class RequestAuthenticationFilterTest {
   }
 
   @Test
+  void letsCorsPreflightReachWebMvcWithoutAnApplicationToken() throws Exception {
+    var request = new MockHttpServletRequest("OPTIONS", "/api/v1/lake/summary");
+    request.addHeader("Origin", "http://127.0.0.1:4173");
+    request.addHeader("Access-Control-Request-Method", "GET");
+    var invoked = new AtomicBoolean(false);
+    filter().doFilter(request, new MockHttpServletResponse(), (req, res) -> invoked.set(true));
+    assertThat(invoked).isTrue();
+  }
+
+  @Test
   void refusesWeakConfiguredToken() {
     org.assertj.core.api.Assertions.assertThatThrownBy(
         () -> new RequestAuthenticationFilter("too-short", WORKER_TOKEN, new ObjectMapper()))
@@ -88,6 +98,23 @@ class RequestAuthenticationFilterTest {
     var adminInvoked = new AtomicBoolean(false);
     filter.doFilter(adminRequest, adminResponse, (req, res) -> adminInvoked.set(true));
 
+    assertThat(adminInvoked).isFalse();
+    assertThat(adminResponse.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
+  }
+
+  @Test
+  void onlyWorkerCanRegisterLakeManifest() throws Exception {
+    var worker = new MockHttpServletRequest("POST", "/api/v1/lake/manifests");
+    worker.addHeader("Authorization", "Bearer " + WORKER_TOKEN);
+    var workerInvoked = new AtomicBoolean(false);
+    filter().doFilter(worker, new MockHttpServletResponse(), (req, res) -> workerInvoked.set(true));
+    assertThat(workerInvoked).isTrue();
+
+    var admin = new MockHttpServletRequest("POST", "/api/v1/lake/manifests");
+    admin.addHeader("Authorization", "Bearer " + ADMIN_TOKEN);
+    var adminResponse = new MockHttpServletResponse();
+    var adminInvoked = new AtomicBoolean(false);
+    filter().doFilter(admin, adminResponse, (req, res) -> adminInvoked.set(true));
     assertThat(adminInvoked).isFalse();
     assertThat(adminResponse.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
   }

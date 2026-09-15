@@ -17,6 +17,8 @@ management:
       probes:
         enabled: true
 bydw:
+  web:
+    allowed-origins: ${CONTROL_API_ALLOWED_ORIGINS:}
   security:
     admin-token: ${CONTROL_API_ADMIN_TOKEN}
     worker-token: ${CONTROL_API_WORKER_TOKEN}

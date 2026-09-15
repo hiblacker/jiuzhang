@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "dataset_code": "example_dataset",
+  "input": {
+    "format": "mysql-jsonl",
+    "path": "raw/mysql-test-source/<batch-id>/<table>/data.jsonl",
+    "schema_path": "raw/mysql-test-source/<batch-id>/<table>/schema.json"
+  },
+  "key": ["id"],
+  "required": ["id"],
+  "output": {
+    "fields": ["id", "updated_at"]
+  },
+  "quality": {
+    "max_duplicate_keys": 0
+  }
+}
