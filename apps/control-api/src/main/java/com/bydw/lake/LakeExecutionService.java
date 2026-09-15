@@ -1,6 +1,7 @@
 package com.bydw.lake;
 
 import com.bydw.api.ApiException;
+import com.bydw.warehouse.ExternalAssetService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Date;
@@ -25,9 +26,10 @@ public class LakeExecutionService {
   private final JdbcTemplate jdbc;
   private final ObjectMapper json;
   private final LakeRegistrationService registration;
+  private final ExternalAssetService assets;
   private static final Set<String> KINDS = Set.of("MYSQL_SNAPSHOT", "FILE_SCAN", "REST_PULL");
-  public LakeExecutionService(JdbcTemplate jdbc, ObjectMapper json, LakeRegistrationService registration) {
-    this.jdbc = jdbc; this.json = json; this.registration = registration;
+  public LakeExecutionService(JdbcTemplate jdbc, ObjectMapper json, LakeRegistrationService registration, ExternalAssetService assets) {
+    this.jdbc = jdbc; this.json = json; this.registration = registration; this.assets = assets;
   }
 
   @Transactional
@@ -189,7 +191,7 @@ public class LakeExecutionService {
   public Map<String, Object> finish(long id, UUID token, String worker, String state, String code, JsonNode result, RegisterManifestRequest manifest) {
     if (!Set.of("COMPLETE", "INCOMPLETE", "FAILED", "CANCELLED").contains(state == null ? "" : state)) bad("INVALID_EXECUTION_RESULT");
     if (code != null && !code.matches("[A-Z0-9_:-]{1,120}")) bad("INVALID_ERROR_CODE");
-    if (result != null && result.toString().length() > 20000) bad("RESULT_TOO_LARGE");
+    if (result != null && result.toString().length() > 2000000) bad("RESULT_TOO_LARGE");
     var receipt = json.createObjectNode().put("state", state).put("errorCode", code);
     receipt.set("result", result); receipt.set("manifest", json.valueToTree(manifest));
     var prior = jdbc.queryForList("SELECT state, completion FROM lake.execution_attempt WHERE id = ? AND lease_owner = ? AND lease_token = ? FOR UPDATE", id, worker, token);
@@ -215,6 +217,9 @@ public class LakeExecutionService {
           || !manifest.scheduledWindowEnd().toInstant().equals(((java.sql.Timestamp) scope.get("window_end")).toInstant())) bad("EXECUTION_WINDOW_MISMATCH");
       // A successful lease and the visible manifest are committed in one DB transaction.
       runId = registration.registerScheduledManifest(manifest, worker).systemRunId();
+    }
+    if (!"MYSQL_SNAPSHOT".equals(scope.get("kind")) && !"CANCELLED".equals(state)) {
+      assets.register(id, scope.get("code").toString(), scope.get("kind").toString(), result, state);
     }
     jdbc.update("UPDATE lake.execution_attempt SET state = ?, finished_at = clock_timestamp(), lease_expires_at = NULL, error_code = ?, result = ?::jsonb, system_run_id = ?, completion = ?::jsonb WHERE id = ?", state, code, result == null ? "{}" : result.toString(), runId, receipt.toString(), id);
     jdbc.update("UPDATE lake.execution_window SET state = ? WHERE id = ?", state, attempt.get("window_id"));

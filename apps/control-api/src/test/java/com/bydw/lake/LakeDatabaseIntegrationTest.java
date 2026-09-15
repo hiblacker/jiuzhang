@@ -252,6 +252,54 @@ class LakeDatabaseIntegrationTest {
   }
 
   @Test
+  void projectMembershipScopesAssetsAndRevocationTakesEffectImmediately() throws Exception {
+    String suffix = UUID.randomUUID().toString().replace("-", "");
+    var project = json.createObjectNode().put("code", "project-" + suffix).put("name", "Synthetic project");
+    var created = post("/api/v1/warehouse/projects", ADMIN, project); assertStatus(created, 200);
+    long projectId = json.readTree(created.body()).get("id").asLong();
+    project.put("code", "other-" + suffix);
+    long otherId = json.readTree(post("/api/v1/warehouse/projects", ADMIN, project).body()).get("id").asLong();
+    String identity = "reader-" + suffix;
+    var issued = post("/api/v1/warehouse/identities", ADMIN, json.createObjectNode().put("id", identity));
+    assertThat(issued.statusCode()).isEqualTo(200);
+    String token = json.readTree(issued.body()).get("token").asText();
+    String prefix = "/api/v1/warehouse/projects/" + projectId;
+    assertStatus(post(prefix + "/members", ADMIN, json.createObjectNode().put("identity", identity).put("role", "VIEWER")), 200);
+    assertThat(json.readTree(get("/api/v1/warehouse/projects", token).body())).hasSize(1);
+    assertStatus(get("/api/v1/warehouse/projects/" + otherId + "/assets", token), 403);
+    assertStatus(post(prefix + "/members", token, json.createObjectNode().put("identity", identity).put("role", "OWNER")), 403);
+    assertStatus(post("/api/v1/warehouse/projects", token, project), 403);
+    assertStatus(get("/api/v1/lake/runs", token), 401);
+    assertStatus(post("/api/v1/warehouse/identities", ADMIN, json.createObjectNode().put("id", "local-admin")), 400);
+    String source = "assets_" + suffix;
+    var sourceBody = json.createObjectNode().put("code", source).put("sourceType", "MYSQL").put("credentialRef", "env://SYNTHETIC_SOURCE");
+    sourceBody.putObject("config"); assertStatus(post("/api/v1/sources", ADMIN, sourceBody), 201);
+    var bind = json.createObjectNode().put("sourceCode", source);
+    assertStatus(post(prefix + "/sources", ADMIN, bind), 200);
+    assertStatus(post("/api/v1/warehouse/projects/" + otherId + "/sources", ADMIN, bind), 409);
+    assertStatus(get(prefix + "/sources", token), 200);
+    ObjectNode inventory = (ObjectNode) json.readTree("""
+        {"planVersion":1,"observedAt":"2026-09-15T00:00:00Z","sourceScope":{},
+         "objects":[{"objectName":"example","objectType":"TABLE","schema":[],
+           "primaryKey":["id"],"required":true,"strategy":"FULL_SNAPSHOT","state":"READY"}]}
+        """);
+    inventory.put("sourceCode", source).put("schemaSha256", "a".repeat(64));
+    assertStatus(post("/api/v1/lake/inventories", ADMIN, inventory), 201);
+    var registered = post("/api/v1/lake/manifests", WORKER, manifest(source, "asset-run", "2026-09-16T02:00:00Z")); assertStatus(registered, 201);
+    long run = json.readTree(registered.body()).get("systemRunId").asLong();
+    var assets = get(prefix + "/assets", token); assertStatus(assets, 200);
+    var listed = json.readTree(assets.body()); assertThat(listed).hasSize(1);
+    String assetId = listed.get(0).get("id").asText();
+    var detail = get(prefix + "/assets/" + assetId, token); assertStatus(detail, 200);
+    assertThat(detail.body()).doesNotContain("raw_path", "storage_path", "credential", "token");
+    assertStatus(get("/api/v1/warehouse/projects/" + otherId + "/assets/" + assetId, ADMIN), 404);
+    var coverage = get(prefix + "/coverage/" + run, token); assertStatus(coverage, 200);
+    assertThat(json.readTree(coverage.body()).at("/coverage/committed").asLong()).isEqualTo(1);
+    assertStatus(post("/api/v1/warehouse/identities/" + identity + "/revoke", ADMIN, json.createObjectNode()), 200);
+    assertStatus(get(prefix + "/assets", token), 401);
+  }
+
+  @Test
   void independentWorkerReceivesAndParsesADirectoryDeliveryThroughTheQueue() throws Exception {
     Path repo = Path.of(System.getenv("LAKE_REVIEW_REPO"));
     Path root = Files.createTempDirectory("jiuzhang-worker-integration-");
@@ -289,6 +337,10 @@ class LakeDatabaseIntegrationTest {
       assertThat(attempts).hasSize(1); assertThat(attempts.getFirst().get("state")).isEqualTo("COMPLETE");
       var result = (JsonNode) attempts.getFirst().get("result");
       assertThat(result.get("parsed").asInt()).isEqualTo(1);
+      try (var owner = owner()) {
+        assertThat(scalar(owner, "SELECT count(*) FROM warehouse.external_asset WHERE execution_id = ? AND state = 'PARSED'", attempts.getFirst().get("id"))).isEqualTo(1L);
+      }
+      assertThat(result.at("/assets/0/schema/provenance").asText()).isEqualTo("OBSERVED_SAMPLE");
       JsonNode batch = json.readTree(Files.readString(lake.resolve("file-batches").resolve(result.get("batchId").asText()).resolve("batch.json")));
       Path parsed = lake.resolve(batch.at("/entries/0/parsedPath").asText());
       assertThat(json.readTree(Files.readString(parsed)).get("id").asText()).isEqualTo("001");
@@ -307,6 +359,11 @@ class LakeDatabaseIntegrationTest {
     return HttpRequest.newBuilder(URI.create(base + path)).timeout(Duration.ofSeconds(15))
         .header("Authorization", "Bearer " + token).header("Content-Type", "application/json")
         .POST(HttpRequest.BodyPublishers.ofString(body.toString())).build();
+  }
+
+  private static HttpResponse<String> get(String path, String token) throws Exception {
+    return http.send(HttpRequest.newBuilder(URI.create(base + path)).timeout(Duration.ofSeconds(15))
+        .header("Authorization", "Bearer " + token).GET().build(), HttpResponse.BodyHandlers.ofString());
   }
 
   private static HttpResponse<String> post(String path, String token, JsonNode body) throws Exception {

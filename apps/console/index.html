@@ -50,11 +50,12 @@
     <form class="toolbar" id="query-form">
       <label>控制 API 地址<input id="base-url" value="http://127.0.0.1:8080" autocomplete="url"></label>
       <label>来源编码（可选）<input id="source-code" placeholder="mysql-test-source" autocomplete="off"></label>
-      <label>Admin Token<input id="token" type="password" autocomplete="off"></label>
+      <label>访问令牌<input id="token" type="password" autocomplete="off"></label>
       <button id="refresh" type="submit">刷新</button>
+      <label>访问视图<select id="access-mode"><option value="admin">平台管理</option><option value="project">项目成员</option></select></label>
     </form>
     <div id="message" role="status">输入 Admin Token 后刷新数据。</div>
-    <section class="cards" aria-label="入湖摘要">
+    <div id="ingestion-area"><section class="cards" aria-label="入湖摘要">
       <div class="card"><div class="label">系统运行</div><div class="value" id="run-count">—</div></div>
       <div class="card"><div class="label">已完成运行</div><div class="value" id="complete-count">—</div></div>
       <div class="card"><div class="label">原始对象行数</div><div class="value" id="row-count">—</div></div>
@@ -95,15 +96,30 @@
       <label>凭证引用<input id="credential-ref" required placeholder="env://VARIABLE_NAME"></label>
       <button type="submit">登记</button>
     </form></details>
-    <details class="panel operations" id="detail-panel"><summary>操作详情</summary><pre id="detail">选择运行的“详情”查看结果。</pre></details>
     <section class="grid">
       <div class="panel"><h2>最近系统运行</h2><div class="table-wrap"><table><thead><tr><th>来源</th><th>模式</th><th>窗口</th><th>状态</th><th>错误</th></tr></thead><tbody id="runs"><tr><td colspan="5" class="empty">暂无数据</td></tr></tbody></table></div></div>
       <div class="panel"><h2>每日交付账本</h2><div class="table-wrap"><table><thead><tr><th>来源</th><th>类型</th><th>窗口</th><th>状态</th><th>接收时间</th></tr></thead><tbody id="deliveries"><tr><td colspan="5" class="empty">暂无数据</td></tr></tbody></table></div></div>
+    </section></div>
+    <section class="panel operations"><h2>项目与资产目录</h2>
+      <form id="assets-form" class="operation-form">
+        <label>项目<select id="project-id" required></select></label>
+        <button type="submit">查看资产</button>
+        <div><button id="asset-prev" type="button" class="small secondary">上一页</button><button id="asset-next" type="button" class="small secondary">下一页</button><span id="asset-page"></span></div>
+      </form>
+      <div class="table-wrap"><table><thead><tr><th>来源</th><th>资产</th><th>类型</th><th>状态</th><th>行数</th><th>窗口</th><th>操作</th></tr></thead><tbody id="assets"></tbody></table></div>
     </section>
+    <details class="panel operations" id="project-admin"><summary>项目、身份和来源归属</summary>
+      <form id="project-form" class="operation-form"><label>项目编码<input id="project-code" required></label><label>项目名称<input id="project-name" required></label><button type="submit">创建项目</button></form>
+      <form id="identity-form" class="operation-form"><label>成员或服务身份编码<input id="identity-code" required></label><p>创建后的令牌只显示一次，请妥善保存。</p><button type="submit">创建身份</button></form>
+      <form id="bind-source-form" class="operation-form"><label>来源编码<input id="bind-source-code" required></label><p>绑定到当前选中的项目。</p><button type="submit">分配来源</button></form>
+    </details>
+    <details class="panel operations"><summary>当前项目成员</summary><form id="member-form" class="operation-form"><label>身份编码<input id="member-id" required></label><label>角色<select id="member-role"><option value="VIEWER">查看者</option><option value="ENGINEER">数据开发</option><option value="OWNER">项目管理员</option></select></label><button type="submit">保存成员角色</button><button id="members-load" type="button" class="secondary">查看成员</button></form></details>
+    <details class="panel operations" id="detail-panel"><summary>操作详情</summary><pre id="detail">选择资产或运行查看结果。</pre></details>
   </main>
   <script>
     const $ = (id) => document.getElementById(id);
     let currentPlans = [];
+    let assetOffset = 0;
     const text = (value) => value === null || value === undefined || value === '' ? '—' : String(value);
     function cell(row, value, className = '') { const td = document.createElement('td'); td.textContent = text(value); if (className) td.className = className; row.appendChild(td); }
     function drawRows(target, rows, columns) {
@@ -163,6 +179,10 @@
       const listQuery = source ? `${query}&limit=50` : '?limit=50';
       const button = $('refresh'); button.disabled = true; $('message').className = ''; $('message').textContent = '正在读取控制 API…';
       try {
+        const projectMode = $('access-mode').value === 'project';
+        $('ingestion-area').hidden = projectMode; $('project-admin').hidden = projectMode;
+        await loadProjects();
+        if (projectMode) { $('message').textContent = '已加载当前身份可访问的项目'; return; }
         const [summary, runs, deliveries, plans, windows, executions, sources] = await Promise.all([
           api(`lake/summary${query}`), api(`lake/runs${listQuery}`), api(`lake/deliveries${listQuery}`),
           api('lake/plans'), api('lake/windows'), api('lake/executions'), api('sources?limit=100&offset=0')
@@ -180,6 +200,37 @@
       } catch (error) { $('message').className = 'error'; $('message').textContent = `读取失败：${error.message || 'API_REQUEST_FAILED'}`; }
       finally { button.disabled = false; }
     }
+    async function loadProjects() {
+      const projects = await api('warehouse/projects');
+      populate($('project-id'), projects, 'id', 'name');
+      await loadAssets();
+    }
+    async function loadAssets() {
+      const project = $('project-id').value;
+      $('assets').replaceChildren();
+      if (!project) return;
+      const assets = await api(`warehouse/projects/${project}/assets?limit=100&offset=${assetOffset}`);
+      for (const asset of assets) {
+        const tr = document.createElement('tr');
+        for (const value of [asset.source_code, asset.name, asset.kind, asset.state, asset.row_count, asset.data_window]) cell(tr, value);
+        const actions = document.createElement('td');
+        actionButton(actions, '结构与来源', () => api(`warehouse/projects/${project}/assets/${encodeURIComponent(asset.id)}`));
+        if (asset.kind === 'TABLE') actionButton(actions, '批次覆盖', () => api(`warehouse/projects/${project}/coverage/${asset.run_id}`));
+        tr.appendChild(actions); $('assets').appendChild(tr);
+      }
+      $('asset-prev').disabled = assetOffset === 0; $('asset-next').disabled = assets.length < 100;
+      $('asset-page').textContent = `第 ${assetOffset / 100 + 1} 页`;
+    }
+    $('assets-form').addEventListener('submit', event => { event.preventDefault(); assetOffset = 0; perform(event.submitter, loadAssets); });
+    $('project-id').addEventListener('change', () => { assetOffset = 0; perform(null, loadAssets); });
+    $('asset-prev').addEventListener('click', event => { assetOffset = Math.max(0, assetOffset - 100); perform(event.target, loadAssets); });
+    $('asset-next').addEventListener('click', event => { assetOffset += 100; perform(event.target, loadAssets); });
+    $('project-form').addEventListener('submit', event => { event.preventDefault(); perform(event.submitter, () => api('warehouse/projects', { code: $('project-code').value, name: $('project-name').value, description: '' })); });
+    $('identity-form').addEventListener('submit', event => { event.preventDefault(); perform(event.submitter, () => api('warehouse/identities', { id: $('identity-code').value })); });
+    $('bind-source-form').addEventListener('submit', event => { event.preventDefault(); perform(event.submitter, () => api(`warehouse/projects/${$('project-id').value}/sources`, { sourceCode: $('bind-source-code').value })); });
+    $('member-form').addEventListener('submit', event => { event.preventDefault(); perform(event.submitter, () => api(`warehouse/projects/${$('project-id').value}/members`, { identity: $('member-id').value, role: $('member-role').value })); });
+    $('members-load').addEventListener('click', event => perform(event.target, () => api(`warehouse/projects/${$('project-id').value}/members`)));
+    $('access-mode').addEventListener('change', load);
     $('query-form').addEventListener('submit', load);
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date());
     $('plan-start').value = today; $('trigger-day').value = today;

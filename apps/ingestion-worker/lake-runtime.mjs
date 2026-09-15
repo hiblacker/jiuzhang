@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { atomicJson, readJson, withLock } from '../../tools/lake-runtime.mjs';
 import { buildManifestRequest } from '../../tools/lake-register.mjs';
 import { verifyCurrentSchema } from '../../tools/lake-discover.mjs';
+import { fileAssets, apiAssets } from '../../tools/lake-assets.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const CODE = /^[a-z][a-z0-9_-]{1,99}$/u;
@@ -79,6 +80,8 @@ async function child(script, args, signal) {
     const code = await new Promise((resolve, reject) => { running.once('error', reject); running.once('close', resolve); });
     if (signal.aborted) fail('WORKER_EXECUTION_ABORTED');
     if (code !== 0) {
+      let completed; try { completed = JSON.parse(stdout); } catch {}
+      if (completed?.state === 'FAILED' && completed.batchId) return completed;
       let detail; try { detail = JSON.parse(stderr); } catch {}
       fail(/^[A-Z0-9_:-]{1,120}$/u.test(detail?.errorCode ?? '') ? detail.errorCode : 'ADAPTER_EXECUTION_FAILED');
     }
@@ -117,12 +120,19 @@ async function execute(registry, task, signal) {
     if (profile.maxFileBytes) args.push('--max-file-bytes', String(profile.maxFileBytes));
     if (profile.deliveryContract) args.push('--contract', profile.deliveryContract);
     result = await child(profile.deliveryContract ? 'tools/file-delivery.mjs' : 'tools/file-ingest.mjs', args, signal);
+    result.assets = result.batchId ? await fileAssets(registry.lakeRoot, result.batchId, result.contractSha256) : [];
   } else {
-    result = await child('tools/rest-ingest.mjs', [...common, '--config', profile.config,
-      '--window', task.business_date, '--batch-id', batch], signal);
+    try { result = await child('tools/rest-ingest.mjs', [...common, '--config', profile.config,
+      '--window', task.business_date, '--batch-id', batch], signal); }
+    catch (error) {
+      const failed = await readJson(path.join(registry.lakeRoot, 'api', profile.sourceCode, batch, 'batch.failed.json'), null);
+      if (!failed || signal.aborted) throw error;
+      result = { batchId: batch, state: 'FAILED', errorCode: failed.errorCode };
+    }
+    result.assets = await apiAssets(registry.lakeRoot, profile.sourceCode, result.batchId);
   }
-  return { state: result.state === 'COMPLETE' ? 'COMPLETE' : 'INCOMPLETE',
-    errorCode: result.state === 'NOT_OBSERVED' ? 'DELIVERY_NOT_OBSERVED' : null, result, manifest: manifest ?? null };
+  return { state: result.state === 'COMPLETE' ? 'COMPLETE' : result.state === 'FAILED' ? 'FAILED' : 'INCOMPLETE',
+    errorCode: result.errorCode ?? (result.state === 'NOT_OBSERVED' ? 'DELIVERY_NOT_OBSERVED' : null), result, manifest: manifest ?? null };
 }
 
 async function flush(options, directory) {
