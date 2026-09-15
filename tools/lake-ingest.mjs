@@ -8,6 +8,7 @@ import { finished } from 'node:stream/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeOptions } from './mysql-discover.mjs';
+import { atomicJson, currentDay, digest, durableRename, hashFile, readJson as readMetadata, validateDay, withLock } from './lake-runtime.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_CONFIG = path.join(ROOT, 'secrets/mysql-development.local.json');
@@ -65,7 +66,7 @@ function parseArgs(argv) {
       if (arg === '--source-code') options.sourceCode = value;
     } else fail('INVALID_ARGUMENT');
   }
-  if (options.window && !WINDOW.test(options.window)) fail('INVALID_WINDOW');
+  if (options.window) validateDay(options.window);
   if (options.batchId && !BATCH_ID.test(options.batchId)) fail('INVALID_BATCH_ID');
   if (!Number.isInteger(options.queryTimeoutSeconds) || options.queryTimeoutSeconds < 1 || options.queryTimeoutSeconds > 900) fail('INVALID_QUERY_TIMEOUT');
   if (!BATCH_ID.test(options.sourceCode)) fail('INVALID_SOURCE_CODE');
@@ -80,13 +81,14 @@ async function readJson(file) {
   }
 }
 
-async function validateAuthorization(configFile, config) {
+async function validateAuthorization(configFile, config, allowUnverifiedTestTls) {
   if (!config || config.engine?.toLowerCase() !== 'mysql' || !config.database || config.tls?.require_encryption !== true) {
     fail('UNSAFE_SOURCE_CONFIG');
   }
   if (!config.tls?.verify_server_certificate) {
     fail('SOURCE_CONFIG_MUST_DEFAULT_TO_STRICT_TLS');
   }
+  if (!allowUnverifiedTestTls) return;
   const authFile = path.join(ROOT, 'secrets/mysql-development-tls-authorization.local.json');
   const auth = await readJson(authFile);
   const hash = createHash('sha256').update(await readFile(configFile)).digest('hex');
@@ -100,13 +102,14 @@ function columnExpression(column) {
   const name = identifier(column.column, 'column');
   const binary = /^(binary|varbinary|tinyblob|blob|mediumblob|longblob)$/iu.test(String(column.data_type));
   const value = binary ? `HEX(${name})` : `CAST(${name} AS CHAR)`;
-  return `IF(${name} IS NULL,NULL,JSON_QUOTE(${value}))`;
+  return `IF(${name} IS NULL,NULL,${value})`;
 }
 
 function buildSnapshotSql(config, inventory, timeoutSeconds) {
   const schema = identifier(config.database, 'database');
   const lines = [
     'SET SESSION transaction_read_only = ON;',
+    "SET SESSION time_zone = '+00:00';",
     `SET SESSION max_execution_time = ${timeoutSeconds * 1000};`,
     'SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;',
     'START TRANSACTION WITH CONSISTENT SNAPSHOT;',
@@ -135,7 +138,7 @@ function selectMysqlCli(explicit) {
 async function writeOptions(config, allowUnverifiedTestTls) {
   const directory = await (await import('node:fs/promises')).mkdtemp(path.join(ROOT, 'secrets/mysql-lake-'));
   await chmod(directory, 0o700);
-  const options = makeOptions(config, '/unused/ca.pem', allowUnverifiedTestTls);
+  const options = makeOptions(config, config.tls.ca_cert_file ? path.resolve(ROOT, config.tls.ca_cert_file) : '/etc/ssl/cert.pem', allowUnverifiedTestTls);
   const file = path.join(directory, 'client.cnf');
   await writeFile(file, options, { mode: 0o600, flag: 'wx' });
   return { directory, file };
@@ -144,7 +147,7 @@ async function writeOptions(config, allowUnverifiedTestTls) {
 function spawnMysql(cli, optionsFile, sql) {
   const child = spawn(cli, [
     `--defaults-extra-file=${optionsFile}`,
-    '--batch', '--raw', '--skip-column-names', '--binary-mode', '--skip-reconnect',
+    '--quick', '--batch', '--raw', '--skip-column-names', '--binary-mode', '--skip-reconnect',
   ], { stdio: ['pipe', 'pipe', 'pipe'] });
   child.stdin.end(sql);
   return child;
@@ -175,7 +178,7 @@ class TableWriter {
   async finish() {
     this.stream.end();
     await finished(this.stream);
-    await rename(this.partial, this.file);
+    await durableRename(this.partial, this.file);
     return { rowCount: this.rows, bytes: this.bytes, sha256: this.hash.digest('hex') };
   }
 
@@ -195,8 +198,6 @@ async function readStderr(stream) {
 async function runSnapshot(options, config, inventory, batchId) {
   const batchRoot = path.join(options.lakeRoot, 'batches', batchId);
   const rawRoot = path.join(options.lakeRoot, 'raw', options.sourceCode, batchId);
-  await mkdir(batchRoot, { recursive: true, mode: 0o700 });
-  await mkdir(rawRoot, { recursive: true, mode: 0o700 });
   const sql = buildSnapshotSql(config, inventory, options.queryTimeoutSeconds);
   const sqlHash = createHash('sha256').update(sql).digest('hex');
   const manifest = {
@@ -211,28 +212,36 @@ async function runSnapshot(options, config, inventory, batchId) {
     consistency: 'ONE_REPEATABLE_READ_TRANSACTION',
     inventoryObservedAt: inventory.inventory_observed_at,
     inventoryVersion: inventory.plan_version,
+    inventorySha256: digest(JSON.stringify(inventory)),
+    scalarEncoding: 'mysql-char-v2',
+    sourceTimeZone: '+00:00',
     expectedTableCount: inventory.tables.length,
     sqlSha256: sqlHash,
     tables: inventory.tables.map((table) => ({ table: table.table, state: 'PENDING', rowCount: 0, bytes: 0 })),
   };
-  await writeFile(path.join(batchRoot, 'batch.json.part'), `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
   if (options.dryRun) {
     manifest.state = 'DRY_RUN';
-    await rename(path.join(batchRoot, 'batch.json.part'), path.join(batchRoot, 'batch.json'));
-    return { ...manifest, sqlPreview: sql.slice(0, 500), sqlLength: sql.length };
+    return { ...manifest, sqlLength: sql.length };
   }
+  await mkdir(path.dirname(batchRoot), { recursive: true, mode: 0o700 });
+  await mkdir(batchRoot, { mode: 0o700 });
+  await mkdir(rawRoot, { recursive: true, mode: 0o700 });
+  await atomicJson(path.join(batchRoot, 'batch.json.part'), manifest);
   const tmp = await writeOptions(config, options.allowUnverifiedTestTls);
   let writer = null;
   let activeIndex = -1;
   let stderrBytes = 0;
+  let child;
+  let ended = false;
   try {
-    const child = spawnMysql(selectMysqlCli(options.mysqlCli), tmp.file, sql);
+    child = spawnMysql(selectMysqlCli(options.mysqlCli), tmp.file, sql);
     const closePromise = once(child, 'close');
     const stderrPromise = readStderr(child.stderr).then((bytes) => { stderrBytes = bytes; });
     const lines = createInterface({ input: child.stdout, crlfDelay: Infinity });
     for await (const line of lines) {
       if (!line) continue;
-      if (line === '##JIUZHANG_SNAPSHOT_BEGIN##' || line === '##JIUZHANG_SNAPSHOT_END##') continue;
+      if (line === '##JIUZHANG_SNAPSHOT_BEGIN##') continue;
+      if (line === '##JIUZHANG_SNAPSHOT_END##') { ended = true; continue; }
       const marker = line.match(/^##JIUZHANG_TABLE_(\d{6})##$/u);
       if (marker) {
         if (writer) {
@@ -241,12 +250,13 @@ async function runSnapshot(options, config, inventory, batchId) {
           writer = null;
           await writeFile(path.join(batchRoot, 'batch.json.part'), `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600 });
         }
+        if (Number(marker[1]) !== activeIndex + 1) fail('SOURCE_TABLE_MARKER_OUT_OF_ORDER');
         activeIndex = Number(marker[1]);
         const table = inventory.tables[activeIndex];
         if (!table) fail('SOURCE_TABLE_MARKER_OUT_OF_RANGE');
         const tableRoot = path.join(rawRoot, table.table);
         await mkdir(tableRoot, { recursive: true, mode: 0o700 });
-        await writeFile(path.join(tableRoot, 'schema.json'), `${JSON.stringify({ table: table.table, columns: table.columns, primaryKey: table.primary_key ?? [] }, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+        await writeFile(path.join(tableRoot, 'schema.json'), `${JSON.stringify({ table: table.table, columns: table.columns, primaryKey: table.primary_key ?? [], scalarEncoding: 'mysql-char-v2', sourceTimeZone: '+00:00' }, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
         writer = new TableWriter(path.join(tableRoot, 'data.jsonl'), table.columns);
         manifest.tables[activeIndex].state = 'READING';
         continue;
@@ -256,6 +266,8 @@ async function runSnapshot(options, config, inventory, batchId) {
     }
     const [closeEvent] = await Promise.all([closePromise, stderrPromise]);
     const [exitCode] = closeEvent;
+    if (exitCode !== 0) fail(`MYSQL_EXIT_${exitCode ?? 'UNKNOWN'}`);
+    if (!ended) fail('SOURCE_SNAPSHOT_NOT_CLOSED');
     if (writer) {
       const result = await writer.finish();
       Object.assign(manifest.tables[activeIndex], result, { state: 'RAW_COMMITTED' });
@@ -268,7 +280,7 @@ async function runSnapshot(options, config, inventory, batchId) {
     manifest.finishedAt = new Date().toISOString();
     manifest.stderrBytes = stderrBytes;
     await writeFile(path.join(batchRoot, 'batch.json.part'), `${JSON.stringify(manifest, null, 2)}\n`);
-    await rename(path.join(batchRoot, 'batch.json.part'), path.join(batchRoot, 'batch.json'));
+    await durableRename(path.join(batchRoot, 'batch.json.part'), path.join(batchRoot, 'batch.json'));
     return manifest;
   } catch (error) {
     if (writer) await writer.abort();
@@ -279,46 +291,66 @@ async function runSnapshot(options, config, inventory, batchId) {
     await writeFile(path.join(batchRoot, 'batch.failed.json'), `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600 });
     throw error;
   } finally {
+    if (child && child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
     await rm(tmp.directory, { recursive: true, force: true });
   }
 }
 
-async function updateDailyLedger(options, result) {
-  const ledgerPath = path.join(options.lakeRoot, 'daily-ledger.json');
-  let ledger = { version: 1, windows: {} };
-  try { ledger = JSON.parse(await readFile(ledgerPath, 'utf8')); } catch { /* first run */ }
-  if (result.window) ledger.windows[result.window] = { batchId: result.batchId, state: result.state, finishedAt: result.finishedAt ?? null, tableCount: result.tables?.length ?? 0 };
-  const temporary = `${ledgerPath}.${randomUUID()}.part`;
-  await writeFile(temporary, `${JSON.stringify(ledger, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
-  await rename(temporary, ledgerPath);
+export async function verifySnapshot(options, manifest) {
+  if (manifest.state !== 'COMPLETE' || !Array.isArray(manifest.tables)) fail('SNAPSHOT_NOT_COMPLETE');
+  for (const table of manifest.tables) {
+    if (table.state !== 'RAW_COMMITTED' || table.table.includes('/') || table.table.includes('\\') || ['.', '..'].includes(table.table)) fail('INVALID_TABLE_PATH');
+    const actual = await hashFile(path.join(options.lakeRoot, 'raw', manifest.sourceCode, manifest.batchId, table.table, 'data.jsonl'));
+    if (actual.sha256 !== table.sha256 || actual.bytes !== table.bytes || actual.rows !== table.rowCount) fail('RAW_INTEGRITY_MISMATCH');
+  }
+  return manifest;
 }
 
 export async function run(options = parseArgs([])) {
   const config = await readJson(options.config);
-  await validateAuthorization(options.config, config);
+  await validateAuthorization(options.config, config, options.allowUnverifiedTestTls);
   const inventory = await readJson(options.inventory);
   if (!Array.isArray(inventory.tables) || inventory.tables.length === 0) fail('EMPTY_INVENTORY');
   for (const table of inventory.tables) {
     if (!table?.table || !Array.isArray(table.columns) || table.columns.length === 0
-      || table.table.includes('/') || table.table.includes('\\') || table.table === '.' || table.table === '..'
+      || table.table.includes('/') || table.table.includes('\\') || ['.', '..'].includes(table.table)
       || table.columns.some((column) => !column?.column || typeof column.column !== 'string')) fail('INVALID_INVENTORY');
+    if (table.engine && table.engine.toLowerCase() !== 'innodb') fail('SHARED_SNAPSHOT_ENGINE_UNSUPPORTED');
   }
-  if (options.mode === 'daily') {
-    options.window ??= new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date());
-    if (!WINDOW.test(options.window)) fail('INVALID_WINDOW');
-    await mkdir(options.lakeRoot, { recursive: true, mode: 0o700 });
-    const ledgerPath = path.join(options.lakeRoot, 'daily-ledger.json');
-    try {
-      const ledger = JSON.parse(await readFile(ledgerPath, 'utf8'));
-      const existing = ledger.windows?.[options.window];
-      if (existing?.state === 'COMPLETE') return { ...existing, reused: true, mode: 'daily', window: options.window };
-    } catch { /* first daily run */ }
-  }
+  if (options.mode === 'daily') options.window = validateDay(options.window ?? currentDay());
   const batchId = options.batchId ?? `${options.mode}-${new Date().toISOString().replace(/[-:.TZ]/gu, '').slice(0, 14)}-${randomUUID().slice(0, 8)}`;
   if (!BATCH_ID.test(batchId)) fail('INVALID_BATCH_ID');
-  const result = await runSnapshot(options, config, inventory, batchId);
-  if (options.mode === 'daily' && result.state === 'COMPLETE') await updateDailyLedger(options, result);
-  return result;
+  if (options.dryRun) return runSnapshot(options, config, inventory, batchId);
+  return withLock(path.join(options.lakeRoot, 'mysql-ingest.lock'), async () => {
+    const ledgerPath = path.join(options.lakeRoot, 'daily-ledger.json');
+    const ledger = await readMetadata(ledgerPath, { version: 2, windows: {} });
+    const planHash = digest(JSON.stringify(inventory));
+    const key = `${options.sourceCode}|${inventory.plan_version}|${planHash}|${options.window}`;
+    if (options.mode === 'daily') {
+      // Verify legacy entries against their actual manifest before adopting them.
+      const existing = ledger.windows[key] ?? ledger.windows[options.window];
+      if (existing?.state === 'COMPLETE') {
+        const previous = await readMetadata(path.join(options.lakeRoot, 'batches', existing.batchId, 'batch.json'));
+        if (previous.sourceCode === options.sourceCode && previous.inventoryVersion === inventory.plan_version
+            && previous.window === options.window && previous.state === 'COMPLETE'
+            && (previous.inventorySha256 === planHash || (!previous.inventorySha256
+                && previous.inventoryObservedAt === inventory.inventory_observed_at
+                && JSON.stringify(previous.tables.map(t => t.table)) === JSON.stringify(inventory.tables.map(t => t.table))))) {
+          await verifySnapshot(options, previous);
+          return { ...previous, reused: true };
+        }
+      }
+      // A current-state source cannot recreate a missed historical snapshot.
+      if (options.window !== currentDay()) fail('HISTORICAL_SNAPSHOT_UNAVAILABLE');
+    }
+    const result = await runSnapshot(options, config, inventory, batchId);
+    if (options.mode === 'daily' && result.state === 'COMPLETE') {
+      ledger.version = 2;
+      ledger.windows[key] = { batchId, state: result.state, finishedAt: result.finishedAt, tableCount: result.tables.length };
+      await atomicJson(ledgerPath, ledger);
+    }
+    return result;
+  });
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

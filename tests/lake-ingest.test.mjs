@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { buildSnapshotSql, columnExpression, identifier, parseArgs, runSnapshot } from '../tools/lake-ingest.mjs';
+import { buildSnapshotSql, columnExpression, identifier, parseArgs, run, runSnapshot } from '../tools/lake-ingest.mjs';
+import { currentDay } from '../tools/lake-runtime.mjs';
 
 const inventory = {
   inventory_observed_at: '2026-09-15T00:00:00Z',
@@ -28,6 +29,27 @@ test('identifiers are quoted and cannot inject SQL', () => {
   assert.match(sql, /JSON_ARRAY\(/);
   assert.match(sql, /HEX\(`payload`\)/);
   assert.doesNotMatch(sql, /DROP TABLE/);
+});
+
+test('daily replay is isolated by source and validates committed raw bytes', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'lake-replay-'));
+  try {
+    const fake = path.join(root, 'mysql');
+    await writeFile(fake, '#!/usr/bin/env node\nconsole.log("##JIUZHANG_TABLE_000000##");console.log("[1,2,3]");console.log("##JIUZHANG_SNAPSHOT_END##");', { mode: 0o700 });
+    const config = path.join(root, 'source.json'); const plan = path.join(root, 'plan.json');
+    await writeFile(config, JSON.stringify({ engine: 'mysql', host: 'localhost', port: 3306, username: 'fixture', password: 'fixture', database: 'fixture', tls: { require_encryption: true, verify_server_certificate: true } }));
+    await writeFile(plan, JSON.stringify(inventory));
+    const options = parseArgs(['--daily', '--window', currentDay(), '--lake-root', root, '--config', config, '--inventory', plan, '--mysql-cli', fake]);
+    const a = await run({ ...options, sourceCode: 'source-a' });
+    const b = await run({ ...options, sourceCode: 'source-b' });
+    assert.notEqual(a.batchId, b.batchId);
+    const repeat = await run({ ...options, sourceCode: 'source-a' });
+    assert.equal(repeat.batchId, a.batchId);
+    assert.equal(repeat.tables[0].rowCount, 1);
+    await writeFile(path.join(root, 'raw', 'source-a', a.batchId, 'orders', 'data.jsonl'), '[9,9,9]\n');
+    await assert.rejects(run({ ...options, sourceCode: 'source-a' }), /RAW_INTEGRITY_MISMATCH/);
+    await assert.rejects(run({ ...options, sourceCode: 'source-c', window: '2000-01-01' }), /HISTORICAL_SNAPSHOT_UNAVAILABLE/);
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test('raw row expressions preserve exact scalar spellings as JSON strings and null', () => {
