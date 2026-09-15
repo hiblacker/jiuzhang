@@ -27,7 +27,7 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
   private static final Pattern BATCH_START = Pattern.compile(
       "^/api/v1/ingestion-jobs/[^/]+/batches/?$");
   private static final Pattern BATCH_MUTATION = Pattern.compile(
-      "^/api/v1/ingestion-batches/[^/]+/(?:complete|fail|retry|cancel)/?$");
+      "^/api/v1/ingestion-batches/[^/]+/(?:complete|fail|retry|cancel|heartbeat)/?$");
   private static final Pattern CHECKPOINT_READ = Pattern.compile(
       "^/api/v1/ingestion-jobs/[^/]+/checkpoint/?$");
 

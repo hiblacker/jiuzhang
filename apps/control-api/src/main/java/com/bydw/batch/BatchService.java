@@ -8,9 +8,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,13 +29,19 @@ public class BatchService {
   private final IngestionJobRepository jobRepository;
   private final SourceRepository sourceRepository;
   private final ObjectMapper objectMapper;
+  private final int leaseSeconds;
 
   public BatchService(BatchRepository repository, IngestionJobRepository jobRepository,
-      SourceRepository sourceRepository, ObjectMapper objectMapper) {
+      SourceRepository sourceRepository, ObjectMapper objectMapper,
+      @Value("${bydw.ingestion.lease-duration-seconds:300}") int leaseSeconds) {
+    if (leaseSeconds < 30 || leaseSeconds > 3600) {
+      throw new IllegalArgumentException("Batch lease duration must be between 30 and 3600 seconds");
+    }
     this.repository = repository;
     this.jobRepository = jobRepository;
     this.sourceRepository = sourceRepository;
     this.objectMapper = objectMapper;
+    this.leaseSeconds = leaseSeconds;
   }
 
   @Transactional
@@ -53,7 +61,8 @@ public class BatchService {
       throw badRequest("INVALID_CURSOR_TO", "cursorTo must be a non-empty object");
     }
     validateSize(cursorTo, "CURSOR_TO_TOO_LARGE");
-    IngestionBatch batch = repository.start(jobId, request.runKey(), json(cursorTo)).orElse(null);
+    IngestionBatch batch = repository.start(
+        jobId, request.runKey(), json(cursorTo), principal, leaseSeconds).orElse(null);
     if (batch != null) {
       sourceRepository.audit(principal, "INGESTION_BATCH_START", "ingestion-batch/" + batch.id(),
           json(Map.of("jobId", jobId, "runKey", request.runKey(),
@@ -100,9 +109,13 @@ public class BatchService {
       throw new ApiException(HttpStatus.CONFLICT, "RAW_BATCH_EVIDENCE_MISMATCH",
           "Batch result does not match the sealed RAW manifest");
     }
-    boolean committed = repository.complete(batchId, jobId, request.expectedCheckpointVersion(),
-        json(request.nextCheckpoint()), request.rowCount(), checksum);
-    if (!committed) {
+    BatchCompletionResult result = repository.complete(batchId, jobId,
+        request.expectedCheckpointVersion(), json(request.nextCheckpoint()), request.rowCount(),
+        checksum, principal);
+    if (result == BatchCompletionResult.LEASE_REJECTED) {
+      throw leaseNotActive();
+    }
+    if (result == BatchCompletionResult.STALE) {
       IngestionBatch stale = repository.find(batchId)
           .orElseThrow(() -> new IllegalStateException("Stale batch disappeared"));
       sourceRepository.audit(principal, "INGESTION_BATCH_STALE", "ingestion-batch/" + batchId,
@@ -127,8 +140,12 @@ public class BatchService {
     if (diagnosticRef != null && !DIAGNOSTIC_REF.matcher(diagnosticRef).matches()) {
       throw badRequest("INVALID_DIAGNOSTIC_REF", "diagnosticRef must be a bounded opaque reference");
     }
-    if (!repository.fail(batchId, request.errorCode(), diagnosticRef)) {
+    IngestionBatch current = repository.find(batchId).orElseThrow(() -> notFound(batchId));
+    if (!"RUNNING".equals(current.state())) {
       throw new ApiException(HttpStatus.CONFLICT, "BATCH_NOT_RUNNING", "Only a running batch can fail");
+    }
+    if (!repository.fail(batchId, request.errorCode(), diagnosticRef, principal)) {
+      throw leaseNotActive();
     }
     IngestionBatch failed = repository.find(batchId).orElseThrow(() -> notFound(batchId));
     sourceRepository.audit(principal, "INGESTION_BATCH_FAIL", "ingestion-batch/" + batchId,
@@ -146,7 +163,7 @@ public class BatchService {
     IngestionBatch latest = repository.findLatestByRunKey(batch.jobId(), batch.runKey())
         .orElseThrow(() -> new IllegalStateException("Latest batch attempt was not readable"));
     if (latest.attempt() > batch.attempt()) return latest;
-    IngestionBatch retried = repository.retry(batchId).orElse(null);
+    IngestionBatch retried = repository.retry(batchId, principal, leaseSeconds).orElse(null);
     if (retried == null) {
       retried = repository.findLatestByRunKey(batch.jobId(), batch.runKey())
           .filter(candidate -> candidate.attempt() > batch.attempt())
@@ -165,13 +182,36 @@ public class BatchService {
     if (!"RUNNING".equals(batch.state())) {
       throw new ApiException(HttpStatus.CONFLICT, "BATCH_NOT_RUNNING", "Only a running batch can cancel");
     }
-    if (!repository.cancel(batchId)) {
-      throw new ApiException(HttpStatus.CONFLICT, "BATCH_NOT_RUNNING", "Only a running batch can cancel");
+    if (!repository.cancel(batchId, principal)) {
+      throw leaseNotActive();
     }
     IngestionBatch cancelled = repository.find(batchId).orElseThrow(() -> notFound(batchId));
     sourceRepository.audit(principal, "INGESTION_BATCH_CANCEL", "ingestion-batch/" + batchId,
         json(Map.of("jobId", cancelled.jobId())));
     return cancelled;
+  }
+
+  @Transactional
+  public IngestionBatch heartbeat(long batchId, String principal) {
+    IngestionBatch renewed = repository.heartbeat(batchId, principal, leaseSeconds).orElse(null);
+    if (renewed == null) {
+      if (repository.find(batchId).isEmpty()) throw notFound(batchId);
+      throw leaseNotActive();
+    }
+    sourceRepository.audit(principal, "INGESTION_BATCH_HEARTBEAT", "ingestion-batch/" + batchId,
+        json(Map.of("leaseExpiresAt", renewed.leaseExpiresAt().toString())));
+    return renewed;
+  }
+
+  @Transactional
+  public BatchReconcileResult reconcileExpired(int limit, String principal) {
+    if (limit < 1 || limit > 1000) {
+      throw badRequest("INVALID_RECONCILE_LIMIT", "limit must be between 1 and 1000");
+    }
+    List<Long> batchIds = repository.reconcileExpired(limit);
+    sourceRepository.audit(principal, "INGESTION_BATCH_RECONCILE", "ingestion-batches",
+        json(Map.of("reconciledCount", batchIds.size(), "batchIds", batchIds)));
+    return new BatchReconcileResult(batchIds.size(), List.copyOf(batchIds));
   }
 
   @Transactional
@@ -207,5 +247,10 @@ public class BatchService {
 
   private ApiException notFound(long id) {
     return new ApiException(HttpStatus.NOT_FOUND, "BATCH_NOT_FOUND", "Batch not found: " + id);
+  }
+
+  private ApiException leaseNotActive() {
+    return new ApiException(HttpStatus.CONFLICT, "BATCH_LEASE_NOT_ACTIVE",
+        "An active lease owned by the calling worker is required");
   }
 }

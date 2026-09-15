@@ -112,6 +112,34 @@ class RequestAuthenticationFilterTest {
     assertThat(checkpointInvoked).isTrue();
   }
 
+  @Test
+  void workerCanHeartbeatButOnlyAdminCanReconcileExpiredBatches() throws Exception {
+    var heartbeat = new MockHttpServletRequest(
+        "POST", "/api/v1/ingestion-batches/7/heartbeat");
+    heartbeat.addHeader("Authorization", "Bearer " + WORKER_TOKEN);
+    var heartbeatInvoked = new AtomicBoolean(false);
+    filter().doFilter(heartbeat, new MockHttpServletResponse(),
+        (req, res) -> heartbeatInvoked.set(true));
+    assertThat(heartbeatInvoked).isTrue();
+
+    var workerReconcile = new MockHttpServletRequest(
+        "POST", "/api/v1/ingestion-batches/reconcile-expired");
+    workerReconcile.addHeader("Authorization", "Bearer " + WORKER_TOKEN);
+    var workerResponse = new MockHttpServletResponse();
+    var workerInvoked = new AtomicBoolean(false);
+    filter().doFilter(workerReconcile, workerResponse, (req, res) -> workerInvoked.set(true));
+    assertThat(workerInvoked).isFalse();
+    assertThat(workerResponse.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
+
+    var adminReconcile = new MockHttpServletRequest(
+        "POST", "/api/v1/ingestion-batches/reconcile-expired");
+    adminReconcile.addHeader("Authorization", "Bearer " + ADMIN_TOKEN);
+    var adminInvoked = new AtomicBoolean(false);
+    filter().doFilter(adminReconcile, new MockHttpServletResponse(),
+        (req, res) -> adminInvoked.set(true));
+    assertThat(adminInvoked).isTrue();
+  }
+
   private RequestAuthenticationFilter filter() {
     return new RequestAuthenticationFilter(ADMIN_TOKEN, WORKER_TOKEN, new ObjectMapper());
   }

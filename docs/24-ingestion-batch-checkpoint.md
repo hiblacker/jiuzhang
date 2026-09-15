@@ -23,7 +23,7 @@
 
 ### 幂等重放
 
-`(job_id, run_key)` 唯一。创建使用 `ON CONFLICT DO NOTHING RETURNING`：
+`(job_id, run_key)` 标识逻辑运行，V006 起物理唯一键为 `(job_id, run_key, attempt)`。首次创建使用默认 attempt 1 和 `ON CONFLICT DO NOTHING RETURNING`：
 
 - 相同 runKey、相同 cursorTo 返回已有批次，不创建第二行；
 - 相同 runKey、不同 cursorTo 返回 409 `BATCH_RUN_KEY_MISMATCH`；
@@ -64,6 +64,6 @@ Java 测试共 22 项，其中批次服务 8 项，覆盖 ACTIVE 门禁、服务
 ## 5. 未完成项
 
 1. 数据库登录角色和真实 Worker 进程；HTTP Worker 身份隔离及 RAW 完成门禁已在[25号文档](25-raw-batch-evidence.md)完成。
-2. 失败重试 attempt 和取消已在[26号文档](26-batch-retry-cancel.md)完成；超时租约和失联批次对账仍待实现。
+2. 失败重试 attempt 和取消已在[26号文档](26-batch-retry-cancel.md)完成；超时租约和失联批次对账已在[27号文档](27-batch-lease-reconciliation.md)完成。
 3. 按 UPDATED_AT_KEYSET 语义校验 nextCheckpoint 不倒退；通用 JSON 版本 CAS 本身不能比较业务水位大小。
 4. 批次列表、运行日志引用和告警投影。

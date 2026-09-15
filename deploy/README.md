@@ -12,11 +12,13 @@ docker compose -p bydw -f deploy/compose.yaml config
 docker compose -p bydw -f deploy/compose.yaml up -d --build
 ```
 
-3. 检查 `http://127.0.0.1:8080/actuator/health` 和 `http://127.0.0.1:8080/api/v1/status`。来源/任务管理接口使用 Admin Token；批次开始、完成、失败、重试和取消接口使用 Worker Token；检查点读取允许两者。除健康/状态接口外均须携带对应的 Bearer Token。
+3. 检查 `http://127.0.0.1:8080/actuator/health` 和 `http://127.0.0.1:8080/api/v1/status`。来源/任务管理和失联批次对账接口使用 Admin Token；批次开始、心跳、完成、失败、重试和取消接口使用 Worker Token；检查点读取允许两者。除健康/状态接口外均须携带对应的 Bearer Token。
 
 迁移服务必须成功退出后 API 才会启动。已经执行的迁移按文件名和 SHA-256 记录；不要修改已有迁移文件，变更使用新的 `VNNN__name.sql`。失败或取消批次通过 Worker Token 调用 retry/cancel 接口，不能直接修改数据库状态。
 
 本项目镜像必须使用明确且唯一的版本标签。代码变化后递增开发版本序号，例如从 `0.1.0-dev.1` 升至 `0.1.0-dev.2`；禁止覆盖已被容器使用的标签，否则旧容器会在 Docker 界面中退回显示内部镜像 ID。Compose、Dockerfile 和运行命令均不得使用 `latest`、镜像 ID 或 digest 引用。
+
+批次租约默认 300 秒，通过 `BATCH_LEASE_DURATION_SECONDS` 配置，允许范围为 30–3600 秒。Worker 应在租约过半前发送 heartbeat；管理员调度以小于租约时长的周期调用 `POST /api/v1/ingestion-batches/reconcile-expired?limit=100`。V007 升级会将没有租约的旧 RUNNING 批次标记为 `FAILED/LEASE_MIGRATION_REQUIRED`，升级前应等待在途批次结束或准备升级后重试。
 
 ## NAS 前置条件
 

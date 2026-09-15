@@ -18,4 +18,7 @@ public record IngestionBatch(
     long checkpointVersion,
     OffsetDateTime startedAt,
     OffsetDateTime finishedAt,
-    OffsetDateTime committedAt) {}
+    OffsetDateTime committedAt,
+    String leaseOwner,
+    OffsetDateTime leaseExpiresAt,
+    OffsetDateTime lastHeartbeatAt) {}

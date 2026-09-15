@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -48,6 +49,18 @@ public class BatchController {
   @PostMapping("/api/v1/ingestion-batches/{batchId}/cancel")
   public IngestionBatch cancel(@PathVariable long batchId, HttpServletRequest httpRequest) {
     return service.cancel(batchId, principal(httpRequest));
+  }
+
+  @PostMapping("/api/v1/ingestion-batches/{batchId}/heartbeat")
+  public IngestionBatch heartbeat(@PathVariable long batchId, HttpServletRequest httpRequest) {
+    return service.heartbeat(batchId, principal(httpRequest));
+  }
+
+  @PostMapping("/api/v1/ingestion-batches/reconcile-expired")
+  public BatchReconcileResult reconcileExpired(
+      @RequestParam(defaultValue = "100") int limit,
+      HttpServletRequest httpRequest) {
+    return service.reconcileExpired(limit, principal(httpRequest));
   }
 
   @GetMapping("/api/v1/ingestion-jobs/{jobId}/checkpoint")
