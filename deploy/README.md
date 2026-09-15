@@ -4,7 +4,7 @@
 
 ## 名称与兼容性
 
-产品名称为九章 · Jiuzhang，完整名称为九章数据平台 / JiuzhangData Platform。当前本地构建镜像为 `jiuzhang/control-api:0.1.0-dev.7` 和 `jiuzhang/ingestion-worker:0.1.0-dev.2`；这些名称不表示镜像已经推送到远程仓库。
+产品名称为九章 · Jiuzhang，完整名称为九章数据平台 / JiuzhangData Platform。当前本地构建镜像为 `jiuzhang/control-api:0.1.0-dev.8` 和 `jiuzhang/ingestion-worker:0.1.0-dev.2`；这些名称不表示镜像已经构建或推送到远程仓库。
 
 Compose 示例继续使用 `-p bydw`，服务键和数据卷键保持原值，保证现有部署在更新镜像时继续定位原有资源。已有环境须沿用实际创建时的项目名（如 `bydw` 或 `bydw-foundation`）；仅修改项目名会创建另一组容器和数据卷，不会迁移原数据。重命名仓库目录后仍应显式指定同一项目名。
 
@@ -59,3 +59,20 @@ node tools/lake-daily.mjs --window 2026-09-15 \
 `--register` 会先用 Admin Token 登记清单，再用 Worker Token 登记数据库批次；两个令牌只从 `CONTROL_API_ADMIN_TOKEN` 和 `CONTROL_API_WORKER_TOKEN` 环境变量读取。未提供控制 API 时可省略该选项，原始文件仍按本地 manifest 封存。
 
 REST API 配置只保存批准的 HTTPS 域名、分页契约和环境变量名；令牌通过运行环境注入，不写入 JSON、manifest 或浏览器存储。`apps/console` 是只读控制台，不能替代后台编排，也不需要页面保持打开。
+
+### 本轮复核后的升级与验证
+
+当前完成情况以 [复核记录](../docs/35-lake-review-and-remediation.md) 为准。V011 增加受限的 `lake.register_manifest` 提交函数，撤回 Worker 对湖批次/原始对象的直接写权限；HTTP Worker 身份经控制 API 校验后，由控制数据库角色调用函数。迁移后再启动 dev.8 API。已完成清单不可改写；错误批次使用新 runKey/attempt 重试。
+
+V011 不修改旧迁移，也不回写原始文件。旧 inventory 没有完整契约 JSON，同版本重新登记会冲突；应重新发现结构、建立新 planVersion 和对应新快照，保留旧记录。旧终态 run 缺少 manifest_json 时，不把新请求当作可验证的相同重放；保留旧批次并新建运行。旧版本 API 依赖直接表写入，不能在 V011 后直接回退旧 API；应用修复采用新镜像/前向迁移。
+
+跨域开发控制台需在 `.env` 设置确切地址，例如 `CONTROL_API_ALLOWED_ORIGINS=http://localhost:4173`；Compose 已传递该变量。不要用 `file://` 打开控制台。
+
+结构化文件的 Python 解释器通过 `LAKE_PYTHON` 或 `--parser-python` 指定。依赖锁定在 `tools/requirements-lake.txt`；已有环境可直接复用，确需安装时：
+
+```bash
+python3 -m pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -r tools/requirements-lake.txt
+LAKE_PYTHON=/path/to/python3 node --test tests/file-ingest.test.mjs
+```
+
+真实数据库集成测试位于 `LakeDatabaseIntegrationTest`。仅显式设置 `LAKE_REVIEW_ALLOW_MIGRATIONS=isolated` 才启用；URL 必须是 `jdbc:postgresql://127.0.0.1:<port>/lake_review`。通过本地环境注入 `LAKE_REVIEW_JDBC_URL`、`LAKE_REVIEW_DB_OWNER`、`LAKE_REVIEW_DB_OWNER_PASSWORD`、`LAKE_REVIEW_CONTROL_PASSWORD`、`LAKE_REVIEW_WORKER_PASSWORD` 和 `LAKE_REVIEW_REPO` 后，运行 `mvn -o -f apps/control-api/pom.xml test`。该测试会在隔离数据库执行真实迁移、启用测试角色、启动随机端口 API；普通测试不设置开关时明确跳过，不能计为数据库验证通过。

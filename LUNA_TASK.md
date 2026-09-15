@@ -36,6 +36,7 @@
 - 本地 `work/lake-foundation/inventory.json` 有真实结构；`work/lake-foundation/initial-full-snapshot-plan.json` 已为全部表生成首次 FULL_SNAPSHOT 计划。使用前复核来源与结构变化，不把 157 硬编码到产品。
 - **提示词创建时的基线是“真实业务数据尚未抽取、每日任务尚未配置”。** 现有 Java Worker 主要处理合成 JSONL，不能把旧批次接口当成真实接入完成；以下当前实现进展记录已更新。
 - **当前实现进展（执行本提示词后更新）：** `tools/lake-ingest.mjs` 已完成真实 MySQL 全量与一个每日窗口；批次 `full-fixed3-20260915` 和每日批次已逐表校验，重复窗口已复用。`tools/file-ingest.mjs`、`tools/rest-ingest.mjs`、`tools/lake-model.mjs`、`tools/lake-daily.mjs`、`tools/lake-register.mjs`、控制 API 的清单/manifest 登记接口和只读控制台已经加入并有测试；不要重复研究或回退已验证链路，直接继续接入真实目录/API 配置、启动本地控制面做登记和恢复演练。
+- **2026-09-16 用户追加要求与复核结论：** 复核和完整产品目标必须同时完成，范围包含 30 号报告的一期产品目标；页面先用简单实现接通真实操作，后续再系统迁移框架。原实现不能判定全部完成，重跑、编码、登记、文件/API 原件和发布一致性修复见 [35 号记录](docs/35-lake-review-and-remediation.md)。持久调度/缺失、项目角色、资产目录、SQL/dbt、授权消费、备份恢复均仍需实际实现和验证，不能只归因于缺真实目录或 API 配置。
 - 既有 Spring Boot 控制 API、来源/任务/批次、租约心跳、重试取消、RAW 清单和 PostgreSQL 角色已有实现，先读代码后复用。
 
 ## 测试源授权与敏感信息

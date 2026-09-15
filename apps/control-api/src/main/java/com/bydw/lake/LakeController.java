@@ -86,7 +86,7 @@ public class LakeController {
                dl.actual_data_at, dl.run_id, dl.details
           FROM lake.delivery_ledger dl
           JOIN control.source_connection sc ON sc.id = dl.source_id
-         WHERE (? IS NULL OR sc.code = ?)
+         WHERE (CAST(? AS VARCHAR) IS NULL OR sc.code = ?)
          ORDER BY dl.scheduled_window_start DESC, dl.id DESC
          LIMIT ?
         """, code, code, limit);

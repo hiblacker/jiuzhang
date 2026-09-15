@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { dayBounds, hashFile, resolveInside } from './lake-runtime.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SAFE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/u;
@@ -32,6 +33,7 @@ function parseArgs(argv) {
   if (!ENV_NAME.test(options.adminTokenEnv) || !ENV_NAME.test(options.workerTokenEnv)) fail('INVALID_TOKEN_ENV');
   let base;
   try { base = new URL(options.controlApi); } catch { fail('CONTROL_API_URL_INVALID'); }
+  if (base.username || base.password || base.search || base.hash) fail('CONTROL_API_URL_INVALID');
   if (base.protocol !== 'http:' && base.protocol !== 'https:') fail('CONTROL_API_URL_INVALID');
   if (base.protocol === 'http:' && !new Set(['localhost', '127.0.0.1', '[::1]']).has(base.hostname.toLowerCase())) fail('CONTROL_API_TLS_REQUIRED');
   options.controlApi = base.toString().replace(/\/+$/u, '');
@@ -67,13 +69,18 @@ export function buildInventoryRequest(plan, sourceCode) {
 }
 
 async function buildManifestRequest(manifestFile, manifest, options) {
-  if (!manifest.batchId || manifest.sourceCode !== options.sourceCode || !Array.isArray(manifest.tables)) fail('INVALID_BATCH_MANIFEST');
+  if (!SAFE.test(manifest.batchId ?? '') || manifest.sourceCode !== options.sourceCode || !Array.isArray(manifest.tables)
+      || (manifest.inventoryVersion && manifest.inventoryVersion !== options.planVersion)) fail('INVALID_BATCH_MANIFEST');
   const objects = [];
   for (const table of manifest.tables) {
+    if (typeof table.table !== 'string' || !table.table || /[\\/]/u.test(table.table) || ['.', '..'].includes(table.table)) fail('INVALID_OBJECT_NAME');
     const rawFile = path.join(options.lakeRoot, 'raw', options.sourceCode, manifest.batchId, table.table, 'data.jsonl');
     const schemaFile = path.join(options.lakeRoot, 'raw', options.sourceCode, manifest.batchId, table.table, 'schema.json');
     if (table.state === 'RAW_COMMITTED') {
-      try { await access(rawFile); await access(schemaFile); } catch { fail('RAW_OBJECT_NOT_FOUND'); }
+      await resolveInside(options.lakeRoot, path.relative(options.lakeRoot, rawFile));
+      await resolveInside(options.lakeRoot, path.relative(options.lakeRoot, schemaFile));
+      const actual = await hashFile(rawFile);
+      if (actual.sha256 !== table.sha256 || actual.bytes !== table.bytes || actual.rows !== table.rowCount) fail('RAW_INTEGRITY_MISMATCH');
     }
     const rawPath = path.relative(options.lakeRoot, rawFile);
     if (rawPath.startsWith('..') || path.isAbsolute(rawPath)) fail('RAW_PATH_OUTSIDE_LAKE');
@@ -81,11 +88,12 @@ async function buildManifestRequest(manifestFile, manifest, options) {
   }
   const state = manifest.state === 'COMPLETE' ? 'COMPLETE' : manifest.state === 'CANCELLED' ? 'CANCELLED' : 'FAILED';
   const runKey = `batch:${manifest.batchId}`;
-  return { sourceCode: options.sourceCode, planVersion: options.planVersion, runKey, mode: manifest.mode === 'DAILY' ? 'DAILY' : 'FULL', attempt: 1, revision: 1, state, consistency: manifest.consistency, scheduledWindowStart: manifest.window ? `${manifest.window}T00:00:00+08:00` : null, scheduledWindowEnd: manifest.window ? `${manifest.window}T23:59:59.999+08:00` : null, startedAt: manifest.startedAt, finishedAt: manifest.finishedAt ?? null, errorCode: manifest.errorCode ?? null, objects };
+  const bounds = manifest.window ? dayBounds(manifest.window) : null;
+  return { sourceCode: options.sourceCode, planVersion: options.planVersion, runKey, mode: String(manifest.mode).toUpperCase() === 'DAILY' ? 'DAILY' : 'FULL', attempt: 1, revision: 1, state, consistency: manifest.consistency, scheduledWindowStart: bounds?.start ?? null, scheduledWindowEnd: bounds?.end ?? null, startedAt: manifest.startedAt, finishedAt: manifest.finishedAt ?? null, errorCode: manifest.errorCode ?? null, objects };
 }
 
 async function postJson(base, route, token, payload) {
-  const response = await fetch(`${base}${route}`, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(payload), redirect: 'error' });
+  const response = await fetch(`${base}${route}`, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(payload), redirect: 'error', signal: AbortSignal.timeout(30000) });
   if (!response.ok) {
     let code = `CONTROL_API_HTTP_${response.status}`;
     try { code = JSON.parse(await response.text()).code ?? code; } catch { /* keep status-only code */ }

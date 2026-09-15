@@ -159,6 +159,8 @@ class TableWriter {
     this.partial = `${file}.part`;
     this.schema = schema;
     this.stream = createWriteStream(this.partial, { flags: 'wx', mode: 0o600 });
+    this.completion = finished(this.stream);
+    this.completion.catch(() => {});
     this.hash = createHash('sha256');
     this.rows = 0;
     this.bytes = 0;
@@ -172,19 +174,19 @@ class TableWriter {
     this.hash.update(bytes);
     this.bytes += bytes.length;
     this.rows += 1;
-    if (!this.stream.write(bytes)) await once(this.stream, 'drain');
+    if (!this.stream.write(bytes)) await Promise.race([once(this.stream, 'drain'), this.completion]);
   }
 
   async finish() {
     this.stream.end();
-    await finished(this.stream);
+    await this.completion;
     await durableRename(this.partial, this.file);
     return { rowCount: this.rows, bytes: this.bytes, sha256: this.hash.digest('hex') };
   }
 
   async abort() {
     this.stream.destroy();
-    try { await finished(this.stream); } catch { /* expected after abort */ }
+    try { await this.completion; } catch { /* expected after abort */ }
   }
 }
 
@@ -236,6 +238,7 @@ async function runSnapshot(options, config, inventory, batchId) {
   try {
     child = spawnMysql(selectMysqlCli(options.mysqlCli), tmp.file, sql);
     const closePromise = once(child, 'close');
+    closePromise.catch(() => {});
     const stderrPromise = readStderr(child.stderr).then((bytes) => { stderrBytes = bytes; });
     const lines = createInterface({ input: child.stdout, crlfDelay: Infinity });
     for await (const line of lines) {

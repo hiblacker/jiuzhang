@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { access, mkdir, open, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import path from 'node:path';
@@ -8,7 +8,7 @@ import { atomicJson, currentDay, validateDay, withLock } from './lake-runtime.mj
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_LAKE_ROOT = path.join(ROOT, '.lake-data');
-const WINDOW = /^\d{4}-\d{2}-\d{2}$/u;
+const SOURCE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/u;
 
 function fail(code) { throw new Error(code); }
 
@@ -38,6 +38,7 @@ function parseArgs(argv) {
     } else fail('INVALID_ARGUMENT');
   }
   if (options.window) validateDay(options.window);
+  if (!SOURCE.test(options.mysqlSourceCode) || !SOURCE.test(options.fileSourceCode)) fail('INVALID_SOURCE_CODE');
   if (options.register && !options.controlApi) fail('CONTROL_API_REQUIRED_FOR_REGISTER');
   return options;
 }
@@ -62,6 +63,7 @@ async function runChild(script, args) {
 
 export async function run(options, execute = runChild) {
   options.window = validateDay(options.window ?? currentDay());
+  if (!SOURCE.test(options.mysqlSourceCode) || !SOURCE.test(options.fileSourceCode)) fail('INVALID_SOURCE_CODE');
   const executeTasks = async () => {
   const resultFile = path.join(options.lakeRoot, 'daily-runs', options.mysqlSourceCode, options.window, `${randomUUID()}.json`);
   const runManifest = { version: 1, window: options.window, state: 'RUNNING', startedAt: new Date().toISOString(), tasks: {} };
@@ -98,7 +100,7 @@ export async function run(options, execute = runChild) {
     } else runManifest.tasks.api = { state: options.requireApi ? 'FAILED' : 'NOT_CONFIGURED', ...(options.requireApi ? { errorCode: 'API_CONFIG_REQUIRED' } : {}) };
     const states = Object.values(runManifest.tasks).map((task) => task.state);
     runManifest.state = states.some((state) => state === 'FAILED') ? 'FAILED'
-      : states.some((state) => state === 'INCOMPLETE') ? 'INCOMPLETE' : options.dryRun ? 'DRY_RUN' : 'COMPLETE';
+      : states.some((state) => ['INCOMPLETE', 'NOT_OBSERVED'].includes(state)) ? 'INCOMPLETE' : options.dryRun ? 'DRY_RUN' : 'COMPLETE';
     runManifest.finishedAt = new Date().toISOString();
     if (!options.dryRun) {
       await mkdir(path.dirname(resultFile), { recursive: true, mode: 0o700 });

@@ -3,8 +3,6 @@ package com.bydw.lake;
 import com.bydw.api.ApiException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -48,12 +46,13 @@ public class LakeRegistrationService {
     }
     if (!validHash(request.schemaSha256())) bad("INVALID_SCHEMA_HASH", "schemaSha256 must be lowercase SHA-256");
     long sourceId = sourceId(sourceCode);
+    jdbc.queryForObject("SELECT pg_advisory_xact_lock(?)", Object.class, sourceId);
     List<Map<String, Object>> existing = jdbc.queryForList(
-        "SELECT id, schema_sha256 FROM lake.inventory WHERE source_id = ? AND plan_version = ?",
+        "SELECT id, schema_sha256, contract_json::text AS contract_json FROM lake.inventory WHERE source_id = ? AND plan_version = ?",
         sourceId, request.planVersion());
     if (!existing.isEmpty()) {
       String storedHash = String.valueOf(existing.get(0).get("schema_sha256"));
-      if (!storedHash.equals(request.schemaSha256())) {
+      if (!storedHash.equals(request.schemaSha256()) || !sameJson(existing.get(0).get("contract_json"), json(request))) {
         throw new ApiException(HttpStatus.CONFLICT, "INVENTORY_VERSION_CONFLICT", "planVersion is already bound to another schema");
       }
       long inventoryId = ((Number) existing.get(0).get("id")).longValue();
@@ -67,9 +66,9 @@ public class LakeRegistrationService {
     }
     String scope = request.sourceScope() == null ? "{}" : request.sourceScope().toString();
     Long inventoryId = jdbc.queryForObject("""
-        INSERT INTO lake.inventory(source_id, plan_version, observed_at, source_scope, object_count, schema_sha256, state)
-        VALUES (?, ?, ?, ?::jsonb, ?, ?, 'ACTIVE') RETURNING id
-        """, Long.class, sourceId, request.planVersion(), request.observedAt(), scope, request.objects().size(), request.schemaSha256());
+        INSERT INTO lake.inventory(source_id, plan_version, observed_at, source_scope, object_count, schema_sha256, state, contract_json)
+        VALUES (?, ?, ?, ?::jsonb, ?, ?, 'ACTIVE', ?::jsonb) RETURNING id
+        """, Long.class, sourceId, request.planVersion(), request.observedAt(), scope, request.objects().size(), request.schemaSha256(), json(request));
     if (inventoryId == null) throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "INVENTORY_NOT_CREATED", "Inventory was not created");
     for (RegisterInventoryRequest.InventoryObject object : request.objects()) {
       jdbc.update("""
@@ -86,8 +85,14 @@ public class LakeRegistrationService {
     if (request == null) bad("INVALID_MANIFEST", "Manifest request is required");
     String sourceCode = validateCode(request.sourceCode());
     if (request.planVersion() < 1 || request.runKey() == null || !RUN_KEY.matcher(request.runKey()).matches()) bad("INVALID_RUN_KEY", "runKey is invalid");
-    if (!MODES.contains(request.mode()) || !RUN_STATES.contains(request.state())) bad("INVALID_RUN_CONTRACT", "mode or state is invalid");
-    if (request.attempt() < 1 || request.revision() < 1 || request.objects() == null || request.objects().isEmpty()) bad("INVALID_MANIFEST", "attempt, revision and objects are required");
+    if (request.mode() == null || request.state() == null || !MODES.contains(request.mode()) || !RUN_STATES.contains(request.state())) bad("INVALID_RUN_CONTRACT", "mode or state is invalid");
+    if (request.attempt() < 1 || request.revision() < 1 || request.objects() == null || request.objects().isEmpty() || request.objects().size() > 10000) bad("INVALID_MANIFEST", "attempt, revision and objects are required");
+    if (request.startedAt() == null || (request.finishedAt() != null && request.finishedAt().isBefore(request.startedAt()))
+        || ("COMPLETE".equals(request.state()) && request.finishedAt() == null)
+        || (request.scheduledWindowStart() == null) != (request.scheduledWindowEnd() == null)
+        || (request.scheduledWindowStart() != null && !request.scheduledWindowStart().isBefore(request.scheduledWindowEnd()))) {
+      bad("INVALID_RUN_TIMES", "A complete run needs timestamps and half-open windows");
+    }
     long sourceId = sourceId(sourceCode);
     Map<String, SourceObject> sourceObjects = sourceObjects(sourceId, request.planVersion());
     if (sourceObjects.isEmpty()) throw new ApiException(HttpStatus.CONFLICT, "INVENTORY_NOT_REGISTERED", "Register the inventory before the manifest");
@@ -103,61 +108,19 @@ public class LakeRegistrationService {
         }
       }
     }
-    Long runId = existingRun(sourceId, request);
-    if (runId == null) {
-      runId = jdbc.queryForObject("""
-          INSERT INTO lake.system_run(source_id, plan_version, run_key, scheduled_window_start, scheduled_window_end,
-              mode, attempt, revision, state, consistency, started_at, finished_at, error_code)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
-          """, Long.class, sourceId, request.planVersion(), request.runKey(), request.scheduledWindowStart(), request.scheduledWindowEnd(), request.mode(), request.attempt(), request.revision(), request.state(), request.consistency(), request.startedAt(), request.finishedAt(), request.errorCode());
-    } else {
-      Map<String, Object> current = jdbc.queryForMap("SELECT state FROM lake.system_run WHERE id = ? FOR UPDATE", runId);
-      if ("COMPLETE".equals(current.get("state")) && !"COMPLETE".equals(request.state())) {
-        throw new ApiException(HttpStatus.CONFLICT, "COMPLETE_RUN_IMMUTABLE", "A complete run cannot be downgraded");
+    Long runId;
+    try {
+      runId = jdbc.queryForObject("SELECT lake.register_manifest(?::jsonb, ?)", Long.class, json(request), principal);
+    } catch (org.springframework.dao.DataAccessException error) {
+      for (String code : List.of("LAKE_RUN_IMMUTABLE", "LAKE_RAW_OBJECT_IMMUTABLE", "LAKE_REQUIRED_OBJECT_INCOMPLETE")) {
+        if (error.getMostSpecificCause().getMessage().contains(code)) {
+          throw new ApiException(HttpStatus.CONFLICT, code, "Manifest conflicts with committed evidence");
+        }
       }
-      jdbc.update("""
-          UPDATE lake.system_run SET state = ?, consistency = ?, scheduled_window_start = ?, scheduled_window_end = ?,
-              started_at = ?, finished_at = ?, error_code = ? WHERE id = ?
-          """, request.state(), request.consistency(), request.scheduledWindowStart(), request.scheduledWindowEnd(), request.startedAt(), request.finishedAt(), request.errorCode(), runId);
+      throw error;
     }
-    long totalRows = 0;
-    for (RegisterManifestRequest.ManifestObject object : request.objects()) {
-      SourceObject sourceObject = sourceObjects.get(object.objectName());
-      jdbc.update("""
-          INSERT INTO lake.object_run(system_run_id, source_object_id, state, row_count, byte_count,
-              source_started_at, source_finished_at, raw_path, raw_sha256, schema_sha256, error_code)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT (system_run_id, source_object_id) DO UPDATE SET state = EXCLUDED.state,
-              row_count = EXCLUDED.row_count, byte_count = EXCLUDED.byte_count,
-              source_started_at = EXCLUDED.source_started_at, source_finished_at = EXCLUDED.source_finished_at,
-              raw_path = EXCLUDED.raw_path, raw_sha256 = EXCLUDED.raw_sha256,
-              schema_sha256 = EXCLUDED.schema_sha256, error_code = EXCLUDED.error_code
-          """, runId, sourceObject.id(), object.state(), object.rowCount(), object.byteCount(), request.startedAt(), request.finishedAt(), object.rawPath(), object.rawSha256(), object.schemaSha256(), "FAILED".equals(object.state()) ? request.errorCode() : null);
-      totalRows += object.rowCount();
-      if ("RAW_COMMITTED".equals(object.state()) && object.rawPath() != null) {
-        Long objectRunId = jdbc.queryForObject("SELECT id FROM lake.object_run WHERE system_run_id = ? AND source_object_id = ?", Long.class, runId, sourceObject.id());
-        jdbc.update("""
-            INSERT INTO lake.raw_object(object_run_id, object_version, storage_path, format, byte_count, row_count, sha256, state)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'COMMITTED') ON CONFLICT (object_run_id, object_version) DO NOTHING
-            """, objectRunId, objectVersion(request.runKey(), object.objectName()), object.rawPath(), object.format(), object.byteCount(), object.rowCount(), object.rawSha256());
-      }
-    }
-    if ("COMPLETE".equals(request.state())) {
-      jdbc.update("""
-          INSERT INTO lake.active_run(source_id, run_id, revision) VALUES (?, ?, ?)
-          ON CONFLICT (source_id) DO UPDATE SET run_id = EXCLUDED.run_id, revision = EXCLUDED.revision, updated_at = clock_timestamp()
-          WHERE EXCLUDED.revision >= lake.active_run.revision
-          """, sourceId, runId, request.revision());
-    }
-    audit(principal, "LAKE_MANIFEST_REGISTER", "lake/system-run/" + runId, "{}");
+    long totalRows = request.objects().stream().mapToLong(RegisterManifestRequest.ManifestObject::rowCount).sum();
     return new LakeManifestResponse(runId, sourceCode, request.runKey(), request.state(), request.objects().size(), totalRows);
-  }
-
-  private Long existingRun(long sourceId, RegisterManifestRequest request) {
-    List<Long> ids = jdbc.query("""
-        SELECT id FROM lake.system_run WHERE source_id = ? AND plan_version = ? AND run_key = ? AND attempt = ? AND revision = ?
-        """, (rs, row) -> rs.getLong("id"), sourceId, request.planVersion(), request.runKey(), request.attempt(), request.revision());
-    return ids.isEmpty() ? null : ids.get(0);
   }
 
   private Map<String, SourceObject> sourceObjects(long sourceId, long planVersion) {
@@ -178,25 +141,20 @@ public class LakeRegistrationService {
 
   private void validateInventoryObject(RegisterInventoryRequest.InventoryObject object) {
     if (object == null || object.objectName() == null || !NAME.matcher(object.objectName()).matches()
-        || !OBJECT_TYPES.contains(object.objectType()) || object.schema() == null
-        || !STRATEGIES.contains(object.strategy()) || !Set.of("READY", "BLOCKED", "DISABLED").contains(object.state())) {
+        || object.objectType() == null || !OBJECT_TYPES.contains(object.objectType()) || object.schema() == null
+        || object.strategy() == null || object.state() == null || !STRATEGIES.contains(object.strategy()) || !Set.of("READY", "BLOCKED", "DISABLED").contains(object.state())) {
       bad("INVALID_INVENTORY_OBJECT", "Inventory object has an invalid contract");
     }
   }
 
   private void validateManifestObject(RegisterManifestRequest.ManifestObject object) {
     if (object == null || object.objectName() == null || !NAME.matcher(object.objectName()).matches()
-        || !OBJECT_STATES.contains(object.state()) || object.rowCount() < 0 || object.byteCount() < 0) bad("MANIFEST_OBJECT_INVALID", "Manifest object has an invalid contract");
+        || object.state() == null || !OBJECT_STATES.contains(object.state()) || object.rowCount() < 0 || object.byteCount() < 0) bad("MANIFEST_OBJECT_INVALID", "Manifest object has an invalid contract");
     if (object.rawSha256() != null && !validHash(object.rawSha256())) bad("MANIFEST_HASH_INVALID", "rawSha256 is invalid");
     if (object.schemaSha256() != null && !validHash(object.schemaSha256())) bad("MANIFEST_HASH_INVALID", "schemaSha256 is invalid");
     if (object.rawPath() != null && (object.rawPath().startsWith("/") || object.rawPath().matches("^[A-Za-z]:[\\\\/].*"))) bad("MANIFEST_PATH_INVALID", "rawPath must be relative");
     if (object.rawPath() != null && object.rawPath().split("[/\\\\]").length > 0 && List.of(object.rawPath().split("[/\\\\]")).contains("..")) bad("MANIFEST_PATH_INVALID", "rawPath cannot traverse directories");
-    if ("RAW_COMMITTED".equals(object.state()) && (object.rawPath() == null || !validHash(object.rawSha256()) || !FORMATS.contains(object.format()))) bad("MANIFEST_RAW_CONTRACT_INVALID", "Committed raw objects require path, hash and format");
-  }
-
-  private String objectVersion(String runKey, String name) {
-    String digest = hex(name).substring(0, 16);
-    return runKey.substring(0, Math.min(runKey.length(), 140)) + ":" + digest;
+    if ("RAW_COMMITTED".equals(object.state()) && (object.rawPath() == null || !validHash(object.rawSha256()) || object.format() == null || !validHash(object.schemaSha256()) || !FORMATS.contains(object.format()))) bad("MANIFEST_RAW_CONTRACT_INVALID", "Committed raw objects require path, hash and format");
   }
 
   private String validateCode(String value) {
@@ -211,15 +169,10 @@ public class LakeRegistrationService {
     catch (JsonProcessingException exception) { throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_JSON", "JSON field is not serializable"); }
   }
 
-  private String hex(String value) {
-    try { return hex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))); }
-    catch (Exception exception) { throw new IllegalStateException("SHA-256 unavailable", exception); }
-  }
-
-  private String hex(byte[] bytes) {
-    StringBuilder output = new StringBuilder(bytes.length * 2);
-    for (byte value : bytes) output.append(String.format("%02x", value));
-    return output.toString();
+  private boolean sameJson(Object stored, String incoming) {
+    if (stored == null) return false;
+    try { return objectMapper.readTree(stored.toString()).equals(objectMapper.readTree(incoming)); }
+    catch (JsonProcessingException error) { return false; }
   }
 
   private void audit(String principal, String action, String resource, String details) {
