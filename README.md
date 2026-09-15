@@ -40,6 +40,7 @@
 
 | 文档 | 用途 |
 |---|---|
+| [数据仓库产品分析与可行性报告](docs/30-warehouse-product-feasibility.md) | 通用数仓定位、数据库/API/文件夹入湖、18 个 GitHub 项目调研及两人实施建议；方案待评审 |
 | [产品范围与最终目标](docs/01-product-scope.md) | 产品边界、角色、一期取舍、最终目标 |
 | [总体架构与详细设计](docs/02-architecture.md) | 部署边界、模块、元数据、接口、安全与发布 |
 | [数据加工与指标规范](docs/03-data-processing.md) | 增量、历史、周期统计、幂等和补数 |
@@ -95,3 +96,5 @@ git diff --check
 ```
 
 调研证据位于 `docs/research`，包含公开GitHub API快照、搜索记录与固定提交的一手资料索引。候选调研不等于组件已部署或兼容性已验证。
+
+- [两人实施方案：前六周分工、验收与首个工作包](docs/31-warehouse-implementation-plan.md)（建议执行版）

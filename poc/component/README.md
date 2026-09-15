@@ -22,7 +22,7 @@ This directory records the approved install lock for the component PoC: [design 
 
 ## POC-01 end-to-end result (2026-09-14)
 
-The complete local synthetic run passed after Docker Desktop was upgraded to client/server `29.7.2` (API `1.55`). Evidence is retained at [`work/poc01-20260914065750_4de84df7.json`](../../work/poc01-20260914065750_4de84df7.json).
+The prior record states that the complete local synthetic run passed after Docker Desktop was upgraded to client/server `29.7.2` (API `1.55`). Its full report was `work/poc01-20260914065750_4de84df7.json`, in the Git-ignored work directory. That file is missing from the checkout inspected on 2026-09-15. The summary below is retained as a historical record; this research task did not rerun the component PoC or reconstruct its missing evidence.
 
 The run started all five services healthy and verified daily ingest, replay idempotency, late arrival rebuild, stale release rejection, scheduler retry success, and four dbt tests. The runner uses explicit dbt project/output paths because the project is mounted read-only. The scheduler PoC also sets a bounded JVM heap/thread configuration; the upstream image default (`-Xms4g -Xmx4g`, about 400 threads) exceeded this experiment's 2 GiB/400-PID container boundary and caused `procReady not received` during the first attempt.
 
