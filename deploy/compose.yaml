@@ -26,20 +26,36 @@ services:
     depends_on:
       warehouse-db:
         condition: service_healthy
+  provision-roles:
+    image: postgres:16.15
+    environment:
+      PGHOST: warehouse-db
+      PGDATABASE: warehouse
+      PGUSER: warehouse
+      PGPASSWORD: ${WAREHOUSE_DB_PASSWORD:?set WAREHOUSE_DB_PASSWORD}
+      CONTROL_API_DB_PASSWORD: ${CONTROL_API_DB_PASSWORD:?set CONTROL_API_DB_PASSWORD}
+      INGESTION_WORKER_DB_PASSWORD: ${INGESTION_WORKER_DB_PASSWORD:?set INGESTION_WORKER_DB_PASSWORD}
+    volumes:
+      - ./scripts/provision-roles.sh:/scripts/provision-roles.sh:ro
+    command: ["/bin/bash", "/scripts/provision-roles.sh"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
   control-api:
-    image: bydw/control-api:0.1.0-dev.4
+    image: bydw/control-api:0.1.0-dev.5
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api
     environment:
-      WAREHOUSE_DB_PASSWORD: ${WAREHOUSE_DB_PASSWORD:?set WAREHOUSE_DB_PASSWORD}
+      CONTROL_API_DB_USERNAME: bydw_control_api_login
+      CONTROL_API_DB_PASSWORD: ${CONTROL_API_DB_PASSWORD:?set CONTROL_API_DB_PASSWORD}
       CONTROL_API_ADMIN_TOKEN: ${CONTROL_API_ADMIN_TOKEN:?set CONTROL_API_ADMIN_TOKEN}
       CONTROL_API_WORKER_TOKEN: ${CONTROL_API_WORKER_TOKEN:?set CONTROL_API_WORKER_TOKEN}
       BATCH_LEASE_DURATION_SECONDS: ${BATCH_LEASE_DURATION_SECONDS:-300}
     ports:
       - "${CONTROL_API_PORT:-8080}:8080"
     depends_on:
-      migrate:
+      provision-roles:
         condition: service_completed_successfully
 volumes:
   warehouse-db-data:

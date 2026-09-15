@@ -2,7 +2,7 @@
 
 - 日期：2026-09-14。
 - 工作包：ING-02 第三切片。
-- 状态：V005、RAW 幂等写入/封存函数、控制 API 完成门禁和本地隔离集成已通过；真实 MySQL Worker、独立数据库角色和完整 RAW 保留策略仍待实现。
+- 状态：V005、RAW 幂等写入/封存函数、控制 API 完成门禁和本地隔离集成已通过；真实 MySQL Worker 和完整 RAW 保留策略仍待实现。数据库角色边界见[28号文档](28-database-role-boundaries.md)。
 
 ## 1. 目标与范围
 
@@ -55,7 +55,7 @@ sealed_at
 - `local-worker`：批次开始、RAW 完成/失败等执行接口；可读取检查点。
 - 管理员 Token 与 Worker Token 必须存在、长度至少 24 且互不相同。
 - 当前两类身份已在 HTTP 过滤器中隔离；Worker Token 不能访问来源管理接口，管理员 Token 不能调用批次写接口。
-- 当前开发 Compose 仍由控制 API 使用单一 PostgreSQL 连接用户；生产必须改为独立 Worker 数据库登录角色/权限，并通过运行时凭证注入。不能把 HTTP Token 隔离误称为数据库权限隔离。
+- HTTP Token 隔离与数据库角色隔离是两层门禁。控制 API 现已使用 `bydw_control_api_login`；Worker 数据库登录角色已预留，真实 Worker 进程仍待接入，见[数据库角色边界](28-database-role-boundaries.md)。
 
 ## 5. V005 迁移与恢复
 
@@ -74,6 +74,6 @@ V005 新增 `raw` schema、RAW 记录表、批次清单表、批次复合外键�
 
 ## 7. 后续工作
 
-1. 将 Worker 数据库角色与控制 API 管理连接分离，增加只读 MySQL 连接测试和凭证运行时解析。
+1. 增加只读 MySQL 连接测试和凭证运行时解析；Worker 数据库角色已与控制 API 分离。
 2. 由 Worker 记录批次统计和稳定诊断引用，补充租约、超时、取消及失联批次对账。
 3. 建立 STORY/DEFECT 的来源键映射和 RAW→ODS 领域模型；先验证 `TYPE`、`PID`、`DELETE_FLAG`，不把未知状态直接发布成指标。

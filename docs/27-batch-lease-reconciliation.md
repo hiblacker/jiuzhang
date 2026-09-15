@@ -31,7 +31,7 @@ V007 为 `raw.ingestion_record` 和 `raw.ingestion_batch_manifest` 增加触发�
 - 重放仍受原有主键、载荷校验和与清单幂等约束；
 - 失败批次的已有 RAW 证据保留，新 attempt 使用新的 batch ID 重新写入和封存。
 
-当前 RAW SQL 函数仍由后续独立数据库角色进行授权收口。本切片阻断过期写入，但不把共享控制库账号宣称为最终权限隔离。
+RAW 过期写入阻断已在本切片落地。控制 API 与 Worker 的独立数据库角色见[数据库角色边界](28-database-role-boundaries.md)，不能把 HTTP Token 隔离误称为唯一权限控制。
 
 ## 4. V007 升级与恢复
 
@@ -51,6 +51,6 @@ V007 是不可修改的前向迁移。失败时修复迁移原因后重跑；已
 
 ## 6. 后续工作
 
-1. 为控制 API 与 Worker 建立不同 PostgreSQL 登录角色，只授予 Worker 必需的 RAW 函数和批次操作权限。
+1. 控制 API 与 Worker 的 PostgreSQL 登录角色已分离，见[数据库角色边界](28-database-role-boundaries.md)。
 2. 实现真实 Worker 的周期心跳、管理端定时对账调用、退避和最大 attempt 契约。
 3. 增加批次列表、租约状态、错误分类和告警投影，供 Naive UI 控制台展示。

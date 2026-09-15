@@ -10,7 +10,7 @@
 |---|---|---|
 | Spring Boot | 3.5.16 | Java 21 控制 API；选择 3.5 维护线，不采用里程碑版本 |
 | PostgreSQL JDBC | 42.7.7 | 控制元数据库连接 |
-| 控制 API 镜像 | `bydw/control-api:0.1.0-dev.4` | 当前开发构建版本；每次代码变化递增末尾序号，正式发布时改为对应 SemVer |
+| 控制 API 镜像 | `bydw/control-api:0.1.0-dev.5` | 当前开发构建版本；每次代码变化递增末尾序号，正式发布时改为对应 SemVer |
 | Maven 构建镜像 | `maven:3.9.11-eclipse-temurin-21` | Maven 3.9.11 + Temurin 21，多阶段构建 |
 | Temurin JRE | `eclipse-temurin:21.0.12_8-jre-jammy` | API 运行时，非 root 用户 |
 | PostgreSQL | `postgres:16.15` | 控制元数据库与迁移服务 |
@@ -25,8 +25,8 @@
 
 ## 3. 当前能力与边界
 
-首版迁移包含来源、接入任务/批次、数据集版本/发布/活动指针和审计日志的最小表。后续 V002–V007 已增加任务契约、批次检查点、RAW 完成证据、重试/取消和运行租约；详见[来源登记 API](22-source-registry.md)、[批次状态机](24-ingestion-batch-checkpoint.md)、[RAW 批次门禁](25-raw-batch-evidence.md)、[批次重试取消](26-batch-retry-cancel.md)和[批次租约](27-batch-lease-reconciliation.md)。长时间接入和模型执行不会放进 HTTP 请求处理器。
+首版迁移包含来源、接入任务/批次、数据集版本/发布/活动指针和审计日志的最小表。后续 V002–V008 已增加任务契约、批次检查点、RAW 完成证据、重试/取消、运行租约和数据库角色边界；详见[来源登记 API](22-source-registry.md)、[批次状态机](24-ingestion-batch-checkpoint.md)、[RAW 批次门禁](25-raw-batch-evidence.md)、[批次重试取消](26-batch-retry-cancel.md)、[批次租约](27-batch-lease-reconciliation.md)和[数据库角色边界](28-database-role-boundaries.md)。长时间接入和模型执行不会放进 HTTP 请求处理器。
 
 2026-09-14 本地验证：API 镜像构建成功且构建阶段测试通过；PostgreSQL、一次性迁移服务和 API 按依赖顺序启动；V001 记录校验和并创建 8 张 `control` 表；重复运行迁移后记录仍为 1 条；`/actuator/health` 与 `/api/v1/status` 均返回 `UP`。
 
-尚未实现：多用户/SSO、独立数据库角色、来源连接测试、真实 Worker 与 DevOps 抽取、ODS、质量门禁、数据集发布服务、Naive UI、NAS 部署、备份恢复和容量测试。后续实施顺序、出口证据和阻断项见[后续规划与里程碑](21-next-milestones.md)。
+尚未实现：多用户/SSO、来源连接测试、真实 Worker 与 DevOps 抽取、ODS、质量门禁、数据集发布服务、Naive UI、NAS 部署、备份恢复和容量测试。控制 API 与 Worker 的数据库角色已分离，但 Worker 进程尚未接入。后续实施顺序、出口证据和阻断项见[后续规划与里程碑](21-next-milestones.md)。
