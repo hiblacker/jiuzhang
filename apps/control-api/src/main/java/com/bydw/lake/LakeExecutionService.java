@@ -27,9 +27,10 @@ public class LakeExecutionService {
   private final ObjectMapper json;
   private final LakeRegistrationService registration;
   private final ExternalAssetService assets;
+  private final com.bydw.warehouse.ManagedRuntimeService managedRuntime;
   private static final Set<String> KINDS = Set.of("MYSQL_SNAPSHOT", "FILE_SCAN", "REST_PULL");
-  public LakeExecutionService(JdbcTemplate jdbc, ObjectMapper json, LakeRegistrationService registration, ExternalAssetService assets) {
-    this.jdbc = jdbc; this.json = json; this.registration = registration; this.assets = assets;
+  public LakeExecutionService(JdbcTemplate jdbc, ObjectMapper json, LakeRegistrationService registration, ExternalAssetService assets, com.bydw.warehouse.ManagedRuntimeService managedRuntime) {
+    this.jdbc = jdbc; this.json = json; this.registration = registration; this.assets = assets;this.managedRuntime=managedRuntime;
   }
 
   @Transactional
@@ -184,14 +185,16 @@ public class LakeExecutionService {
         """);
     String allowed = String.join(",", Collections.nCopies(runtimeRefs.size(), "?"));
     var plans = jdbc.queryForList("""
-        SELECT p.id FROM lake.ingestion_plan p JOIN lake.plan_version v ON v.plan_id = p.id AND v.version = p.active_version
+        SELECT p.id,p.source_id,v.contract FROM lake.ingestion_plan p JOIN lake.plan_version v ON v.plan_id = p.id AND v.version = p.active_version
         WHERE p.state = 'ACTIVE' AND v.runtime_ref IN (%s)
         AND EXISTS (SELECT 1 FROM lake.execution_window w JOIN lake.execution_attempt a ON a.window_id = w.id
           WHERE w.plan_id = p.id AND a.state = 'QUEUED' AND a.not_before <= clock_timestamp() AND w.plan_version = p.active_version)
         AND NOT EXISTS (SELECT 1 FROM lake.execution_window w JOIN lake.execution_attempt a ON a.window_id = w.id
           WHERE w.plan_id = p.id AND a.state = 'RUNNING')
-        ORDER BY p.id FOR UPDATE OF p SKIP LOCKED LIMIT 1
+        ORDER BY p.id FOR UPDATE OF p SKIP LOCKED LIMIT 100
         """.formatted(allowed), runtimeRefs.toArray());
+    plans=plans.stream().filter(p->{JsonNode config;try{config=json.readTree(p.get("contract").toString());}catch(Exception e){throw new IllegalStateException("INVALID_PLAN_CONFIG");}
+      return !config.has("channelVersion")||managedRuntime.eligible(((Number)p.get("source_id")).longValue(),config.path("channelVersion").asInt(),worker);}).toList();
     if (plans.isEmpty()) return Map.of("state", "IDLE");
     var attempt = jdbc.queryForMap("""
         SELECT a.id, a.window_id, a.attempt, w.business_date, w.window_start, w.window_end, w.revision, w.mode, w.processing_input,
@@ -210,6 +213,7 @@ public class LakeExecutionService {
     decode(attempt, "contract");
     decode(attempt, "processing_input");
     decode(attempt, "runtime_inventory");
+    managedRuntime.attach(attempt,worker);
     return attempt;
   }
 

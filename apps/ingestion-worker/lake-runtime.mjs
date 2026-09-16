@@ -6,6 +6,7 @@ import { atomicJson, readJson, withLock, digest } from '../../tools/lake-runtime
 import { buildManifestRequest, buildInventoryRequest } from '../../tools/lake-register.mjs';
 import { verifyCurrentSchema } from '../../tools/lake-discover.mjs';
 import { fileAssets, apiAssets } from '../../tools/lake-assets.mjs';
+import { validateManagedRegistry, managedProfile, probeManaged } from './managed-runtime.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const CODE = /^[a-z][a-z0-9_-]{1,99}$/u;
@@ -14,6 +15,11 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const fail = code => { throw new Error(code); };
 
 export function validateRegistry(value) {
+  if (value?.version === 2) {
+    validateManagedRegistry(value);
+    if (Object.keys(value.profiles ?? {}).length) validateRegistry({ ...value, version: 1 });
+    return { ...value, profiles: value.profiles ?? {} };
+  }
   if (value?.version !== 1 || !path.isAbsolute(value.lakeRoot ?? '')
       || !value.profiles || typeof value.profiles !== 'object' || Array.isArray(value.profiles)) fail('INVALID_RUNTIME_REGISTRY');
   const entries = Object.entries(value.profiles);
@@ -63,10 +69,10 @@ async function request(options, route, body) {
   return response.json();
 }
 
-async function child(script, args, signal) {
+async function child(script, args, signal, extraEnv = {}) {
   const processGroup = process.platform !== 'win32';
   const running = spawn(process.execPath, [path.join(ROOT, script), ...args], { cwd: ROOT,
-    stdio: ['ignore', 'pipe', 'pipe'], detached: processGroup, env: process.env });
+    stdio: ['ignore', 'pipe', 'pipe'], detached: processGroup, env: { ...process.env, ...extraEnv } });
   let stdout = '', stderr = '', killTimer;
   running.stdout.on('data', bytes => { stdout = (stdout + bytes.toString()).slice(0, 20000); });
   running.stderr.on('data', bytes => { stderr = (stderr + bytes.toString()).slice(0, 4000); });
@@ -92,7 +98,7 @@ async function child(script, args, signal) {
 }
 
 async function execute(registry, task, signal) {
-  let profile = registry.profiles[task.runtime_ref];
+  let profile = task.configurationJson ? await managedProfile(registry, task) : registry.profiles[task.runtime_ref];
   if (!profile || profile.kind !== task.kind || profile.sourceCode !== task.source_code) fail('RUNTIME_SCOPE_MISMATCH');
   const batch = `exec-${task.id}`;
   const common = ['--lake-root', registry.lakeRoot];
@@ -153,10 +159,10 @@ async function execute(registry, task, signal) {
   } else {
     if (task.processing_input?.batchId) {
       result = await child('tools/api-reprocess.mjs', [...common, '--config', profile.config, '--source-code', profile.sourceCode,
-        '--window', task.business_date, '--batch-id', task.processing_input.batchId], signal);
+        '--window', task.business_date, '--batch-id', task.processing_input.batchId], signal, profile.environment);
     } else {
     try { result = await child('tools/rest-ingest.mjs', [...common, '--config', profile.config,
-      '--window', task.business_date, '--batch-id', batch], signal); }
+      '--window', task.business_date, '--batch-id', batch], signal, profile.environment); }
     catch (error) {
       const failed = await readJson(path.join(registry.lakeRoot, 'api', profile.sourceCode, batch, 'batch.failed.json'), null);
       if (!failed || signal.aborted) throw error;
@@ -189,7 +195,18 @@ export async function runOnce(options, registry) {
   const outbox = path.join(registry.lakeRoot, 'worker-outbox', options.instance);
   await mkdir(outbox, { recursive: true, mode: 0o700 });
   if (!await flush(options, outbox)) return { state: 'OUTBOX_PENDING' };
-  const task = await request(options, 'executions/claim', { runtimeRefs: Object.keys(registry.profiles) });
+  if (registry.version === 2) {
+    const probe = await request(options, 'probes/claim', { environment: registry.environment });
+    if (probe.state !== 'IDLE') {
+      let completion;
+      try { completion = { state: 'COMPLETE', result: await probeManaged(registry, probe) }; }
+      catch (error) { completion = { state: 'FAILED', result: null, errorCode: /^[A-Z0-9_:-]{1,120}$/u.test(error.message) ? error.message : 'MANAGED_PROBE_FAILED' }; }
+      await request(options, `probes/${probe.id}/finish`, { ...completion, leaseToken: probe.leaseToken });
+      return { state: completion.state, probeId: probe.id };
+    }
+  }
+  const runtimeRefs = [...Object.keys(registry.profiles), ...(registry.version === 2 ? [`managed-${registry.environment}`] : [])];
+  const task = await request(options, 'executions/claim', { runtimeRefs });
   if (task.state === 'IDLE') return task;
   const abort = new AbortController();
   let heartbeatBusy = false, cancelled = false;

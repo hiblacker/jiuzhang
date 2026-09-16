@@ -80,7 +80,11 @@ export async function discover(profile, planVersion = 1) {
 
 export async function verifyCurrentSchema(profile, lakeRoot) {
   const approved = JSON.parse(await readFile(profile.inventory, 'utf8'));
-  const current = await discover(profile, approved.plan_version + 1);
+  let current = await discover(profile, approved.plan_version + 1);
+  if (profile.tables?.length) {
+    current = { ...current, tables: current.tables.filter(table => profile.tables.includes(table.table)) };
+    current.required_table_count = current.tables.length;
+  }
   if (approved.source_scope?.database && approved.source_scope.database !== current.source_scope.database) fail('DISCOVERY_SOURCE_SCOPE_CHANGED');
   // Keep the original scope marker used by bootstrap inventories; the private
   // connection and its TLS authorization still bind the actual database.

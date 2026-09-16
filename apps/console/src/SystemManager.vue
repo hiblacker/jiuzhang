@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { h, onMounted, reactive, ref, watch } from 'vue'
+import { defineAsyncComponent, h, onMounted, reactive, ref, watch } from 'vue'
 import { NAlert,NButton,NCard,NDataTable,NDescriptions,NDescriptionsItem,NFormItem,NInput,NModal,NPagination,NSelect,NSpace,NTag, type DataTableColumns } from 'naive-ui'
 import { api,type Page } from './api'
-const props=defineProps<{project:number;canManage:boolean}>()
+const props=defineProps<{project:number;canManage:boolean;canIngest:boolean}>()
+const IngestionManager=defineAsyncComponent(()=>import('./IngestionManager.vue'))
 interface System {id:number;code:string;name:string;domain:string;organization:string;business_owner:string;technical_owner:string;description:string;lifecycle:string;revision:number;instance_count:number}
 interface Instance {id:number;code:string;name:string;environment:string;purpose:string;lifecycle:string}
 const rows=ref<System[]>([]),selected=ref<System|null>(null),instances=ref<Instance[]>([])
@@ -42,6 +43,7 @@ watch(()=>props.project,()=>{selected.value=null;page.value=1;void load()});watc
       <p>{{selected.description}}</p>
     </n-card>
     <n-card title="环境实例" class="gap"><template #header-extra><n-button v-if="canManage" @click="Object.assign(instanceForm,{code:'',name:'',environment:'TEST',purpose:''});instanceModal=true">新增实例</n-button></template><n-data-table :columns="instanceColumns" :data="instances"/><slot name="connections" :system="selected" :instances="instances"/></n-card>
+    <IngestionManager v-if="canIngest" :project="project" :instances="instances" :can-manage="canIngest"/>
   </template>
   <n-modal v-model:show="modal" preset="card" :title="editing?'编辑系统信息':'登记业务系统'" style="width:min(650px,94vw)">
     <n-alert v-if="error" type="error" class="gap">{{error}}</n-alert>

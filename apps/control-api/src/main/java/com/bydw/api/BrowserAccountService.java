@@ -48,7 +48,7 @@ public class BrowserAccountService implements UserDetailsService {
         SELECT a.platform_admin FROM warehouse.browser_account a JOIN warehouse.identity i ON i.id=a.identity_id
         WHERE i.id=? AND i.enabled AND a.credential_epoch=? AND a.password_hash IS NOT NULL
         """, user.getUsername(), user.epoch());
-    return rows.isEmpty() ? null : (boolean) rows.getFirst().get("platform_admin") ? "local-admin" : user.getUsername();
+    return rows.isEmpty() ? null : user.getUsername();
   }
   public void loginSucceeded(String id) {
     jdbc.update("UPDATE warehouse.browser_account SET failed_logins=0, locked_until=NULL WHERE identity_id=?", id);

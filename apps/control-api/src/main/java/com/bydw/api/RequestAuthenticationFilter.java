@@ -41,6 +41,7 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
       "^/api/v1/lake/executions/(?:claim|[0-9]+/(?:heartbeat|finish))/?$");
   private static final Pattern MODEL_EXECUTION_WORKER = Pattern.compile(
       "^/api/v1/warehouse/builds/(?:claim|[0-9]+/(?:heartbeat|finish))/?$");
+  private static final Pattern PROBE_WORKER = Pattern.compile("^/api/v1/lake/probes/(?:claim|[0-9]+/finish)/?$");
   private static final Pattern WORKER_INSTANCE = Pattern.compile(
       "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$");
 
@@ -101,7 +102,7 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
     if (authorization == null && browserAccounts != null) {
       var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
       if (authentication != null && authentication.isAuthenticated()) browserActor = browserAccounts.sessionActor(authentication.getPrincipal());
-      if ("local-admin".equals(browserActor)) admin = true;
+      if (browserActor != null && productAccess != null && productAccess.admin(browserActor)) admin = true;
     }
     String projectIdentity = null;
     if (!admin && !worker && access != Access.WORKER && productAccess != null && request.getRequestURI().startsWith("/api/v1/warehouse/")) {
@@ -136,6 +137,8 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
       }
     } else if (projectIdentity != null) {
       request.setAttribute(PRINCIPAL_ATTRIBUTE, projectIdentity);
+    } else if (browserActor != null) {
+      request.setAttribute(PRINCIPAL_ATTRIBUTE, browserActor);
     } else {
       request.setAttribute(PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL);
     }
@@ -148,6 +151,7 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
     if ("POST".equals(method) && LAKE_MANIFEST_WRITE.matcher(path).matches()) return Access.WORKER;
     if ("POST".equals(method) && LAKE_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
     if ("POST".equals(method) && MODEL_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
+    if ("POST".equals(method) && PROBE_WORKER.matcher(path).matches()) return Access.WORKER;
     if ("GET".equals(method) && (CHECKPOINT_READ.matcher(path).matches()
         || JOB_READ.matcher(path).matches())) return Access.EITHER;
     return Access.ADMIN;

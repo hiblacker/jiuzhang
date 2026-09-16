@@ -356,4 +356,4 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   }
 }
 
-export { buildInitialUrl, buildPageUrl, getNextUrl, parseArgs, recordsFrom, validateConfig, valueAt };
+export { buildInitialUrl, buildPageUrl, getNextUrl, parseArgs, recordsFrom, validateConfig, valueAt, requestJson, tokenFromEnv };

@@ -516,6 +516,16 @@ class LakeDatabaseIntegrationTest {
   }
 
   @Test
+  void dynamicWorkerOnboardsFileAndApiChannelsWithoutChangingProfiles() throws Exception {
+    Path repo=Path.of(System.getenv("LAKE_REVIEW_REPO"));
+    var builder=new ProcessBuilder("node",repo.resolve("tests/managed-ingestion-integration.mjs").toString()).directory(repo.toFile());
+    builder.environment().put("MODEL_TEST_API",base);builder.environment().put("MODEL_TEST_ADMIN",ADMIN);builder.environment().put("CONTROL_API_WORKER_TOKEN",WORKER);
+    Path output=repo.resolve("work/lake-review/managed-ingestion-integration.log");builder.redirectErrorStream(true).redirectOutput(output.toFile());
+    var process=builder.start();boolean finished=process.waitFor(90,TimeUnit.SECONDS);if(!finished)process.destroyForcibly();assertThat(finished).isTrue();
+    assertThat(process.exitValue()).as("Managed integration: %s",Files.readString(output)).isZero();
+  }
+
+  @Test
   void systemDirectoryKeepsSharedMetadataSeparateFromInstancesAndChecksVersions() throws Exception {
     String code="system_"+UUID.randomUUID().toString().replace("-", "");
     long project=json.readTree(post("/api/v1/warehouse/projects",ADMIN,json.createObjectNode().put("code",code).put("name","Systems")).body()).get("id").asLong();

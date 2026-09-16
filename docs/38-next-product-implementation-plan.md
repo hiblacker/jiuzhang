@@ -1,6 +1,6 @@
 # 下一批实施方案：多系统接入管理与自动数据交付
 
-状态：供用户评审的实施方案，尚未开始本批代码开发。日期：2026-09-16。基线：`3a880ef`、[PR #1](https://github.com/hiblacker/jiuzhang/pull/1)（本次查询仍为 OPEN，等待人工评审）。一期事实见 [37 号验收](37-phase-one-acceptance.md)，本批详细验收见 [39 号契约](39-next-product-acceptance-contract.md)。
+状态：用户已授权实施，开发中；实际完成情况见 [40 号进度](40-product-workbench-progress.md)。日期：2026-09-16。原方案基线：`3a880ef`、[PR #1](https://github.com/hiblacker/jiuzhang/pull/1)；本次开发确认其已合并，使用 `11322a0` 为新基线。一期事实见 [37 号验收](37-phase-one-acceptance.md)，本批详细验收见 [39 号契约](39-next-product-acceptance-contract.md)。
 
 ## 1. 建议做什么
 
