@@ -163,7 +163,7 @@ public class LakeExecutionService {
         """.formatted(allowed), runtimeRefs.toArray());
     if (plans.isEmpty()) return Map.of("state", "IDLE");
     var attempt = jdbc.queryForMap("""
-        SELECT a.id, a.window_id, a.attempt, w.business_date, w.window_start, w.window_end, w.revision, w.mode,
+        SELECT a.id, a.window_id, a.attempt, w.business_date, w.window_start, w.window_end, w.revision, w.mode, w.processing_input,
           v.kind, v.runtime_ref, v.contract, v.inventory_version, v.timeout_seconds, s.code AS source_code
         FROM lake.execution_attempt a JOIN lake.execution_window w ON w.id = a.window_id
         JOIN lake.plan_version v ON v.plan_id = w.plan_id AND v.version = w.plan_version
@@ -176,7 +176,33 @@ public class LakeExecutionService {
     jdbc.update("UPDATE lake.execution_window SET state = 'RUNNING' WHERE id = ?", attempt.get("window_id"));
     attempt.put("leaseToken", token.toString()); attempt.put("state", "RUNNING"); attempt.put("leaseSeconds", 60);
     decode(attempt, "contract");
+    decode(attempt, "processing_input");
     return attempt;
+  }
+
+  @Transactional
+  public Map<String, Object> reprocess(long id, String actor) {
+    var rows = jdbc.queryForList("""
+        SELECT p.id, p.active_version, p.state AS plan_state, v.*, w.business_date, a.result, a.error_code, a.state AS parent_state FROM lake.execution_attempt a
+        JOIN lake.execution_window w ON w.id = a.window_id JOIN lake.ingestion_plan p ON p.id = w.plan_id
+        JOIN lake.plan_version v ON v.plan_id = p.id AND v.version = p.active_version
+        WHERE a.id = ? AND a.state IN ('COMPLETE','FAILED','INCOMPLETE') AND v.kind IN ('FILE_SCAN','REST_PULL')
+        FOR UPDATE OF p
+        """, id);
+    if (rows.isEmpty()) bad("SEALED_INPUT_REPROCESS_UNAVAILABLE");
+    var p = rows.getFirst(); decode(p, "result");
+    if (!"ACTIVE".equals(p.get("plan_state"))) conflict("PLAN_PAUSED");
+    if ("INCOMPLETE".equals(p.get("parent_state")) && !"DELIVERY_PARSE_INCOMPLETE".equals(p.get("error_code"))) conflict("DELIVERY_REVIEW_REQUIRED");
+    String batch = p.get("result") instanceof JsonNode result ? result.path("batchId").asText() : "";
+    if (!batch.matches("[A-Za-z0-9][A-Za-z0-9._:-]{0,119}")) bad("SEALED_INPUT_REPROCESS_UNAVAILABLE");
+    LocalDate day = ((Date) p.get("business_date")).toLocalDate();
+    var pending = jdbc.queryForList("SELECT id, revision FROM lake.execution_window WHERE plan_id = ? AND plan_version = ? AND state IN ('QUEUED','RUNNING') AND processing_input->>'parentExecutionId' = ? ORDER BY id LIMIT 1", p.get("id"), p.get("active_version"), String.valueOf(id));
+    if (!pending.isEmpty()) return Map.of("windowId", pending.getFirst().get("id"), "revision", pending.getFirst().get("revision"));
+    int revision = jdbc.queryForObject("SELECT coalesce(max(revision),0)+1 FROM lake.execution_window WHERE plan_id = ? AND plan_version = ? AND business_date = ?", Integer.class, p.get("id"), p.get("active_version"), Date.valueOf(day));
+    long window = enqueue(p, day, revision, "MANUAL", "SEALED_INPUT_REPROCESS", false);
+    jdbc.update("UPDATE lake.execution_window SET processing_input = ?::jsonb WHERE id = ?", json.valueToTree(Map.of("batchId", batch, "parentExecutionId", id)).toString(), window);
+    audit(actor, "SEALED_INPUT_REPROCESS", "lake/window/" + window, Map.of("parentExecutionId", id));
+    return Map.of("windowId", window, "revision", revision);
   }
 
   @Transactional

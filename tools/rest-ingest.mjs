@@ -106,6 +106,7 @@ function validateConfig(config) {
   const retry = config.retry ?? {};
   if (!Number.isInteger(retry.max_attempts ?? 3) || (retry.max_attempts ?? 3) < 1 || (retry.max_attempts ?? 3) > 8) fail('API_RETRY_INVALID');
   if (!Number.isInteger(retry.max_delay_ms ?? 60000) || (retry.max_delay_ms ?? 60000) < 0 || (retry.max_delay_ms ?? 60000) > 60000) fail('API_RETRY_DELAY_INVALID');
+  if (!Number.isFinite(config.requests_per_second ?? 5) || (config.requests_per_second ?? 5) < 0.1 || (config.requests_per_second ?? 5) > 100) fail('API_RATE_LIMIT_INVALID');
   return { ...config, baseUrl, allowedHosts: allowedHosts.map((host) => host.toLowerCase()), pagination: { mode: 'none', ...pagination, max_pages: maxPages, page_size: pageSize }, timeout_seconds: timeout, max_response_bytes: maxResponseBytes, retry: { max_attempts: retry.max_attempts ?? 3, max_delay_ms: retry.max_delay_ms ?? 60000 } };
 }
 
@@ -154,7 +155,8 @@ function getNextUrl(payload, currentUrl, config) {
 function retryDelay(response, attempt, config) {
   const header = response.headers.get('retry-after');
   const retryAfter = header === null ? NaN : Number(header);
-  const configured = Number.isFinite(retryAfter) && retryAfter >= 0 ? retryAfter * 1000 : 250 * (2 ** (attempt - 1));
+  const dateDelay = header === null ? NaN : Date.parse(header) - Date.now();
+  const configured = Number.isFinite(retryAfter) && retryAfter >= 0 ? retryAfter * 1000 : Number.isFinite(dateDelay) ? Math.max(0, dateDelay) : 250 * (2 ** (attempt - 1));
   return Math.min(config.retry.max_delay_ms, configured);
 }
 
@@ -180,6 +182,8 @@ async function readBody(response, maxBytes) {
 
 async function requestJson(url, config, token) {
   for (let attempt = 1; attempt <= config.retry.max_attempts; attempt += 1) {
+    await sleep(Math.max(0, (config.lastRequestAt ?? 0) + 1000 / (config.requests_per_second ?? 5) - Date.now()));
+    config.lastRequestAt = Date.now();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), config.timeout_seconds * 1000);
     const headers = { accept: 'application/json' };
@@ -282,6 +286,7 @@ async function runUnlocked(options) {
       const raw = await sha256File(rawPath);
       const pageEntry = { page: index, request: { url: requestUrl.origin + requestUrl.pathname, queryKeys: [...requestUrl.searchParams.keys()] }, status: response.status, state: 'RAW_COMMITTED', raw: { path: path.relative(options.lakeRoot, rawPath), ...raw } };
       manifest.pages.push(pageEntry);
+      await atomicJson(path.join(batchRoot, 'batch.json.part'), manifest);
       let payload; try { payload = parseExactJson(response.body.toString('utf8')); } catch { fail('API_RESPONSE_NOT_JSON'); }
       if (config.success && valueAt(payload, config.success.path) !== config.success.equals) fail('API_BUSINESS_ERROR');
       const records = recordsFrom(payload, config);

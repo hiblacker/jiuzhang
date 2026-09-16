@@ -349,6 +349,14 @@ class LakeDatabaseIntegrationTest {
         var receipt = json.readTree(Files.readString(receipts.findFirst().orElseThrow()));
         assertThat(receipt.get("acknowledged").asBoolean()).isTrue();
       }
+      Files.delete(inbox.resolve("data.csv")); Files.delete(inbox.resolve("data.csv.done")); Files.delete(inbox);
+      long originalExecution = ((Number) attempts.getFirst().get("id")).longValue();
+      var reprocess = post("/api/v1/lake/executions/" + originalExecution + "/reprocess", ADMIN, json.createObjectNode()); assertStatus(reprocess, 200);
+      assertThat(post("/api/v1/lake/executions/" + originalExecution + "/reprocess", ADMIN, json.createObjectNode()).body()).isEqualTo(reprocess.body());
+      var resumed = builder.start(); boolean resumedFinished = resumed.waitFor(30, TimeUnit.SECONDS);
+      if (!resumedFinished) resumed.destroyForcibly(); assertThat(resumedFinished).isTrue();
+      assertThat(resumed.exitValue()).as("Worker output: %s", Files.readString(output)).isZero();
+      assertThat(app.getBean(LakeExecutionService.class).attempts(planId).getFirst().get("state")).isEqualTo("COMPLETE");
     } finally {
       app.getBean(LakeExecutionService.class).setState(planId, "PAUSED", "local-review");
       // Only this test-created synthetic directory is removed.
@@ -375,6 +383,18 @@ class LakeDatabaseIntegrationTest {
     var process = builder.start(); boolean finished = process.waitFor(180, TimeUnit.SECONDS);
     if (!finished) process.destroyForcibly(); assertThat(finished).isTrue();
     assertThat(process.exitValue()).as("See private model-integration.log for execution evidence").isZero();
+  }
+
+  @Test
+  void apiWorkerRepairsParsingWithoutContactingTheSourceAgain() throws Exception {
+    Path repo = Path.of(System.getenv("LAKE_REVIEW_REPO"));
+    var builder = new ProcessBuilder("node", repo.resolve("tests/api-worker-integration.mjs").toString()).directory(repo.toFile());
+    builder.environment().put("MODEL_TEST_API", base); builder.environment().put("MODEL_TEST_ADMIN", ADMIN);
+    builder.environment().put("CONTROL_API_WORKER_TOKEN", WORKER);
+    Path output = repo.resolve("work/lake-review/api-worker-integration.log"); builder.redirectErrorStream(true).redirectOutput(output.toFile());
+    var process = builder.start(); boolean finished = process.waitFor(60, TimeUnit.SECONDS);
+    if (!finished) process.destroyForcibly(); assertThat(finished).isTrue();
+    assertThat(process.exitValue()).as("See private api-worker-integration.log").isZero();
   }
 
   private static HttpResponse<String> get(String path, String token) throws Exception {

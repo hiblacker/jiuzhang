@@ -112,6 +112,13 @@ async function execute(registry, task, signal) {
       sourceCode: profile.sourceCode, planVersion: task.inventory_version });
     manifest.runKey = `execution:${task.id}`; manifest.attempt = task.attempt; manifest.revision = task.revision;
   } else if (task.kind === 'FILE_SCAN') {
+    if (task.processing_input?.batchId) {
+      const settings = profile.deliveryContract ? (await readJson(profile.deliveryContract)).parser ?? {} : {};
+      const args = [...common, '--batch-id', task.processing_input.batchId, '--source-code', profile.sourceCode,
+        '--delivery-date', task.business_date, '--parser-settings', JSON.stringify(settings)];
+      if (profile.parserPython) args.push('--parser-python', profile.parserPython);
+      result = await child('tools/file-reprocess.mjs', args, signal);
+    } else {
     const inbox = profile.datePartitioned ? path.join(profile.inboxRoot, task.business_date) : profile.inboxRoot;
     const args = [...common, '--inbox', inbox, '--delivery-date', task.business_date, '--source-code', profile.sourceCode];
     if (profile.assumeReady === true) args.push('--assume-ready');
@@ -120,14 +127,20 @@ async function execute(registry, task, signal) {
     if (profile.maxFileBytes) args.push('--max-file-bytes', String(profile.maxFileBytes));
     if (profile.deliveryContract) args.push('--contract', profile.deliveryContract);
     result = await child(profile.deliveryContract ? 'tools/file-delivery.mjs' : 'tools/file-ingest.mjs', args, signal);
+    }
     result.assets = result.batchId ? await fileAssets(registry.lakeRoot, result.batchId, result.contractSha256) : [];
   } else {
+    if (task.processing_input?.batchId) {
+      result = await child('tools/api-reprocess.mjs', [...common, '--config', profile.config, '--source-code', profile.sourceCode,
+        '--window', task.business_date, '--batch-id', task.processing_input.batchId], signal);
+    } else {
     try { result = await child('tools/rest-ingest.mjs', [...common, '--config', profile.config,
       '--window', task.business_date, '--batch-id', batch], signal); }
     catch (error) {
       const failed = await readJson(path.join(registry.lakeRoot, 'api', profile.sourceCode, batch, 'batch.failed.json'), null);
       if (!failed || signal.aborted) throw error;
       result = { batchId: batch, state: 'FAILED', errorCode: failed.errorCode };
+    }
     }
     result.assets = await apiAssets(registry.lakeRoot, profile.sourceCode, result.batchId);
   }

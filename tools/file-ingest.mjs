@@ -97,13 +97,14 @@ async function scanUnlocked(options) {
   const batchRoot = path.join(options.lakeRoot, 'file-batches', batchId);
   const entries = [];
   for (const file of files.sort()) {
-    const relativePath = path.relative(options.inbox, file);
+    const inputRelativePath = path.relative(options.inbox, file);
+    const relativePath = options.logicalPaths?.[inputRelativePath] ?? inputRelativePath;
     const format = formatFor(file);
     const fileStat = await lstat(file);
     if (!fileStat.isFile()) continue;
-    const actualFile = await resolveInside(options.inbox, relativePath);
+    const actualFile = await resolveInside(options.inbox, inputRelativePath);
     const identity = fileStat.size > options.maxFileBytes ? { bytes: fileStat.size, sha256: null } : await hashFile(actualFile);
-    if (options.expectedHashes?.[relativePath] && identity.sha256 !== options.expectedHashes[relativePath]) fail('DELIVERY_HASH_MISMATCH');
+    if (options.expectedHashes?.[inputRelativePath] && identity.sha256 !== options.expectedHashes[inputRelativePath]) fail('DELIVERY_HASH_MISMATCH');
     const key = `${options.sourceCode}|${deliveryDate}|${options.logicalIds?.[relativePath] ?? relativePath}|${identity.sha256}|${options.parserVersion ?? 'parser-v2'}`;
     if (ledger.deliveries[key]?.state === 'PARSED') {
       const previous = await readJson(await resolveInside(options.lakeRoot, `file-batches/${ledger.deliveries[key].batchId}/batch.json`));
@@ -166,7 +167,8 @@ export async function scanDirectory(options = parseArgs([])) {
   options = { ...defaults, ...options };
   if (options.deliveryDate) validateDay(options.deliveryDate);
   const relativeLake = path.relative(options.inbox, options.lakeRoot);
-  if (!relativeLake || (!relativeLake.startsWith('..') && !path.isAbsolute(relativeLake))) fail('LAKE_ROOT_INSIDE_INBOX');
+  if (!relativeLake || (!relativeLake.startsWith('..') && !path.isAbsolute(relativeLake)
+      && !(options.sealedInput === true && Array.isArray(options.onlyRelativePaths) && options.expectedHashes))) fail('LAKE_ROOT_INSIDE_INBOX');
   return options.dryRun ? scanUnlocked(options) : withLock(path.join(options.lakeRoot, 'file-ingest.lock'), () => scanUnlocked(options));
 }
 

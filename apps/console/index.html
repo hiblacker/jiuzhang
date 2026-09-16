@@ -183,6 +183,7 @@
         const actions = document.createElement('td');
         if (['FAILED', 'INCOMPLETE', 'CANCELLED'].includes(execution.state)) actionButton(actions, '重试', () => api(`lake/executions/${execution.id}/retry`, {}));
         if (['QUEUED', 'RUNNING'].includes(execution.state)) actionButton(actions, '取消', () => api(`lake/executions/${execution.id}/cancel`, {}));
+        if (['COMPLETE', 'FAILED'].includes(execution.state) && execution.result?.assets?.some(asset => ['FILE','API'].includes(asset.kind))) actionButton(actions, '重解析原件', () => api(`lake/executions/${execution.id}/reprocess`, {}));
         actionButton(actions, '详情', async () => execution); tr.appendChild(actions); $('executions').appendChild(tr);
       }
     }

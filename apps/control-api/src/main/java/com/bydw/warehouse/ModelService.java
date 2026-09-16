@@ -102,7 +102,9 @@ public class ModelService {
           SELECT a.evidence, a.schema_json AS schema, a.object_key AS name, s.code AS source,
             a.business_date::timestamp AT TIME ZONE 'Asia/Shanghai' AS watermark, a.row_count AS rows
           FROM warehouse.external_asset a JOIN control.source_connection s ON s.id = a.source_id
-          JOIN warehouse.project_source ps ON ps.source_id = s.id WHERE a.id = ? AND ps.project_id = ? AND a.state = 'PARSED'
+          JOIN warehouse.project_source ps ON ps.source_id = s.id
+          JOIN lake.execution_attempt execution ON execution.id = a.execution_id
+          WHERE a.id = ? AND ps.project_id = ? AND a.state = 'PARSED' AND execution.state = 'COMPLETE'
           """, id, project);
       if (rows.isEmpty()) bad("BUILD_INPUT_NOT_AVAILABLE");
       var row = rows.getFirst();

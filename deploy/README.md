@@ -4,7 +4,7 @@
 
 ## 名称与兼容性
 
-产品名称为九章 · Jiuzhang，完整名称为九章数据平台 / JiuzhangData Platform。当前本地构建镜像为 `jiuzhang/control-api:0.1.0-dev.11` 和 `jiuzhang/ingestion-worker:0.1.0-dev.2`；这些名称不表示镜像已经构建或推送到远程仓库。
+产品名称为九章 · Jiuzhang，完整名称为九章数据平台 / JiuzhangData Platform。当前本地构建镜像为 `jiuzhang/control-api:0.1.0-dev.12` 和 `jiuzhang/ingestion-worker:0.1.0-dev.2`；这些名称不表示镜像已经构建或推送到远程仓库。
 
 Compose 示例继续使用 `-p bydw`，服务键和数据卷键保持原值，保证现有部署在更新镜像时继续定位原有资源。已有环境须沿用实际创建时的项目名（如 `bydw` 或 `bydw-foundation`）；仅修改项目名会创建另一组容器和数据卷，不会迁移原数据。重命名仓库目录后仍应显式指定同一项目名。
 
@@ -69,6 +69,8 @@ dev.9 API 需要 V012，新增的计划/日历/执行 API 见 [实施进度](../
 dev.10 API 需要 V013，增加项目角色、身份令牌哈希、来源归属和外部资产版本。先迁移，再同时更新控制 API 与 Node 入湖 Worker；新的文件/API 完成请求带原件证据，完成和资产在同一事务登记。旧 Node Worker 不具备该完成契约。恢复保留 warehouse 元数据及原件，使用前向迁移；不靠删除表回退。
 
 dev.11 API 需要 V014/V015。模型角色为 `bydw_model_worker_login`，独立密码由部署方注入；仅模型构建有临时写权限，冻结后转交不可登录的数据所有者。模型 Worker 的本机启动说明见 [SQL 执行器](../apps/model-worker/README.md)。当前 Compose 尚未打包该 Python Worker，不把原 Java 合成 Worker 镜像当作模型执行器。V014、V015 已在本机执行，后续修改使用新迁移。
+
+dev.12 API 与新版 Node Worker 共同支持 V016 原件重解析窗口。升级两者后，已失败解析的文件/API 可由控制台创建重处理；旧原件与解析结果保留。数据库迁移仍须显式执行；原生产部署与数据清理不在本次授权内。
 
 V011 不修改旧迁移，也不回写原始文件。旧 inventory 没有完整契约 JSON，同版本重新登记会冲突；应重新发现结构、建立新 planVersion 和对应新快照，保留旧记录。旧终态 run 缺少 manifest_json 时，不把新请求当作可验证的相同重放；保留旧批次并新建运行。旧版本 API 依赖直接表写入，不能在 V011 后直接回退旧 API；应用修复采用新镜像/前向迁移。
 

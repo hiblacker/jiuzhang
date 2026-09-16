@@ -71,6 +71,13 @@ try {
     const asset = page.locator('#assets tr').filter({ hasText: 'orders.csv' }); await asset.waitFor();
     await asset.getByRole('button', { name: '结构与来源' }).click();
     await page.locator('#detail').filter({ hasText: 'OBSERVED_SAMPLE' }).waitFor();
+    await rm(inbox, { recursive: true, force: true });
+    await page.locator('#executions tr').filter({ hasText: source }).filter({ hasText: 'COMPLETE' }).first().getByRole('button', { name: '重解析原件' }).click();
+    await page.locator('#executions tr').filter({ hasText: source }).first().getByText('QUEUED', { exact: true }).waitFor();
+    await promisify(execFile)(process.execPath, ['apps/ingestion-worker/lake-runtime.mjs', '--registry', registry, '--control-api', api, '--instance', source, '--once'],
+      { env: { ...process.env, CONTROL_API_WORKER_TOKEN: process.env.LAKE_UI_WORKER_TOKEN }, timeout: 30000 });
+    await page.locator('#refresh').click();
+    await page.locator('#executions tr').filter({ hasText: source }).first().getByText('COMPLETE', { exact: true }).waitFor();
   }
   await page.locator('#identity-code').fill(source); await page.locator('#identity-form button').click();
   await page.locator('#detail').filter({ hasText: '"token"' }).waitFor();
@@ -106,7 +113,7 @@ try {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Mobile viewport overflow');
   await page.screenshot({ path: 'work/lake-review/ui/mobile.png', fullPage: true });
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ state: 'PASS', operations: ['load', 'source', 'plan', 'pause', 'resume', 'trigger', 'cancel', 'retry', 'project', 'source-binding', 'identity', 'membership', 'project-scope', ...(process.env.LAKE_UI_WORKER_TOKEN ? ['file-worker', 'asset-schema'] : []), ...(process.env.LAKE_UI_MODEL_PROJECT ? ['model-versions', 'release-history', 'dataset-query', 'csv-export'] : [])], pageErrors: errors.length }));
+  console.log(JSON.stringify({ state: 'PASS', operations: ['load', 'source', 'plan', 'pause', 'resume', 'trigger', 'cancel', 'retry', 'project', 'source-binding', 'identity', 'membership', 'project-scope', ...(process.env.LAKE_UI_WORKER_TOKEN ? ['file-worker', 'asset-schema', 'file-reprocess'] : []), ...(process.env.LAKE_UI_MODEL_PROJECT ? ['model-versions', 'release-history', 'dataset-query', 'csv-export'] : [])], pageErrors: errors.length }));
 } finally {
   if (planId) await fetch(`${api}/api/v1/lake/plans/${planId}/state`, { method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ state: 'PAUSED' }) });
