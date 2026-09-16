@@ -253,6 +253,60 @@ class LakeDatabaseIntegrationTest {
   }
 
   @Test
+  void schemaApprovalCreatesAnImmutableInventoryAndWorkerContract() throws Exception {
+    String source = "schema_" + UUID.randomUUID().toString().replace("-", "");
+    var definition = json.createObjectNode().put("code", source).put("sourceType", "MYSQL").put("credentialRef", "env://SYNTHETIC_SOURCE");
+    definition.putObject("config"); assertStatus(post("/api/v1/sources", ADMIN, definition), 201);
+    var initial = (ObjectNode) json.readTree("""
+        {"planVersion":1,"observedAt":"2026-09-16T00:00:00Z","sourceScope":{"database":"synthetic"},
+         "objects":[{"objectName":"example","objectType":"TABLE","schema":{"engine":"InnoDB","columns":[]},
+           "primaryKey":["id"],"required":true,"strategy":"FULL_SNAPSHOT","state":"READY"}]}
+        """);
+    initial.put("sourceCode", source).put("schemaSha256", "a".repeat(64));
+    assertStatus(post("/api/v1/lake/inventories", ADMIN, initial), 201);
+    var day = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+    var plan = json.createObjectNode().put("sourceCode", source).put("expectedVersion", 0).put("inventoryVersion", 1)
+        .put("kind", "MYSQL_SNAPSHOT").put("runtimeRef", source).put("timezone", "Asia/Shanghai").put("triggerTime", "00:00:00")
+        .put("startDate", day.toString()).put("historicalRead", false).put("maxAttempts", 3).put("timeoutSeconds", 300);
+    plan.putObject("contract");
+    long planId = json.readTree(post("/api/v1/lake/plans", ADMIN, plan).body()).get("id").asLong();
+    var service = app.getBean(LakeExecutionService.class);
+    var capabilities = json.createObjectNode(); capabilities.putArray("runtimeRefs").add(source);
+    try {
+      service.reconcile(java.time.Instant.now());
+      var task = json.readTree(post("/api/v1/lake/executions/claim", WORKER, capabilities).body());
+      long id = task.get("id").asLong();
+      var runtime = (ObjectNode) json.readTree("""
+          {"plan_version":2,"source_scope":{"database":"synthetic"},"tables":[
+           {"table":"example","engine":"InnoDB","columns":[{"column":"id","type":"int"}],"primary_key":["id"]}]}
+          """);
+      var inventory = initial.deepCopy(); inventory.put("planVersion", 2).put("schemaSha256", "b".repeat(64));
+      ((ObjectNode) inventory.at("/objects/0/schema")).set("columns", runtime.at("/tables/0/columns"));
+      var completion = json.createObjectNode().put("leaseToken", task.get("leaseToken").asText())
+          .put("state", "FAILED").put("errorCode", "SCHEMA_CHANGE_REVIEW_REQUIRED");
+      var proposal = completion.putObject("result").putObject("schemaChange");
+      proposal.set("proposedInventory", runtime); proposal.set("inventoryRequest", inventory);
+      proposal.putObject("changes").putArray("changed").add("example");
+      assertStatus(post("/api/v1/lake/executions/" + id + "/finish", WORKER, completion), 200);
+      var approval = json.createObjectNode().put("reason", "synthetic schema approval");
+      assertStatus(post("/api/v1/lake/executions/" + id + "/approve-schema", WORKER, approval), 401);
+      var first = post("/api/v1/lake/executions/" + id + "/approve-schema", ADMIN, approval); assertStatus(first, 200);
+      assertThat(json.readTree(first.body()).path("version").asInt()).isEqualTo(2);
+      assertThat(post("/api/v1/lake/executions/" + id + "/approve-schema", ADMIN, approval).body()).isEqualTo(first.body());
+      service.reconcile(java.time.Instant.now());
+      var next = json.readTree(post("/api/v1/lake/executions/claim", WORKER, capabilities).body());
+      assertThat(next.get("runtime_inventory")).isEqualTo(runtime);
+      assertThat(next.path("inventory_version").asLong()).isEqualTo(2);
+      service.cancel(next.get("id").asLong(), "local-review");
+      var cancelled = json.createObjectNode().put("leaseToken", next.get("leaseToken").asText()).put("state", "CANCELLED");
+      assertStatus(post("/api/v1/lake/executions/" + next.get("id").asLong() + "/finish", WORKER, cancelled), 200);
+      try (var connection = owner()) {
+        assertThat(scalar(connection, "SELECT count(*) FROM lake.inventory i JOIN control.source_connection s ON s.id=i.source_id WHERE s.code=?", source)).isEqualTo(2);
+      }
+    } finally { service.setState(planId, "PAUSED", "local-review"); }
+  }
+
+  @Test
   void waitingDeliveriesResumeWithoutConsumingFailureBudgetAndSupersededPlansAreClosed() throws Exception {
     String source = "waiting_" + UUID.randomUUID().toString().replace("-", "");
     var definition = json.createObjectNode().put("code", source).put("sourceType", "FILE").put("credentialRef", "env://SYNTHETIC_FOLDER");

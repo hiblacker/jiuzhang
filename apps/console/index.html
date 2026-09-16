@@ -184,6 +184,13 @@
         if (['FAILED', 'INCOMPLETE', 'CANCELLED'].includes(execution.state)) actionButton(actions, '重试', () => api(`lake/executions/${execution.id}/retry`, {}));
         if (['QUEUED', 'RUNNING'].includes(execution.state)) actionButton(actions, '取消', () => api(`lake/executions/${execution.id}/cancel`, {}));
         if (['COMPLETE', 'FAILED'].includes(execution.state) && execution.result?.assets?.some(asset => ['FILE','API'].includes(asset.kind))) actionButton(actions, '重解析原件', () => api(`lake/executions/${execution.id}/reprocess`, {}));
+        if (execution.error_code === 'SCHEMA_CHANGE_REVIEW_REQUIRED' && execution.result?.schemaChange) actionButton(actions, '确认结构变更', async () => {
+          $('detail').textContent = JSON.stringify(execution.result.schemaChange, null, 2);
+          const changes = execution.result.schemaChange.changes;
+          const reason = prompt(`结构差异：${JSON.stringify(changes)}\n确认后生成新清单和计划版本，旧记录保留。请填写确认理由：`);
+          if (!reason?.trim()) throw new Error('结构变更尚未确认');
+          return api(`lake/executions/${execution.id}/approve-schema`, { reason });
+        });
         actionButton(actions, '详情', async () => execution); tr.appendChild(actions); $('executions').appendChild(tr);
       }
     }

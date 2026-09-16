@@ -34,6 +34,8 @@ public class LakeExecutionController {
   @PostMapping("/executions/{id}/cancel") public Map<String, Object> cancel(@PathVariable long id, HttpServletRequest request) { service.cancel(id, actor(request)); return Map.of("id", id, "cancelRequested", true); }
   @PostMapping("/executions/{id}/retry") public Map<String, Object> retry(@PathVariable long id, HttpServletRequest request) { return service.retry(id, actor(request)); }
   @PostMapping("/executions/{id}/reprocess") public Map<String, Object> reprocess(@PathVariable long id, HttpServletRequest request) { return service.reprocess(id, actor(request)); }
+  @PostMapping("/executions/{id}/approve-schema") public Map<String, Object> approveSchema(@PathVariable long id, @RequestBody SchemaReview body, HttpServletRequest request) { return service.approveSchema(id, body.reason(), actor(request)); }
+  public record SchemaReview(String reason) {}
   private String actor(HttpServletRequest request) { return (String) request.getAttribute(RequestAuthenticationFilter.PRINCIPAL_ATTRIBUTE); }
   public record State(String state) {}
   public record Capabilities(List<String> runtimeRefs) {}

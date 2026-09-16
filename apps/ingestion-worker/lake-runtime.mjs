@@ -2,8 +2,8 @@ import { spawn } from 'node:child_process';
 import { mkdir, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { atomicJson, readJson, withLock } from '../../tools/lake-runtime.mjs';
-import { buildManifestRequest } from '../../tools/lake-register.mjs';
+import { atomicJson, readJson, withLock, digest } from '../../tools/lake-runtime.mjs';
+import { buildManifestRequest, buildInventoryRequest } from '../../tools/lake-register.mjs';
 import { verifyCurrentSchema } from '../../tools/lake-discover.mjs';
 import { fileAssets, apiAssets } from '../../tools/lake-assets.mjs';
 
@@ -92,12 +92,20 @@ async function child(script, args, signal) {
 }
 
 async function execute(registry, task, signal) {
-  const profile = registry.profiles[task.runtime_ref];
+  let profile = registry.profiles[task.runtime_ref];
   if (!profile || profile.kind !== task.kind || profile.sourceCode !== task.source_code) fail('RUNTIME_SCOPE_MISMATCH');
   const batch = `exec-${task.id}`;
   const common = ['--lake-root', registry.lakeRoot];
   let result, manifest;
   if (task.kind === 'MYSQL_SNAPSHOT') {
+    if (task.runtime_inventory) {
+      const inventory = path.join(registry.lakeRoot, 'inventories', profile.sourceCode, `${task.inventory_version}.json`);
+      await mkdir(path.dirname(inventory), { recursive: true, mode: 0o700 });
+      const prior = await readJson(inventory, null);
+      if (prior && digest(JSON.stringify(prior)) !== digest(JSON.stringify(task.runtime_inventory))) fail('APPROVED_INVENTORY_IMMUTABLE');
+      if (!prior) await atomicJson(inventory, task.runtime_inventory);
+      profile = { ...profile, inventory };
+    }
     await verifyCurrentSchema(profile, registry.lakeRoot);
     if (signal.aborted) fail('WORKER_EXECUTION_ABORTED');
     const args = [...common, '--daily', '--window', task.business_date, '--source-code', profile.sourceCode,
@@ -186,7 +194,9 @@ export async function runOnce(options, registry) {
   let completion;
   try { completion = await execute(registry, task, abort.signal); }
   catch (error) { completion = { state: cancelled ? 'CANCELLED' : 'FAILED',
-    errorCode: /^[A-Z0-9_:-]{1,120}$/u.test(error.message) ? error.message : 'WORKER_EXECUTION_FAILED', result: null, manifest: null }; }
+    errorCode: /^[A-Z0-9_:-]{1,120}$/u.test(error.message) ? error.message : 'WORKER_EXECUTION_FAILED',
+    result: error.schemaChange ? { schemaChange: { ...error.schemaChange,
+      inventoryRequest: buildInventoryRequest(error.schemaChange.proposedInventory, task.source_code) } } : null, manifest: null }; }
   finally { clearInterval(heartbeat); clearTimeout(timeout); process.removeListener('SIGTERM', terminate); process.removeListener('SIGINT', terminate); }
   completion.leaseToken = task.leaseToken;
   await atomicJson(path.join(outbox, `${task.id}.json`), { executionId: task.id, completion, acknowledged: false });

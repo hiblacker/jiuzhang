@@ -4,7 +4,7 @@
 
 ## 名称与兼容性
 
-产品名称为九章 · Jiuzhang，完整名称为九章数据平台 / JiuzhangData Platform。当前本地构建镜像为 `jiuzhang/control-api:0.1.0-dev.13` 和 `jiuzhang/ingestion-worker:0.1.0-dev.2`；这些名称不表示镜像已经构建或推送到远程仓库。
+产品名称为九章 · Jiuzhang，完整名称为九章数据平台 / JiuzhangData Platform。当前本地构建镜像为 `jiuzhang/control-api:0.1.0-dev.14` 和 `jiuzhang/ingestion-worker:0.1.0-dev.2`；这些名称不表示镜像已经构建或推送到远程仓库。
 
 Compose 示例继续使用 `-p bydw`，服务键和数据卷键保持原值，保证现有部署在更新镜像时继续定位原有资源。已有环境须沿用实际创建时的项目名（如 `bydw` 或 `bydw-foundation`）；仅修改项目名会创建另一组容器和数据卷，不会迁移原数据。重命名仓库目录后仍应显式指定同一项目名。
 

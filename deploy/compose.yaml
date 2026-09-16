@@ -42,7 +42,7 @@ services:
       migrate:
         condition: service_completed_successfully
   control-api:
-    image: jiuzhang/control-api:0.1.0-dev.13
+    image: jiuzhang/control-api:0.1.0-dev.14
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api

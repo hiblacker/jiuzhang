@@ -81,12 +81,19 @@ export async function discover(profile, planVersion = 1) {
 export async function verifyCurrentSchema(profile, lakeRoot) {
   const approved = JSON.parse(await readFile(profile.inventory, 'utf8'));
   const current = await discover(profile, approved.plan_version + 1);
+  if (approved.source_scope?.database && approved.source_scope.database !== current.source_scope.database) fail('DISCOVERY_SOURCE_SCOPE_CHANGED');
+  // Keep the original scope marker used by bootstrap inventories; the private
+  // connection and its TLS authorization still bind the actual database.
+  current.source_scope = approved.source_scope ?? current.source_scope;
   const changes = compareSchemas(approved, current);
   if (Object.values(changes).some(items => items.length)) {
     const directory = path.join(lakeRoot, 'discoveries', profile.sourceCode); await mkdir(directory, { recursive: true, mode: 0o700 });
     const id = digest(JSON.stringify(schemaShape(current)));
-    await atomicJson(path.join(directory, `${id}.json`), { state: 'REVIEW_REQUIRED', proposedInventory: current, changes });
-    fail('SCHEMA_CHANGE_REVIEW_REQUIRED');
+    const proposal = { state: 'REVIEW_REQUIRED', proposedInventory: current, changes };
+    await atomicJson(path.join(directory, `${id}.json`), proposal);
+    const error = new Error('SCHEMA_CHANGE_REVIEW_REQUIRED');
+    error.schemaChange = proposal;
+    throw error;
   }
   return { tableCount: current.tables.length, unsupportedObjectCount: current.unsupported_objects.length, schemaSha256: digest(JSON.stringify(schemaShape(current))) };
 }

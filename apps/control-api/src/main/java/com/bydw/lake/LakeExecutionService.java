@@ -195,10 +195,11 @@ public class LakeExecutionService {
     if (plans.isEmpty()) return Map.of("state", "IDLE");
     var attempt = jdbc.queryForMap("""
         SELECT a.id, a.window_id, a.attempt, w.business_date, w.window_start, w.window_end, w.revision, w.mode, w.processing_input,
-          v.kind, v.runtime_ref, v.contract, v.inventory_version, v.timeout_seconds, s.code AS source_code
+          v.kind, v.runtime_ref, v.contract, v.inventory_version, v.timeout_seconds, s.code AS source_code, i.runtime_json AS runtime_inventory
         FROM lake.execution_attempt a JOIN lake.execution_window w ON w.id = a.window_id
         JOIN lake.plan_version v ON v.plan_id = w.plan_id AND v.version = w.plan_version
         JOIN lake.ingestion_plan p ON p.id = w.plan_id JOIN control.source_connection s ON s.id = p.source_id
+        LEFT JOIN lake.inventory i ON i.source_id = p.source_id AND i.plan_version = v.inventory_version
         WHERE p.id = ? AND w.plan_version = p.active_version AND a.state = 'QUEUED' AND a.not_before <= clock_timestamp()
         ORDER BY w.business_date, w.revision, a.attempt FOR UPDATE OF a LIMIT 1
         """, plans.getFirst().get("id"));
@@ -208,7 +209,59 @@ public class LakeExecutionService {
     attempt.put("leaseToken", token.toString()); attempt.put("state", "RUNNING"); attempt.put("leaseSeconds", 60);
     decode(attempt, "contract");
     decode(attempt, "processing_input");
+    decode(attempt, "runtime_inventory");
     return attempt;
+  }
+
+  @Transactional
+  public Map<String, Object> approveSchema(long execution, String reason, String actor) {
+    if (reason == null || reason.isBlank() || reason.length() > 300) bad("SCHEMA_REVIEW_REASON_REQUIRED");
+    var rows = jdbc.queryForList("""
+        SELECT p.id, p.active_version, p.source_id, s.code AS source_code, v.*, a.result,
+          old.source_scope AS old_scope, w.plan_version AS execution_plan_version
+        FROM lake.execution_attempt a JOIN lake.execution_window w ON w.id = a.window_id
+        JOIN lake.ingestion_plan p ON p.id = w.plan_id JOIN control.source_connection s ON s.id = p.source_id
+        JOIN lake.plan_version v ON v.plan_id = w.plan_id AND v.version = w.plan_version
+        JOIN lake.inventory old ON old.source_id = p.source_id AND old.plan_version = v.inventory_version
+        WHERE a.id = ? AND a.state = 'FAILED' AND a.error_code = 'SCHEMA_CHANGE_REVIEW_REQUIRED' AND v.kind = 'MYSQL_SNAPSHOT'
+        FOR UPDATE OF p
+        """, execution);
+    if (rows.isEmpty()) bad("SCHEMA_REVIEW_UNAVAILABLE");
+    var p = rows.getFirst();
+    var approved = jdbc.queryForList("SELECT plan_version FROM lake.inventory WHERE approved_execution_id = ?", execution);
+    if (!approved.isEmpty()) return Map.of("planId", p.get("id"), "version", ((Number) p.get("execution_plan_version")).intValue() + 1, "inventoryVersion", approved.getFirst().get("plan_version"));
+    if (!p.get("active_version").equals(p.get("execution_plan_version"))) conflict("PLAN_SUPERSEDED");
+    decode(p, "result"); decode(p, "old_scope"); decode(p, "contract");
+    if (!(p.get("result") instanceof JsonNode stored) || !stored.path("schemaChange").isObject()) bad("INVALID_SCHEMA_PROPOSAL");
+    JsonNode proposal = ((JsonNode) p.get("result")).path("schemaChange");
+    JsonNode runtime = proposal.path("proposedInventory");
+    RegisterInventoryRequest request;
+    try { request = json.treeToValue(proposal.path("inventoryRequest"), RegisterInventoryRequest.class); }
+    catch (Exception error) { bad("INVALID_SCHEMA_PROPOSAL"); return Map.of(); }
+    if (request == null || !p.get("source_code").equals(request.sourceCode())
+        || request.planVersion() != ((Number) p.get("inventory_version")).longValue() + 1
+        || runtime.path("plan_version").asLong() != request.planVersion()
+        || !runtime.path("source_scope").equals(p.get("old_scope")) || !runtime.path("source_scope").equals(request.sourceScope())
+        || !runtime.path("tables").isArray() || request.objects() == null || runtime.path("tables").size() != request.objects().size()) bad("INVALID_SCHEMA_PROPOSAL");
+    // Bind the worker contract to the reviewed catalog contract, not a second unchecked schema.
+    for (int i = 0; i < request.objects().size(); i++) {
+      var object = request.objects().get(i); JsonNode table = runtime.path("tables").get(i);
+      if (object == null || object.schema() == null || !object.schema().isObject() || object.objectName() == null
+          || !object.objectName().equals(table.path("table").asText()) || !"TABLE".equals(object.objectType())
+          || !object.required() || !"FULL_SNAPSHOT".equals(object.strategy())
+          || !table.path("columns").equals(object.schema().path("columns"))
+          || !table.path("engine").equals(object.schema().path("engine"))
+          || !table.path("primary_key").equals(json.valueToTree(object.primaryKey()))) bad("INVALID_SCHEMA_PROPOSAL");
+    }
+    var inventory = registration.registerInventory(request, actor);
+    jdbc.update("UPDATE lake.inventory SET runtime_json = ?::jsonb, approved_execution_id = ? WHERE id = ? AND runtime_json IS NULL", runtime.toString(), execution, inventory.inventoryId());
+    ZoneId zone = ZoneId.of(p.get("timezone").toString());
+    var saved = savePlan(new LakePlanRequest(request.sourceCode(), ((Number) p.get("active_version")).intValue(), request.planVersion(),
+        "MYSQL_SNAPSHOT", p.get("runtime_ref").toString(), (JsonNode) p.get("contract"), zone.toString(),
+        ((Time) p.get("trigger_time")).toLocalTime(), LocalDate.now(zone), false,
+        ((Number) p.get("max_attempts")).intValue(), ((Number) p.get("timeout_seconds")).intValue()), actor);
+    audit(actor, "SCHEMA_CHANGE_APPROVED", "lake/execution/" + execution, Map.of("reason", reason, "inventoryVersion", request.planVersion(), "planVersion", saved.get("version")));
+    return Map.of("planId", saved.get("id"), "version", saved.get("version"), "inventoryVersion", request.planVersion());
   }
 
   @Transactional
