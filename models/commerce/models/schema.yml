@@ -1,0 +1,17 @@
+version: 2
+sources:
+  - name: lake
+    schema: "{{ env_var('DBT_SCHEMA') }}"
+    tables:
+      - name: orders
+        identifier: raw_orders
+models:
+  - name: orders
+    description: Synthetic commerce dataset for platform reuse acceptance.
+    columns:
+      - name: order_id
+        data_tests: [not_null, unique]
+      - name: team
+        data_tests: [not_null]
+      - name: amount
+        data_tests: [not_null]

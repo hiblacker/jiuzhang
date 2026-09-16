@@ -21,3 +21,15 @@ ALTER ROLE bydw_ingestion_worker_login LOGIN PASSWORD :'worker_password';
 SQL
 
 echo "Provisioned restricted login roles for control API and ingestion worker"
+
+# The product runtime uses an independently provisioned SQL worker login.
+if [[ -n "${MODEL_WORKER_DB_PASSWORD:-}" ]]; then
+  if (( ${#MODEL_WORKER_DB_PASSWORD} < 24 )) || [[ "${MODEL_WORKER_DB_PASSWORD}" == "${CONTROL_API_DB_PASSWORD}" || "${MODEL_WORKER_DB_PASSWORD}" == "${INGESTION_WORKER_DB_PASSWORD}" ]]; then
+    echo "Model worker requires a distinct password of at least 24 characters" >&2
+    exit 1
+  fi
+  psql --no-psqlrc -v ON_ERROR_STOP=1 <<'SQL'
+\getenv model_password MODEL_WORKER_DB_PASSWORD
+ALTER ROLE bydw_model_worker_login LOGIN PASSWORD :'model_password';
+SQL
+fi

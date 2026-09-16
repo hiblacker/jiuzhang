@@ -89,7 +89,7 @@ Docker Desktop 升级后验证环境为 Docker client/server `29.7.2`、API `1.5
 
 ### 9.2 结果
 
-单次完整报告：[poc01-20260914065750_4de84df7.json](../work/poc01-20260914065750_4de84df7.json)。结果为 `PASS`，覆盖：
+历史单次完整报告文件名：`work/poc01-20260914065750_4de84df7.json`。该文件位于 Git 忽略目录，2026-09-15 本次交接副本中缺失；以下为此前记录的 `PASS` 摘要，本轮未重跑，不能替代完整运行证据。此前记录覆盖：
 
 - Compose 五服务健康启动；
 - MySQL→SeaTunnel JDBC→PostgreSQL RAW，21 个事件、12 个对象；

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "domain": "synthetic-service-inventory",
+  "grain": "One row per observed synthetic service; no historical states inferred",
+  "output": "services",
+  "uniqueKey": ["service_id"],
+  "required": ["owner_team"],
+  "fields": [
+    {"name": "service_id", "type": "text"},
+    {"name": "owner_team", "type": "text"},
+    {"name": "observed_at", "type": "timestamptz"}
+  ],
+  "inputs": [{
+    "alias": "services",
+    "sourceCode": "configured-by-runtime",
+    "objectName": "services.jsonl",
+    "columns": [
+      {"name": "id", "type": "text"},
+      {"name": "team", "type": "text"},
+      {"name": "observed_at", "type": "timestamptz"}
+    ]
+  }],
+  "maxInputRows": 1000000,
+  "maxOutputRows": 1000000,
+  "timeoutSeconds": 300
+}

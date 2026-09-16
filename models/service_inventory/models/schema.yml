@@ -1,0 +1,14 @@
+version: 2
+sources:
+  - name: lake
+    schema: "{{ env_var('DBT_SCHEMA') }}"
+    tables:
+      - name: services
+        identifier: raw_services
+models:
+  - name: services
+    columns:
+      - name: service_id
+        data_tests: [not_null, unique]
+      - name: owner_team
+        data_tests: [not_null]

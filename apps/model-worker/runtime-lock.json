@@ -1,0 +1,393 @@
+{
+  "recordedOn": "2026-09-16",
+  "scope": "isolated local product validation; distribution license review remains required",
+  "python": "3.12.14",
+  "core": "1.11.15",
+  "adapter": "1.11.0",
+  "reason": "Python v1 runtime with all wheels available from the domestic package mirror; existing 1.12.4 lock requires a GitHub download-at-install experimental parser. Historical PoC lock is preserved.",
+  "reviewFlags": {
+    "psycopg2-binary": "LGPL with linking exception; existing internal-use approval applies; preserve notices for delivery",
+    "text-unidecode": "Artistic alternative under existing internal-use approval",
+    "certifi/pathspec": "MPL-2.0 obligations for distribution"
+  },
+  "packages": [
+    {
+      "name": "agate",
+      "version": "1.9.1",
+      "license": "License :: OSI Approved :: MIT License",
+      "sha256": "1cf329510b3dde07c4ad1740b7587c9c679abc3dcd92bb1107eabc10c2e03c50",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/d1/53/89b197cb472a3175d73384761a3413fd58e6b65a794c1102d148b8de87bd/agate-1.9.1-py2.py3-none-any.whl"
+    },
+    {
+      "name": "annotated-types",
+      "version": "0.8.0",
+      "license": "MIT",
+      "sha256": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/99/91/8acff4f5e50511b911bbccb72b8628a49c68ce14148cd9f6431094859a90/annotated_types-0.8.0-py3-none-any.whl"
+    },
+    {
+      "name": "attrs",
+      "version": "26.1.0",
+      "license": "MIT",
+      "sha256": "c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl"
+    },
+    {
+      "name": "babel",
+      "version": "2.18.0",
+      "license": "License :: OSI Approved :: BSD License",
+      "sha256": "e2b422b277c2b9a9630c1d7903c2a00d0830c409c59ac8cae9081c92f1aeba35",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/77/f5/21d2de20e8b8b0408f0681956ca2c69f1320a3848ac50e6e7f39c6159675/babel-2.18.0-py3-none-any.whl"
+    },
+    {
+      "name": "certifi",
+      "version": "2026.7.22",
+      "license": "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+      "sha256": "62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/0b/a7/71ac2cff56fec219ed242bb11b8efb69fcc4bec75db06fb7bfe35de520e6/certifi-2026.7.22-py3-none-any.whl"
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.5.1",
+      "license": "MIT",
+      "sha256": "5b6d1386bf0096d26d3a863dc0a487a5b4eb9aa93cf5ba69683d29dde6b9d60f",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/30/27/78873dc8b6a56357517b74b6bb9568b80450e7bb4f6ef7e3fa9d22aa0bd7/charset_normalizer-3.5.1-cp312-cp312-macosx_10_13_universal2.whl"
+    },
+    {
+      "name": "click",
+      "version": "8.5.0",
+      "license": "BSD-3-Clause",
+      "sha256": "255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/58/50/6c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3/click-8.5.0-py3-none-any.whl"
+    },
+    {
+      "name": "colorama",
+      "version": "0.4.6",
+      "license": "License :: OSI Approved :: BSD License",
+      "sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl"
+    },
+    {
+      "name": "daff",
+      "version": "1.4.2",
+      "license": "License :: OSI Approved :: MIT License",
+      "sha256": "88981a21d065e4378b5c4bd40b975dbfdea9b7ff540071f3bb5e20cc8b3590b5",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/29/fe/d54a874e8d7b88bc03c459f63a993305db50039b734fab751a0466dabfc1/daff-1.4.2-py3-none-any.whl"
+    },
+    {
+      "name": "dbt-adapters",
+      "version": "1.24.5",
+      "license": "License :: OSI Approved :: Apache Software License",
+      "sha256": "32345118b921160722a13f12c3e369b9d59a0fb8fb9b3297e29d8cd53f973411",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/9c/c0/07f0e315458128c6ef246ba9698dc0f5e9333394ab8844508adac468c617/dbt_adapters-1.24.5-py3-none-any.whl"
+    },
+    {
+      "name": "dbt-common",
+      "version": "1.39.0",
+      "license": "Apache-2.0",
+      "sha256": "30d63490b9ef2aad6f469ec841fb758430fcb1d997b79ff3df36fcb7b79a241f",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/3a/bc/56a9e62e67634631c7a99b246d92d1be22df746d265b36185fd7517b9163/dbt_common-1.39.0-py3-none-any.whl"
+    },
+    {
+      "name": "dbt-core",
+      "version": "1.11.15",
+      "license": "Apache-2.0",
+      "sha256": "6ac22fabf674274ca865857ee098f9ae871a73bd8cd6f59886d1dfad78f8ec60",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/a5/c6/b0a4f3023f5e5be5c0364409c48498ec69c6e9da67a820b1501f295b4f9e/dbt_core-1.11.15-py3-none-any.whl"
+    },
+    {
+      "name": "dbt-extractor",
+      "version": "0.6.0",
+      "license": "License :: OSI Approved :: Apache Software License",
+      "sha256": "4b6b1e70dde78cb904ca7a8958c2c803e77779b6ce108f4ea7ac479f5700db89",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/9f/dd/ec8f9e48e7dd5a52a69cca7907681d1779cf1cc8b02f2aa2acb6a2bf8bb4/dbt_extractor-0.6.0-cp39-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl"
+    },
+    {
+      "name": "dbt-postgres",
+      "version": "1.11.0",
+      "license": "License :: OSI Approved :: Apache Software License",
+      "sha256": "b88f994dc2f00150579d62f8ff91af715428a3cfe064e067945359ca4509872c",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/ba/61/e92738b7bdc6e36de7f2450ded77b221fd2768f85a345e93ff412ac95c7c/dbt_postgres-1.11.0-py3-none-any.whl"
+    },
+    {
+      "name": "dbt-protos",
+      "version": "1.0.565",
+      "license": "License :: OSI Approved :: Apache Software License",
+      "sha256": "130a8333fcd644ba1f00c8377e8f8013b28cca696a6af56037feb55a011f964c",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/76/68/a2a702510b5ae16f52a7b2f459e2e205cef6e79cf508e2611091a616245c/dbt_protos-1.0.565-py3-none-any.whl"
+    },
+    {
+      "name": "dbt-semantic-interfaces",
+      "version": "0.9.0",
+      "license": "Apache-2.0",
+      "sha256": "1b54c06ba89190a47a7f0563360930a0cce869e55b484ca09d261ade0e319155",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/b3/82/41708b2b69d5fead88dea5ca0d863d6291da83ca6f1bd19246842d397e2b/dbt_semantic_interfaces-0.9.0-py3-none-any.whl"
+    },
+    {
+      "name": "deepdiff",
+      "version": "8.6.2",
+      "license": "License :: OSI Approved :: MIT License",
+      "sha256": "4d22034a866c3928303a9332c279362f714192d9305bac17c498720d095fd1b4",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/2b/5f/c52bd1255db763d0cdcb7084d2e90c42119cb229302c56bdf1d0aa78abd2/deepdiff-8.6.2-py3-none-any.whl"
+    },
+    {
+      "name": "idna",
+      "version": "3.19",
+      "license": "BSD-3-Clause",
+      "sha256": "815e7be7a7806d54abb586dc943addc79e8b2ee16915059658cbeff4b1b43bf4",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/57/b0/0e52c878c53f245edd3a11020f20979b3f490f245af532c7cae3027754b5/idna-3.19-py3-none-any.whl"
+    },
+    {
+      "name": "importlib_metadata",
+      "version": "8.9.0",
+      "license": "Apache-2.0",
+      "sha256": "e0f761b6ea91ced3b0844c14c9d955224d538105921f8e6754c00f6ca79fba7f",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/7d/f9/97f2ca8bb3ec6e4b1d64f983ebe98b9a192faddff67fac3d6303a537e670/importlib_metadata-8.9.0-py3-none-any.whl"
+    },
+    {
+      "name": "isodate",
+      "version": "0.7.2",
+      "license": "License :: OSI Approved :: BSD License",
+      "sha256": "28009937d8031054830160fce6d409ed342816b543597cece116d966c6d99e15",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/15/aa/0aca39a37d3c7eb941ba736ede56d689e7be91cab5d9ca846bde3999eba6/isodate-0.7.2-py3-none-any.whl"
+    },
+    {
+      "name": "Jinja2",
+      "version": "3.1.6",
+      "license": "License :: OSI Approved :: BSD License",
+      "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl"
+    },
+    {
+      "name": "jsonschema",
+      "version": "4.26.0",
+      "license": "MIT",
+      "sha256": "d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/69/90/f63fb5873511e014207a475e2bb4e8b2e570d655b00ac19a9a0ca0a385ee/jsonschema-4.26.0-py3-none-any.whl"
+    },
+    {
+      "name": "jsonschema-specifications",
+      "version": "2025.9.1",
+      "license": "MIT",
+      "sha256": "98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/41/45/1a4ed80516f02155c51f51e8cedb3c1902296743db0bbc66608a0db2814f/jsonschema_specifications-2025.9.1-py3-none-any.whl"
+    },
+    {
+      "name": "leather",
+      "version": "0.4.1",
+      "license": "License :: OSI Approved :: MIT License",
+      "sha256": "ec61cba1ca3ccb96ed90e38b116fc58757d97d352171006b3288c47ce3fbd183",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/1a/d4/c4dcb02ed11f8884e169b3350fc40aa4c08edf8bed77a8f0f267542e6452/leather-0.4.1-py3-none-any.whl"
+    },
+    {
+      "name": "MarkupSafe",
+      "version": "3.0.3",
+      "license": "BSD-3-Clause",
+      "sha256": "1872df69a4de6aead3491198eaf13810b565bdbeec3ae2dc8780f14458ec73ce",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/9a/81/7e4e08678a1f98521201c3079f77db69fb552acd56067661f8c2f534a718/markupsafe-3.0.3-cp312-cp312-macosx_11_0_arm64.whl"
+    },
+    {
+      "name": "mashumaro",
+      "version": "3.14",
+      "license": "License :: OSI Approved :: Apache Software License",
+      "sha256": "c12a649599a8f7b1a0b35d18f12e678423c3066189f7bc7bd8dd431c5c8132c3",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/1b/35/8d63733a2c12149d0c7663c29bf626bdbeea5f0ff963afe58a42b4810981/mashumaro-3.14-py3-none-any.whl"
+    },
+    {
+      "name": "more-itertools",
+      "version": "10.8.0",
+      "license": "MIT",
+      "sha256": "52d4362373dcf7c52546bc4af9a86ee7c4579df9a8dc268be0a2f949d376cc9b",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/a4/8e/469e5a4a2f5855992e425f3cb33804cc07bf18d48f2db061aec61ce50270/more_itertools-10.8.0-py3-none-any.whl"
+    },
+    {
+      "name": "msgpack",
+      "version": "1.2.2",
+      "license": "Apache-2.0",
+      "sha256": "0a652ceeededf71d3fa40c303a02a149d42338d310162367b91c539d4bd6e0a3",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/88/88/c2b6d8e81571da87aa232c0e34a3f3a0e618e6235892065ec82d1d81fc7a/msgpack-1.2.2-cp312-cp312-macosx_11_0_arm64.whl"
+    },
+    {
+      "name": "networkx",
+      "version": "3.6.1",
+      "license": "BSD-3-Clause",
+      "sha256": "d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/9e/c9/b2622292ea83fbb4ec318f5b9ab867d0a28ab43c5717bb85b0a5f6b3b0a4/networkx-3.6.1-py3-none-any.whl"
+    },
+    {
+      "name": "opentelemetry-api",
+      "version": "1.44.0",
+      "license": "Apache-2.0",
+      "sha256": "94b98c893a91b88657eaac1e3ba89618cdb85be6918196705354f34728b2cdef",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/ca/6f/a04e900f465ff3221ccc395522503e2d10e79fa21f2723c8e177aae1e0d1/opentelemetry_api-1.44.0-py3-none-any.whl"
+    },
+    {
+      "name": "orderly-set",
+      "version": "5.5.0",
+      "license": "License :: OSI Approved :: MIT License",
+      "sha256": "46f0b801948e98f427b412fcabb831677194c05c3b699b80de260374baa0b1e7",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/12/27/fb8d7338b4d551900fa3e580acbe7a0cf655d940e164cb5c00ec31961094/orderly_set-5.5.0-py3-none-any.whl"
+    },
+    {
+      "name": "packaging",
+      "version": "26.3",
+      "license": "Apache-2.0 OR BSD-2-Clause",
+      "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl"
+    },
+    {
+      "name": "parsedatetime",
+      "version": "2.6",
+      "license": "License :: OSI Approved :: Apache Software License",
+      "sha256": "cb96edd7016872f58479e35879294258c71437195760746faffedb692aef000b",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/9d/a4/3dd804926a42537bf69fb3ebb9fd72a50ba84f807d95df5ae016606c976c/parsedatetime-2.6-py3-none-any.whl"
+    },
+    {
+      "name": "pathspec",
+      "version": "0.12.1",
+      "license": "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+      "sha256": "a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/cc/20/ff623b09d963f88bfde16306a54e12ee5ea43e9b597108672ff3a408aad6/pathspec-0.12.1-py3-none-any.whl"
+    },
+    {
+      "name": "protobuf",
+      "version": "6.33.6",
+      "license": "3-Clause BSD License",
+      "sha256": "9720e6961b251bde64edfdab7d500725a2af5280f3f4c87e57c0208376aa8c3a",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/5c/01/a3c3ed5cd186f39e7880f8303cc51385a198a81469d53d0fdecf1f64d929/protobuf-6.33.6-cp39-abi3-macosx_10_9_universal2.whl"
+    },
+    {
+      "name": "psycopg2-binary",
+      "version": "2.9.13",
+      "license": "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
+      "sha256": "07b7bd9f410650c34c3532162cc329f112368d78a3fc8668cb1ea9df61bc11bf",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/54/a5/b5a73d0910555e38ee12c49c1740855f8a1e9776e87d65f0c51e1bab762a/psycopg2_binary-2.9.13-cp312-cp312-macosx_11_0_arm64.whl"
+    },
+    {
+      "name": "pydantic",
+      "version": "2.13.5",
+      "license": "MIT",
+      "sha256": "346a034f080da3755d8e9cb5e00e8b07de1d39e4f6e2c87d8ab7cafa0b269a73",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/eb/47/c95ffc2009878c7aac0c5e08528022dcb885933252a88b5f170058014464/pydantic-2.13.5-py3-none-any.whl"
+    },
+    {
+      "name": "pydantic_core",
+      "version": "2.46.5",
+      "license": "MIT",
+      "sha256": "a39ac25a9a2fa4072efdb429833c4a4c8009a51ff9eea3eeae131713cd27991e",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/db/50/26b091836076ce4cb2fac264186936acc069e0595772cfd02a563bc4761a/pydantic_core-2.46.5-cp312-cp312-macosx_11_0_arm64.whl"
+    },
+    {
+      "name": "python-dateutil",
+      "version": "2.9.0.post0",
+      "license": "License :: OSI Approved :: BSD License; License :: OSI Approved :: Apache Software License",
+      "sha256": "a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl"
+    },
+    {
+      "name": "python-slugify",
+      "version": "9.0.0",
+      "license": "MIT",
+      "sha256": "b1180fb0fd6b3590e7fbd8328b08d56cde9dcac736527a070c0a811480621316",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/16/cc/bf2237784cddf5c37f5e4cb25f60670a0c57c3d8ce15d43da16f472c08ef/python_slugify-9.0.0-py3-none-any.whl"
+    },
+    {
+      "name": "pytimeparse",
+      "version": "1.1.8",
+      "license": "License :: OSI Approved :: MIT License",
+      "sha256": "04b7be6cc8bd9f5647a6325444926c3ac34ee6bc7e69da4367ba282f076036bd",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/1b/b4/afd75551a3b910abd1d922dbd45e49e5deeb4d47dc50209ce489ba9844dd/pytimeparse-1.1.8-py2.py3-none-any.whl"
+    },
+    {
+      "name": "pytz",
+      "version": "2026.3.post1",
+      "license": "License :: OSI Approved :: MIT License",
+      "sha256": "dd95840dd199baea12d9cc096a1d452caa6596a1c1e4b5f3dbd1541855d5e815",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/0f/7b/39c34ca613b0b198cb866466651b26b045e2009864c5183c979a3b83f383/pytz-2026.3.post1-py2.py3-none-any.whl"
+    },
+    {
+      "name": "PyYAML",
+      "version": "6.0.3",
+      "license": "License :: OSI Approved :: MIT License",
+      "sha256": "fc09d0aa354569bc501d4e787133afc08552722d3ab34836a80547331bb5d4a0",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/89/a0/6cf41a19a1f2f3feab0e9c0b74134aa2ce6849093d5517a0c550fe37a648/pyyaml-6.0.3-cp312-cp312-macosx_11_0_arm64.whl"
+    },
+    {
+      "name": "referencing",
+      "version": "0.37.0",
+      "license": "MIT",
+      "sha256": "381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/2c/58/ca301544e1fa93ed4f80d724bf5b194f6e4b945841c5bfd555878eea9fcb/referencing-0.37.0-py3-none-any.whl"
+    },
+    {
+      "name": "requests",
+      "version": "2.34.2",
+      "license": "License :: OSI Approved :: Apache Software License",
+      "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl"
+    },
+    {
+      "name": "rpds-py",
+      "version": "2026.6.3",
+      "license": "MIT",
+      "sha256": "538949e262e46caa31ac01bdb3c1e8f642622922cacbabbae6a8445d9dc33eaf",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/a4/73/319dfa745dd668efe89309141ded489126461fcecd2b8f3a3cda185129b6/rpds_py-2026.6.3-cp312-cp312-macosx_11_0_arm64.whl"
+    },
+    {
+      "name": "six",
+      "version": "1.17.0",
+      "license": "License :: OSI Approved :: MIT License",
+      "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl"
+    },
+    {
+      "name": "snowplow-tracker",
+      "version": "1.1.0",
+      "license": "License :: OSI Approved :: Apache Software License",
+      "sha256": "24ea32ddac9cca547421bf9ab162f5f33c00711c6ef118ad5f78093cee962224",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/78/10/1c76269cbf2d6e127f4415044d9ddb0295858230678bbf4bfba905593c82/snowplow_tracker-1.1.0-py3-none-any.whl"
+    },
+    {
+      "name": "sqlparse",
+      "version": "0.6.0",
+      "license": "License :: OSI Approved :: BSD License",
+      "sha256": "b861c0288ce2fa56209a9a6412d2e066ac664b3873b89c26c9d8415e8e32996f",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/d9/50/f00935da0ec7cbf325f8dc4f772ae46fbc7b672dd62876e73f0a94adda57/sqlparse-0.6.0-py3-none-any.whl"
+    },
+    {
+      "name": "text-unidecode",
+      "version": "1.3",
+      "license": "License :: OSI Approved :: Artistic License; License :: OSI Approved :: GNU General Public License (GPL); License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+      "sha256": "1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/a6/a5/c0b6468d3824fe3fde30dbb5e1f687b291608f9473681bbf7dabbf5a87d7/text_unidecode-1.3-py2.py3-none-any.whl"
+    },
+    {
+      "name": "typing-inspection",
+      "version": "0.4.4",
+      "license": "MIT",
+      "sha256": "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/67/81/4add07e5172b7ac40d8ed5ff580409a7801a4fe26d529bdd915401dabfbe/typing_inspection-0.4.4-py3-none-any.whl"
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0",
+      "license": "PSF-2.0",
+      "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl"
+    },
+    {
+      "name": "urllib3",
+      "version": "2.8.0",
+      "license": "MIT",
+      "sha256": "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl"
+    },
+    {
+      "name": "zipp",
+      "version": "4.1.0",
+      "license": "MIT",
+      "sha256": "25ad4e16390cd314347dd8f1de67a2ac538ae658ed4ab9db16029c07c188e97f",
+      "url": "https://pypi.tuna.tsinghua.edu.cn/packages/3a/13/547360d81e6d88d58492968ffda9f9542854f11310ee556fef14260cc886/zipp-4.1.0-py3-none-any.whl"
+    }
+  ]
+}

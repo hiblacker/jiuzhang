@@ -1,16 +1,20 @@
 # 九章数据平台部署入口
 
+**完整一期产品请使用 [PRODUCT_RUNTIME.md](PRODUCT_RUNTIME.md)，已有原生真实数据环境使用 [LOCAL_RUNTIME.md](LOCAL_RUNTIME.md)。** 下文的 `compose.yaml` 及 dev.8–dev.15 条目保留早期骨架升级历史；Python/Node 正式 Worker 已在新产品 Compose 中完成打包验证，不能继续用旧合成 Worker 判断当前能力。
+
 当前 Compose 是正式平台骨架的开发/测试部署入口，可在本地 Docker Desktop 和后续 NAS Compose v2.40.3 使用。它不会启动 `poc/` 中的实验组件。
 
 ## 名称与兼容性
 
-产品名称为九章 · Jiuzhang，完整名称为九章数据平台 / JiuzhangData Platform。当前本地构建镜像为 `jiuzhang/control-api:0.1.0-dev.7` 和 `jiuzhang/ingestion-worker:0.1.0-dev.2`；这些名称不表示镜像已经推送到远程仓库。
+产品名称为九章 · Jiuzhang，完整名称为九章数据平台 / JiuzhangData Platform。当前本地构建镜像为 `jiuzhang/control-api:0.1.0-dev.15` 和 `jiuzhang/ingestion-worker:0.1.0-dev.2`；这些名称不表示镜像已经构建或推送到远程仓库。
 
 Compose 示例继续使用 `-p bydw`，服务键和数据卷键保持原值，保证现有部署在更新镜像时继续定位原有资源。已有环境须沿用实际创建时的项目名（如 `bydw` 或 `bydw-foundation`）；仅修改项目名会创建另一组容器和数据卷，不会迁移原数据。重命名仓库目录后仍应显式指定同一项目名。
 
 Java/Maven 命名空间 `com.bydw`、`bydw.*` 配置键、数据库名和角色名保持兼容，已执行迁移无需变更。API 状态接口的 `service` 字段改为 `jiuzhang-control-api`；依赖旧服务名的监控匹配规则需同步更新。Worker 的 Spring 应用名为 `jiuzhang-ingestion-worker`。旧版本验证记录中的镜像名称仍表示当时实际使用的制品。
 
 应用回退使用原有明确版本镜像，并同步恢复监控匹配规则；本次改名不需要数据库迁移或数据重算。
+
+使用本机既有环境的完整产品启动、停止和联合恢复，见[本机运行手册](LOCAL_RUNTIME.md)。以下 Compose 当前仍为基础服务入口；实际 Node/SQL Worker 的容器包装与原生链路分别验收。
 
 ## 本地启动
 
@@ -38,3 +42,49 @@ docker compose -p bydw -f deploy/compose.yaml up -d --build
 - 首次 NAS 部署前导出 `docker compose config` 检查，不直接覆盖现有服务或复用未知数据卷。
 
 当前尚未在 NAS 实测。外部 SSH 端口不可达时，只能完成本地部署验证，不能把 Compose 文件存在视为 NAS 部署完成。
+
+## 入湖执行入口
+
+真实 MySQL 测试源的本地原始接收由仓库根目录的 `tools/lake-ingest.mjs` 执行，默认写入 Git 忽略的 `.lake-data/`。测试源的 TLS 身份例外必须显式传入，不能写进通用默认配置：
+
+```bash
+node tools/lake-ingest.mjs --full --allow-unverified-test-tls
+node tools/lake-ingest.mjs --daily --window 2026-09-15 --allow-unverified-test-tls
+```
+
+每日目录文件由外部传输工具放入管理员配置的 `--inbox`，每个文件用同名 `.done` 标志闭合，或在已完成复制后显式使用 `--assume-ready`。数据库、目录和可选 REST API 可以由单一入口编排，避免重复调度：
+
+```bash
+node tools/lake-daily.mjs --window 2026-09-15 \
+  --inbox /data/inbox/source --allow-unverified-test-tls \
+  --register --control-api http://127.0.0.1:8080
+```
+
+`--register` 会先用 Admin Token 登记清单，再用 Worker Token 登记数据库批次；两个令牌只从 `CONTROL_API_ADMIN_TOKEN` 和 `CONTROL_API_WORKER_TOKEN` 环境变量读取。未提供控制 API 时可省略该选项，原始文件仍按本地 manifest 封存。
+
+REST API 配置只保存批准的 HTTPS 域名、分页契约和环境变量名；令牌通过运行环境注入，不写入 JSON、manifest 或浏览器存储。`apps/console` 是只读控制台，不能替代后台编排，也不需要页面保持打开。
+
+### 本轮复核后的升级与验证
+
+当前完成情况以 [复核记录](../docs/35-lake-review-and-remediation.md) 为准。V011 增加受限的 `lake.register_manifest` 提交函数，撤回 Worker 对湖批次/原始对象的直接写权限；HTTP Worker 身份经控制 API 校验后，由控制数据库角色调用函数。迁移后再启动 dev.8 API。已完成清单不可改写；错误批次使用新 runKey/attempt 重试。
+
+dev.9 API 需要 V012，新增的计划/日历/执行 API 见 [实施进度](../docs/36-product-implementation-progress.md)。`LAKE_CALENDAR_DRIVER=local` 开启本地后台日历，`external` 留给外部调度器。V012 只创建新表，无数据重写；回退 dev.8 前暂停新计划并停止新 Worker，保留新增账本供前向恢复，不删除表。
+
+dev.10 API 需要 V013，增加项目角色、身份令牌哈希、来源归属和外部资产版本。先迁移，再同时更新控制 API 与 Node 入湖 Worker；新的文件/API 完成请求带原件证据，完成和资产在同一事务登记。旧 Node Worker 不具备该完成契约。恢复保留 warehouse 元数据及原件，使用前向迁移；不靠删除表回退。
+
+dev.11 API 需要 V014/V015。模型角色为 `bydw_model_worker_login`，独立密码由部署方注入；仅模型构建有临时写权限，冻结后转交不可登录的数据所有者。模型 Worker 的本机启动说明见 [SQL 执行器](../apps/model-worker/README.md)。当前 Compose 尚未打包该 Python Worker，不把原 Java 合成 Worker 镜像当作模型执行器。V014、V015 已在本机执行，后续修改使用新迁移。
+
+dev.12 API 与新版 Node Worker 共同支持 V016 原件重解析窗口。升级两者后，已失败解析的文件/API 可由控制台创建重处理；旧原件与解析结果保留。数据库迁移仍须显式执行；原生产部署与数据清理不在本次授权内。
+
+V011 不修改旧迁移，也不回写原始文件。旧 inventory 没有完整契约 JSON，同版本重新登记会冲突；应重新发现结构、建立新 planVersion 和对应新快照，保留旧记录。旧终态 run 缺少 manifest_json 时，不把新请求当作可验证的相同重放；保留旧批次并新建运行。旧版本 API 依赖直接表写入，不能在 V011 后直接回退旧 API；应用修复采用新镜像/前向迁移。
+
+跨域开发控制台需在 `.env` 设置确切地址，例如 `CONTROL_API_ALLOWED_ORIGINS=http://localhost:4173`；Compose 已传递该变量。不要用 `file://` 打开控制台。
+
+结构化文件的 Python 解释器通过 `LAKE_PYTHON` 或 `--parser-python` 指定。依赖锁定在 `tools/requirements-lake.txt`；已有环境可直接复用，确需安装时：
+
+```bash
+python3 -m pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -r tools/requirements-lake.txt
+LAKE_PYTHON=/path/to/python3 node --test tests/file-ingest.test.mjs
+```
+
+真实数据库集成测试位于 `LakeDatabaseIntegrationTest`。仅显式设置 `LAKE_REVIEW_ALLOW_MIGRATIONS=isolated` 才启用；URL 必须是 `jdbc:postgresql://127.0.0.1:<port>/lake_review`。通过本地环境注入 `LAKE_REVIEW_JDBC_URL`、`LAKE_REVIEW_DB_OWNER`、`LAKE_REVIEW_DB_OWNER_PASSWORD`、`LAKE_REVIEW_CONTROL_PASSWORD`、`LAKE_REVIEW_WORKER_PASSWORD` 和 `LAKE_REVIEW_REPO` 后，运行 `mvn -o -f apps/control-api/pom.xml test`。该测试会在隔离数据库执行真实迁移、启用测试角色、启动随机端口 API；普通测试不设置开关时明确跳过，不能计为数据库验证通过。

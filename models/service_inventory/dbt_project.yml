@@ -1,0 +1,8 @@
+name: service_inventory
+version: 1.0.0
+config-version: 2
+profile: jiuzhang
+model-paths: [models]
+models:
+  service_inventory:
+    +materialized: table

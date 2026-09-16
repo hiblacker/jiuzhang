@@ -1,0 +1,122 @@
+// Opt-in browser regression; uses the bundled, pinned Playwright test runtime.
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { mkdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+const require = createRequire(import.meta.url);
+assert.equal(require('playwright/package.json').version, '1.62.1');
+const { chromium } = require('playwright');
+const { LAKE_UI_URL: ui, LAKE_UI_API: api, LAKE_UI_TOKEN: token } = process.env;
+assert.ok(ui && api && token, 'Set the local UI/API/token environment variables');
+for (const value of [ui, api]) assert.ok(['127.0.0.1', 'localhost'].includes(new URL(value).hostname));
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 1280, height: 960 } });
+const errors = []; page.on('pageerror', error => errors.push(error.message));
+const source = `ui_review_${Date.now()}`;
+let planId;
+let testRoot;
+try {
+  await page.goto(ui);
+  await page.locator('#base-url').fill(api); await page.locator('#token').fill(token);
+  await page.locator('#refresh').click();
+  await page.getByText(/^已更新 /).waitFor();
+  await page.getByText('登记来源', { exact: true }).first().click();
+  await page.locator('#new-source').fill(source);
+  await page.locator('#new-source-type').selectOption('FILE');
+  await page.locator('#credential-ref').fill('env://SYNTHETIC_UI_FOLDER');
+  await page.locator('#source-form button').click();
+  await page.locator(`#plan-source option[value="${source}"]`).waitFor({ state: 'attached' });
+  await page.getByText('新建或修改计划', { exact: true }).click();
+  await page.locator('#plan-source').selectOption(source);
+  await page.locator('#plan-kind').selectOption('FILE_SCAN');
+  await page.locator('#runtime-ref').fill(source);
+  await page.locator('#historical-read').check();
+  await page.locator('#plan-form button').click();
+  const row = page.locator('#plans tr').filter({ hasText: source });
+  await row.waitFor();
+  await row.getByRole('button', { name: '暂停', exact: true }).click();
+  await row.getByText('PAUSED', { exact: true }).waitFor();
+  await row.getByRole('button', { name: '恢复', exact: true }).click();
+  await row.getByText('ACTIVE', { exact: true }).waitFor();
+  planId = await page.locator('#trigger-plan option').filter({ hasText: source }).getAttribute('value');
+  await page.locator('#trigger-plan').selectOption(planId);
+  await page.locator('#trigger-form button[type="submit"]').click();
+  const execution = page.locator('#executions tr').filter({ hasText: source }).first();
+  await execution.getByText('QUEUED', { exact: true }).waitFor();
+  await execution.getByRole('button', { name: '取消', exact: true }).click();
+  await execution.getByText('CANCELLED', { exact: true }).waitFor();
+  await execution.getByRole('button', { name: '重试', exact: true }).click();
+  await execution.getByText('QUEUED', { exact: true }).waitFor();
+  await page.locator('#project-admin summary').click();
+  await page.locator('#project-code').fill(source); await page.locator('#project-name').fill('合成资产验收');
+  await page.locator('#project-form button').click();
+  await page.locator('#project-id option').filter({ hasText: '合成资产验收' }).last().waitFor({ state: 'attached' });
+  const projectId = await page.locator('#project-id option').filter({ hasText: '合成资产验收' }).last().getAttribute('value');
+  await page.locator('#project-id').selectOption(projectId);
+  await page.locator('#bind-source-code').fill(source); await page.locator('#bind-source-form button').click();
+  await page.locator('#refresh').waitFor({ state: 'visible' });
+  if (process.env.LAKE_UI_WORKER_TOKEN) {
+    testRoot = await mkdtemp(path.join(os.tmpdir(), 'warehouse-ui-'));
+    const inbox = path.join(testRoot, 'inbox'); await mkdir(inbox);
+    await writeFile(path.join(inbox, 'orders.csv'), 'id,team\n001,east\n');
+    await writeFile(path.join(inbox, 'orders.csv.done'), '');
+    const registry = path.join(testRoot, 'registry.json');
+    await writeFile(registry, JSON.stringify({ version: 1, lakeRoot: path.join(testRoot, 'lake'), profiles: { [source]: { kind: 'FILE_SCAN', sourceCode: source, inboxRoot: inbox } } }));
+    await promisify(execFile)(process.execPath, ['apps/ingestion-worker/lake-runtime.mjs', '--registry', registry, '--control-api', api, '--instance', source, '--once'],
+      { env: { ...process.env, CONTROL_API_WORKER_TOKEN: process.env.LAKE_UI_WORKER_TOKEN }, timeout: 30000 });
+    await page.locator('#refresh').click();
+    const asset = page.locator('#assets tr').filter({ hasText: 'orders.csv' }); await asset.waitFor();
+    await asset.getByRole('button', { name: '结构与来源' }).click();
+    await page.locator('#detail').filter({ hasText: 'OBSERVED_SAMPLE' }).waitFor();
+    await rm(inbox, { recursive: true, force: true });
+    await page.locator('#executions tr').filter({ hasText: source }).filter({ hasText: 'COMPLETE' }).first().getByRole('button', { name: '重解析原件' }).click();
+    await page.locator('#executions tr').filter({ hasText: source }).first().getByText('QUEUED', { exact: true }).waitFor();
+    await promisify(execFile)(process.execPath, ['apps/ingestion-worker/lake-runtime.mjs', '--registry', registry, '--control-api', api, '--instance', source, '--once'],
+      { env: { ...process.env, CONTROL_API_WORKER_TOKEN: process.env.LAKE_UI_WORKER_TOKEN }, timeout: 30000 });
+    await page.locator('#refresh').click();
+    await page.locator('#executions tr').filter({ hasText: source }).first().getByText('COMPLETE', { exact: true }).waitFor();
+  }
+  await page.locator('#identity-code').fill(source); await page.locator('#identity-form button').click();
+  await page.locator('#detail').filter({ hasText: '"token"' }).waitFor();
+  const memberToken = JSON.parse(await page.locator('#detail').textContent()).token;
+  await page.getByText('当前项目成员', { exact: true }).click();
+  await page.locator('#member-id').fill(source); await page.locator('#member-form button[type="submit"]').click();
+  await page.locator('#detail').filter({ hasText: '"VIEWER"' }).waitFor();
+  await page.locator('#token').fill(memberToken); await page.locator('#access-mode').selectOption('project');
+  await page.getByText('已加载当前身份可访问的项目', { exact: true }).waitFor();
+  assert.equal(await page.locator('#project-id option').count(), 1);
+  assert.equal(await page.locator('#ingestion-area').isVisible(), false);
+  await page.locator('#token').fill(token); await page.locator('#access-mode').selectOption('admin');
+  await page.getByText(/^已更新 /).waitFor();
+  await page.locator('#source-code').fill(source); await page.locator('#refresh').click();
+  await page.getByText(/^已更新 /).waitFor();
+  if (process.env.LAKE_UI_MODEL_PROJECT) {
+    await page.locator('#project-id').selectOption(process.env.LAKE_UI_MODEL_PROJECT);
+    await page.locator('#dataset-id option').first().waitFor({ state: 'attached' });
+    await page.locator('#model-versions').click();
+    await page.locator('#detail').filter({ hasText: '"grain"' }).waitFor();
+    await page.locator('#releases-load').click();
+    await page.locator('#detail').filter({ hasText: '"published_by"' }).waitFor();
+    await page.getByText('数据查询与授权', { exact: true }).click();
+    await page.locator('#dataset-query-form button[type="submit"]').click();
+    await page.locator('#detail').filter({ hasText: 'sql-text-v1' }).waitFor();
+    const download = page.waitForEvent('download');
+    await page.locator('#query-export').click();
+    const exported = await download; assert.match(exported.suggestedFilename(), /^dataset-\d+-release-\d+\.csv$/);
+  }
+  await mkdir('work/lake-review/ui', { recursive: true });
+  await page.screenshot({ path: 'work/lake-review/ui/desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Mobile viewport overflow');
+  await page.screenshot({ path: 'work/lake-review/ui/mobile.png', fullPage: true });
+  assert.deepEqual(errors, []);
+  console.log(JSON.stringify({ state: 'PASS', operations: ['load', 'source', 'plan', 'pause', 'resume', 'trigger', 'cancel', 'retry', 'project', 'source-binding', 'identity', 'membership', 'project-scope', ...(process.env.LAKE_UI_WORKER_TOKEN ? ['file-worker', 'asset-schema', 'file-reprocess'] : []), ...(process.env.LAKE_UI_MODEL_PROJECT ? ['model-versions', 'release-history', 'dataset-query', 'csv-export'] : [])], pageErrors: errors.length }));
+} finally {
+  if (planId) await fetch(`${api}/api/v1/lake/plans/${planId}/state`, { method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ state: 'PAUSED' }) });
+  await browser.close();
+  if (testRoot) await rm(testRoot, { recursive: true, force: true });
+}

@@ -11,6 +11,8 @@ import java.security.MessageDigest;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.bydw.warehouse.ProductAccessService;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
@@ -33,12 +35,20 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
       "^/api/v1/ingestion-jobs/[^/]+/checkpoint/?$");
   private static final Pattern JOB_READ = Pattern.compile(
       "^/api/v1/ingestion-jobs/[^/]+/?$");
+  private static final Pattern LAKE_MANIFEST_WRITE = Pattern.compile(
+      "^/api/v1/lake/manifests/?$");
+  private static final Pattern LAKE_EXECUTION_WORKER = Pattern.compile(
+      "^/api/v1/lake/executions/(?:claim|[0-9]+/(?:heartbeat|finish))/?$");
+  private static final Pattern MODEL_EXECUTION_WORKER = Pattern.compile(
+      "^/api/v1/warehouse/builds/(?:claim|[0-9]+/(?:heartbeat|finish))/?$");
   private static final Pattern WORKER_INSTANCE = Pattern.compile(
       "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$");
 
   private final byte[] adminToken;
   private final byte[] workerToken;
   private final ObjectMapper objectMapper;
+  @Autowired(required = false)
+  private ProductAccessService productAccess;
 
   public RequestAuthenticationFilter(
       @Value("${bydw.security.admin-token}") String configuredAdminToken,
@@ -66,6 +76,13 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
     response.setHeader("X-Request-Id", requestId);
     response.setHeader("Cache-Control", "no-store");
 
+    // CORS preflight carries no application credentials; Web MVC applies the
+    // explicit origin allowlist before the actual request is dispatched.
+    if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+      filterChain.doFilter(request, response);
+      return;
+    }
+
     if (isPublicPath(request.getRequestURI())) {
       filterChain.doFilter(request, response);
       return;
@@ -78,8 +95,13 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
     Access access = accessFor(request.getMethod(), request.getRequestURI());
     boolean admin = MessageDigest.isEqual(adminToken, supplied);
     boolean worker = MessageDigest.isEqual(workerToken, supplied);
+    String projectIdentity = null;
+    if (!admin && !worker && access != Access.WORKER && productAccess != null && request.getRequestURI().startsWith("/api/v1/warehouse/")) {
+      projectIdentity = productAccess.authenticate(new String(supplied, StandardCharsets.UTF_8));
+    }
     boolean accepted = access == Access.ADMIN ? admin
         : access == Access.WORKER ? worker : admin || worker;
+    accepted = accepted || projectIdentity != null;
     if (!accepted) {
       response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
       response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -103,6 +125,8 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
       } else {
         request.setAttribute(PRINCIPAL_ATTRIBUTE, WORKER_PRINCIPAL);
       }
+    } else if (projectIdentity != null) {
+      request.setAttribute(PRINCIPAL_ATTRIBUTE, projectIdentity);
     } else {
       request.setAttribute(PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL);
     }
@@ -112,6 +136,9 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
   private Access accessFor(String method, String path) {
     if ("POST".equals(method) && (BATCH_START.matcher(path).matches()
         || BATCH_MUTATION.matcher(path).matches())) return Access.WORKER;
+    if ("POST".equals(method) && LAKE_MANIFEST_WRITE.matcher(path).matches()) return Access.WORKER;
+    if ("POST".equals(method) && LAKE_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
+    if ("POST".equals(method) && MODEL_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
     if ("GET".equals(method) && (CHECKPOINT_READ.matcher(path).matches()
         || JOB_READ.matcher(path).matches())) return Access.EITHER;
     return Access.ADMIN;

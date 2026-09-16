@@ -1,0 +1,542 @@
+{
+  "observedAt": "2026-09-15T14:09:39.014Z",
+  "method": "Fixed-commit public GitHub README and root license reads. Local raw text is temporary; URLs and SHA256 retained. Root licenses do not clear transitive dependencies or enterprise features.",
+  "sources": [
+    {
+      "repo": "dagster-io/dagster",
+      "sha": "7bd9909d0a58b568fa1ad4761daea5bc760a3873",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/dagster-io--dagster-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/dagster-io/dagster/7bd9909d0a58b568fa1ad4761daea5bc760a3873/README.md",
+          "browseUrl": "https://github.com/dagster-io/dagster/blob/7bd9909d0a58b568fa1ad4761daea5bc760a3873/README.md",
+          "sha256": "edd1cb00df322ab24faff58fa62b83986a4bd023d8f82cad86ea7052018da6ce",
+          "observedAt": "2026-09-15T14:06:52.272Z",
+          "bytes": 32
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/dagster-io--dagster-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/dagster-io/dagster/7bd9909d0a58b568fa1ad4761daea5bc760a3873/LICENSE",
+          "browseUrl": "https://github.com/dagster-io/dagster/blob/7bd9909d0a58b568fa1ad4761daea5bc760a3873/LICENSE",
+          "sha256": "e25b0c5be442bdf543e3f179ef0ae6a5edef5f5c70524fce00a2a657f5d3ed9d",
+          "observedAt": "2026-09-15T14:06:52.539Z",
+          "bytes": 11348
+        },
+        {
+          "type": "readme-target",
+          "sourceUrl": "https://raw.githubusercontent.com/dagster-io/dagster/7bd9909d0a58b568fa1ad4761daea5bc760a3873/python_modules/dagster/README.md",
+          "browseUrl": "https://github.com/dagster-io/dagster/blob/7bd9909d0a58b568fa1ad4761daea5bc760a3873/python_modules/dagster/README.md",
+          "sha256": "c67be78a0355a34b38964ba3e64fa615604e175afbc00bef4506afd4bf0a0b34",
+          "observedAt": "2026-09-15T14:14:15.003Z",
+          "bytes": 6831
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "apache/hop",
+      "sha": "e492a84a64632587d1c92dfdbf7a2053962a70ad",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/apache--hop-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/apache/hop/e492a84a64632587d1c92dfdbf7a2053962a70ad/README.md",
+          "browseUrl": "https://github.com/apache/hop/blob/e492a84a64632587d1c92dfdbf7a2053962a70ad/README.md",
+          "sha256": "b53d4d73c3fa39945bca51752e6caac4d504187430350b7bef4fc6684cac7fd7",
+          "observedAt": "2026-09-15T14:06:52.288Z",
+          "bytes": 6105
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/apache--hop-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/apache/hop/e492a84a64632587d1c92dfdbf7a2053962a70ad/LICENSE",
+          "browseUrl": "https://github.com/apache/hop/blob/e492a84a64632587d1c92dfdbf7a2053962a70ad/LICENSE",
+          "sha256": "a6fe1b46e01d9bf131c41920a15ad8802eb5a2f89d5341005c8e9c2dc0611dcb",
+          "observedAt": "2026-09-15T14:06:52.590Z",
+          "bytes": 12067
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "WeBankFinTech/DataSphereStudio",
+      "sha": "4af60cc6f5aea4c41434d489ccab6ea35e735d33",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/WeBankFinTech--DataSphereStudio-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/WeBankFinTech/DataSphereStudio/4af60cc6f5aea4c41434d489ccab6ea35e735d33/README.md",
+          "browseUrl": "https://github.com/WeBankFinTech/DataSphereStudio/blob/4af60cc6f5aea4c41434d489ccab6ea35e735d33/README.md",
+          "sha256": "26eb4d612b1a5fc8d02f3014d939c309ec1d926f3141da3431ea23adf056799c",
+          "observedAt": "2026-09-15T14:06:52.306Z",
+          "bytes": 16657
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/WeBankFinTech--DataSphereStudio-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/WeBankFinTech/DataSphereStudio/4af60cc6f5aea4c41434d489ccab6ea35e735d33/LICENSE",
+          "browseUrl": "https://github.com/WeBankFinTech/DataSphereStudio/blob/4af60cc6f5aea4c41434d489ccab6ea35e735d33/LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "observedAt": "2026-09-15T14:06:52.628Z",
+          "bytes": 11357
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "kestra-io/kestra",
+      "sha": "a23a2d7c3aa331c4110d8fa2e39a08b6b92d5736",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/kestra-io--kestra-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/kestra-io/kestra/a23a2d7c3aa331c4110d8fa2e39a08b6b92d5736/README.md",
+          "browseUrl": "https://github.com/kestra-io/kestra/blob/a23a2d7c3aa331c4110d8fa2e39a08b6b92d5736/README.md",
+          "sha256": "d8aa9a33dcf1ae132830f4041d17fafd58f0c37ea46047b6441d49775aec67e8",
+          "observedAt": "2026-09-15T14:06:52.405Z",
+          "bytes": 22194
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/kestra-io--kestra-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/kestra-io/kestra/a23a2d7c3aa331c4110d8fa2e39a08b6b92d5736/LICENSE",
+          "browseUrl": "https://github.com/kestra-io/kestra/blob/a23a2d7c3aa331c4110d8fa2e39a08b6b92d5736/LICENSE",
+          "sha256": "e3bf9bde61f66360a28222b262422f456143e6d796a3b30349d54971dbb8db1b",
+          "observedAt": "2026-09-15T14:06:52.803Z",
+          "bytes": 10767
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "apache/dolphinscheduler",
+      "sha": "9839c418c1a6d7f2a8c3395552edcd99c2de1b37",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/apache--dolphinscheduler-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/apache/dolphinscheduler/9839c418c1a6d7f2a8c3395552edcd99c2de1b37/README.md",
+          "browseUrl": "https://github.com/apache/dolphinscheduler/blob/9839c418c1a6d7f2a8c3395552edcd99c2de1b37/README.md",
+          "sha256": "0bd3f660f26558b9ab84b9ae043d3610d1c62dc2b972248884aa5cbcb7e2ec9d",
+          "observedAt": "2026-09-15T14:06:53.063Z",
+          "bytes": 5050
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/apache--dolphinscheduler-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/apache/dolphinscheduler/9839c418c1a6d7f2a8c3395552edcd99c2de1b37/LICENSE",
+          "browseUrl": "https://github.com/apache/dolphinscheduler/blob/9839c418c1a6d7f2a8c3395552edcd99c2de1b37/LICENSE",
+          "sha256": "f4a547d70186da2b44aa9ffee4055873f7cf503659fb0cf3d2044ff3a955e2d7",
+          "observedAt": "2026-09-15T14:06:53.351Z",
+          "bytes": 12296
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "SQLMesh/sqlmesh",
+      "sha": "e30fe61bc982b86a05098ca4f4d6c1a2cd39e576",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/SQLMesh--sqlmesh-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/SQLMesh/sqlmesh/e30fe61bc982b86a05098ca4f4d6c1a2cd39e576/README.md",
+          "browseUrl": "https://github.com/SQLMesh/sqlmesh/blob/e30fe61bc982b86a05098ca4f4d6c1a2cd39e576/README.md",
+          "sha256": "5950d181200b01f54510e1f73e8b443c66888ec6d8cc95a0011cfa2808f26970",
+          "observedAt": "2026-09-15T14:06:53.095Z",
+          "bytes": 7625
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/SQLMesh--sqlmesh-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/SQLMesh/sqlmesh/e30fe61bc982b86a05098ca4f4d6c1a2cd39e576/LICENSE",
+          "browseUrl": "https://github.com/SQLMesh/sqlmesh/blob/e30fe61bc982b86a05098ca4f4d6c1a2cd39e576/LICENSE",
+          "sha256": "9f2ad42f5c3a469e7702c6557b7a08bc5b2b31c51b2a43cad4227eb599ed19ee",
+          "observedAt": "2026-09-15T14:06:53.365Z",
+          "bytes": 11360
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "apache/seatunnel",
+      "sha": "60446da971c8eccb5528635310ddb8c83b3617f1",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/apache--seatunnel-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/apache/seatunnel/60446da971c8eccb5528635310ddb8c83b3617f1/README.md",
+          "browseUrl": "https://github.com/apache/seatunnel/blob/60446da971c8eccb5528635310ddb8c83b3617f1/README.md",
+          "sha256": "85e1d2e18c04777bbb9ab39a7734670263f973c9632323df98dbdf686bbd1292",
+          "observedAt": "2026-09-15T14:06:53.091Z",
+          "bytes": 5813
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/apache--seatunnel-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/apache/seatunnel/60446da971c8eccb5528635310ddb8c83b3617f1/LICENSE",
+          "browseUrl": "https://github.com/apache/seatunnel/blob/60446da971c8eccb5528635310ddb8c83b3617f1/LICENSE",
+          "sha256": "8dec42b484037335be0050d23bd92a2269dfe109c51075dd904fbd8f1a97bcc8",
+          "observedAt": "2026-09-15T14:06:53.365Z",
+          "bytes": 17785
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "open-metadata/OpenMetadata",
+      "sha": "84b91b398cc4b96c47375cc02c53cfb6a7cb6a91",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/open-metadata--OpenMetadata-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/open-metadata/OpenMetadata/84b91b398cc4b96c47375cc02c53cfb6a7cb6a91/README.md",
+          "browseUrl": "https://github.com/open-metadata/OpenMetadata/blob/84b91b398cc4b96c47375cc02c53cfb6a7cb6a91/README.md",
+          "sha256": "8c959198c89ffe2fac596c329619bc82b2b848ea1f18db8fb9ae90f9248349a2",
+          "observedAt": "2026-09-15T14:06:53.118Z",
+          "bytes": 22655
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/open-metadata--OpenMetadata-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/open-metadata/OpenMetadata/84b91b398cc4b96c47375cc02c53cfb6a7cb6a91/LICENSE",
+          "browseUrl": "https://github.com/open-metadata/OpenMetadata/blob/84b91b398cc4b96c47375cc02c53cfb6a7cb6a91/LICENSE",
+          "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+          "observedAt": "2026-09-15T14:06:53.408Z",
+          "bytes": 11356
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "airbytehq/airbyte",
+      "sha": "7c9cd920687bde761193a56da8ad91e2067e5aad",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/airbytehq--airbyte-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/airbytehq/airbyte/7c9cd920687bde761193a56da8ad91e2067e5aad/README.md",
+          "browseUrl": "https://github.com/airbytehq/airbyte/blob/7c9cd920687bde761193a56da8ad91e2067e5aad/README.md",
+          "sha256": "18e91a844b267a7cca9b8148e23e016c2fe097224da3cd5f558ba98fb7cab7fb",
+          "observedAt": "2026-09-15T14:06:53.673Z",
+          "bytes": 8673
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/airbytehq--airbyte-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/airbytehq/airbyte/7c9cd920687bde761193a56da8ad91e2067e5aad/LICENSE",
+          "browseUrl": "https://github.com/airbytehq/airbyte/blob/7c9cd920687bde761193a56da8ad91e2067e5aad/LICENSE",
+          "sha256": "6dbe65007c1f2eb6c362834cc509bd958938a7be3fd15155f3a29c0c8d0a334a",
+          "observedAt": "2026-09-15T14:06:53.948Z",
+          "bytes": 3793
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "DataLinkDC/dinky",
+      "sha": "63b5a5aa2438a4c30efd1067da8aedf844951143",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/DataLinkDC--dinky-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/DataLinkDC/dinky/63b5a5aa2438a4c30efd1067da8aedf844951143/README.md",
+          "browseUrl": "https://github.com/DataLinkDC/dinky/blob/63b5a5aa2438a4c30efd1067da8aedf844951143/README.md",
+          "sha256": "9426347f695c5a09ca219dfe81d84b8906c01c59ce57017874865f5ccf7a4406",
+          "observedAt": "2026-09-15T14:06:53.706Z",
+          "bytes": 6255
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/DataLinkDC--dinky-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/DataLinkDC/dinky/63b5a5aa2438a4c30efd1067da8aedf844951143/LICENSE",
+          "browseUrl": "https://github.com/DataLinkDC/dinky/blob/63b5a5aa2438a4c30efd1067da8aedf844951143/LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "observedAt": "2026-09-15T14:06:53.992Z",
+          "bytes": 11357
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "datahub-project/datahub",
+      "sha": "6bb7a2237fae1554158c58ddb78222457efdb59c",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/datahub-project--datahub-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/datahub-project/datahub/6bb7a2237fae1554158c58ddb78222457efdb59c/README.md",
+          "browseUrl": "https://github.com/datahub-project/datahub/blob/6bb7a2237fae1554158c58ddb78222457efdb59c/README.md",
+          "sha256": "d1e28e532183e1f446007036f4c10e5bfd183e9f9e8af39ff8ac14dc7c36ec51",
+          "observedAt": "2026-09-15T14:06:53.757Z",
+          "bytes": 36831
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/datahub-project--datahub-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/datahub-project/datahub/6bb7a2237fae1554158c58ddb78222457efdb59c/LICENSE",
+          "browseUrl": "https://github.com/datahub-project/datahub/blob/6bb7a2237fae1554158c58ddb78222457efdb59c/LICENSE",
+          "sha256": "f71347a6c0f4b9817938dcd7b0a0c2b871c1fb16e20ab49bb9e597aab4cdb319",
+          "observedAt": "2026-09-15T14:06:54.106Z",
+          "bytes": 11365
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "apache/doris",
+      "sha": "0aea7140de64a7162d0a0d764e3dc1db7f40dbae",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/apache--doris-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/apache/doris/0aea7140de64a7162d0a0d764e3dc1db7f40dbae/README.md",
+          "browseUrl": "https://github.com/apache/doris/blob/0aea7140de64a7162d0a0d764e3dc1db7f40dbae/README.md",
+          "sha256": "5648d624b5d52e0fb705337fe728744e748e98dec3e271d79e26caaa9807abc3",
+          "observedAt": "2026-09-15T14:06:53.689Z",
+          "bytes": 10047
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/apache--doris-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/apache/doris/0aea7140de64a7162d0a0d764e3dc1db7f40dbae/LICENSE.txt",
+          "browseUrl": "https://github.com/apache/doris/blob/0aea7140de64a7162d0a0d764e3dc1db7f40dbae/LICENSE.txt",
+          "sha256": "148c37be494af30cf04a07f9814097d55d289073d1058b3946c806d8aecf17d1",
+          "observedAt": "2026-09-15T14:06:54.656Z",
+          "bytes": 38505
+        }
+      ],
+      "errors": [
+        {
+          "url": "https://raw.githubusercontent.com/apache/doris/0aea7140de64a7162d0a0d764e3dc1db7f40dbae/LICENSE",
+          "status": 404
+        },
+        {
+          "url": "https://raw.githubusercontent.com/apache/doris/0aea7140de64a7162d0a0d764e3dc1db7f40dbae/LICENSE.md",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "repo": "dbt-labs/dbt",
+      "sha": "ba280b8e69e9b6a699f3071a405bd10aa9ab248b",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/dbt-labs--dbt-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/dbt-labs/dbt/ba280b8e69e9b6a699f3071a405bd10aa9ab248b/README.md",
+          "browseUrl": "https://github.com/dbt-labs/dbt/blob/ba280b8e69e9b6a699f3071a405bd10aa9ab248b/README.md",
+          "sha256": "1014e348432aec4fcd6a46f7010b0355775a2a8b36ef4d0e03d1cf8cb39f89db",
+          "observedAt": "2026-09-15T14:06:54.950Z",
+          "bytes": 4636
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/dbt-labs--dbt-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/dbt-labs/dbt/ba280b8e69e9b6a699f3071a405bd10aa9ab248b/LICENSE",
+          "browseUrl": "https://github.com/dbt-labs/dbt/blob/ba280b8e69e9b6a699f3071a405bd10aa9ab248b/LICENSE",
+          "sha256": "aaec0fc491a8093b76b7301f6168b9ac05b0fd20e8ea717f7d90691b3b7d8772",
+          "observedAt": "2026-09-15T14:06:55.210Z",
+          "bytes": 11343
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "DTStack/Taier",
+      "sha": "00ac252869a36a19adb622f30cdb461c44c62c64",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/DTStack--Taier-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/DTStack/Taier/00ac252869a36a19adb622f30cdb461c44c62c64/README.md",
+          "browseUrl": "https://github.com/DTStack/Taier/blob/00ac252869a36a19adb622f30cdb461c44c62c64/README.md",
+          "sha256": "61249b79471778eb8a65dedf58cc83d60e98829f397d61ff35f45cbd0b7d2a72",
+          "observedAt": "2026-09-15T14:06:55.007Z",
+          "bytes": 6298
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/DTStack--Taier-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/DTStack/Taier/00ac252869a36a19adb622f30cdb461c44c62c64/LICENSE",
+          "browseUrl": "https://github.com/DTStack/Taier/blob/00ac252869a36a19adb622f30cdb461c44c62c64/LICENSE",
+          "sha256": "c5accbbd8546e94c34aed24afe689a617627d18eed5a6c48277e48db57c23851",
+          "observedAt": "2026-09-15T14:06:55.305Z",
+          "bytes": 11356
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "lakekeeper/lakekeeper",
+      "sha": "cb487918140756dbd787dd312226fa9e498953d3",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/lakekeeper--lakekeeper-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/lakekeeper/lakekeeper/cb487918140756dbd787dd312226fa9e498953d3/README.md",
+          "browseUrl": "https://github.com/lakekeeper/lakekeeper/blob/cb487918140756dbd787dd312226fa9e498953d3/README.md",
+          "sha256": "39d2534abe118c30e840e98c533979cc167fa6ef95f2cbd45a4590385b62ec81",
+          "observedAt": "2026-09-15T14:09:38.117Z",
+          "bytes": 11319
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/lakekeeper--lakekeeper-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/lakekeeper/lakekeeper/cb487918140756dbd787dd312226fa9e498953d3/LICENSE",
+          "browseUrl": "https://github.com/lakekeeper/lakekeeper/blob/cb487918140756dbd787dd312226fa9e498953d3/LICENSE",
+          "sha256": "8e285a5b6575f169e2a5d7965d3050dd2a05cedb67ba19057c9fdb94e8aca436",
+          "observedAt": "2026-09-15T14:09:38.375Z",
+          "bytes": 11345
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "apache/iceberg",
+      "sha": "8cd126e914ba7a5a4dfb8e88d3165bc1ac4bcbd8",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/apache--iceberg-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/apache/iceberg/8cd126e914ba7a5a4dfb8e88d3165bc1ac4bcbd8/README.md",
+          "browseUrl": "https://github.com/apache/iceberg/blob/8cd126e914ba7a5a4dfb8e88d3165bc1ac4bcbd8/README.md",
+          "sha256": "c2bbafebecdbd97adf45121fceb5395a0bd114767d6976f4cd244e5088806a32",
+          "observedAt": "2026-09-15T14:09:38.107Z",
+          "bytes": 5332
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/apache--iceberg-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/apache/iceberg/8cd126e914ba7a5a4dfb8e88d3165bc1ac4bcbd8/LICENSE",
+          "browseUrl": "https://github.com/apache/iceberg/blob/8cd126e914ba7a5a4dfb8e88d3165bc1ac4bcbd8/LICENSE",
+          "sha256": "59b547d9d9164f46653e01b8c6e688327f4a785141761e6514b5932694eeddda",
+          "observedAt": "2026-09-15T14:09:38.384Z",
+          "bytes": 16961
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "apache/nifi",
+      "sha": "ec81225f5b9c197e4ebf406dfea3d33bb9db0f28",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/apache--nifi-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/apache/nifi/ec81225f5b9c197e4ebf406dfea3d33bb9db0f28/README.md",
+          "browseUrl": "https://github.com/apache/nifi/blob/ec81225f5b9c197e4ebf406dfea3d33bb9db0f28/README.md",
+          "sha256": "0d1019aa65d49b67dc6afbb1de85c597bfe925abb242ec547a8fe6796b655303",
+          "observedAt": "2026-09-15T14:09:38.116Z",
+          "bytes": 11456
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/apache--nifi-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/apache/nifi/ec81225f5b9c197e4ebf406dfea3d33bb9db0f28/LICENSE",
+          "browseUrl": "https://github.com/apache/nifi/blob/ec81225f5b9c197e4ebf406dfea3d33bb9db0f28/LICENSE",
+          "sha256": "eea36becddb2b006bba9ceb0be5373a41ce369674609f9295e7d2a4b10da3d8e",
+          "observedAt": "2026-09-15T14:09:38.420Z",
+          "bytes": 19045
+        }
+      ],
+      "errors": []
+    },
+    {
+      "repo": "dlt-hub/dlt",
+      "sha": "abbd910eecf5b424c07cae2f1daa6d987d83d62f",
+      "files": [
+        {
+          "type": "readme",
+          "path": "work/warehouse-research-2026-09-15/dlt-hub--dlt-readme.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/dlt-hub/dlt/abbd910eecf5b424c07cae2f1daa6d987d83d62f/README.md",
+          "browseUrl": "https://github.com/dlt-hub/dlt/blob/abbd910eecf5b424c07cae2f1daa6d987d83d62f/README.md",
+          "sha256": "136175c5ffad0b39d70a9ce7b512a601aef62fe3604bcba19f6a81a0988513c9",
+          "observedAt": "2026-09-15T14:09:38.106Z",
+          "bytes": 13472
+        },
+        {
+          "type": "license",
+          "path": "work/warehouse-research-2026-09-15/dlt-hub--dlt-license.txt",
+          "sourceUrl": "https://raw.githubusercontent.com/dlt-hub/dlt/abbd910eecf5b424c07cae2f1daa6d987d83d62f/LICENSE.txt",
+          "browseUrl": "https://github.com/dlt-hub/dlt/blob/abbd910eecf5b424c07cae2f1daa6d987d83d62f/LICENSE.txt",
+          "sha256": "3bd68ce12f57c10e265b3d19b3251efa5aa40f780f590bc8bb7b1c83f85854ca",
+          "observedAt": "2026-09-15T14:09:39.014Z",
+          "bytes": 11348
+        }
+      ],
+      "errors": [
+        {
+          "url": "https://raw.githubusercontent.com/dlt-hub/dlt/abbd910eecf5b424c07cae2f1daa6d987d83d62f/LICENSE",
+          "status": 404
+        },
+        {
+          "url": "https://raw.githubusercontent.com/dlt-hub/dlt/abbd910eecf5b424c07cae2f1daa6d987d83d62f/LICENSE.md",
+          "status": 404
+        }
+      ]
+    }
+  ],
+  "officialDocumentation": [
+    {
+      "url": "https://docs.dagster.io/guides/build/assets",
+      "claim": "Asset definitions connect persisted outputs with dependencies and production logic.",
+      "readWith": "web.run",
+      "observedOn": "2026-09-15"
+    },
+    {
+      "url": "https://sqlmesh.readthedocs.io/en/stable/concepts/plans/",
+      "claim": "Change plans, impact, backfill and isolated model variants.",
+      "readWith": "web.run",
+      "observedOn": "2026-09-15"
+    },
+    {
+      "url": "https://kestra.io/docs/workflow-components",
+      "claim": "Declarative workflow components.",
+      "readWith": "web.run",
+      "observedOn": "2026-09-15"
+    },
+    {
+      "url": "https://dlthub.com/docs/dlt-ecosystem/verified-sources/rest_api/basic",
+      "claim": "REST auth, pagination and incremental configuration.",
+      "readWith": "web.run",
+      "observedOn": "2026-09-15"
+    },
+    {
+      "url": "https://dlthub.com/docs/tutorial/filesystem",
+      "claim": "Filesystem sources including local files.",
+      "readWith": "web.run",
+      "observedOn": "2026-09-15"
+    },
+    {
+      "url": "https://nifi.apache.org/components/org.apache.nifi.processors.standard.ListFile/",
+      "claim": "File listing, age, size and timestamp precision settings.",
+      "readWith": "web.run",
+      "observedOn": "2026-09-15"
+    },
+    {
+      "url": "https://nifi.apache.org/nifi-docs/user-guide.html",
+      "claim": "Flow queues and back pressure.",
+      "readWith": "web.run",
+      "observedOn": "2026-09-15"
+    },
+    {
+      "url": "https://iceberg.apache.org/docs/latest/",
+      "claim": "Open table format; schema evolution, snapshots, atomic table changes.",
+      "readWith": "web.run",
+      "observedOn": "2026-09-15"
+    }
+  ],
+  "documentReadFailures": [
+    {
+      "url": "https://hop.apache.org/manual/latest/projects/projects.html",
+      "result": "web internal error; rely on fixed-commit README"
+    },
+    {
+      "url": "https://dlthub.com/docs/dlt-ecosystem/verified-sources/filesystem/basic",
+      "result": "redirected to 404; replaced with linked /docs/tutorial/filesystem"
+    }
+  ]
+}

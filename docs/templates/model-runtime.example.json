@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "lakeRoot": "/srv/jiuzhang/lake",
+  "workRoot": "/srv/jiuzhang/model-work",
+  "database": {
+    "host": "warehouse-db",
+    "port": 5432,
+    "dbname": "warehouse",
+    "user": "bydw_model_worker_login",
+    "passwordEnv": "MODEL_DATABASE_PASSWORD"
+  },
+  "profiles": {
+    "commerce": {
+      "projectId": 1,
+      "repository": "/srv/jiuzhang/repository",
+      "projectPath": "models/commerce",
+      "sources": {"orders": "synthetic-commerce"}
+    }
+  }
+}
