@@ -272,7 +272,10 @@ def once(options, registry):
                 stop.set()
     thread = threading.Thread(target=beat, daemon=True); thread.start()
     timer = threading.Timer(task['contract']['timeoutSeconds'], stop.set); timer.start()
-    old = {s: signal.signal(s, lambda *_: stop.set()) for s in [signal.SIGTERM, signal.SIGINT]}
+    def terminate(*_):
+        stop.set()
+        options.stopping.set()
+    old = {s: signal.signal(s, terminate) for s in [signal.SIGTERM, signal.SIGINT]}
     try:
         completion = execute(registry, task, stop)
     except Exception as error:
@@ -300,6 +303,9 @@ def main():
     parser.add_argument('--instance', default='model-worker')
     parser.add_argument('--once', action='store_true')
     options = parser.parse_args()
+    options.stopping = threading.Event()
+    for s in [signal.SIGTERM, signal.SIGINT]:
+        signal.signal(s, lambda *_: options.stopping.set())
     url = urlparse(options.api)
     if (url.scheme != 'https' and not (url.scheme == 'http' and url.hostname in ['127.0.0.1', 'localhost'])) or url.username or url.password or url.query or url.fragment:
         fail('UNSAFE_CONTROL_API_URL')
@@ -311,7 +317,7 @@ def main():
     if registry.get('version') != 1 or not Path(registry['lakeRoot']).is_absolute() or not Path(registry['workRoot']).is_absolute() or not registry['profiles']:
         fail('INVALID_MODEL_REGISTRY')
     last = None
-    while True:
+    while not options.stopping.is_set():
         try:
             result = once(options, registry)
         except RuntimeError as error:
@@ -323,7 +329,8 @@ def main():
         last = result
         if options.once:
             return 0 if result['state'] in ['READY', 'IDLE'] else 1
-        time.sleep(2)
+        options.stopping.wait(2)
+    return 0
 
 
 if __name__ == '__main__':
