@@ -2,6 +2,8 @@ import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, open, readFile, realpath, rename, rm } from 'node:fs/promises';
 import { hostname } from 'node:os';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import path from 'node:path';
 
 export function digest(value) { return createHash('sha256').update(value).digest('hex'); }
@@ -79,16 +81,30 @@ export async function resolveInside(root, relative) {
   return actual;
 }
 
-function dead(owner) {
+export async function processIdentity(pid) {
+  if (!Number.isInteger(pid) || pid < 1) return null;
+  try {
+    if (process.platform === 'linux') {
+      const [stat, boot] = await Promise.all([readFile(`/proc/${pid}/stat`, 'utf8'), readFile('/proc/sys/kernel/random/boot_id', 'utf8')]);
+      return `${boot.trim()}:${stat.slice(stat.lastIndexOf(')') + 2).trim().split(/\s+/u)[19]}`;
+    }
+    const { stdout } = await promisify(execFile)('ps', ['-p', String(pid), '-o', 'lstart='], { timeout: 2000 });
+    return stdout.trim() || null;
+  } catch { return null; }
+}
+
+async function dead(owner) {
   if (owner.host !== hostname() || !Number.isInteger(owner.pid) || owner.pid < 1) return false;
-  try { process.kill(owner.pid, 0); return false; } catch (error) { return error.code === 'ESRCH'; }
+  try { process.kill(owner.pid, 0); } catch (error) { return error.code === 'ESRCH'; }
+  const current = owner.processStart ? await processIdentity(owner.pid) : null;
+  return Boolean(current && current !== owner.processStart);
 }
 
 // Local-host process lock. Never reclaim an empty/ambiguous/live lock. A separate
 // recovery mutex serializes reapers so an old owner cannot remove a new lock.
 export async function withLock(file, operation) {
   await mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
-  const owner = { pid: process.pid, host: hostname(), token: randomUUID() };
+  const owner = { pid: process.pid, host: hostname(), token: randomUUID(), processStart: await processIdentity(process.pid) };
   let handle;
   try { handle = await open(file, 'wx', 0o600); }
   catch (error) {
@@ -97,7 +113,7 @@ export async function withLock(file, operation) {
     try { await mkdir(recovery); } catch { throw new Error('LAKE_RUN_BUSY'); }
     try {
       const previous = await readJson(file);
-      if (!dead(previous)) throw new Error('LAKE_RUN_BUSY');
+      if (!await dead(previous)) throw new Error('LAKE_RUN_BUSY');
       await rm(file);
       handle = await open(file, 'wx', 0o600);
     } finally { await rm(recovery, { recursive: true }); }

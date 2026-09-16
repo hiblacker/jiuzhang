@@ -145,7 +145,23 @@ try:
     assert api(prefix + '/builds')[0]['state'] == 'REJECTED'
     api(prefix + f'/builds/{bad_build}/publish', {'reason': 'Must reject'}, status=409)
     assert api(prefix + '/query', {}, token)['rows'] == current_rows
-    evidence = {'state': 'PASS', 'themes': 2, 'checks': ['real dbt SQL', 'Git-pinned bundle', 'quality gate', 'immutable SQL tables', 'row-and-column policies', 'fixed release query and CSV export', 'exact decimal', 'leading zero', 'project isolation', 'competing publication', 'stale input rejection', 'failed build keeps release'],
+    # SQL that changes a declared numeric output into text must fail the server-side gate.
+    sql_file = git_repo / 'models/commerce/models/orders.sql'
+    sql_file.write_text("select id as order_id, team, cast(amount as text) as amount from {{ source('lake', 'orders') }}\n")
+    invoke(['git', '-C', str(git_repo), 'add', 'models'])
+    invoke(['git', '-C', str(git_repo), '-c', 'user.name=Synthetic test', '-c', 'user.email=synthetic@example.invalid', 'commit', '-qm', 'test: output type mismatch'])
+    wrong_revision = invoke(['git', '-C', str(git_repo), 'rev-parse', 'HEAD']).strip()
+    wrong_sha, wrong_files = worker.bundle(git_repo, 'models/commerce', wrong_revision)
+    api(f"warehouse/projects/{commerce['project']}/models", {'code': 'commerce', 'name': 'commerce', 'expectedVersion': 1,
+        'runtimeRef': commerce['source'], 'gitRevision': wrong_revision, 'bundleSha256': wrong_sha,
+        'contract': worker.bound_contract(wrong_files, profiles[commerce['source']])})
+    wrong_build = api(prefix + '/builds', {'requestKey': 'wrong-output-type', 'modelVersion': 2, 'inputs': {commerce['alias']: new_asset}})['id']
+    invoke(command, expected=1)
+    mismatch = api(prefix + '/builds')[0]
+    assert mismatch['state'] == 'REJECTED' and mismatch['result']['schemaPassed'] is False
+    api(prefix + f'/builds/{wrong_build}/publish', {'reason': 'Must reject output type'}, status=409)
+    assert api(prefix + '/query', {}, token)['rows'] == current_rows
+    evidence = {'state': 'PASS', 'themes': 2, 'checks': ['real dbt SQL', 'Git-pinned bundle', 'quality gate', 'immutable SQL tables', 'row-and-column policies', 'fixed release query and CSV export', 'exact decimal', 'leading zero', 'project isolation', 'competing publication', 'stale input rejection', 'failed build keeps release', 'declared output type gate'],
         'runtime': {'core': '1.11.15', 'postgresAdapter': '1.11.0'}, 'fixtureRoot': str(root),
         'ui': {'projectId': commerce['project'], 'datasetId': commerce['dataset']}}
     (repo / 'work/lake-review/model-product-evidence.json').write_text(json.dumps(evidence, indent=2))

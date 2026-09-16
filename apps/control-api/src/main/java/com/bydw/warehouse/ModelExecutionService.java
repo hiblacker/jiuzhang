@@ -66,7 +66,20 @@ public class ModelExecutionService {
       String schema = b.get("schema_name").toString(), output = contract.path("output").asText();
       var columns = jdbc.queryForList("SELECT a.attname FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = ? AND c.relname = ? AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum", String.class, schema, output);
       var expected = new ArrayList<String>(); contract.path("fields").forEach(f -> expected.add(f.path("name").asText()));
-      if (!columns.equals(expected)) bad("MODEL_OUTPUT_SCHEMA_MISMATCH");
+      var types = jdbc.queryForList("SELECT format_type(a.atttypid, a.atttypmod) FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = ? AND c.relname = ? AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum", String.class, schema, output);
+      var expectedTypes = new ArrayList<String>();
+      contract.path("fields").forEach(f -> expectedTypes.add(switch (f.path("type").asText()) {
+        case "timestamp" -> "timestamp without time zone";
+        case "timestamptz" -> "timestamp with time zone";
+        default -> f.path("type").asText();
+      }));
+      boolean schemaPassed = columns.equals(expected) && types.equals(expectedTypes);
+      result.put("schemaPassed", schemaPassed);
+      if (!schemaPassed) {
+        state = "REJECTED";
+        result.put("qualityPassed", false).put("schemaError", "MODEL_OUTPUT_SCHEMA_MISMATCH");
+        result.set("actualColumns", json.valueToTree(columns)); result.set("actualTypes", json.valueToTree(types));
+      } else {
       jdbc.execute("SET LOCAL statement_timeout = '30s'");
       String table = quote(schema) + "." + quote(output);
       long count = jdbc.queryForObject("SELECT count(*) FROM " + table, Long.class);
@@ -78,6 +91,7 @@ public class ModelExecutionService {
       boolean passed = count <= contract.path("maxOutputRows").asLong() && nulls == 0 && duplicates == 0;
       result.put("rowCount", count).put("nullKeysOrRequired", nulls).put("duplicateKeys", duplicates).put("qualityPassed", passed);
       if (!passed) state = "REJECTED";
+      }
     }
     String code = completion.path("errorCode").isTextual() ? completion.path("errorCode").asText() : null;
     if (code != null && !code.matches("[A-Z0-9_:-]{1,120}")) bad("INVALID_ERROR_CODE");
