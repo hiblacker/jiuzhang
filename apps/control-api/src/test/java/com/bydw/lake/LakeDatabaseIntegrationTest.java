@@ -55,6 +55,7 @@ class LakeDatabaseIntegrationTest {
       migrate(owner);
       provision(owner, "bydw_control_api_login", System.getenv("LAKE_REVIEW_CONTROL_PASSWORD"));
       provision(owner, "bydw_ingestion_worker_login", System.getenv("LAKE_REVIEW_WORKER_PASSWORD"));
+      if (System.getenv("LAKE_REVIEW_MODEL_PASSWORD") != null) provision(owner, "bydw_model_worker_login", System.getenv("LAKE_REVIEW_MODEL_PASSWORD"));
     }
     app = (ServletWebServerApplicationContext) new SpringApplicationBuilder(ControlApplication.class)
         .run("--server.address=127.0.0.1", "--server.port=0", "--spring.main.banner-mode=off",
@@ -359,6 +360,21 @@ class LakeDatabaseIntegrationTest {
     return HttpRequest.newBuilder(URI.create(base + path)).timeout(Duration.ofSeconds(15))
         .header("Authorization", "Bearer " + token).header("Content-Type", "application/json")
         .POST(HttpRequest.BodyPublishers.ofString(body.toString())).build();
+  }
+
+  @Test
+  @EnabledIfEnvironmentVariable(named = "LAKE_REVIEW_DBT_PYTHON", matches = ".+")
+  void dbtProductBuildPublishAndQueryUsesRealRolesAndSql() throws Exception {
+    Path repo = Path.of(System.getenv("LAKE_REVIEW_REPO"));
+    var builder = new ProcessBuilder(System.getenv("LAKE_REVIEW_DBT_PYTHON"), repo.resolve("tests/model-product-integration.py").toString());
+    builder.environment().put("MODEL_TEST_API", base);
+    builder.environment().put("MODEL_TEST_ADMIN", ADMIN);
+    builder.environment().put("CONTROL_API_WORKER_TOKEN", WORKER);
+    Path output = repo.resolve("work/lake-review/model-integration.log");
+    builder.redirectErrorStream(true).redirectOutput(output.toFile());
+    var process = builder.start(); boolean finished = process.waitFor(180, TimeUnit.SECONDS);
+    if (!finished) process.destroyForcibly(); assertThat(finished).isTrue();
+    assertThat(process.exitValue()).as("See private model-integration.log for execution evidence").isZero();
   }
 
   private static HttpResponse<String> get(String path, String token) throws Exception {

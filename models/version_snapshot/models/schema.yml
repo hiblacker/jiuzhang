@@ -1,0 +1,12 @@
+version: 2
+sources:
+  - name: lake
+    schema: "{{ env_var('DBT_SCHEMA') }}"
+    tables:
+      - name: versions
+        identifier: raw_versions
+models:
+  - name: version_snapshot
+    columns:
+      - name: version_id
+        data_tests: [not_null, unique]

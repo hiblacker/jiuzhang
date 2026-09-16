@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "domain": "synthetic-commerce",
+  "grain": "One row per synthetic order",
+  "output": "orders",
+  "uniqueKey": ["order_id"],
+  "required": ["team", "amount"],
+  "fields": [
+    {"name": "order_id", "type": "text"},
+    {"name": "team", "type": "text"},
+    {"name": "amount", "type": "numeric(20,2)"}
+  ],
+  "inputs": [{
+    "alias": "orders",
+    "sourceCode": "configured-by-runtime",
+    "objectName": "orders.csv",
+    "columns": [
+      {"name": "id", "type": "text"},
+      {"name": "team", "type": "text"},
+      {"name": "amount", "type": "numeric(20,2)"}
+    ]
+  }],
+  "maxInputRows": 1000000,
+  "maxOutputRows": 1000000,
+  "timeoutSeconds": 300
+}

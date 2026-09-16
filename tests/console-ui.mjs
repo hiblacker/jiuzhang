@@ -86,13 +86,27 @@ try {
   await page.getByText(/^已更新 /).waitFor();
   await page.locator('#source-code').fill(source); await page.locator('#refresh').click();
   await page.getByText(/^已更新 /).waitFor();
+  if (process.env.LAKE_UI_MODEL_PROJECT) {
+    await page.locator('#project-id').selectOption(process.env.LAKE_UI_MODEL_PROJECT);
+    await page.locator('#dataset-id option').first().waitFor({ state: 'attached' });
+    await page.locator('#model-versions').click();
+    await page.locator('#detail').filter({ hasText: '"grain"' }).waitFor();
+    await page.locator('#releases-load').click();
+    await page.locator('#detail').filter({ hasText: '"published_by"' }).waitFor();
+    await page.getByText('数据查询与授权', { exact: true }).click();
+    await page.locator('#dataset-query-form button[type="submit"]').click();
+    await page.locator('#detail').filter({ hasText: 'sql-text-v1' }).waitFor();
+    const download = page.waitForEvent('download');
+    await page.locator('#query-export').click();
+    const exported = await download; assert.match(exported.suggestedFilename(), /^dataset-\d+-release-\d+\.csv$/);
+  }
   await mkdir('work/lake-review/ui', { recursive: true });
   await page.screenshot({ path: 'work/lake-review/ui/desktop.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Mobile viewport overflow');
   await page.screenshot({ path: 'work/lake-review/ui/mobile.png', fullPage: true });
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ state: 'PASS', operations: ['load', 'source', 'plan', 'pause', 'resume', 'trigger', 'cancel', 'retry', 'project', 'source-binding', 'identity', 'membership', 'project-scope', ...(process.env.LAKE_UI_WORKER_TOKEN ? ['file-worker', 'asset-schema'] : [])], pageErrors: errors.length }));
+  console.log(JSON.stringify({ state: 'PASS', operations: ['load', 'source', 'plan', 'pause', 'resume', 'trigger', 'cancel', 'retry', 'project', 'source-binding', 'identity', 'membership', 'project-scope', ...(process.env.LAKE_UI_WORKER_TOKEN ? ['file-worker', 'asset-schema'] : []), ...(process.env.LAKE_UI_MODEL_PROJECT ? ['model-versions', 'release-history', 'dataset-query', 'csv-export'] : [])], pageErrors: errors.length }));
 } finally {
   if (planId) await fetch(`${api}/api/v1/lake/plans/${planId}/state`, { method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ state: 'PAUSED' }) });

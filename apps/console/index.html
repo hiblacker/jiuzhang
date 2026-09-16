@@ -114,12 +114,26 @@
       <form id="bind-source-form" class="operation-form"><label>来源编码<input id="bind-source-code" required></label><p>绑定到当前选中的项目。</p><button type="submit">分配来源</button></form>
     </details>
     <details class="panel operations"><summary>当前项目成员</summary><form id="member-form" class="operation-form"><label>身份编码<input id="member-id" required></label><label>角色<select id="member-role"><option value="VIEWER">查看者</option><option value="ENGINEER">数据开发</option><option value="OWNER">项目管理员</option></select></label><button type="submit">保存成员角色</button><button id="members-load" type="button" class="secondary">查看成员</button></form></details>
+    <section class="panel operations"><h2>模型与数据集</h2>
+      <div class="operation-form"><label>当前项目的数据集<select id="dataset-id"></select></label><button id="model-versions" type="button">模型版本</button><button id="releases-load" type="button" class="secondary">发布历史</button></div>
+      <div class="table-wrap"><table><thead><tr><th>构建</th><th>版本</th><th>状态</th><th>错误</th><th>操作</th></tr></thead><tbody id="model-builds"></tbody></table></div>
+      <details id="model-development"><summary>登记模型与构建</summary>
+        <form id="model-form" class="operation-form"><label class="wide">模型登记内容（Git 固定版本和数据契约）<textarea id="model-definition" rows="7" required></textarea></label><button type="submit">登记新版本</button></form>
+        <form id="model-build-form" class="operation-form"><label>模型版本<input id="model-version" type="number" min="1" value="1"></label><label class="wide">输入资产（别名与资产 ID）<textarea id="model-inputs" rows="3" placeholder='{"orders":"external:1"}' required></textarea></label><button type="submit">构建候选</button><button id="model-impact" type="button" class="secondary">查看变更影响</button></form>
+      </details>
+      <details><summary>数据查询与授权</summary>
+        <form id="dataset-query-form" class="operation-form"><label>发布 ID（留空使用当前版本）<input id="query-release" type="number" min="1"></label><label>列（逗号分隔，留空按授权范围）<input id="query-columns"></label><label>最多返回行数<input id="query-limit" type="number" value="100" min="1" max="1000"></label><label class="wide">等值筛选<textarea id="query-equals" rows="2">{}</textarea></label><button type="submit">查询数据</button><button id="query-export" type="button" class="secondary">导出当前查询</button></form>
+        <form id="dataset-policy-form" class="operation-form"><label>授权身份<input id="policy-identity" required></label><label>允许列（逗号分隔）<input id="policy-columns" required></label><label>行范围（等值条件）<textarea id="policy-rows" rows="2">{}</textarea></label><button type="submit">保存数据授权</button></form>
+      </details>
+    </section>
     <details class="panel operations" id="detail-panel"><summary>操作详情</summary><pre id="detail">选择资产或运行查看结果。</pre></details>
   </main>
   <script>
     const $ = (id) => document.getElementById(id);
     let currentPlans = [];
     let assetOffset = 0;
+    let currentProjects = [], currentDatasets = [];
+    let loadRequest = 0, projectRequest = 0, assetRequest = 0, modelRequest = 0;
     const text = (value) => value === null || value === undefined || value === '' ? '—' : String(value);
     function cell(row, value, className = '') { const td = document.createElement('td'); td.textContent = text(value); if (className) td.className = className; row.appendChild(td); }
     function drawRows(target, rows, columns) {
@@ -174,6 +188,7 @@
     }
     async function load(event) {
       event?.preventDefault();
+      const requestId = ++loadRequest;
       const source = $('source-code').value.trim();
       const query = source ? `?sourceCode=${encodeURIComponent(source)}` : '';
       const listQuery = source ? `${query}&limit=50` : '?limit=50';
@@ -182,11 +197,13 @@
         const projectMode = $('access-mode').value === 'project';
         $('ingestion-area').hidden = projectMode; $('project-admin').hidden = projectMode;
         await loadProjects();
+        if (requestId !== loadRequest) return;
         if (projectMode) { $('message').textContent = '已加载当前身份可访问的项目'; return; }
         const [summary, runs, deliveries, plans, windows, executions, sources] = await Promise.all([
           api(`lake/summary${query}`), api(`lake/runs${listQuery}`), api(`lake/deliveries${listQuery}`),
           api('lake/plans'), api('lake/windows'), api('lake/executions'), api('sources?limit=100&offset=0')
         ]);
+        if (requestId !== loadRequest) return;
         const runStats = summary.runs || {}; const objectStats = summary.objects || {};
         $('run-count').textContent = text(runStats.run_count); $('complete-count').textContent = text(runStats.complete_count); $('row-count').textContent = text(objectStats.row_count); $('failed-count').textContent = text(objectStats.failed_object_count);
         drawRows($('runs'), runs, [{ key: 'source_code' }, { key: 'mode' }, { key: 'scheduled_window_start' }, { key: 'state', state: true }, { key: 'error_code' }]);
@@ -201,15 +218,22 @@
       finally { button.disabled = false; }
     }
     async function loadProjects() {
+      const requestId = ++projectRequest, token = $('token').value;
       const projects = await api('warehouse/projects');
+      if (requestId !== projectRequest || token !== $('token').value) return;
+      currentProjects = projects;
       populate($('project-id'), projects, 'id', 'name');
       await loadAssets();
+      await loadModels();
     }
     async function loadAssets() {
       const project = $('project-id').value;
+      const requestId = ++assetRequest, token = $('token').value;
       $('assets').replaceChildren();
       if (!project) return;
       const assets = await api(`warehouse/projects/${project}/assets?limit=100&offset=${assetOffset}`);
+      if (requestId !== assetRequest || project !== $('project-id').value || token !== $('token').value) return;
+      $('assets').replaceChildren();
       for (const asset of assets) {
         const tr = document.createElement('tr');
         for (const value of [asset.source_code, asset.name, asset.kind, asset.state, asset.row_count, asset.data_window]) cell(tr, value);
@@ -221,6 +245,52 @@
       $('asset-prev').disabled = assetOffset === 0; $('asset-next').disabled = assets.length < 100;
       $('asset-page').textContent = `第 ${assetOffset / 100 + 1} 页`;
     }
+    function datasetRoute() {
+      if (!$('dataset-id').value || !$('project-id').value) throw new Error('请先选择项目与数据集');
+      return `warehouse/projects/${$('project-id').value}/datasets/${$('dataset-id').value}`;
+    }
+    async function loadModels() {
+      const requestId = ++modelRequest, project = $('project-id').value, token = $('token').value;
+      $('model-builds').replaceChildren();
+      if (!$('project-id').value) { $('dataset-id').replaceChildren(); return; }
+      currentDatasets = await api(`warehouse/projects/${$('project-id').value}/datasets`);
+      if (requestId !== modelRequest || project !== $('project-id').value || token !== $('token').value) return;
+      populate($('dataset-id'), currentDatasets, 'id', 'name');
+      const role = currentProjects.find(p => String(p.id) === $('project-id').value)?.role;
+      $('model-development').hidden = role === 'VIEWER'; $('dataset-policy-form').hidden = role !== 'OWNER';
+      if (!$('dataset-id').value || role === 'VIEWER') return;
+      const builds = await api(datasetRoute() + '/builds');
+      if (requestId !== modelRequest || project !== $('project-id').value || token !== $('token').value) return;
+      $('model-builds').replaceChildren();
+      for (const build of builds) {
+        const tr = document.createElement('tr'); for (const value of [build.id, build.model_version, build.state, build.error_code]) cell(tr, value);
+        const actions = document.createElement('td'); actionButton(actions, '质量与依赖', async () => build);
+        if (build.state === 'READY' && role === 'OWNER') actionButton(actions, '发布', () => api(datasetRoute() + `/builds/${build.id}/publish`, { reason: '控制台发布已验证候选' }));
+        if (['QUEUED','RUNNING'].includes(build.state)) actionButton(actions, '取消', () => api(datasetRoute() + `/builds/${build.id}/cancel`, {}));
+        tr.appendChild(actions); $('model-builds').appendChild(tr);
+      }
+    }
+    function queryBody() {
+      const body = { limit: Number($('query-limit').value), equals: JSON.parse($('query-equals').value) };
+      if ($('query-release').value) body.releaseId = Number($('query-release').value);
+      if ($('query-columns').value.trim()) body.columns = $('query-columns').value.split(',').map(s => s.trim());
+      return body;
+    }
+    $('dataset-id').addEventListener('change', () => perform(null, loadModels));
+    $('model-form').addEventListener('submit', event => { event.preventDefault(); perform(event.submitter, () => api(`warehouse/projects/${$('project-id').value}/models`, JSON.parse($('model-definition').value))); });
+    $('model-build-form').addEventListener('submit', event => { event.preventDefault(); perform(event.submitter, () => api(datasetRoute() + '/builds', { modelVersion: Number($('model-version').value), inputs: JSON.parse($('model-inputs').value), requestKey: crypto.randomUUID() })); });
+    $('model-versions').addEventListener('click', event => perform(event.target, () => api(datasetRoute() + '/versions')));
+    $('releases-load').addEventListener('click', event => perform(event.target, () => api(datasetRoute() + '/releases')));
+    $('model-impact').addEventListener('click', event => perform(event.target, () => api(datasetRoute() + `/impact?version=${Number($('model-version').value)}`)));
+    $('dataset-query-form').addEventListener('submit', event => { event.preventDefault(); perform(event.submitter, () => api(datasetRoute() + '/query', queryBody())); });
+    $('dataset-policy-form').addEventListener('submit', event => { event.preventDefault(); perform(event.submitter, () => api(datasetRoute() + '/policy', { identity: $('policy-identity').value, columns: $('policy-columns').value.split(',').map(s => s.trim()), rowEquals: JSON.parse($('policy-rows').value) })); });
+    $('query-export').addEventListener('click', event => perform(event.target, async () => {
+      const result = await api(datasetRoute() + '/query', queryBody());
+      const response = await fetch(`${baseUrl()}/api/v1/${datasetRoute()}/export`, { method: 'POST', headers: { Authorization: `Bearer ${$('token').value}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ ...queryBody(), releaseId: result.releaseId }), signal: AbortSignal.timeout(15000), redirect: 'error' });
+      if (!response.ok) throw new Error((await response.json()).code);
+      const url = URL.createObjectURL(await response.blob()), link = document.createElement('a'); link.href = url; link.download = `dataset-${result.datasetId}-release-${result.releaseId}.csv`; link.click(); URL.revokeObjectURL(url);
+      return { releaseId: result.releaseId, exported: true };
+    }));
     $('assets-form').addEventListener('submit', event => { event.preventDefault(); assetOffset = 0; perform(event.submitter, loadAssets); });
     $('project-id').addEventListener('change', () => { assetOffset = 0; perform(null, loadAssets); });
     $('asset-prev').addEventListener('click', event => { assetOffset = Math.max(0, assetOffset - 100); perform(event.target, loadAssets); });
@@ -231,6 +301,7 @@
     $('member-form').addEventListener('submit', event => { event.preventDefault(); perform(event.submitter, () => api(`warehouse/projects/${$('project-id').value}/members`, { identity: $('member-id').value, role: $('member-role').value })); });
     $('members-load').addEventListener('click', event => perform(event.target, () => api(`warehouse/projects/${$('project-id').value}/members`)));
     $('access-mode').addEventListener('change', load);
+    $('token').addEventListener('input', () => { $('detail').textContent = ''; $('assets').replaceChildren(); });
     $('query-form').addEventListener('submit', load);
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date());
     $('plan-start').value = today; $('trigger-day').value = today;

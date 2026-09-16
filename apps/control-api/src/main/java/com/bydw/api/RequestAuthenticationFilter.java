@@ -39,6 +39,8 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
       "^/api/v1/lake/manifests/?$");
   private static final Pattern LAKE_EXECUTION_WORKER = Pattern.compile(
       "^/api/v1/lake/executions/(?:claim|[0-9]+/(?:heartbeat|finish))/?$");
+  private static final Pattern MODEL_EXECUTION_WORKER = Pattern.compile(
+      "^/api/v1/warehouse/builds/(?:claim|[0-9]+/(?:heartbeat|finish))/?$");
   private static final Pattern WORKER_INSTANCE = Pattern.compile(
       "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$");
 
@@ -94,7 +96,7 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
     boolean admin = MessageDigest.isEqual(adminToken, supplied);
     boolean worker = MessageDigest.isEqual(workerToken, supplied);
     String projectIdentity = null;
-    if (!admin && !worker && productAccess != null && request.getRequestURI().startsWith("/api/v1/warehouse/")) {
+    if (!admin && !worker && access != Access.WORKER && productAccess != null && request.getRequestURI().startsWith("/api/v1/warehouse/")) {
       projectIdentity = productAccess.authenticate(new String(supplied, StandardCharsets.UTF_8));
     }
     boolean accepted = access == Access.ADMIN ? admin
@@ -136,6 +138,7 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
         || BATCH_MUTATION.matcher(path).matches())) return Access.WORKER;
     if ("POST".equals(method) && LAKE_MANIFEST_WRITE.matcher(path).matches()) return Access.WORKER;
     if ("POST".equals(method) && LAKE_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
+    if ("POST".equals(method) && MODEL_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
     if ("GET".equals(method) && (CHECKPOINT_READ.matcher(path).matches()
         || JOB_READ.matcher(path).matches())) return Access.EITHER;
     return Access.ADMIN;
