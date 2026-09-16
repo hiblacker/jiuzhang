@@ -3,9 +3,10 @@ import { defineAsyncComponent, h, onMounted, reactive, ref, watch } from 'vue'
 import { NAlert,NButton,NCard,NDataTable,NDescriptions,NDescriptionsItem,NFormItem,NInput,NModal,NPagination,NSelect,NSpace,NTag, type DataTableColumns } from 'naive-ui'
 import { api,type Page } from './api'
 const props=defineProps<{project:number;canManage:boolean;canIngest:boolean}>()
+const OperationBar=defineAsyncComponent(()=>import('./OperationBar.vue'))
 const IngestionManager=defineAsyncComponent(()=>import('./IngestionManager.vue'))
 interface System {id:number;code:string;name:string;domain:string;organization:string;business_owner:string;technical_owner:string;description:string;lifecycle:string;revision:number;instance_count:number}
-interface Instance {id:number;code:string;name:string;environment:string;purpose:string;lifecycle:string}
+interface Instance {id:number;revision:number;code:string;name:string;environment:string;purpose:string;lifecycle:string}
 const rows=ref<System[]>([]),selected=ref<System|null>(null),instances=ref<Instance[]>([])
 const q=ref(''),environment=ref(''),lifecycle=ref(''),page=ref(1),total=ref(0),busy=ref(false),error=ref(''),modal=ref(false),instanceModal=ref(false)
 const form=reactive({code:'',name:'',domain:'',organization:'',businessOwner:'',technicalOwner:'',description:'',expectedVersion:0})
@@ -38,12 +39,13 @@ watch(()=>props.project,()=>{selected.value=null;page.value=1;void load()});watc
   </n-card>
   <template v-else>
     <n-space class="gap"><n-button @click="selected=null">返回目录</n-button><n-button v-if="canManage" @click="open(true)">编辑系统信息</n-button></n-space>
+    <OperationBar v-if="canManage" :project="project" :targets="[{type:'system',id:selected.id,expectedVersion:selected.revision}]" @changed="detail(selected);load()"/>
     <n-card :title="selected.name">
       <n-descriptions :column="3" bordered><n-descriptions-item label="系统编码">{{selected.code}}</n-descriptions-item><n-descriptions-item label="业务责任人">{{selected.business_owner}}</n-descriptions-item><n-descriptions-item label="技术责任人">{{selected.technical_owner}}</n-descriptions-item><n-descriptions-item label="业务域">{{selected.domain||'未填写'}}</n-descriptions-item><n-descriptions-item label="组织">{{selected.organization||'未填写'}}</n-descriptions-item><n-descriptions-item label="登记状态">{{lifecycleNames[selected.lifecycle]}}</n-descriptions-item></n-descriptions>
       <p>{{selected.description}}</p>
     </n-card>
     <n-card title="环境实例" class="gap"><template #header-extra><n-button v-if="canManage" @click="Object.assign(instanceForm,{code:'',name:'',environment:'TEST',purpose:''});instanceModal=true">新增实例</n-button></template><n-data-table :columns="instanceColumns" :data="instances"/><slot name="connections" :system="selected" :instances="instances"/></n-card>
-    <IngestionManager v-if="canIngest" :project="project" :instances="instances" :can-manage="canIngest"/>
+    <IngestionManager v-if="canIngest" :project="project" :instances="instances" :can-manage="canIngest" :can-activate="canManage"/>
   </template>
   <n-modal v-model:show="modal" preset="card" :title="editing?'编辑系统信息':'登记业务系统'" style="width:min(650px,94vw)">
     <n-alert v-if="error" type="error" class="gap">{{error}}</n-alert>

@@ -6,6 +6,7 @@ import { once } from 'node:events';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { atomicJson, digest, durableRename, resolveInside, readJson, validateDay, withLock } from './lake-runtime.mjs';
+import { sourceLedger } from './source-ledger.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FORMATS = new Map([['.csv', 'csv'], ['.json', 'json'], ['.jsonl', 'jsonl'], ['.xlsx', 'xlsx'], ['.parquet', 'parquet']]);
@@ -92,8 +93,8 @@ async function scanUnlocked(options) {
       if (typeof relative !== 'string' || !relative || path.isAbsolute(relative) || relative.split(/[\\/]/u).includes('..')) fail('INVALID_DELIVERY_PATH');
       return path.join(options.inbox, relative);
     }) : await walk(options.inbox);
-  const ledgerFile = path.join(options.lakeRoot, 'file-ledger.json');
-  const ledger = await readJson(ledgerFile, { version: 1, deliveries: {} });
+  const { file: ledgerFile, ledger } = options.dryRun ? { file: null, ledger: { version: 1, deliveries: {} } }
+    : await sourceLedger(options.lakeRoot, 'file', options.sourceCode);
   if (!options.dryRun) await mkdir(options.lakeRoot, { recursive: true, mode: 0o700 });
   const batchId = options.batchId ?? `files-${deliveryDate.replaceAll('-', '')}-${randomUUID().slice(0, 8)}`;
   if (!SAFE.test(batchId)) fail('INVALID_BATCH_ID');
@@ -176,7 +177,7 @@ export async function scanDirectory(options = parseArgs([])) {
   const relativeLake = path.relative(options.inbox, options.lakeRoot);
   if (!relativeLake || (!relativeLake.startsWith('..') && !path.isAbsolute(relativeLake)
       && !(options.sealedInput === true && Array.isArray(options.onlyRelativePaths) && options.expectedHashes))) fail('LAKE_ROOT_INSIDE_INBOX');
-  return options.dryRun ? scanUnlocked(options) : withLock(path.join(options.lakeRoot, 'file-ingest.lock'), () => scanUnlocked(options));
+  return options.dryRun ? scanUnlocked(options) : withLock(path.join(options.lakeRoot, `file-ingest-${options.sourceCode}.lock`), () => scanUnlocked(options));
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

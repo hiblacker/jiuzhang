@@ -39,7 +39,7 @@ export async function managedProfile(registry, task) {
       || resource.kind !== config.kind || resource.resourceGroup !== config.resourceGroup
       || !CODE.test(config.sourceCode) || (task.source_code && config.sourceCode !== task.source_code)
       || (task.kind && config.kind !== task.kind)) fail('MANAGED_RESOURCE_SCOPE_MISMATCH');
-  const root = path.join(registry.lakeRoot, 'managed-configurations', config.sourceCode, String(config.channelVersion));
+  const root = path.join(registry.lakeRoot, 'managed-configurations', config.sourceCode, String(config.channelVersion), task.configurationSha256);
   await mkdir(root, { recursive: true, mode: 0o700 });
   const maxBytes = Math.min(config.maxBytes, resource.maxBytes ?? config.maxBytes);
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 1024) fail('INVALID_MANAGED_RESOURCE_LIMIT');
@@ -91,7 +91,7 @@ async function immutableJson(file, value) {
   if (!previous) await atomicJson(file, value);
 }
 
-export async function probeManaged(registry, task) {
+export async function probeManaged(registry, task, requestBudget) {
   const profile = await managedProfile(registry, task);
   if (profile.kind === 'MYSQL_SNAPSHOT') {
     const inventory = scopeInventory(await discover(profile, task.inventoryVersion), profile.tables);
@@ -116,6 +116,7 @@ export async function probeManaged(registry, task) {
       note: '连接与交付规则预检通过；采集时逐文件执行解析与完整性检查' };
   }
   const config = validateConfig(await readJson(profile.config));
+  config.requestBudget = requestBudget;
   config.timeout_seconds = Math.min(config.timeout_seconds, 15); config.retry.max_attempts = 1;
   const token = profile.environment?.[config.auth_env] ?? await tokenFromEnv(config, false);
   const response = await requestJson(buildInitialUrl(config, null), config, token);

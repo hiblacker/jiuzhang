@@ -47,6 +47,14 @@ public class ManagedIngestionService {
     jdbc.update("INSERT INTO warehouse.resource_project(resource_id,project_id,enabled) VALUES (?,?,?) ON CONFLICT(resource_id,project_id) DO UPDATE SET enabled=EXCLUDED.enabled",resource,project,b.path("enabled").asBoolean(true));
     systems.audit(actor,"INGEST_RESOURCE_GRANT",resource,Map.of("projectId",project,"enabled",b.path("enabled").asBoolean(true)));return Map.of("updated",true);
   }
+  @Transactional public Object grantConnection(long project,long id,JsonNode b,String actor){
+    access.requireAdmin(actor);connection(project,id,actor,"OWNER");long target=b.path("projectId").asLong(-1);
+    var row=connection(project,id,actor,"OWNER");systems.requireInstance(target,((Number)row.get("instance_id")).longValue(),actor,"OWNER");
+    requireResource(target,((Number)row.get("resource_id")).longValue(),actor);
+    boolean enabled=b.path("enabled").asBoolean(true);
+    jdbc.update("INSERT INTO warehouse.connection_project(connection_id,project_id,enabled) VALUES (?,?,?) ON CONFLICT(connection_id,project_id) DO UPDATE SET enabled=EXCLUDED.enabled",id,target,enabled);
+    systems.audit(actor,"INGEST_CONNECTION_GRANT",id,Map.of("projectId",target,"enabled",enabled));return Map.of("updated",true);
+  }
   public Object resources(long project,String actor){access.require(project,actor,"ENGINEER");return jdbc.queryForList("SELECT r.* FROM warehouse.ingest_resource r JOIN warehouse.resource_project p ON p.resource_id=r.id JOIN warehouse.execution_environment e ON e.code=r.environment_code WHERE p.project_id=? AND p.enabled AND r.enabled AND e.enabled ORDER BY r.id",project);}
   private Map<String,Object> requireResource(long project,long resource,String actor){
     access.require(project,actor,"ENGINEER");var rows=jdbc.queryForList("SELECT r.* FROM warehouse.ingest_resource r JOIN warehouse.resource_project p ON p.resource_id=r.id JOIN warehouse.execution_environment e ON e.code=r.environment_code WHERE r.id=? AND p.project_id=? AND p.enabled AND r.enabled AND e.enabled",resource,project);
@@ -71,7 +79,9 @@ public class ManagedIngestionService {
         """,project,project,instance);
   }
   @Transactional public Object createConnection(long project,long instance,JsonNode b,String actor){
-    systems.requireInstance(project,instance,actor,"ENGINEER");long resource=b.path("resourceId").asLong(-1);var resourceRow=requireResource(project,resource,actor);
+    var parent=systems.requireInstance(project,instance,actor,"ENGINEER");
+    if(parent.get("lifecycle").equals("RETIRED")||systems.requireSystem(project,((Number)parent.get("system_id")).longValue(),actor,"ENGINEER").get("lifecycle").equals("RETIRED"))conflict("TARGET_RETIRED");
+    long resource=b.path("resourceId").asLong(-1);var resourceRow=requireResource(project,resource,actor);
     JsonNode config=configuration(b.path("config"),resourceRow.get("kind").toString(),false);
     var row=jdbc.queryForMap("INSERT INTO warehouse.ingest_connection(instance_id,code,name,resource_id,managing_project_id,active_version) VALUES (?,?,?,?,?,1) RETURNING *",instance,code(b,"code"),text(b,"name",100,true),resource,project);
     jdbc.update("INSERT INTO warehouse.connection_version(connection_id,version,config,created_by) VALUES (?,1,?::jsonb,?)",row.get("id"),config.toString(),actor);
@@ -106,7 +116,7 @@ public class ManagedIngestionService {
         """,connection,project);
   }
   @Transactional public Object createChannel(long project,long connection,JsonNode b,String actor){
-    var c=connection(project,connection,actor,"ENGINEER");JsonNode config=configuration(b.path("config"),c.get("kind").toString(),true);
+    var c=connection(project,connection,actor,"ENGINEER");if(c.get("lifecycle").equals("RETIRED"))conflict("TARGET_RETIRED");JsonNode config=configuration(b.path("config"),c.get("kind").toString(),true);
     String code=text(b,"code",100,true);long source;
     if(b.has("existingSourceId")){
       access.requireAdmin(actor);source=b.path("existingSourceId").asLong(-1);
@@ -124,6 +134,7 @@ public class ManagedIngestionService {
   @Transactional public Object versionChannel(long project,long source,JsonNode b,String actor){
     var ch=channel(project,source,actor,"ENGINEER");var c=connection(project,((Number)ch.get("connection_id")).longValue(),actor,"ENGINEER");
     int expected=integer(b,"expectedVersion",-1,1,Integer.MAX_VALUE-1),cv=integer(b,"connectionVersion",((Number)c.get("active_version")).intValue(),1,Integer.MAX_VALUE-1);
+    if(jdbc.queryForObject("SELECT count(*) FROM warehouse.connection_version WHERE connection_id=? AND version=?",Long.class,c.get("id"),cv)!=1)bad("CONNECTION_VERSION_NOT_FOUND");
     JsonNode config=configuration(b.path("config"),c.get("kind").toString(),true);
     if(c.get("kind").equals("REST_PULL")&&!((JsonNode)ch.get("config")).path("path").equals(config.path("path")))conflict("NEW_API_OBJECT_REQUIRES_NEW_CHANNEL");
     if(c.get("kind").equals("FILE_SCAN")&&!((JsonNode)ch.get("config")).path("relativeDirectory").equals(config.path("relativeDirectory")))conflict("NEW_FILE_FEED_REQUIRES_NEW_CHANNEL");
@@ -141,16 +152,20 @@ public class ManagedIngestionService {
   public Object probes(long project,long source,String actor){channel(project,source,actor,"ENGINEER");var rows=jdbc.queryForList("SELECT id,channel_version,state,error_code,result,created_at,finished_at FROM warehouse.ingestion_probe WHERE source_id=? ORDER BY id DESC LIMIT 50",source);rows.forEach(r->decode(r,"result"));return rows;}
   @Transactional public Object claimProbe(String environment,String actor){
     if(environment==null||!environment.matches("[a-z][a-z0-9_-]{1,70}"))bad("INVALID_ENVIRONMENT");
+    jdbc.queryForObject("SELECT pg_advisory_xact_lock(73401921)",Object.class);
     jdbc.update("UPDATE warehouse.ingestion_probe SET state='FAILED',error_code='PROBE_LEASE_EXPIRED',finished_at=clock_timestamp() WHERE state='RUNNING' AND lease_expires_at<=clock_timestamp()");
     var rows=jdbc.queryForList("""
         SELECT p.* FROM warehouse.ingestion_probe p JOIN warehouse.ingest_channel c ON c.source_id=p.source_id
         JOIN warehouse.ingest_connection cn ON cn.id=c.connection_id JOIN warehouse.ingest_resource r ON r.id=cn.resource_id
-        WHERE p.state='QUEUED' AND r.environment_code=? ORDER BY p.id FOR UPDATE OF p SKIP LOCKED LIMIT 100
+        JOIN warehouse.system_instance si ON si.id=cn.instance_id JOIN warehouse.business_system bs ON bs.id=si.system_id
+        WHERE p.state='QUEUED' AND r.environment_code=? ORDER BY bs.last_claimed_at NULLS FIRST,p.id FOR UPDATE OF p SKIP LOCKED
         """,environment);
     for(var row:rows){long source=((Number)row.get("source_id")).longValue();int version=((Number)row.get("channel_version")).intValue();
-      if(!runtime.eligible(source,version,actor))continue;access.require(((Number)row.get("project_id")).longValue(),row.get("requested_by").toString(),"ENGINEER");
+      if(runtime.dispatchReason(source,json.createObjectNode().put("channelVersion",version),actor)!=null)continue;
+      try{access.require(((Number)row.get("project_id")).longValue(),row.get("requested_by").toString(),"ENGINEER");}catch(com.bydw.api.ApiException e){jdbc.update("UPDATE warehouse.ingestion_probe SET state='FAILED',error_code='PROJECT_ACCESS_DENIED',finished_at=clock_timestamp() WHERE id=?",row.get("id"));continue;}
       UUID token=UUID.randomUUID();jdbc.update("UPDATE warehouse.ingestion_probe SET state='RUNNING',lease_owner=?,lease_token=?,lease_expires_at=clock_timestamp()+interval '120 seconds' WHERE id=?",actor,token,row.get("id"));
       jdbc.update("UPDATE warehouse.execution_environment SET last_seen_at=clock_timestamp() WHERE code=?",environment);
+      runtime.markDispatched(source);
       var result=new java.util.LinkedHashMap<String,Object>(runtime.configuration(source,version,actor));result.put("id",row.get("id"));result.put("leaseToken",token);result.put("state","RUNNING");
       result.put("inventoryVersion",jdbc.queryForObject("SELECT coalesce(max(plan_version),0)+1 FROM lake.inventory WHERE source_id=?",Long.class,source));return result;
     }return Map.of("state","IDLE");
@@ -184,6 +199,8 @@ public class ManagedIngestionService {
       }catch(com.fasterxml.jackson.core.JsonProcessingException e){bad("INVALID_DISCOVERED_INVENTORY");}
     }
     var contract=json.createObjectNode().put("channelVersion",((Number)ch.get("active_version")).intValue()).put("pollSeconds",integer(b,"pollSeconds",60,60,3600)).put("lateDays",integer(b,"lateDays",7,0,31));
+    if(b.has("daysOfWeek"))contract.set("daysOfWeek",b.path("daysOfWeek"));
+    runtime.configuration(source,((Number)ch.get("active_version")).intValue(),null);
     String timezone=text(b,"timezone",80,true);if(!timezone.equals("Asia/Shanghai")&&!c.get("kind").equals("MYSQL_SNAPSHOT"))bad("CONNECTOR_TIMEZONE_NOT_SUPPORTED");
     Map<String,Object> saved;
     try{saved=lake.savePlan(new LakePlanRequest(ch.get("code").toString(),integer(b,"expectedPlanVersion",0,0,Integer.MAX_VALUE-1),inventoryVersion,c.get("kind").toString(),"managed-"+c.get("environment_code"),contract,timezone,LocalTime.parse(b.path("triggerTime").asText()),LocalDate.parse(b.path("startDate").asText()),!c.get("kind").equals("MYSQL_SNAPSHOT")&&b.path("historicalRead").asBoolean(false),integer(b,"maxAttempts",3,1,8),integer(b,"timeoutSeconds",3600,30,86400)),actor);}
@@ -204,7 +221,7 @@ public class ManagedIngestionService {
       String relative=text(config,"relativeDirectory",300,false);if(relative.startsWith("/")||relative.contains("\\")||java.util.Arrays.asList(relative.split("/",-1)).contains(".."))bad("DIRECTORY_OUTSIDE_RESOURCE");
       if(!config.path("delivery").isObject())bad("FILE_DELIVERY_CONTRACT_REQUIRED");
     }
-    if(channel&&kind.equals("REST_PULL")){String path=text(config,"path",300,true);if(!path.startsWith("/")||path.startsWith("//")||path.contains("..")||path.contains("?")||path.contains("#"))bad("INVALID_API_PATH");}
+    if(channel&&kind.equals("REST_PULL")){config.path("query").fieldNames().forEachRemaining(k->{if(k.matches("(?i).*(token|auth|key|secret|password|cookie).*"))bad("SECRET_VALUE_FORBIDDEN");});String path=text(config,"path",300,true);if(!path.startsWith("/")||path.startsWith("//")||path.contains("..")||path.contains("?")||path.contains("#"))bad("INVALID_API_PATH");}
     if(channel&&kind.equals("MYSQL_SNAPSHOT")&&config.has("tables")){
       if(!config.path("tables").isArray()||config.path("tables").size()>10000)bad("INVALID_TABLE_SCOPE");
       for(JsonNode t:config.path("tables"))if(!t.isTextual()||t.asText().isBlank()||t.asText().length()>64)bad("INVALID_TABLE_SCOPE");

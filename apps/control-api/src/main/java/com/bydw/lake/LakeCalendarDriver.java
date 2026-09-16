@@ -15,10 +15,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class LakeCalendarDriver {
   private static final Logger LOG = LoggerFactory.getLogger(LakeCalendarDriver.class);
   private final LakeExecutionService service;
-  public LakeCalendarDriver(LakeExecutionService service) { this.service = service; }
+  private final com.bydw.warehouse.SystemDeliveryService delivery;
+  public LakeCalendarDriver(LakeExecutionService service,com.bydw.warehouse.SystemDeliveryService delivery) { this.service = service;this.delivery=delivery; }
   @Scheduled(fixedDelayString = "${bydw.lake.calendar-interval-ms:10000}")
   public void tick() {
-    try { service.reconcile(Instant.now()); }
+    try { service.reconcile(Instant.now());delivery.reconcile(Instant.now()); }
     catch (Exception error) { LOG.error("Lake calendar reconciliation failed: {}", error.getClass().getSimpleName()); }
   }
 }
