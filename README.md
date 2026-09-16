@@ -24,6 +24,7 @@
 ## 当前状态
 
 - Vue/Naive UI 前端已完成实现、构建和本机隔离交互验证；真实 API/容器联调及 Windows 既有回归问题另列边界，见 [UI-02 建设记录](docs/38-vue-console.md)。
+- 前端 Pinia 状态归属、业务模块拆分及 ESLint 格式门禁见 [UI-03 重构记录](docs/39-console-refactor.md)，不引入通用 Model 层。
 
 - 2026-09-16：一期本地产品交付完成：真实整库及每日 Worker、四格式目录/API、项目角色、Git/dbt 模型、质量发布、授权查询、原件重处理、结构变更确认、简单操作页面、完整容器运行包和联合备份恢复。157 表、1,617,565 行已入湖；详见[最终验收与边界](docs/37-phase-one-acceptance.md)、[本机启动](deploy/LOCAL_RUNTIME.md)及[容器启动](deploy/PRODUCT_RUNTIME.md)。下列日期条目为历史过程，不代表当前仍缺这些已交付能力。
 

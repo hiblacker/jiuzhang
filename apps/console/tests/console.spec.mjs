@@ -9,6 +9,76 @@ import {
   ownerToken,
 } from './fixture.mjs'
 
+test('model dialogs reset drafts on reopen and preserve expectedVersion on conflict', async ({
+  page,
+}) => {
+  const state = await fixture(page, {
+    override: async ({ path, body, send }) => {
+      if (path.endsWith('/models') && body) {
+        await send({ code: 'MODEL_VERSION_CHANGED' }, 409)
+        return true
+      }
+    },
+  })
+  await connect(page)
+  await nav(page, '模型与数据集')
+  await page.getByRole('tab', { name: '模型版本', exact: true }).click()
+  await page.getByRole('button', { name: '登记新版本', exact: true }).click()
+  await page.getByLabel('数据集名称', { exact: true }).fill('edited synthetic dataset')
+  await page.getByRole('button', { name: '确认提交', exact: true }).click()
+  await expect(page.locator('.action-modal')).toContainText('MODEL_VERSION_CHANGED')
+  await expect(page.getByLabel('数据集名称', { exact: true })).toHaveValue(
+    'edited synthetic dataset',
+  )
+  expect(
+    state.calls.find(call => call.path.endsWith('/models') && call.body).body.expectedVersion,
+  ).toBe(2)
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.action-modal')).toHaveCount(0)
+  await page.getByRole('button', { name: '登记模型', exact: true }).click()
+  await expect(page.getByLabel('数据集名称', { exact: true })).toHaveValue('')
+  await expect(page.getByLabel('当前模型版本', { exact: true })).toHaveValue('0')
+})
+
+test('project switching discards an in-flight dataset query and export scope', async ({ page }) => {
+  let release
+  let started = false
+  const gate = new Promise((resolve) => {
+    release = resolve
+  })
+  const state = await fixture(page, {
+    override: async ({ path, body, send }) => {
+      if (path === 'warehouse/projects/1/datasets/1/query') {
+        started = true
+        await gate
+        await send({
+          datasetId: 1,
+          releaseId: 7,
+          policyRevision: 2,
+          columns: ['id'],
+          rows: [{ id: 'stale-dataset-result' }],
+          limit: body.limit,
+          offset: 0,
+        }).catch(() => {})
+        return true
+      }
+    },
+  })
+  await connect(page)
+  await nav(page, '模型与数据集')
+  await page.getByRole('button', { name: '查询数据' }).click()
+  await expect.poll(() => started).toBe(true)
+  await select(page, '当前项目', '服务资产')
+  release()
+  await expect
+    .poll(() => state.calls.some(call => call.path === 'warehouse/projects/2/datasets'))
+    .toBe(true)
+  await expect(page.getByText('stale-dataset-result', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '导出当前页' })).toHaveCount(0)
+  await page.getByRole('button', { name: '查询数据' }).click()
+  await expect(page.getByText('1234567890123456.78', { exact: true })).toBeVisible()
+})
+
 test('overview loads real-shaped API data and filters by source', async ({ page }) => {
   const state = await fixture(page)
   await connect(page)
@@ -402,6 +472,13 @@ test('all workspaces render without errors or overflow on desktop and mobile', a
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport)
+    const menu = page.getByRole('button', { name: '打开导航', exact: true })
+    if (viewport.width > 700) {
+      await expect(menu).toBeHidden()
+    }
+    else {
+      await expect(menu).toBeVisible()
+    }
     for (const [key, name, cell] of [
       ['overview', '运行概览', null],
       ['sources', '数据来源', 'file-orders'],

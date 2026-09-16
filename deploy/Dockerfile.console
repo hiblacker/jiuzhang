@@ -4,7 +4,7 @@ WORKDIR /console
 COPY apps/console/package.json apps/console/package-lock.json apps/console/.npmrc ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY apps/console ./
-RUN npm run build
+RUN npm run check
 FROM ${IMAGE_PREFIX}node:22.23.1-bookworm-slim
 WORKDIR /console
 COPY --from=console-build /console/dist ./dist

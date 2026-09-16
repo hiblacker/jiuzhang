@@ -2,13 +2,19 @@
 import { onMounted, ref } from 'vue'
 import { NAlert, NButton, NEmpty } from 'naive-ui'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
-import { projectId, useApi } from '../api'
-import type { Row } from '../types'
-import DataGrid from '../components/DataGrid.vue'
-import DetailDrawer from '../components/DetailDrawer.vue'
+import { storeToRefs } from 'pinia'
+import { useProjectStore } from '../../stores/project'
+import { useApi } from '../../shared/composables/useApi'
+import type { Action, Column } from '../../shared/types'
+import { assetApi } from './api'
+import type { Asset } from './api'
+import DataGrid from '../../shared/components/DataGrid.vue'
+import DetailDrawer from '../../shared/components/DetailDrawer.vue'
 const { loading, error, run, call } = useApi()
+const { projectId } = storeToRefs(useProjectStore())
 const project = projectId.value
-const rows = ref<Row[]>([])
+const api = assetApi(call, project ?? 0)
+const rows = ref<Asset[]>([])
 const offset = ref(0)
 const detail = ref<unknown>()
 const showDetail = ref(false)
@@ -16,21 +22,33 @@ const title = ref('资产详情')
 async function load(next = 0) {
   if (project) {
     await run(async () => {
-      rows.value = await call<Row[]>(
-        `warehouse/projects/${project}/assets?limit=100&offset=${next}`,
-      )
+      rows.value = await api.list(next)
       offset.value = next
     })
   }
 }
-function inspect(row: Row, coverage = false) {
+function inspect(row: Asset, coverage = false) {
   void run(async () => {
-    detail.value = await call(
-      `warehouse/projects/${project}/${coverage ? `coverage/${row.run_id}` : `assets/${encodeURIComponent(String(row.id))}`}`,
-    )
+    detail.value = await (coverage ? api.coverage(row.run_id) : api.detail(row.id))
     title.value = coverage ? '批次覆盖' : '结构与来源'
     showDetail.value = true
   })
+}
+const columns: Column[] = [
+  { key: 'name', title: '资产名称', width: 210 },
+  { key: 'source_code', title: '来源' },
+  { key: 'kind', title: '类型', width: 100 },
+  { key: 'state', title: '状态', state: true },
+  { key: 'row_count', title: '行数', width: 100 },
+  { key: 'data_window', title: '窗口', width: 220 },
+  { key: 'contract_version', title: '契约版本', width: 100 },
+]
+function actions(row: Asset): Action[] {
+  const items: Action[] = [{ label: '结构与来源', run: () => inspect(row) }]
+  if (row.kind === 'TABLE') {
+    items.push({ label: '批次覆盖', run: () => inspect(row, true) })
+  }
+  return items
 }
 onMounted(() => load())
 </script>
@@ -48,21 +66,8 @@ onMounted(() => load())
       :rows="rows"
       :loading="loading"
       :paginated="false"
-      :columns="[
-        { key: 'name', title: '资产名称', width: 210 },
-        { key: 'source_code', title: '来源' },
-        { key: 'kind', title: '类型', width: 100 },
-        { key: 'state', title: '状态', state: true },
-        { key: 'row_count', title: '行数', width: 100 },
-        { key: 'data_window', title: '窗口', width: 220 },
-        { key: 'contract_version', title: '契约版本', width: 100 },
-      ]"
-      :actions="
-        (row) => [
-          { label: '结构与来源', run: () => inspect(row) },
-          ...(row.kind === 'TABLE' ? [{ label: '批次覆盖', run: () => inspect(row, true) }] : []),
-        ]
-      "
+      :columns="columns"
+      :actions="actions"
     />
     <div class="pager">
       <NButton :disabled="loading || offset === 0" @click="load(offset - 100)">

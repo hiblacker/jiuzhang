@@ -94,7 +94,7 @@ services:
       control-api: {condition: service_healthy}
     restart: unless-stopped
   console:
-    image: jiuzhang/console:0.2.0-dev.1
+    image: jiuzhang/console:0.2.1-dev.1
     platform: linux/amd64
     network_mode: service:control-api
     environment:

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T10:59:22.448Z",
+  "generatedAt": "2026-09-16T11:50:38.862Z",
   "registry": "https://registry.npmmirror.com",
   "verifiedAgainst": "https://registry.npmjs.org",
   "installationScripts": "disabled",
@@ -790,6 +790,39 @@
       "tarball": "https://registry.npmmirror.com/@vue/compiler-ssr/-/compiler-ssr-3.5.42.tgz"
     },
     {
+      "name": "@vue/devtools-api",
+      "version": "7.7.10",
+      "license": "MIT",
+      "integrity": "sha512-KxtEpUOOpFz/qOGRrAwA36QF7DqIA+FXgCYit9mk9wjbaZt0sXOFz81ElOZtKA4HbWHUdwNjZHBFsFFyp5BZiA==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/vuejs/devtools.git",
+      "tarball": "https://registry.npmmirror.com/@vue/devtools-api/-/devtools-api-7.7.10.tgz"
+    },
+    {
+      "name": "@vue/devtools-kit",
+      "version": "7.7.10",
+      "license": "MIT",
+      "integrity": "sha512-3WNi2Kq4tbpVbmhml7RiphmAt0279oh3fKNeWMQIrltfX8Q91b4i5PL8DtyNKdwmcsGrV4fg+erwWOmD05CLIw==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/vuejs/devtools.git",
+      "tarball": "https://registry.npmmirror.com/@vue/devtools-kit/-/devtools-kit-7.7.10.tgz"
+    },
+    {
+      "name": "@vue/devtools-shared",
+      "version": "7.7.10",
+      "license": "MIT",
+      "integrity": "sha512-wOPslzB8vTvpxwdaOcR2qAbwmuSP0L+rhpoC6Cf56V3Jip+HWb7PQQXOUPgBNQARpXsbQX/+mvi8kKucmBGRwQ==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/vuejs/devtools.git",
+      "tarball": "https://registry.npmmirror.com/@vue/devtools-shared/-/devtools-shared-7.7.10.tgz"
+    },
+    {
       "name": "@vue/language-core",
       "version": "3.3.11",
       "license": "MIT",
@@ -922,6 +955,17 @@
       "tarball": "https://registry.npmmirror.com/balanced-match/-/balanced-match-4.0.4.tgz"
     },
     {
+      "name": "birpc",
+      "version": "2.9.0",
+      "license": "MIT",
+      "integrity": "sha512-KrayHS5pBi69Xi9JmvoqrIgYGDkD6mcSe/i6YKi3w5kekCLzrX4+nawcXqrj2tIp50Kw/mT/s3p+GVK0A0sKxw==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/antfu-collective/birpc.git",
+      "tarball": "https://registry.npmmirror.com/birpc/-/birpc-2.9.0.tgz"
+    },
+    {
       "name": "boolbase",
       "version": "1.0.0",
       "license": "ISC",
@@ -953,6 +997,17 @@
       "hasInstallScript": false,
       "repository": "git+https://github.com/jaredwray/cacheable.git",
       "tarball": "https://registry.npmmirror.com/cacheable/-/cacheable-2.5.0.tgz"
+    },
+    {
+      "name": "copy-anything",
+      "version": "4.1.0",
+      "license": "MIT",
+      "integrity": "sha512-ufbM3smX/Jbnpk5wcQjzd1MgBpzmqfNETUAyZNrGwU9foRlyHoGzMMBBCRzEhQLBjZfFDE1W2ufPXX2vdWkV8Q==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/mesqueeb/copy-anything.git",
+      "tarball": "https://registry.npmmirror.com/copy-anything/-/copy-anything-4.1.0.tgz"
     },
     {
       "name": "cross-spawn",
@@ -1373,6 +1428,17 @@
       "tarball": "https://registry.npmmirror.com/highlight.js/-/highlight.js-11.12.0.tgz"
     },
     {
+      "name": "hookable",
+      "version": "5.5.3",
+      "license": "MIT",
+      "integrity": "sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/unjs/hookable.git",
+      "tarball": "https://registry.npmmirror.com/hookable/-/hookable-5.5.3.tgz"
+    },
+    {
       "name": "hookified",
       "version": "1.15.1",
       "license": "MIT",
@@ -1681,6 +1747,17 @@
       "tarball": "https://registry.npmmirror.com/minimatch/-/minimatch-10.2.6.tgz"
     },
     {
+      "name": "mitt",
+      "version": "3.0.1",
+      "license": "MIT",
+      "integrity": "sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/developit/mitt.git",
+      "tarball": "https://registry.npmmirror.com/mitt/-/mitt-3.0.1.tgz"
+    },
+    {
       "name": "ms",
       "version": "2.1.3",
       "license": "MIT",
@@ -1813,6 +1890,17 @@
       "tarball": "https://registry.npmmirror.com/path-key/-/path-key-3.1.1.tgz"
     },
     {
+      "name": "perfect-debounce",
+      "version": "1.0.0",
+      "license": "MIT",
+      "integrity": "sha512-xCy9V055GLEqoFaHoC1SoLIaLmWctgCUaBaWxDZ7/Zx4CTyX7cJQLJOok/orfjZAh9kEYpjJa4d0KcJmCbctZA==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/unjs/perfect-debounce.git",
+      "tarball": "https://registry.npmmirror.com/perfect-debounce/-/perfect-debounce-1.0.0.tgz"
+    },
+    {
       "name": "picocolors",
       "version": "1.1.1",
       "license": "ISC",
@@ -1833,6 +1921,17 @@
       "hasInstallScript": false,
       "repository": "git+https://github.com/micromatch/picomatch.git",
       "tarball": "https://registry.npmmirror.com/picomatch/-/picomatch-4.0.7.tgz"
+    },
+    {
+      "name": "pinia",
+      "version": "3.0.4",
+      "license": "MIT",
+      "integrity": "sha512-l7pqLUFTI/+ESXn6k3nu30ZIzW5E2WZF/LaHJEpoq6ElcLD+wduZoB2kBN19du6K/4FDpPMazY2wJr+IndBtQw==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/vuejs/pinia.git",
+      "tarball": "https://registry.npmmirror.com/pinia/-/pinia-3.0.4.tgz"
     },
     {
       "name": "playwright",
@@ -1934,6 +2033,17 @@
       "tarball": "https://registry.npmmirror.com/hookified/-/hookified-2.2.0.tgz"
     },
     {
+      "name": "rfdc",
+      "version": "1.4.1",
+      "license": "MIT",
+      "integrity": "sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/davidmarkclements/rfdc.git",
+      "tarball": "https://registry.npmmirror.com/rfdc/-/rfdc-1.4.1.tgz"
+    },
+    {
       "name": "rolldown",
       "version": "1.2.8",
       "license": "MIT",
@@ -1998,6 +2108,28 @@
       "hasInstallScript": false,
       "repository": "git+https://github.com/7rulnik/source-map-js.git",
       "tarball": "https://registry.npmmirror.com/source-map-js/-/source-map-js-1.2.1.tgz"
+    },
+    {
+      "name": "speakingurl",
+      "version": "14.0.1",
+      "license": "BSD-3-Clause",
+      "integrity": "sha512-1POYv7uv2gXoyGFpBCmpDVSNV74IfsWlDW216UPjbWufNf+bSU6GdbDsxdcxtfwb4xlI3yxzOTKClUosxARYrQ==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/pid/speakingurl.git",
+      "tarball": "https://registry.npmmirror.com/speakingurl/-/speakingurl-14.0.1.tgz"
+    },
+    {
+      "name": "superjson",
+      "version": "2.2.6",
+      "license": "MIT",
+      "integrity": "sha512-H+ue8Zo4vJmV2nRjpx86P35lzwDT3nItnIsocgumgr0hHMQ+ZGq5vrERg9kJBo5AWGmxZDhzDo+WVIJqkB0cGA==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/blitz-js/superjson.git",
+      "tarball": "https://registry.npmmirror.com/superjson/-/superjson-2.2.6.tgz"
     },
     {
       "name": "tinyglobby",

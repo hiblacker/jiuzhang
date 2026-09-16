@@ -1,8 +1,8 @@
 # 九章入湖控制台
 
-Vue 3 + TypeScript + Naive UI 控制台，覆盖运行、来源、接入计划、交付、资产、模型与数据集、项目权限。前端实现、构建及本机隔离浏览器验证已完成；真实 API 联调和容器运行尚未验证。完整范围和边界见 [UI-02 实施记录](../../docs/38-vue-console.md)。
+Vue 3 + TypeScript + Naive UI + Pinia 控制台，覆盖运行、来源、接入计划、交付、资产、模型与数据集、项目权限。前端实现、构建及本机隔离浏览器验证已完成；真实 API 联调和容器运行尚未验证。功能范围见 [UI-02 实施记录](../../docs/38-vue-console.md)，最新结构和门禁见 [UI-03 重构记录](../../docs/39-console-refactor.md)。
 
-固定依赖已于 2026-09-16 获用户批准。在 `apps/console` 目录执行（Node >=22.12；项目级国内镜像；禁用安装脚本）：
+固定依赖已于 2026-09-16 获用户批准。在 `apps/console` 目录执行（Node >=22.13；项目级国内镜像；禁用安装脚本）：
 
 ```bash
 npm ci --ignore-scripts --cache ../../work/npm-console-cache
@@ -19,8 +19,7 @@ npm run dev
 
 ```bash
 npm run licenses
-npm run typecheck
-npm run build
+npm run check
 npm test
 ```
 
@@ -36,4 +35,13 @@ node --experimental-strip-types --test tests/console-transport.test.mjs tests/co
 
 构建产物为 `dist`，包含运行依赖 NOTICE。原生部署运行 `node server.mjs`；`PORT` 默认 4173，`HOST` 默认 127.0.0.1，`CONSOLE_API_ORIGIN` 默认 `http://127.0.0.1:8080`。访问页面同源地址即可通过受控代理连接 API。正式环境由 HTTPS 网关代理，不能将开发服务器作为生产服务。
 
-容器入口为 [Dockerfile.console](../../deploy/Dockerfile.console)，Compose 中独立使用 `jiuzhang/console:0.2.0-dev.1`。无数据库迁移；恢复旧页面时同步恢复旧页面部署入口，不修改任何数据发布记录。
+容器入口为 [Dockerfile.console](../../deploy/Dockerfile.console)，Compose 中独立使用 `jiuzhang/console:0.2.1-dev.1`；此标签尚未构建或部署，不覆盖旧标签。无数据库迁移；恢复旧页面时同步恢复旧页面部署入口，不修改任何数据发布记录。
+
+## 开发约束
+
+- `app` 负责装配、布局、导航和会话协调；`stores` 仅保存共享状态。
+- `features` 按业务组织 API、类型、页面和具名表单；不增加通用 Model/Repository 层。
+- API 模块不得依赖 Pinia、Vue 组件或应用装配；ESLint 强制检查该边界。
+- 令牌在会话协调层内存闭包中，不进入 Pinia state/action 参数或持久化；临时签发令牌仅在组件中展示。
+- `npm run lint:fix` 修复 JS/TS/Vue；`npm run format:css` 只格式化 CSS。组件局部 CSS 通过 scoped src 引用。
+- `npm run check` 执行零告警 lint、CSS 格式检查、单元测试、类型检查、构建和 NOTICE 打包；浏览器测试仍需单独运行。

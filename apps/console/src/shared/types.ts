@@ -1,19 +1,19 @@
 export type Row = Record<string, unknown>
 export type Role = 'OWNER' | 'ENGINEER' | 'VIEWER'
-export interface Project extends Row {
+export interface Project {
   id: number
   code: string
   name: string
   role: Role
 }
-export interface Dataset extends Row {
+export interface Dataset {
   id: number
   code: string
   name: string
   active_model_version: number
   active_release_id: number | null
 }
-export interface Plan extends Row {
+export interface Plan {
   id: number
   source_code: string
   active_version: number
@@ -29,7 +29,7 @@ export interface Plan extends Row {
   timeout_seconds: number
   contract: Row
 }
-export interface Source extends Row {
+export interface Source {
   id: number
   code: string
   sourceType: string
@@ -60,16 +60,6 @@ export interface Action {
   label: string
   run: () => void
   danger?: boolean
-}
-export interface Field {
-  key: string
-  label: string
-  type?: 'text' | 'number' | 'select' | 'json' | 'date' | 'time' | 'switch' | 'textarea'
-  required?: boolean
-  min?: number
-  max?: number
-  options?: { label: string, value: string | number }[]
-  disabled?: boolean
 }
 export function object(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Row) : {}

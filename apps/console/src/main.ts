@@ -1,5 +1,7 @@
 import { createApp } from 'vue'
+import { consoleContextKey, createConsoleContext } from './app/context'
+import { pinia } from './stores'
 import App from './App.vue'
-import './style.css'
+import './shared/styles/base.css'
 
-createApp(App).mount('#app')
+createApp(App).use(pinia).provide(consoleContextKey, createConsoleContext(pinia)).mount('#app')

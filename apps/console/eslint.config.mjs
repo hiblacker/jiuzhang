@@ -35,6 +35,15 @@ export default [
     rules: { '@typescript-eslint/no-floating-promises': 'error' },
   },
   {
+    files: ['src/api/**/*.ts', 'src/features/**/api.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: ['pinia', 'vue'],
+        patterns: ['**/stores/**', '**/app/**', '**/*.vue'],
+      }],
+    },
+  },
+  {
     files: ['**/*.vue'],
     languageOptions: { parser: vueParser, parserOptions: { parser: ts.parser, vueFeatures: { filter: false } } },
     rules: {

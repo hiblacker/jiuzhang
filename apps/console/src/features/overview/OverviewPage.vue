@@ -2,39 +2,39 @@
 import { computed, onMounted, ref } from 'vue'
 import { NAlert, NButton, NInput } from 'naive-ui'
 import { Activity, CheckCircle2, Database, CircleAlert, Search } from 'lucide-vue-next'
-import { useApi } from '../api'
-import { display, object, type Row } from '../types'
-import DataGrid from '../components/DataGrid.vue'
-import DetailDrawer from '../components/DetailDrawer.vue'
+import { useApi } from '../../shared/composables/useApi'
+import { display } from '../../shared/types'
+import { overviewApi } from './api'
+import type { Summary, SystemRun, Delivery } from './api'
+import DataGrid from '../../shared/components/DataGrid.vue'
+import DetailDrawer from '../../shared/components/DetailDrawer.vue'
 const { loading, error, run, call } = useApi()
-const summary = ref<Row>({})
-const runs = ref<Row[]>([])
-const deliveries = ref<Row[]>([])
+const api = overviewApi(call)
+const summary = ref<Summary>({})
+const runs = ref<SystemRun[]>([])
+const deliveries = ref<Delivery[]>([])
 const source = ref('')
 const detail = ref<unknown>()
 const showDetail = ref(false)
 const stats = computed(() => [
-  { label: '系统运行', value: object(summary.value.runs).run_count, icon: Activity },
-  { label: '完成运行', value: object(summary.value.runs).complete_count, icon: CheckCircle2 },
-  { label: '原始对象行数', value: object(summary.value.objects).row_count, icon: Database },
+  { label: '系统运行', value: summary.value.runs?.run_count, icon: Activity },
+  { label: '完成运行', value: summary.value.runs?.complete_count, icon: CheckCircle2 },
+  { label: '原始对象行数', value: summary.value.objects?.row_count, icon: Database },
   {
     label: '失败对象',
-    value: object(summary.value.objects).failed_object_count,
+    value: summary.value.objects?.failed_object_count,
     icon: CircleAlert,
   },
 ])
 async function load() {
   await run(async () => {
-    const q = source.value.trim() ? `sourceCode=${encodeURIComponent(source.value.trim())}&` : ''
-    const values = await Promise.all([
-      call<Row>(`lake/summary?${q}`),
-      call<Row[]>(`lake/runs?${q}limit=50`),
-      call<Row[]>(`lake/deliveries?${q}limit=50`),
-    ])
-    ;[summary.value, runs.value, deliveries.value] = values
+    const data = await api.load(source.value)
+    summary.value = data.summary
+    runs.value = data.runs
+    deliveries.value = data.deliveries
   })
 }
-function inspect(row: Row) {
+function inspect(row: SystemRun) {
   detail.value = row
   showDetail.value = true
 }
@@ -105,3 +105,5 @@ onMounted(load)
   </section>
   <DetailDrawer v-model:show="showDetail" title="运行详情" :value="detail" />
 </template>
+
+<style scoped src="./OverviewPage.css" />

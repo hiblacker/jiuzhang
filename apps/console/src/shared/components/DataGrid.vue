@@ -1,12 +1,12 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends object">
 import { computed, h } from 'vue'
 import { NButton, NDataTable, NSpace, NTag, type DataTableColumns } from 'naive-ui'
 import { display, type Action, type Column, type Row } from '../types'
 const props = withDefaults(
   defineProps<{
-    rows: Row[]
+    rows: T[]
     columns: Column[]
-    actions?: (row: Row) => Action[]
+    actions?: (row: T) => Action[]
     loading?: boolean
     paginated?: boolean
   }>(),
@@ -14,28 +14,28 @@ const props = withDefaults(
 )
 const positive = ['COMPLETE', 'ACTIVE', 'RAW_COMMITTED', 'PARSED', 'READY', 'PUBLISHED', 'RECEIVED']
 const negative = ['FAILED', 'MISSING', 'OVERDUE', 'REJECTED', 'INCOMPLETE']
-const columns = computed<DataTableColumns<Row>>(() => [
+const columns = computed<DataTableColumns<T>>(() => [
   ...props.columns.map(c => ({
     key: c.key,
     title: c.title,
     width: c.width ?? 155,
     ellipsis: { tooltip: true },
-    render: (row: Row) =>
+    render: (row: T) =>
       c.state
         ? h(
             NTag,
             {
               size: 'small',
               bordered: false,
-              type: positive.includes(String(row[c.key]))
+              type: positive.includes(String((row as Row)[c.key]))
                 ? 'success'
-                : negative.includes(String(row[c.key]))
+                : negative.includes(String((row as Row)[c.key]))
                   ? 'error'
                   : 'default',
             },
-            () => display(row[c.key]),
+            () => display((row as Row)[c.key]),
           )
-        : display(row[c.key]),
+        : display((row as Row)[c.key]),
   })),
   ...(props.actions
     ? [
@@ -43,7 +43,7 @@ const columns = computed<DataTableColumns<Row>>(() => [
           key: '_actions',
           title: '操作',
           width: 250,
-          render: (row: Row) =>
+          render: (row: T) =>
             h(NSpace, { size: 4 }, () =>
               props.actions!(row).map(a =>
                 h(

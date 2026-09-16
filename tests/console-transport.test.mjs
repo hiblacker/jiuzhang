@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ApiError, createTransport, validateBase } from '../apps/console/src/transport.ts';
+import { ApiError, createTransport, validateBase } from '../apps/console/src/api/transport.ts';
 
 function deferred() {
   let resolve;

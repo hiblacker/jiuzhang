@@ -1,0 +1,7 @@
+.detail-code {
+  margin-top: 24px;
+  overflow-wrap: anywhere;
+}
+:deep(.n-descriptions-table-content) {
+  overflow-wrap: anywhere;
+}

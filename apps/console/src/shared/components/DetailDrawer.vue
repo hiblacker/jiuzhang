@@ -30,3 +30,5 @@ const flat = computed(() =>
     </NDrawerContent>
   </NDrawer>
 </template>
+
+<style scoped src="./DetailDrawer.css" />

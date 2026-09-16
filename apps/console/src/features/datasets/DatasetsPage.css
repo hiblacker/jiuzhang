@@ -1,0 +1,11 @@
+.dataset-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.dataset-bar :deep(.n-select) {
+  width: 330px;
+  max-width: 100%;
+}
