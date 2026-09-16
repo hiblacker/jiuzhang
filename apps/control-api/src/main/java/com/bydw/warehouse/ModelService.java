@@ -169,7 +169,7 @@ public class ModelService {
     for(JsonNode input:contract.path("inputs")){
       var ids=jdbc.queryForList("SELECT s.id FROM control.source_connection s JOIN warehouse.project_source ps ON ps.source_id=s.id WHERE s.code=? AND ps.project_id=?",Long.class,input.path("sourceCode").asText(),project);
       if(ids.isEmpty())bad("MODEL_SOURCE_OUTSIDE_PROJECT");
-      if(runtime.sourcePaused(ids.getFirst()))conflict("MODEL_INPUT_SOURCE_PAUSED");
+      runtime.guardSource(ids.getFirst());
     }
   }
   public JsonNode tree(Object value) {

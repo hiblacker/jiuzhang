@@ -227,6 +227,56 @@ try:
     assert failed_rules['state'] == 'REJECTED'
     assert next(r for r in failed_rules['result']['rules'] if r['id'] == 'positive_amount')['measured'] == 2
     assert api(managed_prefix + '/query', {})['rows'] == managed_rows
+    # Metadata reconciliation pins each complete input set exactly once; publication defaults to manual.
+    model_v3 = api(f"warehouse/projects/{commerce['project']}/models", {'code': 'managed-commerce', 'name': 'Managed commerce', 'expectedVersion': 2,
+        'packageId': package['package_id'], 'bindings': {'orders': {'sourceCode': commerce['source'], 'objectName': commerce['filename']}}})
+    service_identity = 'refresh-' + suffix
+    api('warehouse/identities', {'id': service_identity})
+    api(f"warehouse/projects/{commerce['project']}/members", {'identity': service_identity, 'role': 'OWNER'})
+    refresh_route = managed_prefix + '/refresh'
+    refresh_body = {'expectedVersion': 0, 'modelVersion': 3, 'serviceIdentity': service_identity, 'publishMode': 'MANUAL', 'latePolicy': 'CONTINUE',
+        'timezone': 'Asia/Shanghai', 'startDate': today, 'triggerTime': '00:00', 'deadline': '23:59', 'maxSkewSeconds': 86400,
+        'inputSelectors': {'orders': {'businessDayOffset': 0}}}
+    api(refresh_route, refresh_body)
+    (commerce['folder'] / commerce['filename']).write_text('id,team,amount\n001,east,14.95\n002,west,12.00\n')
+    receive(commerce['source'], commerce['plan'], commerce['registry'], revision=True)
+    api(refresh_route + '/reconcile', {'day': today})
+    first_refresh = api(refresh_route + '/windows')['items'][0]; assert first_refresh['state'] == 'BUILDING'
+    api(refresh_route + '/reconcile', {'day': today})
+    assert api(refresh_route + '/windows')['items'][0]['build_id'] == first_refresh['build_id']
+    invoke(command)
+    api(refresh_route + '/reconcile', {'day': today})
+    manual = api(refresh_route + '/windows')['items'][0]; assert manual['state'] == 'READY_TO_PUBLISH'
+    api(managed_prefix + f"/builds/{manual['build_id']}/publish", {'reason': 'Approve fixed model for future automatic releases'})
+    api(refresh_route, {**refresh_body, 'expectedVersion': 1, 'publishMode': 'AUTO'})
+    api(refresh_route + '/reconcile', {'day': today}); invoke(command)
+    api(refresh_route + '/reconcile', {'day': today})
+    automatic = api(refresh_route + '/windows')['items'][0]; assert automatic['state'] == 'PUBLISHED'
+    old_release = api(managed_prefix + '/query', {})['releaseId']
+    # A correction creates a different pinned set. Revoking service permissions blocks its publication.
+    (commerce['folder'] / commerce['filename']).write_text('id,team,amount\n001,east,16.50\n002,west,11.00\n')
+    receive(commerce['source'], commerce['plan'], commerce['registry'], revision=True)
+    api(refresh_route + '/reconcile', {'day': today})
+    correction = api(refresh_route + '/windows')['items'][0]
+    assert correction['build_id'] != automatic['build_id'] and correction['input_hash'] != automatic['input_hash']
+    invoke(command)
+    api(f"warehouse/projects/{commerce['project']}/members", {'identity': service_identity, 'role': 'VIEWER'})
+    api(refresh_route + '/reconcile', {'day': today})
+    assert api(refresh_route + '/windows')['items'][0]['state'] == 'NEEDS_ATTENTION'
+    assert api(managed_prefix + '/query', {})['releaseId'] == old_release
+    api(f"warehouse/projects/{commerce['project']}/members", {'identity': service_identity, 'role': 'OWNER'})
+    refresh_plan = api(refresh_route)
+    api(refresh_route + '/state', {'state': 'PAUSED', 'expectedRevision': refresh_plan['revision'], 'reason': 'Pause before automatic publication'})
+    api(refresh_route + '/reconcile', {'day': today})
+    assert api(managed_prefix + '/query', {})['releaseId'] == old_release
+    api(managed_prefix + f"/builds/{correction['build_id']}/publish", {'reason': 'Paused policy must reject'}, status=409)
+    refresh_plan = api(refresh_route)
+    api(refresh_route + '/state', {'state': 'ACTIVE', 'expectedRevision': refresh_plan['revision'], 'reason': 'Resume approved policy'})
+    api(refresh_route + '/reconcile', {'day': today})
+    assert api(refresh_route + '/windows')['items'][0]['state'] == 'PUBLISHED'
+    assert api(managed_prefix + '/query', {})['rows'][0]['amount'] == '16.50'
+    refresh_plan = api(refresh_route)
+    api(refresh_route + '/state', {'state': 'PAUSED', 'expectedRevision': refresh_plan['revision'], 'reason': 'Finish synthetic fixture'})
     evidence = {'state': 'PASS', 'themes': 2, 'checks': ['real dbt SQL', 'Git-pinned bundle', 'quality gate', 'immutable SQL tables', 'row-and-column policies', 'fixed release query and CSV export', 'exact decimal', 'leading zero', 'project isolation', 'competing publication', 'stale input rejection', 'failed build keeps release', 'declared output type gate'],
         'runtime': {'core': '1.11.15', 'postgresAdapter': '1.11.0'}, 'fixtureRoot': str(root),
         'ui': {'projectId': commerce['project'], 'datasetId': commerce['dataset']}}

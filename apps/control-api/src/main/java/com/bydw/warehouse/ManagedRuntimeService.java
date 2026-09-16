@@ -80,6 +80,10 @@ public class ManagedRuntimeService {
     for(String scope:List.of("resource","environment","system"))if(((Number)running.get(scope+"_count")).longValue()>=((Number)row.get(scope+"_limit")).longValue())return scope.toUpperCase()+"_QUOTA_WAIT";
     return null;
   }
+  public void guardSource(long source){
+    jdbc.queryForList("SELECT ch.source_id FROM warehouse.ingest_channel ch JOIN warehouse.ingest_connection c ON c.id=ch.connection_id JOIN warehouse.system_instance i ON i.id=c.instance_id JOIN warehouse.business_system s ON s.id=i.system_id WHERE ch.source_id=? FOR SHARE OF ch,c,i,s",source);
+    if(sourcePaused(source))conflict("MODEL_INPUT_SOURCE_PAUSED");
+  }
   public boolean sourcePaused(long source) {
     return Boolean.TRUE.equals(jdbc.queryForObject("""
         SELECT EXISTS(SELECT 1 FROM warehouse.ingest_channel ch JOIN warehouse.ingest_connection c ON c.id=ch.connection_id
