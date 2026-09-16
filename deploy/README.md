@@ -12,6 +12,8 @@ Java/Maven 命名空间 `com.bydw`、`bydw.*` 配置键、数据库名和角色�
 
 应用回退使用原有明确版本镜像，并同步恢复监控匹配规则；本次改名不需要数据库迁移或数据重算。
 
+使用本机既有环境的完整产品启动、停止和联合恢复，见[本机运行手册](LOCAL_RUNTIME.md)。以下 Compose 当前仍为基础服务入口；实际 Node/SQL Worker 的容器包装与原生链路分别验收。
+
 ## 本地启动
 
 1. 在 `deploy/` 创建不提交的 `.env`，设置高强度 `WAREHOUSE_DB_PASSWORD`，以及至少 24 字符且两两不同的 `CONTROL_API_DB_PASSWORD`、`INGESTION_WORKER_DB_PASSWORD`、`CONTROL_API_ADMIN_TOKEN`、`CONTROL_API_WORKER_TOKEN`；可参考 `.env.example`。数据库拥有者、控制 API 登录和 Worker 登录不得复用同一密码。

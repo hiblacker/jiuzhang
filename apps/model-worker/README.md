@@ -41,4 +41,4 @@ python3 -m venv /path/to/model-venv
 
 [真实数据库集成测试](../../tests/model-product-integration.py)由 Java 的隔离数据库测试启动：目录接收 → 两套 Git/dbt 主题 → 真实 SQL → 质量失败保旧 → 冻结表禁止 Worker 修改 → 行列过滤 → 固定版本查询/导出 → 并发发布/旧输入拒绝。每个临时夹具仓库、工作目录和模型运行互相隔离。
 
-回执先落 outbox 后提交；响应丢失重放相同完成请求。进程在回执落盘前终止时，租约过期后保留失败构建，重新请求新构建，不修改旧 Schema。恢复必须保留 PostgreSQL、湖区、模型工作目录和 Git 对象。联合备份恢复、持续运行和 Linux 打包还需单独验收。
+回执先落 outbox 后提交；响应丢失重放相同完成请求。进程在回执落盘前终止时，租约过期后保留失败构建，重新请求新构建，不修改旧 Schema。恢复必须保留 PostgreSQL、湖区、模型工作目录和 Git 对象。联合备份恢复已通过本机 PostgreSQL 17 实测，见[运行手册](../../deploy/LOCAL_RUNTIME.md)；持续跨日与 Linux 打包分别验收。
