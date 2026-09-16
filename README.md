@@ -44,6 +44,7 @@
 
 | 文档 | 用途 |
 |---|---|
+| [产品工作台实施进度](docs/40-product-workbench-progress.md) | 下一批实际代码、检查结果、迁移与剩余工作 |
 | [下一批产品实施方案](docs/38-next-product-implementation-plan.md) / [契约与验收清单](docs/39-next-product-acceptance-contract.md) | 待评审：多系统接入管理、自动数据交付、数据服务与异常运营，含 30 项验收案例 |
 | [一期实现与验收结果](docs/37-phase-one-acceptance.md) | 30/31/33 逐项核对、真实数据与测试证据、未验收边界和下一阶段 |
 | [Luna 开发执行提示词](LUNA_TASK.md) | 全部任务、国内源、既有授权、开发顺序与验收要求 |

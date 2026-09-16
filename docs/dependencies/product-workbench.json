@@ -1,0 +1,31 @@
+{
+  "status": "versions fixed before installation; verification follows",
+  "date": "2026-09-16",
+  "registry": "https://registry.npmmirror.com",
+  "frontend": {
+    "vue": "3.5.42",
+    "naive-ui": "2.45.3",
+    "vite": "7.3.6",
+    "@vitejs/plugin-vue": "6.0.9",
+    "typescript": "5.9.3",
+    "vue-tsc": "3.3.11"
+  },
+  "backend": {
+    "org.springframework.boot:spring-boot-starter-security": "3.5.16",
+    "org.springframework.security": "6.5.11"
+  },
+  "sources": [
+    "https://vuejs.org/guide/typescript/overview.html",
+    "https://github.com/tusen-ai/naive-ui",
+    "https://github.com/vitejs/vite",
+    "https://github.com/spring-projects/spring-security"
+  ],
+  "licenses": {
+    "vue": "MIT",
+    "naive-ui": "MIT; image assets separate attribution",
+    "vite": "MIT",
+    "typescript": "Apache-2.0",
+    "spring-security": "Apache-2.0"
+  },
+  "scope": "Local development authorized by implementation request; transitive lock and notices verified before delivery."
+}

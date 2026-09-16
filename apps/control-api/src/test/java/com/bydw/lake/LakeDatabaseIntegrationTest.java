@@ -468,6 +468,85 @@ class LakeDatabaseIntegrationTest {
   }
 
   @Test
+  void browserAccountsEnforceCsrfProjectScopeAndRevocation() throws Exception {
+    String identity = "browser_" + UUID.randomUUID().toString().replace("-", "");
+    var projectResponse = post("/api/v1/warehouse/projects", ADMIN,
+        json.createObjectNode().put("code",identity).put("name","Browser project"));
+    assertStatus(projectResponse,200);
+    long project=json.readTree(projectResponse.body()).get("id").asLong();
+    var invitation=post("/api/v1/warehouse/accounts/invite",ADMIN,json.createObjectNode()
+        .put("identity",identity).put("displayName","Synthetic user").put("projectId",project).put("role","OWNER"));
+    assertStatus(invitation,200);
+    String code=json.readTree(invitation.body()).get("invitation").asText();
+    String password="Synthetic-password-"+UUID.randomUUID();
+    var cookies=new java.net.CookieManager(null,java.net.CookiePolicy.ACCEPT_ALL);
+    var browser=HttpClient.newBuilder().cookieHandler(cookies).build();
+    var csrf=browserCsrf(browser);
+    var activate=HttpRequest.newBuilder(URI.create(base+"/api/v1/auth/activate"))
+        .header("Content-Type","application/json").header(csrf.get("headerName").asText(),csrf.get("token").asText())
+        .POST(HttpRequest.BodyPublishers.ofString(json.createObjectNode().put("invitation",code).put("password",password).toString())).build();
+    assertStatus(browser.send(activate,HttpResponse.BodyHandlers.ofString()),200);
+    assertStatus(browser.send(activate,HttpResponse.BodyHandlers.ofString()),400);
+    var noCsrf=HttpRequest.newBuilder(URI.create(base+"/api/v1/auth/login"))
+        .header("Content-Type","application/x-www-form-urlencoded").header("Authorization","Bearer forged")
+        .POST(HttpRequest.BodyPublishers.ofString("username="+identity+"&password="+password)).build();
+    assertStatus(browser.send(noCsrf,HttpResponse.BodyHandlers.ofString()),403);
+    var login=HttpRequest.newBuilder(URI.create(base+"/api/v1/auth/login"))
+        .header("Content-Type","application/x-www-form-urlencoded").header(csrf.get("headerName").asText(),csrf.get("token").asText())
+        .POST(HttpRequest.BodyPublishers.ofString("username="+identity+"&password="+password)).build();
+    assertStatus(browser.send(login,HttpResponse.BodyHandlers.ofString()),200);
+    assertThat(cookies.getCookieStore().getCookies()).anySatisfy(cookie -> {assertThat(cookie.isHttpOnly()).isTrue();});
+    var me=HttpRequest.newBuilder(URI.create(base+"/api/v1/warehouse/me")).GET().build();
+    assertStatus(browser.send(me,HttpResponse.BodyHandlers.ofString()),200);
+    assertThat(json.readTree(browser.send(me,HttpResponse.BodyHandlers.ofString()).body()).get("identity").asText()).isEqualTo(identity);
+    assertStatus(browser.send(HttpRequest.newBuilder(me.uri()).header("Authorization","Bearer invalid").GET().build(),HttpResponse.BodyHandlers.ofString()),401);
+    var unauthorized=HttpRequest.newBuilder(URI.create(base+"/api/v1/warehouse/catalog/projects/9223372036854775806/sources")).GET().build();
+    assertStatus(browser.send(unauthorized,HttpResponse.BodyHandlers.ofString()),403);
+    var page=HttpRequest.newBuilder(URI.create(base+"/api/v1/warehouse/catalog/projects?limit=1")).GET().build();
+    var result=browser.send(page,HttpResponse.BodyHandlers.ofString());assertStatus(result,200);
+    assertThat(json.readTree(result.body()).get("total").asInt()).isEqualTo(1);
+    assertStatus(post("/api/v1/warehouse/accounts/"+identity+"/reset",ADMIN,json.createObjectNode()),200);
+    assertStatus(browser.send(me,HttpResponse.BodyHandlers.ofString()),401);
+    assertStatus(browser.send(login,HttpResponse.BodyHandlers.ofString()),403); // pre-login token was rotated
+  }
+
+  private static JsonNode browserCsrf(HttpClient browser) throws Exception {
+    var response=browser.send(HttpRequest.newBuilder(URI.create(base+"/api/v1/auth/csrf")).GET().build(),HttpResponse.BodyHandlers.ofString());
+    assertStatus(response,200);return json.readTree(response.body());
+  }
+
+  @Test
+  void systemDirectoryKeepsSharedMetadataSeparateFromInstancesAndChecksVersions() throws Exception {
+    String code="system_"+UUID.randomUUID().toString().replace("-", "");
+    long project=json.readTree(post("/api/v1/warehouse/projects",ADMIN,json.createObjectNode().put("code",code).put("name","Systems")).body()).get("id").asLong();
+    long other=json.readTree(post("/api/v1/warehouse/projects",ADMIN,json.createObjectNode().put("code",code+"b").put("name","Other")).body()).get("id").asLong();
+    String token=json.readTree(post("/api/v1/warehouse/identities",ADMIN,json.createObjectNode().put("id",code)).body()).get("token").asText();
+    assertStatus(post("/api/v1/warehouse/projects/"+other+"/members",ADMIN,json.createObjectNode().put("identity",code).put("role","OWNER")),200);
+    String path="/api/v1/warehouse/projects/"+project+"/systems";
+    var body=json.createObjectNode().put("code",code).put("name","ERP").put("businessOwner","Synthetic business owner").put("technicalOwner","Synthetic technical owner");
+    var created=post(path,ADMIN,body);assertStatus(created,200);long system=json.readTree(created.body()).get("id").asLong();
+    var instance=post(path+"/"+system+"/instances",ADMIN,json.createObjectNode().put("code","test").put("name","Test").put("environment","TEST"));assertStatus(instance,200);
+    long instanceId=json.readTree(instance.body()).get("id").asLong();
+    String sharedPath="/api/v1/warehouse/projects/"+other+"/systems";
+    assertStatus(get(sharedPath+"/"+system,token),403);
+    var share=json.createObjectNode().put("projectId",other);share.putArray("instanceIds");
+    assertStatus(post(path+"/"+system+"/share",ADMIN,share),200);
+    var shared=get(sharedPath+"/"+system,token);assertStatus(shared,200);
+    assertThat(json.readTree(shared.body()).get("instances")).isEmpty();
+    assertThat(json.readTree(get(sharedPath,token).body()).at("/items/0/instance_count").asInt()).isZero();
+    body.put("expectedVersion",1).put("name","ERP renamed");
+    assertStatus(post(sharedPath+"/"+system,token,body),403);
+    assertStatus(post(path+"/"+system,ADMIN,body),200);
+    assertStatus(post(path+"/"+system,ADMIN,body),409);
+    share.withArray("instanceIds").add(instanceId);
+    assertStatus(post(path+"/"+system+"/share",ADMIN,share),200);
+    assertThat(json.readTree(get(sharedPath+"/"+system,token).body()).get("instances")).hasSize(1);
+    assertThat(json.readTree(get(sharedPath+"?environment=PRODUCTION",token).body()).get("total").asInt()).isZero();
+    assertThat(json.readTree(get(sharedPath+"?environment=TEST&limit=1&offset=1",token).body()).get("total").asInt()).isEqualTo(1);
+    assertThat(json.readTree(get(sharedPath+"?environment=TEST&limit=1&offset=1",token).body()).get("items")).isEmpty();
+  }
+
+  @Test
   @EnabledIfEnvironmentVariable(named = "LAKE_REVIEW_DBT_PYTHON", matches = ".+")
   void dbtProductBuildPublishAndQueryUsesRealRolesAndSql() throws Exception {
     Path repo = Path.of(System.getenv("LAKE_REVIEW_REPO"));

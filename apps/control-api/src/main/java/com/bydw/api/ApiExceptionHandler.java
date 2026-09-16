@@ -36,6 +36,11 @@ public class ApiExceptionHandler {
     return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Request could not be completed", request);
   }
 
+  @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+  ResponseEntity<ApiError> conflict(HttpServletRequest request) {
+    return error(HttpStatus.CONFLICT,"RECORD_CONFLICT","记录已存在或关联数据发生变化",request);
+  }
+
   private ResponseEntity<ApiError> error(
       HttpStatus status, String code, String message, HttpServletRequest request) {
     Object value = request.getAttribute(RequestAuthenticationFilter.REQUEST_ID_ATTRIBUTE);
