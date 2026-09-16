@@ -128,7 +128,7 @@ async function execute(registry, task, signal) {
       result = await child('tools/file-reprocess.mjs', args, signal);
     } else {
     const inbox = profile.datePartitioned ? path.join(profile.inboxRoot, task.business_date) : profile.inboxRoot;
-    const args = [...common, '--inbox', inbox, '--delivery-date', task.business_date, '--source-code', profile.sourceCode];
+    const args = [...common, '--inbox', inbox, '--delivery-date', task.business_date, '--source-code', profile.sourceCode, '--batch-id', batch];
     if (profile.assumeReady === true) args.push('--assume-ready');
     if (profile.parserPython) args.push('--parser-python', profile.parserPython);
     if (profile.maxRows) args.push('--max-rows', String(profile.maxRows));
@@ -137,6 +137,18 @@ async function execute(registry, task, signal) {
     result = await child(profile.deliveryContract ? 'tools/file-delivery.mjs' : 'tools/file-ingest.mjs', args, signal);
     }
     result.assets = result.batchId ? await fileAssets(registry.lakeRoot, result.batchId, result.contractSha256) : [];
+    if (task.processing_input?.batchId && profile.deliveryContract && result.state === 'COMPLETE') {
+      const contract = await readJson(profile.deliveryContract);
+      const evidence = task.processing_input.deliveryEvidence;
+      const ledger = await readJson(path.join(registry.lakeRoot, 'delivery-ledgers', profile.sourceCode, `${task.business_date}.json`), null);
+      const previous = ledger?.revisions?.at(-1);
+      if (!contract.allowEmpty && result.assets.every(asset => asset.rows === 0)) {
+        result.state = 'INCOMPLETE'; result.errorCode = 'EMPTY_DELIVERY_NOT_APPROVED';
+      } else if (!evidence?.signature || (previous && previous.signature !== evidence.signature && contract.mode !== 'EVENT'
+          && !(contract.mode === 'MANIFEST' ? evidence.revision > previous.revision : contract.allowContentRevision === true))) {
+        result.state = 'INCOMPLETE'; result.errorCode = 'DELIVERY_REVISION_REVIEW_REQUIRED';
+      }
+    }
   } else {
     if (task.processing_input?.batchId) {
       result = await child('tools/api-reprocess.mjs', [...common, '--config', profile.config, '--source-code', profile.sourceCode,

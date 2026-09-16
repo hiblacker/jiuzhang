@@ -6,7 +6,8 @@ import { scanDirectory } from './file-ingest.mjs';
 
 export async function reprocess(options) {
   if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/u.test(options.batchId ?? '')) throw new Error('INVALID_BATCH_ID');
-  const batch = await readJson(await resolveInside(options.lakeRoot, `file-batches/${options.batchId}/batch.json`));
+  const root = await resolveInside(options.lakeRoot, `file-batches/${options.batchId}`);
+  const batch = await readJson(path.join(root, 'batch.json'), null) ?? await readJson(path.join(root, 'batch.json.part'));
   if (options.sourceCode && options.sourceCode !== batch.sourceCode) throw new Error('REPROCESS_SOURCE_MISMATCH');
   if (options.deliveryDate && options.deliveryDate !== batch.deliveryDate) throw new Error('REPROCESS_WINDOW_MISMATCH');
   const contract = options.parserContract ?? {};
@@ -23,7 +24,7 @@ export async function reprocess(options) {
     for (const field of ['rawPath', 'parsedPath']) if (entry[field]) entry[field] = path.relative(options.lakeRoot, path.join(processingRoot, entry[field]));
   }
   const summary = { ...result, parentBatchId: batch.batchId, processingRoot: path.relative(options.lakeRoot, processingRoot), parserSha256: digest(JSON.stringify(contract)) };
-  if (entries.length !== batch.entries.length && summary.state === 'COMPLETE') {
+  if (entries.length !== (batch.expectedFileCount ?? batch.entries.length) && summary.state === 'COMPLETE') {
     summary.state = 'INCOMPLETE'; summary.errorCode = 'UNSEALED_PACKAGE_MEMBERS';
   }
   const published = path.join(options.lakeRoot, 'file-batches', result.batchId);

@@ -16,7 +16,7 @@ function fail(code) { throw new Error(code); }
 
 function parseArgs(argv) {
   const options = { inbox: null, lakeRoot: path.join(ROOT, '.lake-data'), sourceCode: 'folder-source', deliveryDate: null, assumeReady: false, dryRun: false, maxFileBytes: 1024 * 1024 * 1024, maxRows: 10_000_000, jsonRecordsPath: '', parserPython: process.env.LAKE_PYTHON || process.env.PYTHON || 'python3' };
-  const takes = new Set(['--inbox', '--lake-root', '--source-code', '--delivery-date', '--parser-python', '--max-file-bytes', '--max-rows', '--json-records-path']);
+  const takes = new Set(['--inbox', '--lake-root', '--source-code', '--delivery-date', '--parser-python', '--max-file-bytes', '--max-rows', '--json-records-path', '--batch-id']);
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--assume-ready') options.assumeReady = true;
@@ -27,6 +27,7 @@ function parseArgs(argv) {
       if (arg === '--inbox') options.inbox = path.resolve(ROOT, value);
       if (arg === '--lake-root') options.lakeRoot = path.resolve(ROOT, value);
       if (arg === '--source-code') options.sourceCode = value;
+      if (arg === '--batch-id') options.batchId = value;
       if (arg === '--delivery-date') options.deliveryDate = value;
       if (arg === '--parser-python') options.parserPython = value;
       if (arg === '--max-file-bytes') options.maxFileBytes = Number(value);
@@ -36,6 +37,7 @@ function parseArgs(argv) {
   }
   if (!options.inbox) fail('INBOX_REQUIRED');
   if (!SAFE.test(options.sourceCode)) fail('INVALID_SOURCE_CODE');
+  if (options.batchId && !SAFE.test(options.batchId)) fail('INVALID_BATCH_ID');
   if (options.deliveryDate) { try { validateDay(options.deliveryDate); } catch { fail('INVALID_DELIVERY_DATE'); } }
   if (!Number.isSafeInteger(options.maxFileBytes) || options.maxFileBytes < 1 || options.maxFileBytes > 10 * 1024 * 1024 * 1024) fail('INVALID_MAX_FILE_BYTES');
   if (!Number.isSafeInteger(options.maxRows) || options.maxRows < 1 || options.maxRows > 100_000_000) fail('INVALID_MAX_ROWS');
@@ -93,8 +95,13 @@ async function scanUnlocked(options) {
   const ledgerFile = path.join(options.lakeRoot, 'file-ledger.json');
   const ledger = await readJson(ledgerFile, { version: 1, deliveries: {} });
   if (!options.dryRun) await mkdir(options.lakeRoot, { recursive: true, mode: 0o700 });
-  const batchId = `files-${deliveryDate.replaceAll('-', '')}-${randomUUID().slice(0, 8)}`;
+  const batchId = options.batchId ?? `files-${deliveryDate.replaceAll('-', '')}-${randomUUID().slice(0, 8)}`;
+  if (!SAFE.test(batchId)) fail('INVALID_BATCH_ID');
   const batchRoot = path.join(options.lakeRoot, 'file-batches', batchId);
+  if (!options.dryRun) {
+    await mkdir(path.dirname(batchRoot), { recursive: true, mode: 0o700 });
+    try { await mkdir(batchRoot, { mode: 0o700 }); } catch (error) { if (error.code === 'EEXIST') fail('FILE_BATCH_EXISTS'); throw error; }
+  }
   const entries = [];
   for (const file of files.sort()) {
     const inputRelativePath = path.relative(options.inbox, file);
@@ -144,7 +151,7 @@ async function scanUnlocked(options) {
       entry.rawPath = path.relative(options.lakeRoot, rawPath);
       entry.rawState = 'RAW_COMMITTED';
       entry.state = 'PARSING';
-      await atomicJson(path.join(batchRoot, 'batch.json.part'), { version: 1, batchId, sourceCode: options.sourceCode, deliveryDate, state: 'RUNNING', entries });
+      await atomicJson(path.join(batchRoot, 'batch.json.part'), { version: 1, batchId, sourceCode: options.sourceCode, deliveryDate, state: 'RUNNING', expectedFileCount: files.length, entries });
       const parsed = await runParser(options, format, rawPath, parsedPath);
       const parsedBytes = await hashFile(parsedPath);
       await durableRename(parsedPath, path.join(staging, 'parsed.jsonl'));

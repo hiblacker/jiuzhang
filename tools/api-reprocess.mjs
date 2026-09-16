@@ -10,7 +10,8 @@ export async function reprocess(options) {
   const configText = await readFile(options.config, 'utf8'), config = validateConfig(JSON.parse(configText));
   if (options.sourceCode && options.sourceCode !== config.source_code) throw new Error('REPROCESS_SOURCE_MISMATCH');
   const originalRoot = await resolveInside(options.lakeRoot, `api/${config.source_code}/${options.batchId}`);
-  const original = await readJson(path.join(originalRoot, 'batch.json'), null) ?? await readJson(path.join(originalRoot, 'batch.failed.json'));
+  const original = await readJson(path.join(originalRoot, 'batch.json'), null) ?? await readJson(path.join(originalRoot, 'batch.failed.json'), null)
+    ?? await readJson(path.join(originalRoot, 'batch.json.part'));
   if (options.window && options.window !== original.window) throw new Error('REPROCESS_WINDOW_MISMATCH');
   if (!original.pages?.length) throw new Error('NO_SEALED_INPUT');
   const batchId = `api-reprocess-${randomUUID()}`, target = path.join(options.lakeRoot, 'api', config.source_code, batchId);

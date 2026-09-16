@@ -10,3 +10,5 @@ node_modules
 logs
 coverage
 poc
+.lake-data
+.lake-inbox

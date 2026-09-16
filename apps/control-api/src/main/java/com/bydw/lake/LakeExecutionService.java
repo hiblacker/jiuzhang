@@ -278,13 +278,18 @@ public class LakeExecutionService {
     if (!"ACTIVE".equals(p.get("plan_state"))) conflict("PLAN_PAUSED");
     if ("INCOMPLETE".equals(p.get("parent_state")) && !"DELIVERY_PARSE_INCOMPLETE".equals(p.get("error_code"))) conflict("DELIVERY_REVIEW_REQUIRED");
     String batch = p.get("result") instanceof JsonNode result ? result.path("batchId").asText() : "";
+    if (batch.isEmpty() && "LEASE_EXPIRED".equals(p.get("error_code"))) batch = "exec-" + id;
     if (!batch.matches("[A-Za-z0-9][A-Za-z0-9._:-]{0,119}")) bad("SEALED_INPUT_REPROCESS_UNAVAILABLE");
     LocalDate day = ((Date) p.get("business_date")).toLocalDate();
     var pending = jdbc.queryForList("SELECT id, revision FROM lake.execution_window WHERE plan_id = ? AND plan_version = ? AND state IN ('QUEUED','RUNNING') AND processing_input->>'parentExecutionId' = ? ORDER BY id LIMIT 1", p.get("id"), p.get("active_version"), String.valueOf(id));
     if (!pending.isEmpty()) return Map.of("windowId", pending.getFirst().get("id"), "revision", pending.getFirst().get("revision"));
     int revision = jdbc.queryForObject("SELECT coalesce(max(revision),0)+1 FROM lake.execution_window WHERE plan_id = ? AND plan_version = ? AND business_date = ?", Integer.class, p.get("id"), p.get("active_version"), Date.valueOf(day));
     long window = enqueue(p, day, revision, "MANUAL", "SEALED_INPUT_REPROCESS", false);
-    jdbc.update("UPDATE lake.execution_window SET processing_input = ?::jsonb WHERE id = ?", json.valueToTree(Map.of("batchId", batch, "parentExecutionId", id)).toString(), window);
+    var processing = json.createObjectNode().put("batchId", batch).put("parentExecutionId", id);
+    if (p.get("result") instanceof JsonNode result && result.has("signature")) {
+      processing.putObject("deliveryEvidence").put("signature", result.path("signature").asText()).put("revision", result.path("revision").asInt());
+    }
+    jdbc.update("UPDATE lake.execution_window SET processing_input = ?::jsonb WHERE id = ?", processing.toString(), window);
     audit(actor, "SEALED_INPUT_REPROCESS", "lake/window/" + window, Map.of("parentExecutionId", id));
     return Map.of("windowId", window, "revision", revision);
   }
@@ -380,7 +385,8 @@ public class LakeExecutionService {
     var rows = jdbc.queryForList("""
         SELECT a.id, a.window_id, a.attempt, a.state, a.lease_owner, a.lease_expires_at, a.cancel_requested,
           a.started_at, a.finished_at, a.error_code, a.result, a.system_run_id, w.business_date, w.plan_id,
-          s.code AS source_code FROM lake.execution_attempt a JOIN lake.execution_window w ON w.id = a.window_id
+          s.code AS source_code, v.kind FROM lake.execution_attempt a JOIN lake.execution_window w ON w.id = a.window_id
+        JOIN lake.plan_version v ON v.plan_id = w.plan_id AND v.version = w.plan_version
         JOIN lake.ingestion_plan p ON p.id = w.plan_id JOIN control.source_connection s ON s.id = p.source_id
         WHERE (CAST(? AS BIGINT) IS NULL OR w.plan_id = ?) ORDER BY a.id DESC LIMIT 200
         """, plan, plan);
