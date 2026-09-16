@@ -42,6 +42,11 @@ public class LakeExecutionService {
         || r.startDate().getYear() < 2000 || r.startDate().getYear() > 2100) bad("INVALID_PLAN");
     try { ZoneId.of(r.timezone()); } catch (Exception error) { bad("INVALID_TIMEZONE"); }
     rejectSecrets(r.contract());
+    for (String field : List.of("pollSeconds", "lateDays")) {
+      JsonNode value = r.contract().get(field);
+      int min = field.equals("pollSeconds") ? 60 : 0, max = field.equals("pollSeconds") ? 3600 : 31;
+      if (value != null && (!value.isIntegralNumber() || !value.canConvertToInt() || value.intValue() < min || value.intValue() > max)) bad("INVALID_DELIVERY_RETRY_POLICY");
+    }
     if (r.kind().equals("MYSQL_SNAPSHOT") && (r.historicalRead() || r.inventoryVersion() == null)) bad("MYSQL_PLAN_REQUIRES_CURRENT_SNAPSHOT");
     var source = jdbc.queryForList("SELECT id FROM control.source_connection WHERE code = ?", r.sourceCode());
     if (source.isEmpty()) throw new ApiException(HttpStatus.NOT_FOUND, "SOURCE_NOT_FOUND", "Source is not registered");
@@ -61,6 +66,18 @@ public class LakeExecutionService {
         VALUES (?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?)
         """, id, next, r.inventoryVersion(), r.kind(), r.runtimeRef(), r.contract().toString(), r.timezone(),
         Time.valueOf(r.triggerTime()), Date.valueOf(r.startDate()), r.historicalRead(), r.maxAttempts(), r.timeoutSeconds());
+    // A definition change must not leave permanently unclaimable queued work.
+    jdbc.update("""
+        UPDATE lake.execution_attempt a SET state = 'CANCELLED', cancel_requested = TRUE,
+          finished_at = clock_timestamp(), error_code = 'PLAN_SUPERSEDED'
+        FROM lake.execution_window w WHERE a.window_id = w.id AND w.plan_id = ?
+          AND w.plan_version <> ? AND a.state = 'QUEUED'
+        """, id, next);
+    jdbc.update("""
+        UPDATE lake.execution_window w SET state = 'CANCELLED', reason = 'PLAN_SUPERSEDED'
+        WHERE w.plan_id = ? AND w.plan_version <> ? AND w.state IN ('QUEUED','INCOMPLETE')
+          AND NOT EXISTS (SELECT 1 FROM lake.execution_attempt a WHERE a.window_id = w.id AND a.state = 'RUNNING')
+        """, id, next);
     audit(actor, "LAKE_PLAN_VERSION", "lake/plan/" + id, Map.of("version", next));
     return Map.of("id", id, "version", next);
   }
@@ -88,6 +105,7 @@ public class LakeExecutionService {
   @Transactional
   public Map<String, Object> reconcile(Instant now) {
     expire(now);
+    retryPending(now);
     int created = 0;
     for (var plan : jdbc.queryForList("""
         SELECT p.id, p.active_version, v.* FROM lake.ingestion_plan p JOIN lake.plan_version v
@@ -151,6 +169,19 @@ public class LakeExecutionService {
     if (runtimeRefs == null || runtimeRefs.isEmpty() || runtimeRefs.size() > 100
         || runtimeRefs.stream().anyMatch(ref -> ref == null || !ref.matches("[a-z][a-z0-9_-]{1,99}"))) bad("WORKER_CAPABILITIES_REQUIRED");
     expire(Instant.now());
+    retryPending(Instant.now());
+    // A current-state snapshot queued before midnight cannot recreate yesterday.
+    jdbc.update("""
+        UPDATE lake.execution_attempt a SET state = 'CANCELLED', finished_at = clock_timestamp(), error_code = 'HISTORICAL_SNAPSHOT_UNAVAILABLE'
+        FROM lake.execution_window w JOIN lake.plan_version v ON v.plan_id = w.plan_id AND v.version = w.plan_version
+        WHERE a.window_id = w.id AND a.state = 'QUEUED' AND NOT v.historical_read
+          AND w.business_date < (clock_timestamp() AT TIME ZONE v.timezone)::date
+        """);
+    jdbc.update("""
+        UPDATE lake.execution_window w SET state = 'MISSING', reason = 'HISTORICAL_SNAPSHOT_UNAVAILABLE'
+        WHERE w.state IN ('QUEUED','INCOMPLETE') AND EXISTS (SELECT 1 FROM lake.execution_attempt a
+          WHERE a.window_id = w.id AND a.error_code = 'HISTORICAL_SNAPSHOT_UNAVAILABLE')
+        """);
     String allowed = String.join(",", Collections.nCopies(runtimeRefs.size(), "?"));
     var plans = jdbc.queryForList("""
         SELECT p.id FROM lake.ingestion_plan p JOIN lake.plan_version v ON v.plan_id = p.id AND v.version = p.active_version
@@ -267,11 +298,13 @@ public class LakeExecutionService {
   @Transactional
   public Map<String, Object> retry(long id, String actor) {
     var rows = jdbc.queryForList("""
-        SELECT a.*, v.max_attempts FROM lake.execution_attempt a JOIN lake.execution_window w ON w.id = a.window_id
-        JOIN lake.plan_version v ON v.plan_id = w.plan_id AND v.version = w.plan_version WHERE a.id = ? FOR UPDATE OF a, w
+        SELECT a.*, v.max_attempts, w.plan_version, p.active_version FROM lake.execution_attempt a JOIN lake.execution_window w ON w.id = a.window_id
+        JOIN lake.plan_version v ON v.plan_id = w.plan_id AND v.version = w.plan_version
+        JOIN lake.ingestion_plan p ON p.id = w.plan_id WHERE a.id = ? FOR UPDATE OF a, w
         """, id);
     if (rows.isEmpty()) bad("EXECUTION_NOT_FOUND");
     var a = rows.getFirst();
+    if (!a.get("plan_version").equals(a.get("active_version"))) conflict("PLAN_SUPERSEDED");
     if (!Set.of("FAILED", "INCOMPLETE", "CANCELLED").contains(a.get("state"))) conflict("EXECUTION_NOT_RETRYABLE");
     int next = ((Number) a.get("attempt")).intValue() + 1;
     var repeated = jdbc.queryForList("SELECT id, attempt, state FROM lake.execution_attempt WHERE window_id = ? AND attempt = ?", a.get("window_id"), next);
@@ -279,7 +312,7 @@ public class LakeExecutionService {
       jdbc.update("UPDATE lake.execution_attempt SET not_before = clock_timestamp() WHERE id = ? AND state = 'QUEUED'", repeated.getFirst().get("id"));
       return repeated.getFirst();
     }
-    if (next > ((Number) a.get("max_attempts")).intValue()) conflict("EXECUTION_ATTEMPTS_EXHAUSTED");
+    if (jdbc.queryForObject("SELECT count(*) FROM lake.execution_attempt WHERE window_id = ? AND state = 'FAILED'", Integer.class, a.get("window_id")) >= ((Number) a.get("max_attempts")).intValue()) conflict("EXECUTION_ATTEMPTS_EXHAUSTED");
     jdbc.update("INSERT INTO lake.execution_attempt(window_id, attempt, state) VALUES (?, ?, 'QUEUED') ON CONFLICT DO NOTHING", a.get("window_id"), next);
     jdbc.update("UPDATE lake.execution_window SET state = 'QUEUED' WHERE id = ? AND state <> 'COMPLETE'", a.get("window_id"));
     long nextId = jdbc.queryForObject("SELECT id FROM lake.execution_attempt WHERE window_id = ? AND attempt = ?", Long.class, a.get("window_id"), next);
@@ -315,24 +348,38 @@ public class LakeExecutionService {
   }
   private void expire(Instant now) {
     var expired = jdbc.queryForList("""
-        UPDATE lake.execution_attempt SET state = CASE WHEN cancel_requested THEN 'CANCELLED' ELSE 'FAILED' END,
+        UPDATE lake.execution_attempt a SET state = CASE WHEN cancel_requested THEN 'CANCELLED' ELSE 'FAILED' END,
           finished_at = ?, error_code = CASE WHEN cancel_requested THEN 'CANCELLED' ELSE 'LEASE_EXPIRED' END
-        WHERE state = 'RUNNING' AND lease_expires_at <= ? RETURNING id, window_id, state
-        """, OffsetDateTime.ofInstant(now, ZoneId.of("UTC")), OffsetDateTime.ofInstant(now, ZoneId.of("UTC")));
+        FROM lake.execution_window w JOIN lake.plan_version v ON v.plan_id = w.plan_id AND v.version = w.plan_version
+        WHERE a.window_id = w.id AND a.state = 'RUNNING'
+          AND (a.lease_expires_at <= ? OR a.started_at + v.timeout_seconds * interval '1 second' <= ?)
+        RETURNING a.id, a.window_id, a.state
+        """, OffsetDateTime.ofInstant(now, ZoneId.of("UTC")), OffsetDateTime.ofInstant(now, ZoneId.of("UTC")), OffsetDateTime.ofInstant(now, ZoneId.of("UTC")));
     for (var a : expired) {
       jdbc.update("UPDATE lake.execution_window SET state = ? WHERE id = ?", a.get("state"), a.get("window_id"));
-      if ("FAILED".equals(a.get("state"))) retryExpired(((Number) a.get("id")).longValue());
     }
   }
-  private void retryExpired(long id) {
-    var allowed = jdbc.queryForList("""
+  private void retryPending(Instant now) {
+    var instant = OffsetDateTime.ofInstant(now, ZoneId.of("UTC"));
+    jdbc.update("""
         INSERT INTO lake.execution_attempt(window_id, attempt, state, not_before)
-        SELECT a.window_id, a.attempt + 1, 'QUEUED', clock_timestamp() + (5 * a.attempt) * interval '1 second'
+        SELECT a.window_id, a.attempt + 1, 'QUEUED', a.finished_at +
+          CASE WHEN a.state = 'INCOMPLETE' THEN coalesce((v.contract->>'pollSeconds')::integer, 300) ELSE 5 * least(a.attempt, 12) END * interval '1 second'
         FROM lake.execution_attempt a JOIN lake.execution_window w ON w.id = a.window_id
         JOIN lake.plan_version v ON v.plan_id = w.plan_id AND v.version = w.plan_version
-        WHERE a.id = ? AND a.attempt < v.max_attempts ON CONFLICT DO NOTHING RETURNING window_id
-        """, id);
-    for (var row : allowed) jdbc.update("UPDATE lake.execution_window SET state = 'QUEUED' WHERE id = ?", row.get("window_id"));
+        JOIN lake.ingestion_plan p ON p.id = w.plan_id AND p.active_version = w.plan_version
+        WHERE p.state = 'ACTIVE' AND NOT a.cancel_requested
+          AND NOT EXISTS (SELECT 1 FROM lake.execution_attempt later WHERE later.window_id = a.window_id AND later.attempt > a.attempt)
+          AND (v.historical_read OR w.business_date >= (? AT TIME ZONE v.timezone)::date)
+          AND (
+            (a.state = 'FAILED' AND a.error_code IN ('LEASE_EXPIRED','WORKER_EXECUTION_FAILED','DISCOVERY_CONNECTION_FAILED',
+              'API_REQUEST_FAILED','API_TIMEOUT','API_HTTP_429','API_HTTP_500','API_HTTP_502','API_HTTP_503','API_HTTP_504')
+              AND (SELECT count(*) FROM lake.execution_attempt failures WHERE failures.window_id = a.window_id AND failures.state = 'FAILED') < v.max_attempts)
+            OR (a.state = 'INCOMPLETE' AND v.kind = 'FILE_SCAN' AND w.processing_input IS NULL
+              AND a.result->>'deliveryState' IN ('NOT_OBSERVED','WAITING_READY','DIRECTORY_UNAVAILABLE','OVERDUE','MISSING')
+              AND ? < w.window_end + coalesce((v.contract->>'lateDays')::integer, 7) * interval '1 day')
+          ) ON CONFLICT DO NOTHING
+        """, instant, instant);
   }
   private void rejectSecrets(JsonNode node) {
     if (node.isObject()) node.fields().forEachRemaining(entry -> {

@@ -253,6 +253,49 @@ class LakeDatabaseIntegrationTest {
   }
 
   @Test
+  void waitingDeliveriesResumeWithoutConsumingFailureBudgetAndSupersededPlansAreClosed() throws Exception {
+    String source = "waiting_" + UUID.randomUUID().toString().replace("-", "");
+    var definition = json.createObjectNode().put("code", source).put("sourceType", "FILE").put("credentialRef", "env://SYNTHETIC_FOLDER");
+    definition.putObject("config"); assertStatus(post("/api/v1/sources", ADMIN, definition), 201);
+    var day = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+    var plan = json.createObjectNode().put("sourceCode", source).put("expectedVersion", 0).put("kind", "FILE_SCAN")
+        .put("runtimeRef", source).put("timezone", "Asia/Shanghai").put("triggerTime", "00:00:00")
+        .put("startDate", day.toString()).put("historicalRead", true).put("maxAttempts", 1).put("timeoutSeconds", 300);
+    plan.putObject("contract").put("pollSeconds", 60).put("lateDays", 7);
+    long planId = json.readTree(post("/api/v1/lake/plans", ADMIN, plan).body()).get("id").asLong();
+    var service = app.getBean(LakeExecutionService.class);
+    var capabilities = json.createObjectNode(); capabilities.putArray("runtimeRefs").add(source);
+    try {
+      service.reconcile(java.time.Instant.now());
+      long first = 0;
+      for (int observation = 0; observation < 3; observation++) {
+        var task = json.readTree(post("/api/v1/lake/executions/claim", WORKER, capabilities).body());
+        assertThat(task.path("state").asText()).isEqualTo("RUNNING");
+        long id = task.get("id").asLong(); if (observation == 0) first = id;
+        var result = json.createObjectNode().put("leaseToken", task.get("leaseToken").asText()).put("state", "INCOMPLETE");
+        result.putObject("result").put("deliveryState", "WAITING_READY").putArray("assets");
+        assertStatus(post("/api/v1/lake/executions/" + id + "/finish", WORKER, result), 200);
+        service.reconcile(java.time.Instant.now()); service.reconcile(java.time.Instant.now());
+        assertThat(service.attempts(planId)).hasSize(observation + 2);
+        assertThat(json.readTree(post("/api/v1/lake/executions/claim", WORKER, capabilities).body()).path("state").asText()).isEqualTo("IDLE");
+        try (var connection = owner(); var statement = connection.prepareStatement("UPDATE lake.execution_attempt SET not_before = clock_timestamp() WHERE window_id = ? AND state = 'QUEUED'")) {
+          statement.setLong(1, task.get("window_id").asLong()); statement.executeUpdate();
+        }
+      }
+      var task = json.readTree(post("/api/v1/lake/executions/claim", WORKER, capabilities).body());
+      var failed = json.createObjectNode().put("leaseToken", task.get("leaseToken").asText()).put("state", "FAILED").put("errorCode", "API_HTTP_503");
+      assertStatus(post("/api/v1/lake/executions/" + task.get("id").asLong() + "/finish", WORKER, failed), 200);
+      service.reconcile(java.time.Instant.now());
+      assertThat(service.attempts(planId)).hasSize(4); // Waiting observations did not exhaust the failure budget; one actual failure does.
+      service.trigger(planId, day, true, "synthetic revision", "local-review");
+      plan.put("expectedVersion", 1);
+      assertStatus(post("/api/v1/lake/plans", ADMIN, plan), 200);
+      assertThat(service.attempts(planId).getFirst().get("error_code")).isEqualTo("PLAN_SUPERSEDED");
+      assertStatus(post("/api/v1/lake/executions/" + first + "/retry", ADMIN, json.createObjectNode()), 409);
+    } finally { service.setState(planId, "PAUSED", "local-review"); }
+  }
+
+  @Test
   void projectMembershipScopesAssetsAndRevocationTakesEffectImmediately() throws Exception {
     String suffix = UUID.randomUUID().toString().replace("-", "");
     var project = json.createObjectNode().put("code", "project-" + suffix).put("name", "Synthetic project");
