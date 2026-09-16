@@ -161,6 +161,72 @@ try:
     assert mismatch['state'] == 'REJECTED' and mismatch['result']['schemaPassed'] is False
     api(prefix + f'/builds/{wrong_build}/publish', {'reason': 'Must reject output type'}, status=409)
     assert api(prefix + '/query', {}, token)['rows'] == current_rows
+    # Managed packages resolve Git revisions in the worker and retain the sealed bundle outside its image.
+    repository_ref = 'models_' + suffix
+    worker_id = 'model-' + suffix
+    api('warehouse/model-repositories', {'code': repository_ref, 'name': 'Synthetic approved models', 'workerIds': [worker_id], 'projectPaths': ['models/commerce']})
+    api('warehouse/model-repositories/' + repository_ref + '/grant', {'projectId': commerce['project']})
+    sql_file.write_text((repo / 'models/commerce/models/orders.sql').read_text())
+    contract_file = git_repo / 'models/commerce/contract.json'
+    managed_contract = json.loads(contract_file.read_text())
+    managed_contract['qualityRules'] = [
+        {'id': 'identifier', 'version': 1, 'type': 'NOT_NULL', 'column': 'order_id', 'severity': 'BLOCK'},
+        {'id': 'unique_order', 'version': 1, 'type': 'UNIQUE', 'column': 'order_id', 'severity': 'BLOCK'},
+        {'id': 'team_set', 'version': 1, 'type': 'ENUM', 'column': 'team', 'values': ['east', 'west'], 'severity': 'BLOCK'},
+        {'id': 'positive_amount', 'version': 1, 'type': 'RANGE', 'column': 'amount', 'min': '0', 'max': '100', 'severity': 'BLOCK'},
+        {'id': 'known_order', 'version': 1, 'type': 'REFERENCE', 'column': 'order_id', 'inputAlias': 'orders', 'inputColumn': 'id', 'severity': 'BLOCK'},
+        {'id': 'decimal_type', 'version': 1, 'type': 'TYPE', 'column': 'amount', 'expectedType': 'numeric(20,2)', 'severity': 'BLOCK'},
+        {'id': 'recent_inputs', 'version': 1, 'type': 'FRESHNESS', 'maxAgeSeconds': 31536000, 'severity': 'BLOCK'},
+        {'id': 'row_count', 'version': 1, 'type': 'ROW_COUNT_CHANGE', 'maxChangeRatio': '0.5', 'baselinePolicy': 'ALLOW_FIRST', 'severity': 'BLOCK'},
+    ]
+    # The test contract supplies the actual declared decimal precision.
+    managed_contract['qualityRules'][5]['expectedType'] = next(f['type'] for f in managed_contract['fields'] if f['name'] == 'amount')
+    contract_file.write_text(json.dumps(managed_contract))
+    invoke(['git', '-C', str(git_repo), 'add', 'models'])
+    invoke(['git', '-C', str(git_repo), '-c', 'user.name=Synthetic test', '-c', 'user.email=synthetic@example.invalid', 'commit', '-qm', 'test: declarative quality checks'])
+    managed_registry = json.loads(runtime.read_text()); managed_registry['version'] = 2
+    managed_registry['repositories'] = {repository_ref: {'repository': str(git_repo), 'projectPaths': ['models/commerce'], 'projectIds': [commerce['project']]}}
+    runtime.write_text(json.dumps(managed_registry))
+    package_route = f"warehouse/projects/{commerce['project']}/model-packages"
+    package_request = {'repository': repository_ref, 'projectPath': 'models/commerce', 'revision': 'HEAD', 'requestKey': 'managed-first'}
+    queued_package = api(package_route, package_request)
+    assert api(package_route, package_request)['id'] == queued_package['id']
+    invoke(command)
+    package = api(package_route)['items'][0]; assert package['state'] == 'COMPLETE'
+    # Uncommitted SQL never enters a package and the retained package survives loss of the original checkout.
+    sql_file.write_text('select unavailable_uncommitted_column from missing_table')
+    model = api(f"warehouse/projects/{commerce['project']}/models", {'code': 'managed-commerce', 'name': 'Managed commerce', 'expectedVersion': 0,
+        'packageId': package['package_id'], 'bindings': {'orders': {'sourceCode': commerce['source'], 'objectName': commerce['filename']}}})
+    managed_prefix = f"warehouse/projects/{commerce['project']}/datasets/{model['id']}"
+    queued = api(managed_prefix + '/builds', {'requestKey': 'managed-quality', 'modelVersion': 1, 'inputs': {'orders': new_asset}})
+    retained_git = root / 'retained-git'; git_repo.rename(retained_git)
+    try:
+        invoke(command)
+    finally:
+        retained_git.rename(git_repo)
+    managed_build = api(managed_prefix + '/builds')[0]
+    assert managed_build['state'] == 'READY', managed_build.get('error_code')
+    assert len(managed_build['result']['rules']) == 8 and all(rule['passed'] for rule in managed_build['result']['rules'])
+    assert managed_build['result']['worker']['lineage']
+    api(managed_prefix + f"/builds/{queued['id']}/publish", {'reason': 'Managed model acceptance'})
+    managed_rows = api(managed_prefix + '/query', {})['rows']
+    # A committed blocking rule revision rejects a candidate and leaves the previous release queryable.
+    sql_file.write_text((repo / 'models/commerce/models/orders.sql').read_text())
+    managed_contract['qualityRules'][3].update({'version': 2, 'max': '1'})
+    contract_file.write_text(json.dumps(managed_contract))
+    invoke(['git', '-C', str(git_repo), 'add', 'models'])
+    invoke(['git', '-C', str(git_repo), '-c', 'user.name=Synthetic test', '-c', 'user.email=synthetic@example.invalid', 'commit', '-qm', 'test: rejecting quality rule revision'])
+    api(package_route, {**package_request, 'requestKey': 'managed-revision'})
+    invoke(command)
+    changed_package = api(package_route)['items'][0]
+    api(f"warehouse/projects/{commerce['project']}/models", {'code': 'managed-commerce', 'name': 'Managed commerce', 'expectedVersion': 1,
+        'packageId': changed_package['package_id'], 'bindings': {'orders': {'sourceCode': commerce['source'], 'objectName': commerce['filename']}}})
+    api(managed_prefix + '/builds', {'requestKey': 'managed-quality-reject', 'modelVersion': 2, 'inputs': {'orders': new_asset}})
+    invoke(command, expected=1)
+    failed_rules = api(managed_prefix + '/builds')[0]
+    assert failed_rules['state'] == 'REJECTED'
+    assert next(r for r in failed_rules['result']['rules'] if r['id'] == 'positive_amount')['measured'] == 2
+    assert api(managed_prefix + '/query', {})['rows'] == managed_rows
     evidence = {'state': 'PASS', 'themes': 2, 'checks': ['real dbt SQL', 'Git-pinned bundle', 'quality gate', 'immutable SQL tables', 'row-and-column policies', 'fixed release query and CSV export', 'exact decimal', 'leading zero', 'project isolation', 'competing publication', 'stale input rejection', 'failed build keeps release', 'declared output type gate'],
         'runtime': {'core': '1.11.15', 'postgresAdapter': '1.11.0'}, 'fixtureRoot': str(root),
         'ui': {'projectId': commerce['project'], 'datasetId': commerce['dataset']}}

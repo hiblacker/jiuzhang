@@ -150,6 +150,7 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
         || BATCH_MUTATION.matcher(path).matches())) return Access.WORKER;
     if ("POST".equals(method) && LAKE_MANIFEST_WRITE.matcher(path).matches()) return Access.WORKER;
     if ("POST".equals(method) && LAKE_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
+    if ("POST".equals(method) && (path.equals("/api/v1/warehouse/model-packages/claim")||path.matches("/api/v1/warehouse/model-packages/[0-9]+/finish"))) return Access.WORKER;
     if ("POST".equals(method) && MODEL_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
     if ("POST".equals(method) && PROBE_WORKER.matcher(path).matches()) return Access.WORKER;
     if ("POST".equals(method) && path.equals("/api/v1/lake/request-budget")) return Access.WORKER;

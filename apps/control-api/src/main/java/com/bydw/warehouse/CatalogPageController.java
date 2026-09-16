@@ -32,7 +32,40 @@ public class CatalogPageController {
     access.require(project,actor(request),"VIEWER");
     String sql=switch(kind) {
       case "sources" -> "SELECT s.id,s.code,s.code AS name,s.source_type,s.state,s.created_at FROM control.source_connection s JOIN warehouse.project_source p ON p.source_id=s.id WHERE p.project_id=?";
-      case "datasets" -> "SELECT d.*,d.code AS source_code FROM warehouse.dataset d WHERE d.project_id=?";
+      case "datasets", "models" -> "SELECT d.*,d.code AS source_code FROM warehouse.dataset d WHERE d.project_id=?";
+      case "assets" -> """
+          WITH project_scope AS (SELECT ?::bigint AS id)
+          SELECT 'mysql:'||o.id AS id,s.code AS source_code,so.object_name AS name,'TABLE' AS kind,
+            o.state,o.row_count,o.byte_count,r.id AS run_id,r.scheduled_window_start AS data_window,r.finished_at AS received_at,
+            (r.state='COMPLETE' AND o.state='RAW_COMMITTED') AS available
+          FROM lake.object_run o JOIN lake.system_run r ON r.id=o.system_run_id JOIN lake.source_object so ON so.id=o.source_object_id
+          JOIN control.source_connection s ON s.id=r.source_id JOIN warehouse.project_source ps ON ps.source_id=s.id
+          WHERE ps.project_id=(SELECT id FROM project_scope)
+          UNION ALL
+          SELECT 'external:'||a.id,s.code,a.object_key,a.kind,a.state,a.row_count,a.byte_count,a.execution_id,
+            a.business_date::timestamp AT TIME ZONE 'Asia/Shanghai',a.created_at,(a.state='PARSED' AND e.state='COMPLETE')
+          FROM warehouse.external_asset a JOIN control.source_connection s ON s.id=a.source_id
+          JOIN warehouse.project_source ps ON ps.source_id=s.id JOIN lake.execution_attempt e ON e.id=a.execution_id
+          WHERE ps.project_id=(SELECT id FROM project_scope)
+          """;
+      case "connections" -> """
+          SELECT c.id,c.name,c.code,c.instance_id,c.lifecycle,c.revision,c.active_version,r.kind FROM warehouse.ingest_connection c
+          JOIN warehouse.connection_project cp ON cp.connection_id=c.id AND cp.enabled JOIN warehouse.ingest_resource r ON r.id=c.resource_id
+          JOIN warehouse.resource_project rp ON rp.resource_id=r.id AND rp.project_id=cp.project_id AND rp.enabled
+          JOIN warehouse.instance_project ip ON ip.instance_id=c.instance_id AND ip.project_id=cp.project_id
+          JOIN warehouse.system_instance i ON i.id=c.instance_id JOIN warehouse.system_project sp ON sp.system_id=i.system_id AND sp.project_id=cp.project_id
+          WHERE cp.project_id=? AND r.enabled
+          """;
+      case "channels" -> """
+          SELECT ch.source_id AS id,ch.name,s.code,ch.lifecycle,ch.revision,ch.active_version,c.instance_id,c.id AS connection_id
+          FROM warehouse.ingest_channel ch JOIN warehouse.project_source ps ON ps.source_id=ch.source_id
+          JOIN control.source_connection s ON s.id=ch.source_id JOIN warehouse.ingest_connection c ON c.id=ch.connection_id
+          JOIN warehouse.connection_project cp ON cp.connection_id=c.id AND cp.project_id=ps.project_id AND cp.enabled
+          JOIN warehouse.resource_project rp ON rp.resource_id=c.resource_id AND rp.project_id=ps.project_id AND rp.enabled
+          JOIN warehouse.instance_project ip ON ip.instance_id=c.instance_id AND ip.project_id=ps.project_id
+          JOIN warehouse.system_instance i ON i.id=c.instance_id JOIN warehouse.system_project sp ON sp.system_id=i.system_id AND sp.project_id=ps.project_id
+          WHERE ps.project_id=?
+          """;
       case "runs" -> """
           SELECT a.id,s.code AS name,s.code AS source_code,a.state,a.error_code,a.created_at,a.started_at,a.finished_at,
             w.business_date,w.id AS window_id,p.id AS plan_id
@@ -42,7 +75,8 @@ public class CatalogPageController {
           """;
       default -> throw new ApiException(HttpStatus.NOT_FOUND,"CATALOG_NOT_FOUND","目录不存在");
     };
-    return page(sql,List.of(project),"name",q,limit,offset);
+    if(List.of("connections","channels","models").contains(kind))access.require(project,actor(request),"ENGINEER");
+    return page(sql,List.of(project),kind.equals("assets")?"name||' '||source_code":"name",q,limit,offset);
   }
   private Object page(String sql,List<Object> initial,String field,String q,int limit,int offset) {
     if(q.length()>100||limit<1||limit>200||offset<0||offset>1000000) throw new ApiException(HttpStatus.BAD_REQUEST,"INVALID_PAGE","分页参数无效");

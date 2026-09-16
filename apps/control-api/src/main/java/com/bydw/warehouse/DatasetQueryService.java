@@ -26,7 +26,8 @@ public class DatasetQueryService {
     request.path("rowEquals").fields().forEachRemaining(e -> {
       if (!fields.contains(e.getKey()) || !e.getValue().isValueNode() || e.getValue().toString().length() > 1000) bad("INVALID_ROW_POLICY");
     });
-    jdbc.update("INSERT INTO warehouse.dataset_policy(dataset_id, identity_id, columns_json, row_equals) VALUES (?, ?, ?::jsonb, ?::jsonb) ON CONFLICT(dataset_id, identity_id) DO UPDATE SET columns_json = EXCLUDED.columns_json, row_equals = EXCLUDED.row_equals, revision = warehouse.dataset_policy.revision + 1", dataset, identity, request.path("columns").toString(), request.path("rowEquals").toString());
+    var fieldTypes=new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode();contract.path("fields").forEach(f->fieldTypes.put(f.path("name").asText(),f.path("type").asText()));
+    jdbc.update("INSERT INTO warehouse.dataset_policy(dataset_id, identity_id, columns_json, row_equals,field_types) VALUES (?, ?, ?::jsonb, ?::jsonb,?::jsonb) ON CONFLICT(dataset_id, identity_id) DO UPDATE SET columns_json = EXCLUDED.columns_json, row_equals = EXCLUDED.row_equals,field_types=EXCLUDED.field_types, revision = warehouse.dataset_policy.revision + 1", dataset, identity, request.path("columns").toString(), request.path("rowEquals").toString(),fieldTypes.toString());
     models.audit(actor, "DATASET_POLICY_CHANGE", dataset, Map.of("identity", identity)); return Map.of("identity", identity, "datasetId", dataset);
   }
   @Transactional(readOnly = true)

@@ -2,6 +2,8 @@
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { NAlert, NButton, NCard, NConfigProvider, NDataTable, NEmpty, NFormItem, NInput, NLayout, NLayoutSider, NMenu, NPagination, NSelect, NSpace, NTag, zhCN, dateZhCN } from 'naive-ui'
 import { api, csrfToken, login, logout, type Identity, type Page, type Project } from './api'
+const AssetCatalog=defineAsyncComponent(()=>import('./AssetCatalog.vue'))
+const ModelWorkspace=defineAsyncComponent(()=>import('./ModelWorkspace.vue'))
 const SystemManager=defineAsyncComponent(()=>import('./SystemManager.vue'))
 
 const identity = ref<Identity|null>(null), ready = ref(false), busy = ref(false), error = ref('')
@@ -79,6 +81,8 @@ onMounted(async()=>{try{await csrfToken();await identify()}catch{}finally{ready.
             <n-card title="运行中心"><p>检查交付记录，定位失败和缺交。</p><n-button @click="page='runs'">查看运行</n-button></n-card>
           </section>
           <SystemManager v-else-if="page==='systems'" :project="projectId" :can-manage="role==='OWNER'" :can-ingest="role==='OWNER'||role==='ENGINEER'"/>
+          <AssetCatalog v-else-if="page==='assets'" :project="projectId"/>
+          <ModelWorkspace v-else-if="page==='models'&&(role==='OWNER'||role==='ENGINEER')" :project="projectId" :can-manage="role==='OWNER'"/>
           <n-card v-else-if="['datasets','runs'].includes(page)">
             <n-space class="gap"><n-input v-model:value="search" placeholder="按名称搜索" @keyup.enter="pageNumber=1;load()" /><n-button @click="pageNumber=1;load()">搜索</n-button><n-tag>{{total}} 条</n-tag></n-space>
             <n-data-table :columns="columns" :data="rows" :loading="busy" :row-key="r=>String(r.id)" />

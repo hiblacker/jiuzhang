@@ -42,3 +42,9 @@ python3 -m venv /path/to/model-venv
 [真实数据库集成测试](../../tests/model-product-integration.py)由 Java 的隔离数据库测试启动：目录接收 → 两套 Git/dbt 主题 → 真实 SQL → 质量失败保旧 → 冻结表禁止 Worker 修改 → 行列过滤 → 固定版本查询/导出 → 并发发布/旧输入拒绝。每个临时夹具仓库、工作目录和模型运行互相隔离。
 
 回执先落 outbox 后提交；响应丢失重放相同完成请求。进程在回执落盘前终止时，租约过期后保留失败构建，重新请求新构建，不修改旧 Schema。恢复必须保留 PostgreSQL、湖区、模型工作目录和 Git 对象。联合备份恢复已通过本机 PostgreSQL 17 实测，见[运行手册](../../deploy/LOCAL_RUNTIME.md)；持续跨日与 Linux 打包分别验收。
+
+## 产品工作台协议 v2
+
+使用 [v2 配置](../../docs/templates/model-runtime-v2.example.json)将批准 Git 仓库挂载在独立持久目录，并限定模型子路径和可用项目。管理员在控制面登记同名仓库引用、Worker ID 与项目授权；工程师从页面提交打包任务，随后选择资产绑定，不传宿主路径、SQL 或手工摘要。
+
+Worker 封存已提交模型文件至 `packageRoot`，以内容摘要校验。新执行从该封存包读取，原仓库维护或镜像升级不影响已保存的包。数据库、湖区、模型包、模型工作目录和本地批准资源配置须联合恢复。旧 v1 profiles 保留兼容。
