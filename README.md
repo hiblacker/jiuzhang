@@ -44,7 +44,7 @@
 
 | 文档 | 用途 |
 |---|---|
-| [下一批产品实施方案](docs/38-next-product-implementation-plan.md) / [契约与验收清单](docs/39-next-product-acceptance-contract.md) | 待评审：接入工作台、自动数据交付、数据服务与异常运营，按结果分批实施 |
+| [下一批产品实施方案](docs/38-next-product-implementation-plan.md) / [契约与验收清单](docs/39-next-product-acceptance-contract.md) | 待评审：多系统接入管理、自动数据交付、数据服务与异常运营，含 30 项验收案例 |
 | [一期实现与验收结果](docs/37-phase-one-acceptance.md) | 30/31/33 逐项核对、真实数据与测试证据、未验收边界和下一阶段 |
 | [Luna 开发执行提示词](LUNA_TASK.md) | 全部任务、国内源、既有授权、开发顺序与验收要求 |
 | [入湖详细实施设计](docs/33-lake-implementation-design.md) | 对象、持久化提交、每日数据库/文件、API、模型、接口与工作包 |
