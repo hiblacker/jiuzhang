@@ -318,6 +318,8 @@ def once(options, registry):
     if not flush(options, outbox):
         return {'state': 'OUTBOX_PENDING'}
     refs = list(registry.get('profiles', {})) + ['package-' + ref for ref in registry.get('repositories', {})]
+    if not refs:
+        return {'state': 'IDLE'}
     turn_path = Path(registry['workRoot']) / ('dispatch-' + options.instance + '.json')
     turn = json.loads(turn_path.read_text()) if turn_path.exists() else {'package': True}
     task = None
@@ -396,7 +398,7 @@ def main():
     options.api = options.api.rstrip('/')
     options.token = os.environ['CONTROL_API_WORKER_TOKEN']
     registry = json.loads(Path(options.registry).read_text())
-    if registry.get('version') not in [1, 2] or not Path(registry['lakeRoot']).is_absolute() or not Path(registry['workRoot']).is_absolute() or not (registry.get('profiles') or registry.get('repositories')):
+    if registry.get('version') not in [1, 2] or not Path(registry['lakeRoot']).is_absolute() or not Path(registry['workRoot']).is_absolute():
         fail('INVALID_MODEL_REGISTRY')
     registry.setdefault('profiles', {})
     if len(registry['profiles']) + len(registry.get('repositories', {})) > 100:

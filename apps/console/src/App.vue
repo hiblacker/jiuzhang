@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed,defineAsyncComponent,h,onMounted,ref,watch } from 'vue'
 import { NAlert,NButton,NCard,NConfigProvider,NDataTable,NEmpty,NFormItem,NInput,NLayout,NLayoutSider,NMenu,NModal,NPagination,NSpace,zhCN,dateZhCN } from 'naive-ui'
-import { api,csrfToken,login,logout,type Identity,type Page,type Project } from './api'
+import { api,ApiError,csrfToken,login,logout,type Identity,type Page,type Project } from './api'
 const HomeDashboard=defineAsyncComponent(()=>import('./HomeDashboard.vue'))
 const SystemManager=defineAsyncComponent(()=>import('./SystemManager.vue'))
 const AssetCatalog=defineAsyncComponent(()=>import('./AssetCatalog.vue'))
@@ -19,11 +19,12 @@ const projectColumns=[{title:'项目',key:'name'},{title:'编码',key:'code'},{t
 let projectGeneration=0
 async function loadProjects(){const current=++projectGeneration;const result=await api<Page<Project>>(`/warehouse/catalog/projects?q=${encodeURIComponent(projectSearch.value)}&limit=25&offset=${(projectPage.value-1)*25}`);if(current===projectGeneration){projects.value=result.items;projectTotal.value=result.total;if(!selectedProject.value)selectedProject.value=result.items[0]||null}}
 async function identify(){identity.value=await api<Identity>('/warehouse/me');await loadProjects();if(selectedProject.value){const current=identity.value.projects.find(p=>p.id===selectedProject.value?.id);if(current)selectedProject.value=current}}
-async function signIn(){busy.value=true;error.value='';try{if(activate.value){await api('/auth/activate',{invitation:invitation.value,password:password.value});invitation.value='';activate.value=false}else{await login(username.value,password.value);await identify()}}catch(e){error.value=(e as Error).message}finally{password.value='';busy.value=false}}
+async function signIn(){busy.value=true;error.value='';try{if(activate.value){await api('/auth/activate',{invitation:invitation.value,password:password.value});invitation.value='';activate.value=false}else{await login(username.value,password.value);selectedProject.value=null;projectPage.value=1;projectSearch.value='';page.value='home';await identify()}}catch(e){error.value=(e as Error).message}finally{password.value='';busy.value=false}}
+async function signOut(){try{await logout();identity.value=null;selectedProject.value=null;projects.value=[];projectModal.value=false;page.value='home'}catch(e){error.value=(e as Error).message}}
 async function searchProjects(){try{await loadProjects()}catch(e){error.value=(e as Error).message}}
 watch(projectPage,()=>void searchProjects());watch(menu,items=>{if(!items.some(m=>m.key===page.value))page.value='home'})
 window.addEventListener('session-expired',()=>{identity.value=null;selectedProject.value=null;projects.value=[]})
-onMounted(async()=>{try{await csrfToken();await identify()}catch{}finally{ready.value=true}})
+onMounted(async()=>{try{await csrfToken();await identify()}catch(e){if(!(e instanceof ApiError&&e.status===401))error.value=(e as Error).message}finally{ready.value=true}})
 </script>
 
 <template>
@@ -33,9 +34,9 @@ onMounted(async()=>{try{await csrfToken();await identify()}catch{}finally{ready.
         <p class="muted">统一接入 · 持续交付 · 可信数据</p>
         <n-alert v-if="error" type="error" class="gap">{{error}}</n-alert>
         <form @submit.prevent="signIn">
-          <n-form-item v-if="!activate" label="账号"><n-input v-model:value="username" autocomplete="username" /></n-form-item>
-          <n-form-item v-else label="开户或重置邀请码"><n-input v-model:value="invitation" type="password" autocomplete="off" /></n-form-item>
-          <n-form-item :label="activate?'设置密码（至少 12 字符）':'密码'"><n-input v-model:value="password" type="password" :autocomplete="activate?'new-password':'current-password'" show-password-on="click" /></n-form-item>
+          <n-form-item v-if="!activate" label="账号"><n-input v-model:value="username" :input-props="{'aria-label':'账号'}" autocomplete="username" /></n-form-item>
+          <n-form-item v-else label="开户或重置邀请码"><n-input v-model:value="invitation" :input-props="{'aria-label':'邀请码'}" type="password" autocomplete="off" /></n-form-item>
+          <n-form-item :label="activate?'设置密码（至少 12 字符）':'密码'"><n-input v-model:value="password" :input-props="{'aria-label':'密码'}" type="password" :autocomplete="activate?'new-password':'current-password'" show-password-on="click" /></n-form-item>
           <n-button attr-type="submit" type="primary" block :loading="busy" :disabled="!ready">{{activate?'设置密码':'登录'}}</n-button>
           <n-button text class="gap" @click="activate=!activate;error=''">{{activate?'返回登录':'使用邀请码开户 / 重置密码'}}</n-button>
         </form>
@@ -48,7 +49,7 @@ onMounted(async()=>{try{await csrfToken();await identify()}catch{}finally{ready.
       </n-layout-sider>
       <n-layout content-style="padding: 28px 36px">
         <header><div><h1>{{heading}}</h1><span class="muted">{{identity.identity}} · {{identity.platformAdmin?'平台管理员':role}}</span></div>
-          <n-space align="center"><n-button @click="projectModal=true;searchProjects()">{{selectedProject?.name||'选择项目'}}</n-button><n-button @click="logout().then(()=>identity=null).catch(e=>error=e.message)">退出</n-button></n-space>
+          <n-space align="center"><n-button @click="projectModal=true;searchProjects()">{{selectedProject?.name||'选择项目'}}</n-button><n-button @click="signOut">退出</n-button></n-space>
         </header>
         <n-alert v-if="error" type="error" class="gap">{{error}}</n-alert>
         <ProjectSettings v-if="page==='settings'||(!projectId&&identity.platformAdmin)" :project="projectId" :can-manage="role==='OWNER'" :admin="identity.platformAdmin" :identity="identity.identity" @projects-changed="identify().catch(e=>error=e.message)"/>

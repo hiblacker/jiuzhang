@@ -20,9 +20,8 @@ COPY deploy/product-requirements.txt /app/deploy/product-requirements.txt
 RUN --mount=type=bind,source=deploy/artifacts/linux-wheels,target=/wheels \
     pip install --no-cache-dir --no-index --find-links=/wheels --require-hashes -r /app/deploy/product-requirements.txt && pip check
 COPY tools /app/tools
-COPY apps/ingestion-worker/lake-runtime.mjs /app/apps/ingestion-worker/lake-runtime.mjs
+COPY apps/ingestion-worker /app/apps/ingestion-worker
 COPY apps/model-worker /app/apps/model-worker
-COPY apps/console /app/apps/console
 COPY deploy/artifacts/models.bundle /tmp/models.bundle
 RUN git clone --bare /tmp/models.bundle /models.git && rm /tmp/models.bundle && git config --system --add safe.directory /models.git && \
     mkdir -p /app/notices && dpkg-query -W -f='${Package}\t${Version}\n' > /app/notices/debian-packages.tsv && \

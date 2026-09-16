@@ -47,8 +47,9 @@ public class ManagedRuntimeService {
     }catch(com.fasterxml.jackson.core.JsonProcessingException e){throw new IllegalStateException("INVALID_STORED_CONFIG");}
   }
   public void attach(Map<String,Object> task,String worker) {
-    Object raw=task.get("contract");if(!(raw instanceof JsonNode contract)||!contract.has("channelVersion"))return;
     Long source=jdbc.queryForObject("SELECT id FROM control.source_connection WHERE code=?",Long.class,task.get("source_code"));
+    if(jdbc.queryForObject("SELECT count(*) FROM warehouse.ingest_channel WHERE source_id=?",Long.class,source)>0)task.put("sharedRequestBudget",true);
+    Object raw=task.get("contract");if(!(raw instanceof JsonNode contract)||!contract.has("channelVersion"))return;
     task.putAll(configuration(source,contract.get("channelVersion").asInt(),worker));
   }
   public boolean eligible(long source,int version,String worker){

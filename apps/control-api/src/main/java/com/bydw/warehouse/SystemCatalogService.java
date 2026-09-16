@@ -53,9 +53,9 @@ public class SystemCatalogService {
   @Transactional public Object create(long project,JsonNode body,String actor) {
     access.require(project,actor,"OWNER");String code=code(body,"code");
     var row=jdbc.queryForMap("""
-        INSERT INTO warehouse.business_system(code,name,domain,organization,business_owner,technical_owner,description,managing_project_id)
-        VALUES (?,?,?,?,?,?,?,?) RETURNING *
-        """,code,text(body,"name",100,true),text(body,"domain",100,false),text(body,"organization",100,false),text(body,"businessOwner",100,true),text(body,"technicalOwner",100,true),text(body,"description",2000,false),project);
+        INSERT INTO warehouse.business_system(code,name,domain,organization,business_owner,technical_owner,description,managing_project_id,max_parallel)
+        VALUES (?,?,?,?,?,?,?,?,?) RETURNING *
+        """,code,text(body,"name",100,true),text(body,"domain",100,false),text(body,"organization",100,false),text(body,"businessOwner",100,true),text(body,"technicalOwner",100,true),text(body,"description",2000,false),project,parallel(body,2));
     jdbc.update("INSERT INTO warehouse.system_project(system_id,project_id) VALUES (?,?)",row.get("id"),project);
     audit(actor,"SYSTEM_CREATE",row.get("id"),Map.of("projectId",project));return row;
   }
@@ -63,9 +63,9 @@ public class SystemCatalogService {
     var old=requireSystem(project,system,actor,"OWNER");manage(old,project,actor);
     long expected=body.path("expectedVersion").asLong(-1);
     var rows=jdbc.queryForList("""
-        UPDATE warehouse.business_system SET name=?,domain=?,organization=?,business_owner=?,technical_owner=?,description=?,revision=revision+1,updated_at=clock_timestamp()
+        UPDATE warehouse.business_system SET name=?,domain=?,organization=?,business_owner=?,technical_owner=?,description=?,max_parallel=?,revision=revision+1,updated_at=clock_timestamp()
         WHERE id=? AND revision=? AND lifecycle<>'RETIRED' RETURNING *
-        """,text(body,"name",100,true),text(body,"domain",100,false),text(body,"organization",100,false),text(body,"businessOwner",100,true),text(body,"technicalOwner",100,true),text(body,"description",2000,false),system,expected);
+        """,text(body,"name",100,true),text(body,"domain",100,false),text(body,"organization",100,false),text(body,"businessOwner",100,true),text(body,"technicalOwner",100,true),text(body,"description",2000,false),parallel(body,((Number)old.get("max_parallel")).intValue()),system,expected);
     if(rows.isEmpty())conflict("SYSTEM_VERSION_CHANGED");
     audit(actor,"SYSTEM_UPDATE",system,Map.of("previousVersion",expected));return rows.getFirst();
   }
@@ -92,6 +92,7 @@ public class SystemCatalogService {
     try{jdbc.update("INSERT INTO control.audit_log(principal,action,resource,result,details) VALUES (?,?,?,'SUCCESS',?::jsonb)",actor,action,"system/"+id,new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(detail));}
     catch(com.fasterxml.jackson.core.JsonProcessingException e){throw new IllegalStateException(e);}
   }
+  private static int parallel(JsonNode body,int fallback){if(!body.has("maxParallel"))return fallback;JsonNode value=body.path("maxParallel");if(!value.isIntegralNumber()||value.asLong()<1||value.asLong()>100)bad("INVALID_SYSTEM_QUOTA");return value.asInt();}
   public static String code(JsonNode b,String field){String value=text(b,field,100,true);if(!value.matches("[a-z][a-z0-9._-]{1,99}"))bad("INVALID_CODE");return value;}
   public static String text(JsonNode b,String field,int max,boolean required){JsonNode v=b.get(field);if(v!=null&&!v.isTextual())bad("INVALID_FIELD");String s=v==null?"":v.asText().trim();if(s.length()>max||(required&&s.isBlank()))bad("INVALID_FIELD");return s;}
   public static void page(String q,int limit,int offset){if(q.length()>100||limit<1||limit>200||offset<0||offset>1000000)bad("INVALID_PAGE");}

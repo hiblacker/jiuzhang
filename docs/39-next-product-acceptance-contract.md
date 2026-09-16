@@ -1,6 +1,6 @@
 # 下一批产品契约与验收清单
 
-状态：建议契约，尚未实现；配套 [38 号方案](38-next-product-implementation-plan.md)。以下字段、资源名和接口是新增设计，不表示现有 API 已支持。实现先检查现有契约，能扩展则复用。
+状态：本批实施验收依据；配套 [38 号方案](38-next-product-implementation-plan.md)。本文保留设计语义，实际已实现入口和操作见 [41 号手册](41-product-workbench-runbook.md)，逐项证据见 [40 号进度](40-product-workbench-progress.md)。接口名称若与建议不同，以实现的控制器与手册为准；人工及真实运行条件单独验收。
 
 ## 1. 接入管理对象、配置与执行资源
 

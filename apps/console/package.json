@@ -10,16 +10,17 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vue-tsc --noEmit && vite build",
     "check": "vue-tsc --noEmit",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node ../../tests/product-browser.mjs"
   },
   "dependencies": {
-    "vue": "3.5.42",
-    "naive-ui": "2.45.3"
+    "naive-ui": "2.45.3",
+    "vue": "3.5.42"
   },
   "devDependencies": {
-    "vite": "7.3.6",
     "@vitejs/plugin-vue": "6.0.9",
+    "playwright": "1.62.1",
     "typescript": "5.9.3",
+    "vite": "7.3.6",
     "vue-tsc": "3.3.11"
   }
 }

@@ -516,6 +516,70 @@ class LakeDatabaseIntegrationTest {
   }
 
   @Test
+  @EnabledIfEnvironmentVariable(named = "LAKE_REVIEW_SCALE", matches = "true")
+  void catalogPaginatesFiftySystemsThreeHundredChannelsAndTenThousandObjects() throws Exception {
+    String prefix="scale_"+UUID.randomUUID().toString().replace("-", "");
+    long project=json.readTree(post("/api/v1/warehouse/projects",ADMIN,json.createObjectNode().put("code",prefix).put("name","Synthetic metadata scale")).body()).path("id").asLong();
+    long firstSystem;
+    try(var connection=owner()){
+      connection.setAutoCommit(false);
+      var jdbc=new org.springframework.jdbc.core.JdbcTemplate(new org.springframework.jdbc.datasource.SingleConnectionDataSource(connection,true));
+      jdbc.update("INSERT INTO warehouse.business_system(code,name,business_owner,technical_owner,managing_project_id) SELECT ?||'_'||n,'Synthetic system '||n,'Synthetic','Synthetic',? FROM generate_series(1,50) n",prefix,project);
+      jdbc.update("INSERT INTO warehouse.system_project SELECT id,? FROM warehouse.business_system WHERE managing_project_id=?",project,project);
+      jdbc.update("INSERT INTO warehouse.system_instance(system_id,code,name,environment) SELECT id,'test','Test','TEST' FROM warehouse.business_system WHERE managing_project_id=?",project);
+      jdbc.update("INSERT INTO warehouse.instance_project SELECT i.id,? FROM warehouse.system_instance i JOIN warehouse.business_system s ON s.id=i.system_id WHERE s.managing_project_id=?",project,project);
+      jdbc.update("INSERT INTO warehouse.execution_environment(code,name,worker_ids,max_parallel) VALUES (?,'Synthetic scale','[]',2)",prefix);
+      long resource=jdbc.queryForObject("INSERT INTO warehouse.ingest_resource(code,name,environment_code,kind,resource_group,max_parallel,max_bytes,requests_per_second) VALUES (?,'Scale MySQL',?,'MYSQL_SNAPSHOT',?,1,1048576,5) RETURNING id",Long.class,prefix,prefix,prefix);
+      jdbc.update("INSERT INTO warehouse.resource_project(resource_id,project_id) VALUES (?,?)",resource,project);
+      jdbc.update("INSERT INTO warehouse.ingest_connection(instance_id,code,name,resource_id,managing_project_id,active_version) SELECT i.id,'connection_'||n,'Connection '||n,?,?,1 FROM warehouse.system_instance i JOIN warehouse.business_system s ON s.id=i.system_id CROSS JOIN generate_series(1,3) n WHERE s.managing_project_id=?",resource,project,project);
+      jdbc.update("INSERT INTO warehouse.connection_project(connection_id,project_id) SELECT id,? FROM warehouse.ingest_connection WHERE managing_project_id=?",project,project);
+      jdbc.update("INSERT INTO warehouse.connection_version(connection_id,version,config,created_by) SELECT id,1,'{\"database\":\"synthetic\"}',? FROM warehouse.ingest_connection WHERE managing_project_id=?",prefix,project);
+      jdbc.update("INSERT INTO control.source_connection(code,source_type,credential_ref) SELECT ?||'_'||c.id||'_'||n,'MYSQL','env://SYNTHETIC' FROM warehouse.ingest_connection c CROSS JOIN generate_series(1,2) n WHERE c.managing_project_id=?",prefix,project);
+      jdbc.update("INSERT INTO warehouse.project_source(source_id,project_id) SELECT id,? FROM control.source_connection WHERE starts_with(code,?||'_')",project,prefix);
+      jdbc.update("INSERT INTO warehouse.ingest_channel(source_id,connection_id,name,active_version) SELECT s.id,c.id,'Channel '||n,1 FROM warehouse.ingest_connection c CROSS JOIN generate_series(1,2) n JOIN control.source_connection s ON s.code=?||'_'||c.id||'_'||n WHERE c.managing_project_id=?",prefix,project);
+      jdbc.update("INSERT INTO warehouse.channel_version(source_id,version,connection_id,connection_version,config,created_by) SELECT ch.source_id,1,ch.connection_id,1,'{}',? FROM warehouse.ingest_channel ch JOIN warehouse.project_source ps ON ps.source_id=ch.source_id WHERE ps.project_id=?",prefix,project);
+      long source=jdbc.queryForObject("SELECT min(source_id) FROM warehouse.project_source WHERE project_id=?",Long.class,project);
+      long inventory=jdbc.queryForObject("INSERT INTO lake.inventory(source_id,plan_version,observed_at,source_scope,object_count,schema_sha256,state) VALUES (?,1,now(),'{}',10000,repeat('a',64),'ACTIVE') RETURNING id",Long.class,source);
+      jdbc.update("INSERT INTO lake.source_object(inventory_id,object_name,object_type,schema_json,strategy,state) SELECT ?,'table_'||lpad(n::text,5,'0'),'TABLE','[]','FULL_SNAPSHOT','READY' FROM generate_series(1,10000) n",inventory);
+      long run=jdbc.queryForObject("INSERT INTO lake.system_run(source_id,plan_version,run_key,mode,state,started_at,finished_at) VALUES (?,1,?,'FULL','COMPLETE',now(),now()) RETURNING id",Long.class,source,prefix);
+      jdbc.update("INSERT INTO lake.object_run(system_run_id,source_object_id,state,row_count) SELECT ?,id,'RAW_COMMITTED',0 FROM lake.source_object WHERE inventory_id=?",run,inventory);
+      firstSystem=jdbc.queryForObject("SELECT min(id) FROM warehouse.business_system WHERE managing_project_id=?",Long.class,project);
+      connection.commit();
+    }
+    var timings=json.createObjectNode();var seen=new java.util.HashSet<String>();
+    for(var kind:java.util.Map.of("systems",50,"connections",150,"channels",300,"assets",10000).entrySet()){
+      String route=kind.getKey().equals("systems")?"/api/v1/warehouse/projects/"+project+"/systems":"/api/v1/warehouse/catalog/projects/"+project+"/"+kind.getKey();
+      long started=System.nanoTime();seen.clear();int requests=0;
+      for(int offset=0;offset<kind.getValue();offset+=200){
+        var response=get(route+"?limit=200&offset="+offset,ADMIN);assertStatus(response,200);var result=json.readTree(response.body());
+        assertThat(result.path("total").asInt()).isEqualTo(kind.getValue());
+        for(var row:result.path("items"))assertThat(seen.add(row.path("id").asText())).isTrue();requests++;
+      }
+      assertThat(seen).hasSize(kind.getValue());timings.putObject(kind.getKey()).put("objects",seen.size()).put("requests",requests).put("elapsedMillis",(System.nanoTime()-started)/1000000);
+    }
+    var filtered=json.readTree(get("/api/v1/warehouse/catalog/projects/"+project+"/assets?q=table_099&limit=25&offset=75",ADMIN).body());
+    assertThat(filtered.path("total").asInt()).isEqualTo(100);assertThat(filtered.path("items")).hasSize(25);
+    var targets=json.createObjectNode().put("action","PAUSE").put("reason","Synthetic scale impact preview");targets.putArray("targets").addObject().put("type","system").put("id",firstSystem).put("expectedVersion",1);
+    var preview=post("/api/v1/warehouse/projects/"+project+"/ingestion-operations/preview",ADMIN,targets);assertStatus(preview,200);
+    var evidence=json.createObjectNode().put("state","PASS").put("scope","Synthetic metadata pagination; not ingestion throughput").put("projectId",project).put("java",System.getProperty("java.version")).put("processors",Runtime.getRuntime().availableProcessors()).put("maxHeapBytes",Runtime.getRuntime().maxMemory());evidence.set("timings",timings);evidence.set("impact",json.readTree(preview.body()));
+    Path output=Path.of(System.getenv("LAKE_REVIEW_REPO"),"work/product-review/scale-evidence.json");Files.createDirectories(output.getParent());Files.writeString(output,json.writerWithDefaultPrettyPrinter().writeValueAsString(evidence));
+  }
+
+  @Test
+  @EnabledIfEnvironmentVariable(named = "LAKE_REVIEW_BROWSER", matches = "true")
+  void browserCompletesManagedIngestionModelAndScopedQuery() throws Exception {
+    Path repo=Path.of(System.getenv("LAKE_REVIEW_REPO"));
+    var builder=new ProcessBuilder("node",repo.resolve("tests/product-browser.mjs").toString()).directory(repo.toFile());
+    builder.environment().put("MODEL_TEST_API",base);builder.environment().put("MODEL_TEST_ADMIN",ADMIN);
+    builder.environment().put("CONTROL_API_WORKER_TOKEN",WORKER);
+    Path output=repo.resolve("work/product-review/browser-integration.log");Files.createDirectories(output.getParent());
+    builder.redirectErrorStream(true).redirectOutput(output.toFile());
+    var process=builder.start();boolean finished=process.waitFor(240,TimeUnit.SECONDS);
+    if(!finished)process.destroyForcibly();assertThat(finished).as("Browser integration timed out").isTrue();
+    assertThat(process.exitValue()).as("Browser: %s",Files.readString(output)).isZero();
+  }
+
+  @Test
   void dynamicWorkerOnboardsFileAndApiChannelsWithoutChangingProfiles() throws Exception {
     Path repo=Path.of(System.getenv("LAKE_REVIEW_REPO"));
     var builder=new ProcessBuilder("node",repo.resolve("tests/managed-ingestion-integration.mjs").toString()).directory(repo.toFile());

@@ -123,6 +123,30 @@ public class DatasetRefreshService {
     }
     return Map.of("checked",checked);
   }
+  @Transactional public Object retry(long project,long dataset,long window,JsonNode body,String actor){
+    models.dataset(project,dataset,actor,"OWNER");
+    String reason=SystemCatalogService.text(body,"reason",1000,true);
+    long expected=body.path("expectedBuildId").asLong(-1);
+    var data=jdbc.queryForMap("SELECT * FROM warehouse.dataset WHERE id=? FOR UPDATE",dataset);
+    var plans=jdbc.queryForList("SELECT p.*,v.model_version,v.config,v.service_identity,v.operational_owner FROM warehouse.refresh_plan p JOIN warehouse.refresh_plan_version v ON v.plan_id=p.id AND v.version=p.active_version WHERE p.dataset_id=? FOR UPDATE OF p",dataset);
+    if(plans.isEmpty())conflict("REFRESH_PLAN_REQUIRED");var plan=plans.getFirst();
+    var rows=jdbc.queryForList("SELECT * FROM warehouse.refresh_window WHERE id=? AND plan_id=? FOR UPDATE",window,plan.get("id"));
+    if(rows.isEmpty())missing("REFRESH_WINDOW_NOT_FOUND");var row=rows.getFirst();
+    if(!plan.get("state").equals("ACTIVE")||!plan.get("active_version").equals(row.get("plan_version"))||!data.get("active_model_version").equals(plan.get("model_version")))conflict("REFRESH_PLAN_PAUSED_OR_CHANGED");
+    var replay=jdbc.queryForList("SELECT build_id FROM warehouse.refresh_build WHERE window_id=? AND retry_of=?",window,expected);
+    if(!replay.isEmpty())return Map.of("buildId",replay.getFirst().get("build_id"),"reused",true);
+    if(!(row.get("build_id") instanceof Number n)||n.longValue()!=expected)conflict("REFRESH_BUILD_CHANGED");
+    String state=jdbc.queryForObject("SELECT state FROM warehouse.model_build WHERE id=?",String.class,expected);
+    if(!Set.of("FAILED","CANCELLED").contains(state))conflict("REFRESH_BUILD_NOT_RETRYABLE");
+    JsonNode config=models.tree(plan.get("config"));String service=plan.get("service_identity").toString();
+    requireService(project,service,config.path("publishMode").asText().equals("AUTO")?"OWNER":"ENGINEER");access.require(project,plan.get("operational_owner").toString(),"OWNER");
+    var request=json.createObjectNode().put("requestKey","refresh-retry-"+window+"-"+expected).put("modelVersion",((Number)plan.get("model_version")).intValue());request.set("inputs",models.tree(row.get("selected_inputs")));
+    long build=((Number)models.build(project,dataset,request,service).get("id")).longValue();
+    jdbc.update("INSERT INTO warehouse.refresh_build(window_id,input_hash,build_id,retry_of) VALUES (?,?,?,?)",window,row.get("input_hash"),build,expected);
+    jdbc.update("UPDATE warehouse.refresh_window SET build_id=?,state='BUILDING',reason=NULL,release_id=NULL,checked_at=clock_timestamp() WHERE id=?",build,window);
+    models.audit(actor,"REFRESH_RETRY",dataset,Map.of("windowId",window,"previousBuildId",expected,"buildId",build,"reason",reason));
+    return Map.of("buildId",build,"reused",false);
+  }
   private void advance(Map<String,Object> plan,long window,LocalDate day,JsonNode config,boolean approve,Instant now){
     // Same lock order as user plan changes: dataset -> refresh plan -> window.
     long dataset=((Number)plan.get("dataset_id")).longValue(),project=((Number)plan.get("project_id")).longValue();
@@ -141,6 +165,8 @@ public class DatasetRefreshService {
       String source=selector.path("sourceCode").asText(),alias=selector.path("alias").asText();LocalDate inputDay=day.plusDays(selector.path("businessDayOffset").asInt());
       Map<String,Object> batch=batches.get(source);
       if(batch==null){
+        Integer active=jdbc.queryForObject("SELECT active_version FROM lake.ingestion_plan WHERE id=?",Integer.class,selector.path("ingestionPlanId").asLong());
+        if(active!=selector.path("ingestionPlanVersion").asInt())conflict("INPUT_PLAN_CHANGED_REVIEW_REQUIRED");
         var windows=jdbc.queryForList("SELECT w.*,v.kind,p.active_version FROM lake.execution_window w JOIN lake.ingestion_plan p ON p.id=w.plan_id JOIN lake.plan_version v ON v.plan_id=w.plan_id AND v.version=w.plan_version WHERE w.plan_id=? AND w.plan_version=? AND w.business_date=? ORDER BY w.revision DESC LIMIT 1",selector.path("ingestionPlanId").asLong(),selector.path("ingestionPlanVersion").asInt(),Date.valueOf(inputDay));
         if(windows.isEmpty()){missing.addObject().put("alias",alias).put("reason","DELIVERY_WINDOW_MISSING").put("businessDate",inputDay.toString());continue;}
         batch=windows.getFirst();batches.put(source,batch);

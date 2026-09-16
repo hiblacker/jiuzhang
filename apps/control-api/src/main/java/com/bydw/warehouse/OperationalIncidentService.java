@@ -15,11 +15,11 @@ public class OperationalIncidentService {
   @Transactional public Object reconcile(Long project,String actor){
     if(project!=null)access.require(project,actor,"ENGINEER");int observed=0;
     var windows=jdbc.queryForList("""
-        SELECT DISTINCT ON(p.id,w.plan_version,w.business_date) ps.project_id,p.source_id,p.id AS plan_id,w.id,w.plan_version,w.business_date,w.revision,w.state,w.reason,
+        SELECT DISTINCT ON(ps.project_id,p.id,w.plan_version,w.business_date) ps.project_id,p.source_id,p.id AS plan_id,w.id,w.plan_version,w.business_date,w.revision,w.state,w.reason,
           a.id AS attempt_id,a.error_code
         FROM lake.execution_window w JOIN lake.ingestion_plan p ON p.id=w.plan_id JOIN warehouse.project_source ps ON ps.source_id=p.source_id
         LEFT JOIN LATERAL(SELECT id,error_code FROM lake.execution_attempt WHERE window_id=w.id ORDER BY attempt DESC LIMIT 1) a ON true
-        """+(project==null?"":" WHERE ps.project_id=?")+" ORDER BY p.id,w.plan_version,w.business_date,w.revision DESC",project==null?new Object[]{}:new Object[]{project});
+        """+(project==null?"":" WHERE ps.project_id=?")+" ORDER BY ps.project_id,p.id,w.plan_version,w.business_date,w.revision DESC",project==null?new Object[]{}:new Object[]{project});
     for(var row:windows){
       String key="lake/"+row.get("plan_id")+"/"+row.get("plan_version")+"/"+row.get("business_date"),reference="lake-window/"+row.get("id");
       if(row.get("state").equals("COMPLETE")){recover(((Number)row.get("project_id")).longValue(),key,reference);continue;}
@@ -58,7 +58,7 @@ public class OperationalIncidentService {
   @Transactional(readOnly=true,isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
   public Object list(long project,String actor,String q,String state,int limit,int offset){
     access.require(project,actor,"VIEWER");page(q,limit,offset);if(!state.isEmpty()&&!Set.of("OPEN","ACKNOWLEDGED","RECOVERED").contains(state))bad("INVALID_INCIDENT_STATE");
-    String from=" FROM warehouse.operational_incident i LEFT JOIN control.source_connection s ON s.id=i.source_id LEFT JOIN warehouse.dataset d ON d.id=i.dataset_id LEFT JOIN warehouse.ingest_channel ch ON ch.source_id=s.id LEFT JOIN warehouse.ingest_connection c ON c.id=ch.connection_id LEFT JOIN warehouse.system_instance si ON si.id=c.instance_id LEFT JOIN warehouse.business_system bs ON bs.id=si.system_id WHERE i.project_id=? AND (?='' OR i.state=?) AND strpos(lower(i.category||' '||coalesce(s.code,'')||' '||coalesce(d.name,'')),lower(?))>0";
+    String from=" FROM warehouse.operational_incident i LEFT JOIN control.source_connection s ON s.id=i.source_id LEFT JOIN warehouse.dataset d ON d.id=i.dataset_id LEFT JOIN warehouse.ingest_channel ch ON ch.source_id=s.id LEFT JOIN warehouse.ingest_connection c ON c.id=ch.connection_id AND EXISTS(SELECT 1 FROM warehouse.connection_project cp WHERE cp.connection_id=c.id AND cp.project_id=i.project_id AND cp.enabled) LEFT JOIN warehouse.system_instance si ON si.id=c.instance_id AND EXISTS(SELECT 1 FROM warehouse.instance_project ip WHERE ip.instance_id=si.id AND ip.project_id=i.project_id) LEFT JOIN warehouse.business_system bs ON bs.id=si.system_id AND EXISTS(SELECT 1 FROM warehouse.system_project sp WHERE sp.system_id=bs.id AND sp.project_id=i.project_id) WHERE i.project_id=? AND (?='' OR i.state=?) AND strpos(lower(i.category||' '||coalesce(s.code,'')||' '||coalesce(d.name,'')),lower(?))>0";
     var rows=jdbc.queryForList("SELECT i.*,s.code AS source_code,d.name AS dataset_name,c.name AS connection_name,si.name AS instance_name,bs.name AS system_name"+from+" ORDER BY i.last_seen_at DESC,i.id DESC LIMIT ? OFFSET ?",project,state,state,q,limit,offset);
     return Map.of("items",rows,"total",jdbc.queryForObject("SELECT count(*)"+from,Long.class,project,state,state,q),"limit",limit,"offset",offset);
   }

@@ -40,11 +40,13 @@ public class DatasetQueryService {
     models.dataset(project,dataset,actor,"OWNER");var rows=jdbc.queryForList("SELECT identity_id,columns_json,row_equals,revision FROM warehouse.dataset_policy WHERE dataset_id=? ORDER BY identity_id",dataset);
     rows.forEach(r->{models.decode(r,"columns_json");models.decode(r,"row_equals");});return rows;
   }
-  public Object description(long project,long dataset,String actor){
-    var data=models.dataset(project,dataset,actor,"VIEWER");Long release=data.get("active_release_id") instanceof Number n?n.longValue():null;
+  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+  public Object description(long project,long dataset,Long requestedRelease,String actor){
+    var data=models.dataset(project,dataset,actor,"VIEWER");Long release=requestedRelease!=null?requestedRelease:data.get("active_release_id") instanceof Number n?n.longValue():null;
     var response=new LinkedHashMap<String,Object>(data);response.put("freshness",freshness.describe(dataset,release));
     if(release==null){response.put("fields",List.of());return response;}
-    JsonNode contract=models.tree(jdbc.queryForObject("SELECT v.contract FROM warehouse.dataset_release r JOIN warehouse.model_version v ON v.dataset_id=r.dataset_id AND v.version=r.model_version WHERE r.id=?",String.class,release));
+    var versions=jdbc.queryForList("SELECT v.contract FROM warehouse.dataset_release r JOIN warehouse.model_version v ON v.dataset_id=r.dataset_id AND v.version=r.model_version WHERE r.id=? AND r.dataset_id=?",release,dataset);
+    if(versions.isEmpty())missing("RELEASE_NOT_FOUND");JsonNode contract=models.tree(versions.getFirst().get("contract"));response.put("selectedReleaseId",release);
     var allowed=new LinkedHashSet<>(types(contract).keySet());
     if(access.require(project,actor,"VIEWER").equals("VIEWER")){
       var policies=jdbc.queryForList("SELECT columns_json FROM warehouse.dataset_policy WHERE dataset_id=? AND identity_id=?",dataset,actor);

@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { defineAsyncComponent, h, onMounted, reactive, ref, watch } from 'vue'
-import { NAlert,NButton,NCard,NDataTable,NDescriptions,NDescriptionsItem,NFormItem,NInput,NModal,NPagination,NSelect,NSpace,NTag, type DataTableColumns } from 'naive-ui'
+import { NAlert,NButton,NCard,NDataTable,NDescriptions,NDescriptionsItem,NFormItem,NInput,NInputNumber,NModal,NPagination,NSelect,NSpace,NTag, type DataTableColumns } from 'naive-ui'
 import { api,type Page } from './api'
 const props=defineProps<{project:number;canManage:boolean;canIngest:boolean}>()
 const OperationBar=defineAsyncComponent(()=>import('./OperationBar.vue'))
 const IngestionManager=defineAsyncComponent(()=>import('./IngestionManager.vue'))
-interface System {id:number;code:string;name:string;domain:string;organization:string;business_owner:string;technical_owner:string;description:string;lifecycle:string;revision:number;instance_count:number}
+interface System {max_parallel:number;id:number;code:string;name:string;domain:string;organization:string;business_owner:string;technical_owner:string;description:string;lifecycle:string;revision:number;instance_count:number}
 interface Instance {id:number;revision:number;code:string;name:string;environment:string;purpose:string;lifecycle:string}
 const rows=ref<System[]>([]),selected=ref<System|null>(null),instances=ref<Instance[]>([])
 const q=ref(''),environment=ref(''),lifecycle=ref(''),page=ref(1),total=ref(0),busy=ref(false),error=ref(''),modal=ref(false),instanceModal=ref(false)
-const form=reactive({code:'',name:'',domain:'',organization:'',businessOwner:'',technicalOwner:'',description:'',expectedVersion:0})
+const form=reactive({code:'',name:'',domain:'',organization:'',businessOwner:'',technicalOwner:'',description:'',maxParallel:2,expectedVersion:0})
 const instanceForm=reactive({code:'',name:'',environment:'TEST',purpose:''})
 const editing=ref(false)
 const lifecycleNames:Record<string,string>={DRAFT:'草稿',ONBOARDING:'接入中',ACTIVE:'启用',PAUSED:'暂停',RETIRED:'退役'}
@@ -19,11 +19,12 @@ const columns:DataTableColumns<System>=[
   {title:'编码',key:'code'},{title:'组织',key:'organization'},{title:'技术责任人',key:'technical_owner'},
   {title:'状态',key:'lifecycle',render:row=>h(NTag,{},()=>lifecycleNames[row.lifecycle]||row.lifecycle)},{title:'可见实例',key:'instance_count'},
 ]
-const instanceColumns:DataTableColumns<Instance>=[{title:'实例',key:'name'},{title:'编码',key:'code'},{title:'环境',key:'environment'},{title:'用途',key:'purpose'}]
+const checkedInstances=ref<number[]>([])
+const instanceColumns:DataTableColumns<Instance>=[{type:'selection'},{title:'实例',key:'name'},{title:'编码',key:'code'},{title:'环境',key:'environment'},{title:'用途',key:'purpose'}]
 let generation=0
 async function load(){const current=++generation;busy.value=true;error.value='';try{const result=await api<Page<System>>(`/warehouse/projects/${props.project}/systems?q=${encodeURIComponent(q.value)}&environment=${encodeURIComponent(environment.value)}&lifecycle=${lifecycle.value}&limit=25&offset=${(page.value-1)*25}`);if(current===generation){rows.value=result.items;total.value=result.total}}catch(e){if(current===generation)error.value=(e as Error).message}finally{if(current===generation)busy.value=false}}
-async function detail(row:System){error.value='';try{const result=await api<{system:System;instances:Instance[]}>(`/warehouse/projects/${props.project}/systems/${row.id}`);selected.value=result.system;instances.value=result.instances}catch(e){error.value=(e as Error).message}}
-function open(edit=false){editing.value=edit;const s=edit?selected.value:null;Object.assign(form,{code:s?.code||'',name:s?.name||'',domain:s?.domain||'',organization:s?.organization||'',businessOwner:s?.business_owner||'',technicalOwner:s?.technical_owner||'',description:s?.description||'',expectedVersion:s?.revision||0});modal.value=true}
+async function detail(row:System){error.value='';try{const result=await api<{system:System;instances:Instance[]}>(`/warehouse/projects/${props.project}/systems/${row.id}`);selected.value=result.system;instances.value=result.instances;checkedInstances.value=[]}catch(e){error.value=(e as Error).message}}
+function open(edit=false){editing.value=edit;const s=edit?selected.value:null;Object.assign(form,{code:s?.code||'',name:s?.name||'',domain:s?.domain||'',organization:s?.organization||'',businessOwner:s?.business_owner||'',technicalOwner:s?.technical_owner||'',description:s?.description||'',maxParallel:s?.max_parallel||2,expectedVersion:s?.revision||0});modal.value=true}
 async function save(){busy.value=true;error.value='';try{const result=await api<System>(`/warehouse/projects/${props.project}/systems${editing.value?'/'+selected.value?.id:''}`,form);modal.value=false;await load();await detail(result)}catch(e){error.value=(e as Error).message}finally{busy.value=false}}
 async function saveInstance(){if(!selected.value)return;busy.value=true;error.value='';try{await api(`/warehouse/projects/${props.project}/systems/${selected.value.id}/instances`,instanceForm);instanceModal.value=false;await detail(selected.value);await load()}catch(e){error.value=(e as Error).message}finally{busy.value=false}}
 watch(()=>props.project,()=>{selected.value=null;page.value=1;void load()});watch(page,()=>void load());onMounted(()=>void load())
@@ -44,7 +45,7 @@ watch(()=>props.project,()=>{selected.value=null;page.value=1;void load()});watc
       <n-descriptions :column="3" bordered><n-descriptions-item label="系统编码">{{selected.code}}</n-descriptions-item><n-descriptions-item label="业务责任人">{{selected.business_owner}}</n-descriptions-item><n-descriptions-item label="技术责任人">{{selected.technical_owner}}</n-descriptions-item><n-descriptions-item label="业务域">{{selected.domain||'未填写'}}</n-descriptions-item><n-descriptions-item label="组织">{{selected.organization||'未填写'}}</n-descriptions-item><n-descriptions-item label="登记状态">{{lifecycleNames[selected.lifecycle]}}</n-descriptions-item></n-descriptions>
       <p>{{selected.description}}</p>
     </n-card>
-    <n-card title="环境实例" class="gap"><template #header-extra><n-button v-if="canManage" @click="Object.assign(instanceForm,{code:'',name:'',environment:'TEST',purpose:''});instanceModal=true">新增实例</n-button></template><n-data-table :columns="instanceColumns" :data="instances"/><slot name="connections" :system="selected" :instances="instances"/></n-card>
+    <n-card title="环境实例" class="gap"><template #header-extra><n-button v-if="canManage" @click="Object.assign(instanceForm,{code:'',name:'',environment:'TEST',purpose:''});instanceModal=true">新增实例</n-button></template><n-data-table v-model:checked-row-keys="checkedInstances" :row-key="r=>r.id" :columns="instanceColumns" :data="instances"/><OperationBar v-if="canManage" :project="project" :targets="instances.filter(i=>checkedInstances.includes(i.id)).map(i=>({type:'instance',id:i.id,expectedVersion:i.revision}))" @changed="detail(selected);load()"/><slot name="connections" :system="selected" :instances="instances"/></n-card>
     <IngestionManager v-if="canIngest" :project="project" :instances="instances" :can-manage="canIngest" :can-activate="canManage"/>
   </template>
   <n-modal v-model:show="modal" preset="card" :title="editing?'编辑系统信息':'登记业务系统'" style="width:min(650px,94vw)">
@@ -53,7 +54,7 @@ watch(()=>props.project,()=>{selected.value=null;page.value=1;void load()});watc
     <n-form-item label="系统名称"><n-input v-model:value="form.name"/></n-form-item>
     <n-space><n-form-item label="业务域"><n-input v-model:value="form.domain"/></n-form-item><n-form-item label="归属组织"><n-input v-model:value="form.organization"/></n-form-item></n-space>
     <n-space><n-form-item label="业务责任人"><n-input v-model:value="form.businessOwner"/></n-form-item><n-form-item label="技术责任人"><n-input v-model:value="form.technicalOwner"/></n-form-item></n-space>
-    <n-form-item label="说明"><n-input v-model:value="form.description" type="textarea"/></n-form-item><n-button type="primary" :loading="busy" @click="save">保存</n-button>
+    <n-form-item label="系统并行任务上限"><n-input-number v-model:value="form.maxParallel" :min="1" :max="100"/></n-form-item><n-form-item label="说明"><n-input v-model:value="form.description" type="textarea"/></n-form-item><n-button type="primary" :loading="busy" @click="save">保存</n-button>
   </n-modal>
   <n-modal v-model:show="instanceModal" preset="card" title="新增环境实例" style="width:min(540px,94vw)">
     <n-alert v-if="error" type="error" class="gap">{{error}}</n-alert>

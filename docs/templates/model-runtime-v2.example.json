@@ -1,8 +1,8 @@
 {
   "version": 2,
   "lakeRoot": "/data/lake",
-  "workRoot": "/data/model-work",
-  "packageRoot": "/data/model-packages",
+  "workRoot": "/data/lake/model-work",
+  "packageRoot": "/data/lake/model-packages",
   "database": {"host": "warehouse-db", "port": 5432, "dbname": "warehouse", "user": "bydw_model_worker_login", "passwordEnv": "MODEL_DATABASE_PASSWORD"},
   "profiles": {},
   "repositories": {

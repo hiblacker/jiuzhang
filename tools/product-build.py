@@ -8,8 +8,8 @@ import sys
 from pathlib import Path
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--api-tag', default='0.1.0-dev.17')
-parser.add_argument('--worker-tag', default='0.1.0-dev.3')
+parser.add_argument('--api-tag', default='0.2.0-dev.2')
+parser.add_argument('--worker-tag', default='0.2.0-dev.2')
 parser.add_argument('--online-maven', action='store_true', help='Allow the configured Aliyun mirror; offline by default')
 args = parser.parse_args()
 repo = Path(__file__).resolve().parents[1]
@@ -35,6 +35,8 @@ if missing:
 for item in lock['wheels']:
     if hashlib.sha256((wheels / item['wheel']).read_bytes()).hexdigest() != item['sha256']:
         raise SystemExit('WHEEL_HASH_MISMATCH: ' + item['name'])
+run(['npm', 'ci', '--prefix', 'apps/console', '--registry=https://registry.npmmirror.com', '--ignore-scripts'])
+run(['npm', 'run', 'build', '--prefix', 'apps/console'])
 run(['mvn', *([] if args.online_maven else ['-o']), '-q', '-s', 'deploy/maven-settings.xml',
      '-f', 'apps/control-api/pom.xml', '-DskipTests', 'package'])
 shutil.copyfile(repo / 'apps/control-api/target/control-api-0.1.0-SNAPSHOT.jar', artifacts / 'control-api.jar')

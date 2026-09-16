@@ -31,8 +31,9 @@ public class ModelExecutionService {
     for(var candidate:rows){
       try{
         if(candidate.get("requested_by")!=null)models.requireInputsActive(((Number)candidate.get("project_id")).longValue(),models.tree(candidate.get("contract")),candidate.get("requested_by").toString());
-        var refresh=jdbc.queryForList("SELECT p.state,p.active_version,w.plan_version FROM warehouse.refresh_build rb JOIN warehouse.refresh_window w ON w.id=rb.window_id JOIN warehouse.refresh_plan p ON p.id=w.plan_id WHERE rb.build_id=?",candidate.get("id"));
+        var refresh=jdbc.queryForList("SELECT p.state,p.active_version,w.plan_version,v.operational_owner FROM warehouse.refresh_build rb JOIN warehouse.refresh_window w ON w.id=rb.window_id JOIN warehouse.refresh_plan p ON p.id=w.plan_id JOIN warehouse.refresh_plan_version v ON v.plan_id=w.plan_id AND v.version=w.plan_version WHERE rb.build_id=?",candidate.get("id"));
         if(!refresh.isEmpty()&&(!refresh.getFirst().get("state").equals("ACTIVE")||!refresh.getFirst().get("active_version").equals(refresh.getFirst().get("plan_version"))))continue;
+        if(!refresh.isEmpty())models.dataset(((Number)candidate.get("project_id")).longValue(),((Number)candidate.get("dataset_id")).longValue(),refresh.getFirst().get("operational_owner").toString(),"OWNER");
         packages.checkBuild(candidate,worker);row=candidate;break;
       }catch(com.bydw.api.ApiException e){
         if(Set.of("MODEL_INPUT_SOURCE_PAUSED","MODEL_WORKER_NOT_ALLOWED").contains(e.code()))continue;
@@ -132,8 +133,9 @@ public class ModelExecutionService {
     if (!existing.isEmpty()) return Map.of("releaseId", existing.getFirst().get("id"), "reused", true);
     var candidates = jdbc.queryForList("SELECT * FROM warehouse.model_build WHERE id = ? AND dataset_id = ? AND state = 'READY'", build, dataset);
     if (candidates.isEmpty()) conflict("MODEL_NOT_READY");
-    var refresh=jdbc.queryForList("SELECT p.state,p.active_version,w.plan_version FROM warehouse.refresh_build rb JOIN warehouse.refresh_window w ON w.id=rb.window_id JOIN warehouse.refresh_plan p ON p.id=w.plan_id WHERE rb.build_id=?",build);
+    var refresh=jdbc.queryForList("SELECT p.state,p.active_version,w.plan_version,v.operational_owner FROM warehouse.refresh_build rb JOIN warehouse.refresh_window w ON w.id=rb.window_id JOIN warehouse.refresh_plan p ON p.id=w.plan_id JOIN warehouse.refresh_plan_version v ON v.plan_id=w.plan_id AND v.version=w.plan_version WHERE rb.build_id=?",build);
     if(!refresh.isEmpty()&&(!refresh.getFirst().get("state").equals("ACTIVE")||!refresh.getFirst().get("active_version").equals(refresh.getFirst().get("plan_version"))))conflict("REFRESH_PLAN_PAUSED_OR_CHANGED");
+    if(!refresh.isEmpty())models.dataset(project,dataset,refresh.getFirst().get("operational_owner").toString(),"OWNER");
     var b = candidates.getFirst();
     JsonNode candidateContract=models.tree(jdbc.queryForObject("SELECT contract FROM warehouse.model_version WHERE dataset_id=? AND version=?",String.class,dataset,b.get("model_version")));
     models.requireInputsActive(project,candidateContract,actor);

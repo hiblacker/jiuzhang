@@ -1,17 +1,14 @@
-# 九章入湖控制台
+# 九章产品工作台
 
-这是一个无构建依赖的操作控制台，可登记来源、保存计划新版本、暂停/恢复、触发运行、检查遗漏、重试/取消及查看账本。它不持久化令牌，也不在浏览器执行采集或 SQL。页面先保持简单，框架迁移按后续阶段处理。
-
-本地调试可以在仓库根目录执行：
+Vue 3、TypeScript、Naive UI 与 Vite，固定依赖见 package-lock.json。工作台提供接入管理、资产目录、数据开发、数据服务、运行中心及项目设置；使用 Spring Security 同源会话和 CSRF。
 
 ```bash
-python3 -m http.server 4173 --directory apps/console
+npm ci --prefix apps/console
+npm run dev --prefix apps/console
 ```
 
-然后打开 `http://127.0.0.1:4173`，输入控制 API 地址和 Admin Token。生产部署应由现有网关提供同源静态文件，并配置 HTTPS、CSP 和后端 CORS 策略。
+开发代理指向本机 60185。运行 `npm run build --prefix apps/console` 后再打 Java 包，dist 自动纳入 JAR。发布使用 Java 同源入口，先以一次性邀请开户，再用账号登录；凭证不写入浏览器持久存储。
 
-如果控制 API 直接运行在 `http://127.0.0.1:8080`，需要在 API 进程环境中显式设置 `CONTROL_API_ALLOWED_ORIGINS=http://127.0.0.1:4173,http://localhost:4173`；不设置时保持同源/网关模式，不接受跨域请求。
+操作、安装、升级和验证见 [工作台手册](../../docs/41-product-workbench-runbook.md)。`npm test --prefix apps/console` 运行新版浏览器验收，需要手册指定的隔离集成环境；常用总入口为 `python3 tools/verify-product.py`。
 
-计划的“执行配置名”须对应 Worker 本地注册表中的配置。先由管理员在服务器配置路径、凭证引用和来源范围，再从页面选择来源及计划；页面不接收任意执行路径或命令。已登记来源超过 100 个时，当前简单页面只显示来源列表第一页；资产/项目导航及分页继续按产品进度补齐。
-
-`tests/console-ui.mjs` 使用已固定的 Playwright 1.62.1 验证真实 HTTP 操作和手机宽度；仅用本机 UI/API 地址和环境变量令牌运行，不将令牌写入截图或测试代码。
+一期静态页面保留在 [legacy.html](legacy.html)，旧 `tests/console-ui.mjs` 与 `tests/schema-review-ui.mjs` 为历史页面验收，不能作为新版通过证据。新版端到端测试是 [product-browser.mjs](../../tests/product-browser.mjs)。

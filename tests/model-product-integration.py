@@ -264,6 +264,15 @@ try:
     first_refresh = api(refresh_route + '/windows')['items'][0]; assert first_refresh['state'] == 'BUILDING'
     api(refresh_route + '/reconcile', {'day': today})
     assert api(refresh_route + '/windows')['items'][0]['build_id'] == first_refresh['build_id']
+    api(managed_prefix + f"/builds/{first_refresh['build_id']}/cancel", {})
+    api(refresh_route + '/reconcile', {'day': today})
+    assert api(refresh_route + '/windows')['items'][0]['state'] == 'CANCELLED'
+    retry_route = refresh_route + f"/windows/{first_refresh['id']}/retry"
+    retried = api(retry_route, {'expectedBuildId': first_refresh['build_id'], 'reason': 'Synthetic retry same immutable inputs'})
+    replayed = api(retry_route, {'expectedBuildId': first_refresh['build_id'], 'reason': 'Replay response'})
+    assert retried['buildId'] == replayed['buildId'] and replayed['reused']
+    assert retried['buildId'] != first_refresh['build_id']
+    assert api(refresh_route + '/windows')['items'][0]['selected_inputs'] == first_refresh['selected_inputs']
     invoke(command)
     api(refresh_route + '/reconcile', {'day': today})
     manual = api(refresh_route + '/windows')['items'][0]; assert manual['state'] == 'READY_TO_PUBLISH'
@@ -307,8 +316,65 @@ try:
     recovered = api(incident_route + '/' + str(incident['id']))['incident']
     assert recovered['state'] == 'RECOVERED' and recovered['recovery_reference'].startswith('release/')
     assert api(managed_prefix + '/description')['freshness']['state'] == 'FRESH'
+    assert api(prefix + '/description?releaseId=' + str(commerce['release']), token=token)['selectedReleaseId'] == commerce['release']
+    api(prefix + '/description?releaseId=' + str(datasets[1]['release']), token=token, status=404)
     refresh_plan = api(refresh_route)
     api(refresh_route + '/state', {'state': 'PAUSED', 'expectedRevision': refresh_plan['revision'], 'reason': 'Finish synthetic fixture'})
+    # Same-source multi-object and external dependency delivery must close before a build exists.
+    dependency_source = 'dependency-' + suffix
+    dependency_folder = inbox / 'dependency'; dependency_folder.mkdir()
+    api('sources', {'code': dependency_source, 'sourceType': 'FILE', 'credentialRef': 'env://SYNTHETIC', 'config': {}}, status=201)
+    api(f"warehouse/projects/{commerce['project']}/sources", {'sourceCode': dependency_source})
+    dependency_plan = api('lake/plans', {'sourceCode': dependency_source, 'expectedVersion': 0, 'kind': 'FILE_SCAN', 'runtimeRef': dependency_source,
+        'timezone': 'Asia/Shanghai', 'triggerTime': '00:00', 'startDate': today, 'historicalRead': True, 'maxAttempts': 3, 'timeoutSeconds': 300, 'contract': {}})['id']
+    plans.append(dependency_plan)
+    dependency_registry = root / 'dependency.json'
+    dependency_registry.write_text(json.dumps({'version': 1, 'lakeRoot': str(lake), 'profiles': {dependency_source: {'kind': 'FILE_SCAN', 'sourceCode': dependency_source, 'inboxRoot': str(dependency_folder)}}}))
+    coherent_contract = json.loads((repo / 'models/commerce/contract.json').read_text())
+    coherent_contract['inputs'].extend([
+        {'alias': 'customers', 'sourceCode': 'configured', 'objectName': 'customers.csv', 'columns': [{'name': 'id', 'type': 'text'}]},
+        {'alias': 'dependency', 'sourceCode': 'configured', 'objectName': 'dependency.csv', 'columns': [{'name': 'id', 'type': 'text'}]},
+    ])
+    contract_file.write_text(json.dumps(coherent_contract))
+    invoke(['git', '-C', str(git_repo), 'add', 'models'])
+    invoke(['git', '-C', str(git_repo), '-c', 'user.name=Synthetic test', '-c', 'user.email=synthetic@example.invalid', 'commit', '-qm', 'test: require coherent multi-object inputs'])
+    api(package_route, {**package_request, 'requestKey': 'coherent-input-package'}); invoke(command)
+    coherent_package = api(package_route)['items'][0]
+    coherent = api(f"warehouse/projects/{commerce['project']}/models", {'code': 'coherent-inputs', 'name': 'Coherent inputs', 'expectedVersion': 0,
+        'packageId': coherent_package['package_id'], 'bindings': {
+            'orders': {'sourceCode': commerce['source'], 'objectName': commerce['filename']},
+            'customers': {'sourceCode': commerce['source'], 'objectName': 'customers.csv'},
+            'dependency': {'sourceCode': dependency_source, 'objectName': 'dependency.csv'},
+        }})
+    coherent_prefix = f"warehouse/projects/{commerce['project']}/datasets/{coherent['id']}"
+    coherent_refresh = coherent_prefix + '/refresh'
+    coherent_policy = {**refresh_body, 'expectedVersion': 0, 'modelVersion': 1, 'latePolicy': 'MANUAL', 'deadline': '00:00',
+        'inputSelectors': {name: {'businessDayOffset': 0} for name in ['orders', 'customers', 'dependency']}}
+    api(coherent_refresh, {**coherent_policy, 'inputSelectors': {**coherent_policy['inputSelectors'], 'customers': {'businessDayOffset': -1}}}, status=400)
+    api(coherent_refresh, coherent_policy)
+    api(coherent_refresh + '/reconcile', {'day': today})
+    missing = api(coherent_refresh + '/windows')['items'][0]
+    assert missing['state'] == 'WAITING_INPUTS' and missing['build_id'] is None
+    assert {'customers', 'dependency'} <= {m['alias'] for m in missing['details']['missing']}
+    (commerce['folder'] / 'customers.csv').write_text('id\n001\n'); (commerce['folder'] / 'customers.csv.done').write_text('')
+    receive(commerce['source'], commerce['plan'], commerce['registry'], revision=True)
+    api(coherent_refresh + '/reconcile', {'day': today})
+    missing = api(coherent_refresh + '/windows')['items'][0]
+    assert missing['state'] == 'WAITING_INPUTS' and [m['alias'] for m in missing['details']['missing']] == ['dependency']
+    (dependency_folder / 'dependency.csv').write_text('id\n001\n'); (dependency_folder / 'dependency.csv.done').write_text('')
+    receive(dependency_source, dependency_plan, dependency_registry)
+    api(coherent_refresh + '/reconcile', {'day': today})
+    late = api(coherent_refresh + '/windows')['items'][0]
+    assert late['state'] == 'NEEDS_ATTENTION' and late['reason'] == 'LATE_INPUT_REQUIRES_APPROVAL' and late['build_id'] is None
+    api(coherent_refresh + '/reconcile', {'day': today, 'approveLate': True, 'reason': 'Approve complete synthetic late set'})
+    frozen = api(coherent_refresh + '/windows')['items'][0]
+    assert frozen['state'] == 'BUILDING' and len(frozen['selected_inputs']) == 3
+    source_batches = {i['executionId'] for i in frozen['details']['inputs'] if i['alias'] in ['orders', 'customers']}
+    assert len(source_batches) == 1
+    invoke(command); api(coherent_refresh + '/reconcile', {'day': today})
+    assert api(coherent_refresh + '/windows')['items'][0]['state'] == 'READY_TO_PUBLISH'
+    coherent_plan = api(coherent_refresh)
+    api(coherent_refresh + '/state', {'state': 'PAUSED', 'expectedRevision': coherent_plan['revision'], 'reason': 'Finish coherent synthetic fixture'})
     evidence = {'state': 'PASS', 'themes': 2, 'checks': ['real dbt SQL', 'Git-pinned bundle', 'quality gate', 'immutable SQL tables', 'row-and-column policies', 'fixed release query and CSV export', 'exact decimal', 'leading zero', 'project isolation', 'competing publication', 'stale input rejection', 'failed build keeps release', 'declared output type gate'],
         'runtime': {'core': '1.11.15', 'postgresAdapter': '1.11.0'}, 'fixtureRoot': str(root),
         'ui': {'projectId': commerce['project'], 'datasetId': commerce['dataset']}}

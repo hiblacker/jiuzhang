@@ -49,6 +49,10 @@ config_root = Path(settings['PRODUCT_CONFIG_ROOT'])
 inbox = Path(settings['PRODUCT_INBOX_ROOT']) / source
 inbox.mkdir()
 lake_registry = json.loads((config_root / 'lake-runtime.json').read_text())
+if lake_registry['version'] == 2:
+    environments = api('warehouse/environments')
+    if not any(e['code'] == lake_registry['environment'] for e in environments):
+        api('warehouse/environments', {'code': lake_registry['environment'], 'name': 'Synthetic Compose environment', 'workerIds': ['lake-worker'], 'maxParallel': 2})
 lake_registry['profiles'][runtime_ref] = {'kind': 'FILE_SCAN', 'sourceCode': source, 'inboxRoot': '/data/inbox/' + source,
     'assumeReady': False, 'parserPython': '/usr/local/bin/python'}
 (config_root / 'lake-runtime.json').write_text(json.dumps(lake_registry, indent=2))

@@ -13,5 +13,6 @@ public class DatasetRefreshController {
   @PostMapping("/state")public Object state(@PathVariable long project,@PathVariable long dataset,@RequestBody JsonNode b,HttpServletRequest r){return service.state(project,dataset,b,actor(r));}
   @PostMapping("/reconcile")public Object reconcile(@PathVariable long project,@PathVariable long dataset,@RequestBody JsonNode b,HttpServletRequest r){return service.reconcileUser(project,dataset,b,actor(r));}
   @GetMapping("/windows")public Object windows(@PathVariable long project,@PathVariable long dataset,@RequestParam(defaultValue="25")int limit,@RequestParam(defaultValue="0")int offset,HttpServletRequest r){return service.windows(project,dataset,actor(r),limit,offset);}
+  @PostMapping("/windows/{window}/retry")public Object retry(@PathVariable long project,@PathVariable long dataset,@PathVariable long window,@RequestBody JsonNode b,HttpServletRequest r){return service.retry(project,dataset,window,b,actor(r));}
   private String actor(HttpServletRequest r){return (String)r.getAttribute(RequestAuthenticationFilter.PRINCIPAL_ATTRIBUTE);}
 }

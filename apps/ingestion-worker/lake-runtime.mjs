@@ -101,7 +101,7 @@ async function child(script, args, signal, extraEnv = {}) {
 async function execute(registry, task, signal, options) {
   let profile = task.configurationJson ? await managedProfile(registry, task) : registry.profiles[task.runtime_ref];
   if (!profile || profile.kind !== task.kind || profile.sourceCode !== task.source_code) fail('RUNTIME_SCOPE_MISMATCH');
-  if (task.configurationJson && task.kind === 'REST_PULL') profile.environment = { ...profile.environment,
+  if ((task.configurationJson || task.sharedRequestBudget) && task.kind === 'REST_PULL') profile.environment = { ...profile.environment,
     LAKE_REQUEST_BUDGET: JSON.stringify({url:options.controlApi,worker:options.instance,scope:'execution',id:task.id,leaseToken:task.leaseToken}) };
   const batch = `exec-${task.id}`;
   const common = ['--lake-root', registry.lakeRoot];
@@ -266,7 +266,7 @@ export async function run(options) {
     do {
       let result;
       try { result = await runOnce(options, registry); }
-      catch (error) { if (options.once) throw error; result = { state: 'CONTROL_API_UNAVAILABLE' }; }
+      catch (error) { if (options.once) throw error; result = { state: /^[A-Z0-9_:-]{1,120}$/u.test(error.message) ? error.message : 'CONTROL_API_UNAVAILABLE' }; }
       const message = JSON.stringify(result);
       if (result.state !== 'IDLE' && message !== lastMessage) console.log(message);
       lastMessage = message;
