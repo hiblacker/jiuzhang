@@ -55,6 +55,10 @@ try {
     await request(`lake/plans/${plan.id}/state`,{state:'PAUSED'});
   }
   // Atomic resource and worker-pool reservations: two aliases on one file connection cannot overlap.
+  const filteredRuns=await request(`warehouse/catalog/projects/${project.id}/runs?systemCode=${id}&instanceCode=test&connectionCode=files&sourceCode=${id}_files&state=COMPLETE`);
+  assert.equal(filteredRuns.total,1);assert.equal(filteredRuns.items[0].source_code,id+'_files');
+  assert.equal((await request(`warehouse/catalog/projects/${project.id}/runs?systemCode=unrelated&state=COMPLETE`)).total,0);
+  await request(`warehouse/catalog/projects/${project.id}/runs?systemCode=${encodeURIComponent("' OR TRUE --")}`,undefined,400);
   for(const source of [sources[0],copies[0],sources[1]])await request(`warehouse/projects/${project.id}/channels/${source}/probes`,{requestKey:'quota-check'},202);
   const claims=await Promise.all(Array.from({length:3},()=>request('lake/probes/claim',{environment:id},200,worker)));
   const active=claims.filter(c=>c.state==='RUNNING');assert.equal(active.length,2);assert.equal(claims.filter(c=>c.state==='IDLE').length,1);

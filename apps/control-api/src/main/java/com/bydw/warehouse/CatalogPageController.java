@@ -28,7 +28,10 @@ public class CatalogPageController {
   }
   @GetMapping("/projects/{project}/{kind}") @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
   public Object objects(@PathVariable long project,@PathVariable String kind,@RequestParam(defaultValue="") String q,
-      @RequestParam(defaultValue="50") int limit,@RequestParam(defaultValue="0") int offset,HttpServletRequest request) {
+      @RequestParam(defaultValue="50") int limit,@RequestParam(defaultValue="0") int offset,
+      @RequestParam(defaultValue="")String systemCode,@RequestParam(defaultValue="")String instanceCode,
+      @RequestParam(defaultValue="")String connectionCode,@RequestParam(defaultValue="")String sourceCode,
+      @RequestParam(defaultValue="")String state,HttpServletRequest request) {
     access.require(project,actor(request),"VIEWER");
     String sql=switch(kind) {
       case "sources" -> "SELECT s.id,s.code,s.code AS name,s.source_type,s.state,s.created_at FROM control.source_connection s JOIN warehouse.project_source p ON p.source_id=s.id WHERE p.project_id=?";
@@ -76,7 +79,28 @@ public class CatalogPageController {
       default -> throw new ApiException(HttpStatus.NOT_FOUND,"CATALOG_NOT_FOUND","目录不存在");
     };
     if(List.of("connections","channels","models").contains(kind))access.require(project,actor(request),"ENGINEER");
-    return page(sql,List.of(project),kind.equals("assets")?"name||' '||source_code":"name",q,limit,offset);
+    var arguments=new ArrayList<Object>();arguments.add(project);
+    if(!systemCode.isEmpty()||!instanceCode.isEmpty()||!connectionCode.isEmpty()||!sourceCode.isEmpty()||!state.isEmpty()){
+      if(!kind.equals("runs")||List.of(systemCode,instanceCode,connectionCode,sourceCode).stream().anyMatch(code->code.length()>100||!code.isEmpty()&&!code.matches("[a-z][a-z0-9._-]{1,99}"))
+          ||!state.isEmpty()&&!List.of("QUEUED","RUNNING","COMPLETE","FAILED","INCOMPLETE","CANCELLED").contains(state))throw new ApiException(HttpStatus.BAD_REQUEST,"INVALID_RUN_FILTER","执行筛选条件无效");
+      sql="SELECT run.* FROM ("+sql+") run WHERE (?='' OR run.source_code=?) AND (?='' OR run.state=?)";
+      arguments.addAll(List.of(sourceCode,sourceCode,state,state));
+      if(!systemCode.isEmpty()||!instanceCode.isEmpty()||!connectionCode.isEmpty()){
+        sql+="""
+             AND EXISTS(SELECT 1 FROM control.source_connection s JOIN warehouse.ingest_channel ch ON ch.source_id=s.id
+              JOIN warehouse.ingest_connection c ON c.id=ch.connection_id
+              JOIN warehouse.connection_project cp ON cp.connection_id=c.id AND cp.enabled
+              JOIN warehouse.resource_project rp ON rp.resource_id=c.resource_id AND rp.project_id=cp.project_id AND rp.enabled
+              JOIN warehouse.system_instance i ON i.id=c.instance_id
+              JOIN warehouse.instance_project ip ON ip.instance_id=i.id AND ip.project_id=cp.project_id
+              JOIN warehouse.business_system bs ON bs.id=i.system_id
+              JOIN warehouse.system_project sp ON sp.system_id=bs.id AND sp.project_id=cp.project_id
+              WHERE s.code=run.source_code AND cp.project_id=? AND (?='' OR bs.code=?) AND (?='' OR i.code=?) AND (?='' OR c.code=?))
+            """;
+        arguments.addAll(List.of(project,systemCode,systemCode,instanceCode,instanceCode,connectionCode,connectionCode));
+      }
+    }
+    return page(sql,arguments,kind.equals("assets")?"name||' '||source_code":"name",q,limit,offset);
   }
   private Object page(String sql,List<Object> initial,String field,String q,int limit,int offset) {
     if(q.length()>100||limit<1||limit>200||offset<0||offset>1000000) throw new ApiException(HttpStatus.BAD_REQUEST,"INVALID_PAGE","分页参数无效");
