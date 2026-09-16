@@ -1,6 +1,6 @@
 # 完整产品本地运行包
 
-当前入口为 [compose.product.yaml](compose.product.yaml)：PostgreSQL、显式迁移、角色配置、Java 控制 API、Node 接入 Worker、Python/dbt 模型 Worker、简单页面。原 [compose.yaml](compose.yaml) 保留早期合成 Worker 验证。已有真实数据的本机原生环境使用 [LOCAL_RUNTIME.md](LOCAL_RUNTIME.md)。
+当前入口为 [compose.product.yaml](compose.product.yaml)：PostgreSQL、显式迁移、角色配置、Java 控制 API、Node 接入 Worker、Python/dbt 模型 Worker、独立 Vue 控制台。前端构建与本机隔离浏览器验证已完成；本次 console 镜像和完整 Compose 尚未运行，边界见 [UI-02](../docs/38-vue-console.md)。原 [compose.yaml](compose.yaml) 保留早期合成 Worker 验证。已有真实数据的本机原生环境使用 [LOCAL_RUNTIME.md](LOCAL_RUNTIME.md)。
 
 ## 新环境启动
 
@@ -16,11 +16,19 @@ docker compose --env-file secrets/product-local.env -p jiuzhang-product -f deplo
 docker compose --env-file secrets/product-local.env -p jiuzhang-product -f deploy/compose.product.yaml ps
 ```
 
-页面 `http://127.0.0.1:60284`，API `http://127.0.0.1:60283`，数据库回环端口 57224。在页面填写 API 地址和配置文件中的 Admin Token；令牌不保存到浏览器存储。默认配置没有登记数据源或启动采集任务。
+页面 `http://127.0.0.1:60284`，API `http://127.0.0.1:60283`，数据库回环端口 57224。页面默认使用同源 API 代理，输入配置文件中的 Admin Token；令牌不保存到浏览器存储。可继续使用显式回环 API 地址与已批准 CORS。默认配置没有登记数据源或启动采集任务。
 
 构建默认复用 Maven 本地缓存；缓存不完整时加 `--online-maven`，通过 [Aliyun 配置](maven-settings.xml) 下载。Python 从清华源下载精确版本并逐包校验哈希；镜像通过国内镜像路径取得。57 个 wheel 哈希已与官方 PyPI 元数据逐项核对。锁及内部许可边界见 [运行锁](product-runtime-lock.json)、[Python 锁](product-requirements.txt)、[Debian 锁](product-apt-packages.txt)。
 
-默认生成 `control-api:0.1.0-dev.17`、`product-worker:0.1.0-dev.3`。已有标签时构建拒绝覆盖；代码变化后给 `--api-tag` 和 `--worker-tag` 新值，并同步 Compose。`deploy/artifacts/build.json` 保存模型 Git revision、JAR 摘要、镜像标签和构建时工作树状态。构建步骤跳过测试，不能替代验收检查。
+默认生成 `control-api:0.1.0-dev.17`、`product-worker:0.1.0-dev.4`、`console:0.2.0-dev.1`。Worker 新标签仅反映镜像不再复制控制台源码，执行逻辑未修改；原有 dev.3 镜像不覆盖。已有标签时构建拒绝覆盖；代码变化后给对应的 `--api-tag`、`--worker-tag` 或 `--console-tag` 新值，并同步 Compose。`deploy/artifacts/build.json` 保存模型 Git revision、JAR 摘要、镜像标签和构建时工作树状态。API 构建步骤跳过测试；控制台构建执行类型检查但不执行浏览器测试，均不能替代验收检查。
+
+仅更新页面可独立构建新标签的 `deploy/Dockerfile.console` 并更新 Compose 的 console 服务；构建使用国内 npm 源、精确锁文件及关闭安装脚本。运行镜像仅带编译产物、第三方 NOTICE、静态服务和 Node 运行时，不含 npm 构建依赖。固定前端依赖安装已获批准；以下镜像构建仍待可用 Docker 环境验证：
+
+```bash
+docker build --platform linux/amd64 -f deploy/Dockerfile.console -t jiuzhang/console:0.2.0-dev.1 .
+```
+
+执行前确认目标标签尚不存在；后续修改使用新标签。页面独立镜像尚未在本机实际构建。
 
 ## 接入配置与操作
 

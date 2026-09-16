@@ -4,6 +4,8 @@
 
 ## 启停
 
+Vue 控制台启动前先按 [前端说明](../apps/console/README.md)完成依赖准入与 `npm run build`，生成 `apps/console/dist`。运行清单中的页面进程已改为 Node 静态服务，设置 `PORT=8081`、`HOST=127.0.0.1` 和指向本机 API 的 `CONSOLE_API_ORIGIN`；不要再使用 Python 直接提供 Vue 源码目录。当前 UI-02 构建与浏览器验收状态见 [实施记录](../docs/38-vue-console.md)。
+
 将[运行清单](../docs/templates/local-stack.example.json)保存到忽略目录 `secrets/`，填写本机绝对路径。JSON 清单是管理员维护的本机配置；命令按参数数组启动，不经 shell，也不由 HTTP 接收。`envRefs` 从单独的私有 JSON 文件读取凭证；日志和 PID 记录仅写入指定 `stateRoot`。不要在命令参数中填密码。
 
 ```bash

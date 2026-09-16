@@ -5,6 +5,7 @@
 secrets
 work
 node_modules
+**/node_modules
 **/target
 **/dist
 logs

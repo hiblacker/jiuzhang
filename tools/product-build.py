@@ -9,7 +9,8 @@ from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--api-tag', default='0.1.0-dev.17')
-parser.add_argument('--worker-tag', default='0.1.0-dev.3')
+parser.add_argument('--worker-tag', default='0.1.0-dev.4')
+parser.add_argument('--console-tag', default='0.2.0-dev.1')
 parser.add_argument('--online-maven', action='store_true', help='Allow the configured Aliyun mirror; offline by default')
 args = parser.parse_args()
 repo = Path(__file__).resolve().parents[1]
@@ -19,7 +20,8 @@ artifacts.mkdir(exist_ok=True)
 def run(command):
     subprocess.run(command, cwd=repo, check=True)
 
-images = {'api': 'jiuzhang/control-api:' + args.api_tag, 'worker': 'jiuzhang/product-worker:' + args.worker_tag}
+images = {'api': 'jiuzhang/control-api:' + args.api_tag, 'worker': 'jiuzhang/product-worker:' + args.worker_tag,
+          'console': 'jiuzhang/console:' + args.console_tag}
 for image in images.values():
     if subprocess.run(['docker', 'image', 'inspect', image], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
         raise SystemExit('IMAGE_TAG_ALREADY_EXISTS: choose new tags and update Compose')
@@ -43,6 +45,7 @@ run(['git', 'bundle', 'create', str(artifacts / 'models.bundle'), 'HEAD'])
 for name in ['api', 'worker']:
     run(['docker', 'build', '--platform', 'linux/amd64', '-f', 'deploy/Dockerfile.product-' + name,
          '-t', images[name], '.'])
+run(['docker', 'build', '--platform', 'linux/amd64', '-f', 'deploy/Dockerfile.console', '-t', images['console'], '.'])
 manifest = {'gitRevision': revision, 'workingTreeDirty': bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=repo)),
             'images': images, 'target': 'linux/amd64', 'wheelCount': len(lock['wheels']),
             'jarSha256': hashlib.sha256((artifacts / 'control-api.jar').read_bytes()).hexdigest()}

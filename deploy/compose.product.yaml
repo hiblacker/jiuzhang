@@ -61,7 +61,7 @@ services:
     depends_on:
       provision-roles: {condition: service_completed_successfully}
   lake-worker:
-    image: jiuzhang/product-worker:0.1.0-dev.3
+    image: jiuzhang/product-worker:0.1.0-dev.4
     platform: linux/amd64
     user: "${PRODUCT_UID:?required}:${PRODUCT_GID:?required}"
     network_mode: service:control-api
@@ -78,7 +78,7 @@ services:
       control-api: {condition: service_healthy}
     restart: unless-stopped
   model-worker:
-    image: jiuzhang/product-worker:0.1.0-dev.3
+    image: jiuzhang/product-worker:0.1.0-dev.4
     platform: linux/amd64
     user: "${PRODUCT_UID:?required}:${PRODUCT_GID:?required}"
     network_mode: service:control-api
@@ -94,10 +94,11 @@ services:
       control-api: {condition: service_healthy}
     restart: unless-stopped
   console:
-    image: jiuzhang/product-worker:0.1.0-dev.3
+    image: jiuzhang/console:0.2.0-dev.1
     platform: linux/amd64
     network_mode: service:control-api
-    command: ["python", "-m", "http.server", "8081", "--bind", "0.0.0.0", "--directory", "/app/apps/console"]
+    environment:
+      CONSOLE_API_ORIGIN: http://127.0.0.1:8080
     depends_on:
       control-api: {condition: service_healthy}
 volumes:

@@ -1,17 +1,39 @@
 # 九章入湖控制台
 
-这是一个无构建依赖的操作控制台，可登记来源、保存计划新版本、暂停/恢复、触发运行、检查遗漏、重试/取消及查看账本。它不持久化令牌，也不在浏览器执行采集或 SQL。页面先保持简单，框架迁移按后续阶段处理。
+Vue 3 + TypeScript + Naive UI 控制台，覆盖运行、来源、接入计划、交付、资产、模型与数据集、项目权限。前端实现、构建及本机隔离浏览器验证已完成；真实 API 联调和容器运行尚未验证。完整范围和边界见 [UI-02 实施记录](../../docs/38-vue-console.md)。
 
-本地调试可以在仓库根目录执行：
+固定依赖已于 2026-09-16 获用户批准。在 `apps/console` 目录执行（Node >=22.12；项目级国内镜像；禁用安装脚本）：
 
 ```bash
-python3 -m http.server 4173 --directory apps/console
+npm ci --ignore-scripts --cache ../../work/npm-console-cache
+npm run dev
 ```
 
-然后打开 `http://127.0.0.1:4173`，输入控制 API 地址和 Admin Token。生产部署应由现有网关提供同源静态文件，并配置 HTTPS、CSP 和后端 CORS 策略。
+打开 `http://127.0.0.1:4173`，输入控制 API 地址和访问令牌。管理员选择平台管理；项目成员选择项目成员。令牌仅保存在内存，401 或重新连接会清除会话和数据。
 
 如果控制 API 直接运行在 `http://127.0.0.1:8080`，需要在 API 进程环境中显式设置 `CONTROL_API_ALLOWED_ORIGINS=http://127.0.0.1:4173,http://localhost:4173`；不设置时保持同源/网关模式，不接受跨域请求。
 
-计划的“执行配置名”须对应 Worker 本地注册表中的配置。先由管理员在服务器配置路径、凭证引用和来源范围，再从页面选择来源及计划；页面不接收任意执行路径或命令。已登记来源超过 100 个时，当前简单页面只显示来源列表第一页；资产/项目导航及分页继续按产品进度补齐。
+计划的执行配置名对应 Worker 本地注册表。模型固定 Git 提交、模型包摘要和数据契约，候选通过质量门禁后才能发布。查询返回的 releaseId 用于后续翻页及当前页导出，修改表单不会悄悄改变已显示结果的导出范围。
 
-`tests/console-ui.mjs` 使用已固定的 Playwright 1.62.1 验证真实 HTTP 操作和手机宽度；仅用本机 UI/API 地址和环境变量令牌运行，不将令牌写入截图或测试代码。
+构建与测试：
+
+```bash
+npm run licenses
+npm run typecheck
+npm run build
+npm test
+```
+
+`npm test` 先构建，再运行浏览器测试。浏览器测试使用固定 Playwright 1.62.1；默认使用其 Chromium，也可通过 `PLAYWRIGHT_CHANNEL=msedge` 复用本机 Edge。本次使用 Edge 153.0.4234.32 验证。设置 `CONSOLE_URL` 可测试已启动的编译产物服务，不再启动 Vite。`tests/console.spec.mjs` 的 HTTP 替身全部为合成数据；`tests/server.spec.mjs` 额外验证真实本地同源代理，二者都不是 Java/数据库/Worker 联调。
+
+真实接口回归入口已迁移到 Vue 控件：在仓库根目录设置 `LAKE_UI_URL`、`LAKE_UI_API`、`LAKE_UI_TOKEN` 后运行 `node tests/console-ui.mjs`。仅接受本地隔离测试 API，会创建合成来源、计划、项目、身份和成员，最后暂停测试计划但保留登记记录。可选 `LAKE_UI_WORKER_TOKEN` 增加文件 Worker/原件重解析；可选 `LAKE_UI_MODEL_PROJECT` 检查既有测试模型版本、发布、查询和导出。`node tests/schema-review-ui.mjs` 另需 Worker 令牌，用合成清单验证结构审批。上述入口尚待实际浏览器运行，不把源码迁移视为验收通过。
+
+不依赖前端包的传输与服务行为测试可在仓库根目录运行：
+
+```bash
+node --experimental-strip-types --test tests/console-transport.test.mjs tests/console-server.test.mjs
+```
+
+构建产物为 `dist`，包含运行依赖 NOTICE。原生部署运行 `node server.mjs`；`PORT` 默认 4173，`HOST` 默认 127.0.0.1，`CONSOLE_API_ORIGIN` 默认 `http://127.0.0.1:8080`。访问页面同源地址即可通过受控代理连接 API。正式环境由 HTTPS 网关代理，不能将开发服务器作为生产服务。
+
+容器入口为 [Dockerfile.console](../../deploy/Dockerfile.console)，Compose 中独立使用 `jiuzhang/console:0.2.0-dev.1`。无数据库迁移；恢复旧页面时同步恢复旧页面部署入口，不修改任何数据发布记录。
