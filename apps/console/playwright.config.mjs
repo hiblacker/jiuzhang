@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests',
@@ -15,7 +15,11 @@ export default defineConfig({
     trace: 'off',
     ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}),
   },
-  webServer: process.env.CONSOLE_URL ? undefined : {
-    command: 'npm run dev', url: 'http://127.0.0.1:4173', reuseExistingServer: !process.env.CI,
-  },
-});
+  webServer: process.env.CONSOLE_URL
+    ? undefined
+    : {
+        command: 'npm run dev',
+        url: 'http://127.0.0.1:4173',
+        reuseExistingServer: !process.env.CI,
+      },
+})
