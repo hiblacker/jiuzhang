@@ -1,0 +1,7 @@
+ARG IMAGE_PREFIX=docker.m.daocloud.io/library/
+FROM ${IMAGE_PREFIX}eclipse-temurin:21.0.12_8-jre-jammy
+WORKDIR /app
+COPY deploy/artifacts/control-api.jar /app/control-api.jar
+USER 10001:10001
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app/control-api.jar"]

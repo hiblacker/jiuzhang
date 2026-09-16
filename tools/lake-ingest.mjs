@@ -7,6 +7,7 @@ import { createInterface } from 'node:readline';
 import { finished } from 'node:stream/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 import { makeOptions } from './mysql-discover.mjs';
 import { atomicJson, currentDay, digest, durableRename, hashFile, readJson as readMetadata, validateDay, withLock } from './lake-runtime.mjs';
 
@@ -42,11 +43,12 @@ function parseArgs(argv) {
     inventory: DEFAULT_INVENTORY,
     lakeRoot: DEFAULT_LAKE_ROOT,
     queryTimeoutSeconds: 300,
+    maxSnapshotBytes: 4 * 1024 ** 3,
     allowUnverifiedTestTls: false,
     dryRun: false,
     sourceCode: 'mysql-test-source',
   };
-  const takesValue = new Set(['--config', '--inventory', '--lake-root', '--batch-id', '--window', '--mysql-cli', '--query-timeout-seconds', '--source-code']);
+  const takesValue = new Set(['--config', '--inventory', '--lake-root', '--batch-id', '--window', '--mysql-cli', '--query-timeout-seconds', '--source-code', '--max-snapshot-bytes']);
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--daily') options.mode = 'daily';
@@ -63,12 +65,14 @@ function parseArgs(argv) {
       if (arg === '--window') options.window = value;
       if (arg === '--mysql-cli') options.mysqlCli = value;
       if (arg === '--query-timeout-seconds') options.queryTimeoutSeconds = Number(value);
+      if (arg === '--max-snapshot-bytes') options.maxSnapshotBytes = Number(value);
       if (arg === '--source-code') options.sourceCode = value;
     } else fail('INVALID_ARGUMENT');
   }
   if (options.window) validateDay(options.window);
   if (options.batchId && !BATCH_ID.test(options.batchId)) fail('INVALID_BATCH_ID');
   if (!Number.isInteger(options.queryTimeoutSeconds) || options.queryTimeoutSeconds < 1 || options.queryTimeoutSeconds > 900) fail('INVALID_QUERY_TIMEOUT');
+  if (!Number.isSafeInteger(options.maxSnapshotBytes) || options.maxSnapshotBytes < 1 || options.maxSnapshotBytes > 1024 ** 4) fail('INVALID_SNAPSHOT_BYTE_LIMIT');
   if (!BATCH_ID.test(options.sourceCode)) fail('INVALID_SOURCE_CODE');
   return options;
 }
@@ -89,7 +93,7 @@ async function validateAuthorization(configFile, config, allowUnverifiedTestTls)
     fail('SOURCE_CONFIG_MUST_DEFAULT_TO_STRICT_TLS');
   }
   if (!allowUnverifiedTestTls) return;
-  const authFile = path.join(ROOT, 'secrets/mysql-development-tls-authorization.local.json');
+  const authFile = process.env.LAKE_TEST_TLS_AUTHORIZATION_FILE || path.join(ROOT, 'secrets/mysql-development-tls-authorization.local.json');
   const auth = await readJson(authFile);
   const hash = createHash('sha256').update(await readFile(configFile)).digest('hex');
   if (auth.source_config_sha256 !== hash || auth.tls_mode !== 'REQUIRED' || auth.production_allowed !== false || auth.source_writes_allowed !== false) {
@@ -136,9 +140,10 @@ function selectMysqlCli(explicit) {
 }
 
 async function writeOptions(config, allowUnverifiedTestTls) {
-  const directory = await (await import('node:fs/promises')).mkdtemp(path.join(ROOT, 'secrets/mysql-lake-'));
+  const directory = await (await import('node:fs/promises')).mkdtemp(path.join(tmpdir(), 'jiuzhang-mysql-'));
   await chmod(directory, 0o700);
-  const options = makeOptions(config, config.tls.ca_cert_file ? path.resolve(ROOT, config.tls.ca_cert_file) : '/etc/ssl/cert.pem', allowUnverifiedTestTls);
+  const defaultCa = process.platform === 'darwin' ? '/etc/ssl/cert.pem' : '/etc/ssl/certs/ca-certificates.crt';
+  const options = makeOptions(config, config.tls.ca_cert_file ? path.resolve(ROOT, config.tls.ca_cert_file) : defaultCa, allowUnverifiedTestTls);
   const file = path.join(directory, 'client.cnf');
   await writeFile(file, options, { mode: 0o600, flag: 'wx' });
   return { directory, file };
@@ -235,6 +240,8 @@ async function runSnapshot(options, config, inventory, batchId) {
   let stderrBytes = 0;
   let child;
   let ended = false;
+  let receivedBytes = 0;
+  const maxSnapshotBytes = options.maxSnapshotBytes ?? 4 * 1024 ** 3;
   try {
     child = spawnMysql(selectMysqlCli(options.mysqlCli), tmp.file, sql);
     const closePromise = once(child, 'close');
@@ -265,6 +272,8 @@ async function runSnapshot(options, config, inventory, batchId) {
         continue;
       }
       if (!writer || activeIndex < 0) fail('SOURCE_ROW_OUTSIDE_TABLE');
+      receivedBytes += Buffer.byteLength(line, 'utf8') + 1;
+      if (receivedBytes > maxSnapshotBytes) fail('SNAPSHOT_BYTE_LIMIT_EXCEEDED');
       await writer.write(line);
     }
     const [closeEvent] = await Promise.all([closePromise, stderrPromise]);

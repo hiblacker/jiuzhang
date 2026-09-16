@@ -81,7 +81,11 @@ test('final table is included in the atomically committed manifest', async () =>
   const config = { engine: 'mysql', host: '127.0.0.1', port: 3306, username: 'u', password: 'p', database: 'd', tls: { require_encryption: true, verify_server_certificate: true }, limits: { connect_timeout_seconds: 1 } };
   const smallInventory = { inventory_observed_at: '2026-09-15T00:00:00Z', plan_version: 1, tables: [{ table: 'orders', primary_key: ['id'], columns: [{ column: 'id', data_type: 'varchar' }] }] };
   try {
-    const result = await runSnapshot({ lakeRoot: root, sourceCode: 'test-source', mode: 'full', window: null, queryTimeoutSeconds: 10, allowUnverifiedTestTls: true, mysqlCli: fakeMysql, dryRun: false }, config, smallInventory, 'batch-final-table');
+    const input = { lakeRoot: root, sourceCode: 'test-source', mode: 'full', window: null, queryTimeoutSeconds: 10, allowUnverifiedTestTls: true, mysqlCli: fakeMysql, dryRun: false };
+    await assert.rejects(runSnapshot({ ...input, maxSnapshotBytes: 1 }, config, smallInventory, 'batch-byte-limit'), /SNAPSHOT_BYTE_LIMIT_EXCEEDED/);
+    const rejected = JSON.parse(await readFile(path.join(root, 'batches/batch-byte-limit/batch.failed.json'), 'utf8'));
+    assert.equal(rejected.state, 'FAILED');
+    const result = await runSnapshot(input, config, smallInventory, 'batch-final-table');
     const manifest = JSON.parse(await readFile(path.join(root, 'batches', 'batch-final-table', 'batch.json'), 'utf8'));
     assert.equal(result.state, 'COMPLETE');
     assert.equal(manifest.state, 'COMPLETE');

@@ -1,0 +1,671 @@
+{
+  "recordedOn": "2026-09-16",
+  "target": "linux/amd64",
+  "images": [
+    "python:3.12.14-slim-trixie",
+    "mysql:8.0.43",
+    "node:22.23.1-bookworm-slim",
+    "postgres:16.15",
+    "eclipse-temurin:21.0.12_8-jre-jammy"
+  ],
+  "mysqlReason": "Reuse the already reviewed 8.0.43 CLI, validating its protocol against the supported source; no unverified Debian tag.",
+  "python": "3.12.14",
+  "git": "1:2.47.3-0+deb13u1",
+  "packages": {
+    "agate": "1.9.1",
+    "annotated-types": "0.8.0",
+    "attrs": "26.1.0",
+    "babel": "2.18.0",
+    "certifi": "2026.7.22",
+    "charset-normalizer": "3.5.1",
+    "click": "8.5.0",
+    "colorama": "0.4.6",
+    "daff": "1.4.2",
+    "dbt-adapters": "1.24.5",
+    "dbt-common": "1.39.0",
+    "dbt-core": "1.11.15",
+    "dbt-extractor": "0.6.0",
+    "dbt-postgres": "1.11.0",
+    "dbt-protos": "1.0.565",
+    "dbt-semantic-interfaces": "0.9.0",
+    "deepdiff": "8.6.2",
+    "idna": "3.19",
+    "importlib_metadata": "8.9.0",
+    "isodate": "0.7.2",
+    "Jinja2": "3.1.6",
+    "jsonschema": "4.26.0",
+    "jsonschema-specifications": "2025.9.1",
+    "leather": "0.4.1",
+    "MarkupSafe": "3.0.3",
+    "mashumaro": "3.14",
+    "more-itertools": "10.8.0",
+    "msgpack": "1.2.2",
+    "networkx": "3.6.1",
+    "opentelemetry-api": "1.44.0",
+    "orderly-set": "5.5.0",
+    "packaging": "26.3",
+    "parsedatetime": "2.6",
+    "pathspec": "0.12.1",
+    "protobuf": "6.33.6",
+    "psycopg2-binary": "2.9.13",
+    "pydantic": "2.13.5",
+    "pydantic_core": "2.46.5",
+    "python-dateutil": "2.9.0.post0",
+    "python-slugify": "9.0.0",
+    "pytimeparse": "1.1.8",
+    "pytz": "2026.3.post1",
+    "PyYAML": "6.0.3",
+    "referencing": "0.37.0",
+    "requests": "2.34.2",
+    "rpds-py": "2026.6.3",
+    "six": "1.17.0",
+    "snowplow-tracker": "1.1.0",
+    "sqlparse": "0.6.0",
+    "text-unidecode": "1.3",
+    "typing-inspection": "0.4.4",
+    "typing_extensions": "4.16.0",
+    "urllib3": "2.8.0",
+    "zipp": "4.1.0",
+    "openpyxl": "3.1.5",
+    "pyarrow": "18.1.0",
+    "et-xmlfile": "2.0.0"
+  },
+  "status": "Built and executed locally on linux/amd64 with emulation; 57 wheel hashes match official PyPI metadata; no NAS/production deployment or distribution license clearance.",
+  "wheels": [
+    {
+      "name": "agate",
+      "version": "1.9.1",
+      "sha256": "1cf329510b3dde07c4ad1740b7587c9c679abc3dcd92bb1107eabc10c2e03c50",
+      "wheel": "agate-1.9.1-py2.py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "annotated-types",
+      "version": "0.8.0",
+      "sha256": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+      "wheel": "annotated_types-0.8.0-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "attrs",
+      "version": "26.1.0",
+      "sha256": "c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309",
+      "wheel": "attrs-26.1.0-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "babel",
+      "version": "2.18.0",
+      "sha256": "e2b422b277c2b9a9630c1d7903c2a00d0830c409c59ac8cae9081c92f1aeba35",
+      "wheel": "babel-2.18.0-py3-none-any.whl",
+      "license": "BSD-3-Clause",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "certifi",
+      "version": "2026.7.22",
+      "sha256": "62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775",
+      "wheel": "certifi-2026.7.22-py3-none-any.whl",
+      "license": "MPL-2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.5.1",
+      "sha256": "b9af956078716df40d985fb0dfeb2c2120c5ca92ba4ff4b388acfd01cdc14d08",
+      "wheel": "charset_normalizer-3.5.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "click",
+      "version": "8.5.0",
+      "sha256": "255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360",
+      "wheel": "click-8.5.0-py3-none-any.whl",
+      "license": "BSD-3-Clause",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "colorama",
+      "version": "0.4.6",
+      "sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+      "wheel": "colorama-0.4.6-py2.py3-none-any.whl",
+      "license": "License :: OSI Approved :: BSD License",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "daff",
+      "version": "1.4.2",
+      "sha256": "88981a21d065e4378b5c4bd40b975dbfdea9b7ff540071f3bb5e20cc8b3590b5",
+      "wheel": "daff-1.4.2-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "dbt-adapters",
+      "version": "1.24.5",
+      "sha256": "32345118b921160722a13f12c3e369b9d59a0fb8fb9b3297e29d8cd53f973411",
+      "wheel": "dbt_adapters-1.24.5-py3-none-any.whl",
+      "license": "License :: OSI Approved :: Apache Software License",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "dbt-common",
+      "version": "1.39.0",
+      "sha256": "30d63490b9ef2aad6f469ec841fb758430fcb1d997b79ff3df36fcb7b79a241f",
+      "wheel": "dbt_common-1.39.0-py3-none-any.whl",
+      "license": "Apache-2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "dbt-core",
+      "version": "1.11.15",
+      "sha256": "6ac22fabf674274ca865857ee098f9ae871a73bd8cd6f59886d1dfad78f8ec60",
+      "wheel": "dbt_core-1.11.15-py3-none-any.whl",
+      "license": "Apache-2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "dbt-extractor",
+      "version": "0.6.0",
+      "sha256": "aecfa43f7e6f139e76d47e4e1d7b189655ae19a8cf697686230bacb89a94ae74",
+      "wheel": "dbt_extractor-0.6.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "license": "Apache-2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "dbt-postgres",
+      "version": "1.11.0",
+      "sha256": "b88f994dc2f00150579d62f8ff91af715428a3cfe064e067945359ca4509872c",
+      "wheel": "dbt_postgres-1.11.0-py3-none-any.whl",
+      "license": "License :: OSI Approved :: Apache Software License",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "dbt-protos",
+      "version": "1.0.565",
+      "sha256": "130a8333fcd644ba1f00c8377e8f8013b28cca696a6af56037feb55a011f964c",
+      "wheel": "dbt_protos-1.0.565-py3-none-any.whl",
+      "license": "Apache-2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "dbt-semantic-interfaces",
+      "version": "0.9.0",
+      "sha256": "1b54c06ba89190a47a7f0563360930a0cce869e55b484ca09d261ade0e319155",
+      "wheel": "dbt_semantic_interfaces-0.9.0-py3-none-any.whl",
+      "license": "Apache-2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "deepdiff",
+      "version": "8.6.2",
+      "sha256": "4d22034a866c3928303a9332c279362f714192d9305bac17c498720d095fd1b4",
+      "wheel": "deepdiff-8.6.2-py3-none-any.whl",
+      "license": "License :: OSI Approved :: MIT License",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "et_xmlfile",
+      "version": "2.0.0",
+      "sha256": "7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa",
+      "wheel": "et_xmlfile-2.0.0-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "idna",
+      "version": "3.19",
+      "sha256": "815e7be7a7806d54abb586dc943addc79e8b2ee16915059658cbeff4b1b43bf4",
+      "wheel": "idna-3.19-py3-none-any.whl",
+      "license": "BSD-3-Clause",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "importlib_metadata",
+      "version": "8.9.0",
+      "sha256": "e0f761b6ea91ced3b0844c14c9d955224d538105921f8e6754c00f6ca79fba7f",
+      "wheel": "importlib_metadata-8.9.0-py3-none-any.whl",
+      "license": "Apache-2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "isodate",
+      "version": "0.7.2",
+      "sha256": "28009937d8031054830160fce6d409ed342816b543597cece116d966c6d99e15",
+      "wheel": "isodate-0.7.2-py3-none-any.whl",
+      "license": "Copyright (c) 2021, Hugo van Kemenade and contributors\n        Copyright (c) 2009-2018, Gerhard Weis and contributors\n        Copyright (c) 2009, Gerhard Weis\n        All rights reserved.\n        \n        Redistribution and use in source and binary forms, with or without\n        modification, are permitted provided that the following conditions are met:\n            * Redistributions of source code must retain the above copyright\n              notice, this list of conditions and the following disclaimer.\n            * Redistributions in binary form must reproduce the above copyright\n              notice, this list of conditions and the following disclaimer in the\n              documentation and/or other materials provided with the distribution.\n            * Neither the name of the <organization> nor the\n              names of its contributors may be used to endorse or promote products\n              derived from this software without specific prior written permission.\n        \n        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND\n        ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED\n        WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\n        DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY\n        DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES\n        (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;\n        LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND\n        ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n        (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS\n        SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n        ",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "Jinja2",
+      "version": "3.1.6",
+      "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+      "wheel": "jinja2-3.1.6-py3-none-any.whl",
+      "license": "License :: OSI Approved :: BSD License",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "jsonschema",
+      "version": "4.26.0",
+      "sha256": "d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce",
+      "wheel": "jsonschema-4.26.0-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "jsonschema-specifications",
+      "version": "2025.9.1",
+      "sha256": "98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe",
+      "wheel": "jsonschema_specifications-2025.9.1-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "leather",
+      "version": "0.4.1",
+      "sha256": "ec61cba1ca3ccb96ed90e38b116fc58757d97d352171006b3288c47ce3fbd183",
+      "wheel": "leather-0.4.1-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "MarkupSafe",
+      "version": "3.0.3",
+      "sha256": "d6dd0be5b5b189d31db7cda48b91d7e0a9795f31430b7f271219ab30f1d3ac9d",
+      "wheel": "markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "license": "BSD-3-Clause",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "mashumaro",
+      "version": "3.14",
+      "sha256": "c12a649599a8f7b1a0b35d18f12e678423c3066189f7bc7bd8dd431c5c8132c3",
+      "wheel": "mashumaro-3.14-py3-none-any.whl",
+      "license": "Apache License, Version 2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "more-itertools",
+      "version": "10.8.0",
+      "sha256": "52d4362373dcf7c52546bc4af9a86ee7c4579df9a8dc268be0a2f949d376cc9b",
+      "wheel": "more_itertools-10.8.0-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "msgpack",
+      "version": "1.2.2",
+      "sha256": "77c2e018417dc1d66f235e383877ee885b60ade9d29e494dd581e08af2cb1923",
+      "wheel": "msgpack-1.2.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "license": "Apache-2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "networkx",
+      "version": "3.6.1",
+      "sha256": "d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762",
+      "wheel": "networkx-3.6.1-py3-none-any.whl",
+      "license": "BSD-3-Clause",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "openpyxl",
+      "version": "3.1.5",
+      "sha256": "5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2",
+      "wheel": "openpyxl-3.1.5-py2.py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "opentelemetry-api",
+      "version": "1.44.0",
+      "sha256": "94b98c893a91b88657eaac1e3ba89618cdb85be6918196705354f34728b2cdef",
+      "wheel": "opentelemetry_api-1.44.0-py3-none-any.whl",
+      "license": "Apache-2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "orderly-set",
+      "version": "5.5.0",
+      "sha256": "46f0b801948e98f427b412fcabb831677194c05c3b699b80de260374baa0b1e7",
+      "wheel": "orderly_set-5.5.0-py3-none-any.whl",
+      "license": "License :: OSI Approved :: MIT License",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "packaging",
+      "version": "26.3",
+      "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+      "wheel": "packaging-26.3-py3-none-any.whl",
+      "license": "Apache-2.0 OR BSD-2-Clause",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "parsedatetime",
+      "version": "2.6",
+      "sha256": "cb96edd7016872f58479e35879294258c71437195760746faffedb692aef000b",
+      "wheel": "parsedatetime-2.6-py3-none-any.whl",
+      "license": "Apache License 2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "pathspec",
+      "version": "0.12.1",
+      "sha256": "a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08",
+      "wheel": "pathspec-0.12.1-py3-none-any.whl",
+      "license": "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "protobuf",
+      "version": "6.33.6",
+      "sha256": "e9db7e292e0ab79dd108d7f1a94fe31601ce1ee3f7b79e0692043423020b0593",
+      "wheel": "protobuf-6.33.6-cp39-abi3-manylinux2014_x86_64.whl",
+      "license": "3-Clause BSD License",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "psycopg2-binary",
+      "version": "2.9.13",
+      "sha256": "e3861eba31f8ea8663fd876166b032fd89179e42aa63764d6feb281f13f9eb60",
+      "wheel": "psycopg2_binary-2.9.13-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+      "license": "LGPL with exceptions",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "pyarrow",
+      "version": "18.1.0",
+      "sha256": "c52f81aa6f6575058d8e2c782bf79d4f9fdc89887f16825ec3a66607a5dd8e30",
+      "wheel": "pyarrow-18.1.0-cp312-cp312-manylinux_2_28_x86_64.whl",
+      "license": "Apache Software License",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "pydantic",
+      "version": "2.13.5",
+      "sha256": "346a034f080da3755d8e9cb5e00e8b07de1d39e4f6e2c87d8ab7cafa0b269a73",
+      "wheel": "pydantic-2.13.5-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "pydantic_core",
+      "version": "2.46.5",
+      "sha256": "0fc5be0abd4a407e200d844b404e33639a554e7bd0d448e7b9ae181be4789ac2",
+      "wheel": "pydantic_core-2.46.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "python-dateutil",
+      "version": "2.9.0.post0",
+      "sha256": "a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427",
+      "wheel": "python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+      "license": "Dual License",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "python-slugify",
+      "version": "9.0.0",
+      "sha256": "b1180fb0fd6b3590e7fbd8328b08d56cde9dcac736527a070c0a811480621316",
+      "wheel": "python_slugify-9.0.0-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "pytimeparse",
+      "version": "1.1.8",
+      "sha256": "04b7be6cc8bd9f5647a6325444926c3ac34ee6bc7e69da4367ba282f076036bd",
+      "wheel": "pytimeparse-1.1.8-py2.py3-none-any.whl",
+      "license": "License :: OSI Approved :: MIT License",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "pytz",
+      "version": "2026.3.post1",
+      "sha256": "dd95840dd199baea12d9cc096a1d452caa6596a1c1e4b5f3dbd1541855d5e815",
+      "wheel": "pytz-2026.3.post1-py2.py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "PyYAML",
+      "version": "6.0.3",
+      "sha256": "ba1cc08a7ccde2d2ec775841541641e4548226580ab850948cbfda66a1befcdc",
+      "wheel": "pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "referencing",
+      "version": "0.37.0",
+      "sha256": "381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231",
+      "wheel": "referencing-0.37.0-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "requests",
+      "version": "2.34.2",
+      "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+      "wheel": "requests-2.34.2-py3-none-any.whl",
+      "license": "Apache-2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "rpds-py",
+      "version": "2026.6.3",
+      "sha256": "ecabd69db66de867690f9797f2f8fa27ba501bbc24540cbdbdc649cd15888ba6",
+      "wheel": "rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "six",
+      "version": "1.17.0",
+      "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
+      "wheel": "six-1.17.0-py2.py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "snowplow-tracker",
+      "version": "1.1.0",
+      "sha256": "24ea32ddac9cca547421bf9ab162f5f33c00711c6ef118ad5f78093cee962224",
+      "wheel": "snowplow_tracker-1.1.0-py3-none-any.whl",
+      "license": "Apache License 2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "sqlparse",
+      "version": "0.6.0",
+      "sha256": "b861c0288ce2fa56209a9a6412d2e066ac664b3873b89c26c9d8415e8e32996f",
+      "wheel": "sqlparse-0.6.0-py3-none-any.whl",
+      "license": "License :: OSI Approved :: BSD License",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "text-unidecode",
+      "version": "1.3",
+      "sha256": "1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8",
+      "wheel": "text_unidecode-1.3-py2.py3-none-any.whl",
+      "license": "Artistic License",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0",
+      "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+      "wheel": "typing_extensions-4.16.0-py3-none-any.whl",
+      "license": "PSF-2.0",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "typing-inspection",
+      "version": "0.4.4",
+      "sha256": "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147",
+      "wheel": "typing_inspection-0.4.4-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "urllib3",
+      "version": "2.8.0",
+      "sha256": "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3",
+      "wheel": "urllib3-2.8.0-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    },
+    {
+      "name": "zipp",
+      "version": "4.1.0",
+      "sha256": "25ad4e16390cd314347dd8f1de67a2ac538ae658ed4ab9db16029c07c188e97f",
+      "wheel": "zipp-4.1.0-py3-none-any.whl",
+      "license": "MIT",
+      "source": "https://pypi.tuna.tsinghua.edu.cn/simple"
+    }
+  ],
+  "debianPackages": [
+    {
+      "package": "perl-base",
+      "version": "5.40.1-6+deb13u1"
+    },
+    {
+      "package": "libexpat1",
+      "version": "2.8.3-1~deb13u1"
+    },
+    {
+      "package": "perl-modules-5.40",
+      "version": "5.40.1-6+deb13u1"
+    },
+    {
+      "package": "libgdbm-compat4t64",
+      "version": "1.24-2"
+    },
+    {
+      "package": "libperl5.40",
+      "version": "5.40.1-6+deb13u1"
+    },
+    {
+      "package": "perl",
+      "version": "5.40.1-6+deb13u1"
+    },
+    {
+      "package": "libbrotli1",
+      "version": "1.1.0-2+b7"
+    },
+    {
+      "package": "libunistring5",
+      "version": "1.3-2"
+    },
+    {
+      "package": "libidn2-0",
+      "version": "2.3.8-2"
+    },
+    {
+      "package": "libp11-kit0",
+      "version": "0.25.5-3"
+    },
+    {
+      "package": "libtasn1-6",
+      "version": "4.20.0-2+deb13u1"
+    },
+    {
+      "package": "libgnutls30t64",
+      "version": "3.8.9-3+deb13u4"
+    },
+    {
+      "package": "libkrb5support0",
+      "version": "1.21.3-5+deb13u1"
+    },
+    {
+      "package": "libcom-err2",
+      "version": "1.47.2-3+b12"
+    },
+    {
+      "package": "libk5crypto3",
+      "version": "1.21.3-5+deb13u1"
+    },
+    {
+      "package": "libkeyutils1",
+      "version": "1.6.3-6"
+    },
+    {
+      "package": "libkrb5-3",
+      "version": "1.21.3-5+deb13u1"
+    },
+    {
+      "package": "libgssapi-krb5-2",
+      "version": "1.21.3-5+deb13u1"
+    },
+    {
+      "package": "libsasl2-modules-db",
+      "version": "2.1.28+dfsg1-9"
+    },
+    {
+      "package": "libsasl2-2",
+      "version": "2.1.28+dfsg1-9"
+    },
+    {
+      "package": "libldap2",
+      "version": "2.6.10+dfsg-1"
+    },
+    {
+      "package": "libnghttp2-14",
+      "version": "1.64.0-1.1+deb13u1"
+    },
+    {
+      "package": "libnghttp3-9",
+      "version": "1.8.0-1"
+    },
+    {
+      "package": "libngtcp2-16",
+      "version": "1.11.0-1+deb13u1"
+    },
+    {
+      "package": "libngtcp2-crypto-gnutls8",
+      "version": "1.11.0-1+deb13u1"
+    },
+    {
+      "package": "libpsl5t64",
+      "version": "0.21.2-1.1+b1"
+    },
+    {
+      "package": "librtmp1",
+      "version": "2.4+20151223.gitfa8646d.1-2+b5"
+    },
+    {
+      "package": "libssh2-1t64",
+      "version": "1.11.1-1+deb13u2"
+    },
+    {
+      "package": "libcurl3t64-gnutls",
+      "version": "8.14.1-2+deb13u5"
+    },
+    {
+      "package": "liberror-perl",
+      "version": "0.17030-1"
+    },
+    {
+      "package": "git-man",
+      "version": "1:2.47.3-0+deb13u1"
+    },
+    {
+      "package": "git",
+      "version": "1:2.47.3-0+deb13u1"
+    }
+  ],
+  "libstdc++6": "14.2.0-19",
+  "verification": {
+    "wheelCount": 57,
+    "officialPyPISha256Matches": 57,
+    "containerMysqlSchemaTables": 157,
+    "sourceWrites": false,
+    "date": "2026-09-16"
+  },
+  "licenseScope": "Internal local validation under existing project approvals; preserve embedded Python license files, Debian copyright files, Node notice and MySQL notices. GPL/LGPL/MPL/Artistic conditions require review before external distribution."
+}

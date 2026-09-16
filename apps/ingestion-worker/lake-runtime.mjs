@@ -112,6 +112,7 @@ async function execute(registry, task, signal) {
       '--batch-id', batch, '--config', profile.config, '--inventory', profile.inventory];
     if (profile.allowUnverifiedTestTls === true) args.push('--allow-unverified-test-tls');
     if (profile.mysqlCli) args.push('--mysql-cli', profile.mysqlCli);
+    if (profile.maxSnapshotBytes !== undefined) args.push('--max-snapshot-bytes', String(profile.maxSnapshotBytes));
     result = await child('tools/lake-ingest.mjs', args, signal);
     await verifyCurrentSchema(profile, registry.lakeRoot);
     if (signal.aborted) fail('WORKER_EXECUTION_ABORTED');

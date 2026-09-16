@@ -1,5 +1,7 @@
 # 九章数据平台部署入口
 
+**完整一期产品请使用 [PRODUCT_RUNTIME.md](PRODUCT_RUNTIME.md)，已有原生真实数据环境使用 [LOCAL_RUNTIME.md](LOCAL_RUNTIME.md)。** 下文的 `compose.yaml` 及 dev.8–dev.15 条目保留早期骨架升级历史；Python/Node 正式 Worker 已在新产品 Compose 中完成打包验证，不能继续用旧合成 Worker 判断当前能力。
+
 当前 Compose 是正式平台骨架的开发/测试部署入口，可在本地 Docker Desktop 和后续 NAS Compose v2.40.3 使用。它不会启动 `poc/` 中的实验组件。
 
 ## 名称与兼容性

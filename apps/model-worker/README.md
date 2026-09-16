@@ -14,7 +14,7 @@ python3 -m venv /path/to/model-venv
 /path/to/model-venv/bin/python -m pip check
 ```
 
-当前 wheel 哈希锁对应 macOS arm64 本机验收组合：Python 3.12.14、dbt Core 1.11.15、dbt-postgres 1.11.0，54 个包。Linux 镜像需按目标架构重新生成有哈希的相同版本发行物锁，不能直接宣称这个锁已支持 Linux。
+当前 wheel 哈希锁对应 macOS arm64 本机验收组合：Python 3.12.14、dbt Core 1.11.15、dbt-postgres 1.11.0，54 个包。Linux amd64 的同版本发行物及三项文件解析依赖另有[57 包哈希锁](../../deploy/product-requirements.txt)，已实际构建和执行，见[完整容器运行包](../../deploy/PRODUCT_RUNTIME.md)。
 
 原 PoC 的 1.12.4 锁保留。本轮 [PyPI 固定版本元数据](https://pypi.org/pypi/dbt-core/1.11.15/json) 和实际发行物核对后，选择不依赖下载式实验解析器的 Python v1 组合；全部包从清华源取得。具体版本、wheel 哈希和许可记录见 [runtime-lock.json](runtime-lock.json)。沿用项目既有内部验证许可边界；对外分发须包含 NOTICE 并复核锁中的 LGPL/Artistic/MPL 条目。
 
