@@ -24,7 +24,7 @@ public class CatalogPageController {
     String actor=actor(request);
     String sql=access.admin(actor)?"SELECT p.*, 'OWNER' AS role FROM warehouse.project p"
         :"SELECT p.*,m.role FROM warehouse.project p JOIN warehouse.project_member m ON m.project_id=p.id JOIN warehouse.identity i ON i.id=m.identity_id WHERE i.enabled AND i.id=?";
-    return page(sql,access.admin(actor)?List.of():List.of(actor),"name",q,limit,offset);
+    return page(sql,access.admin(actor)?List.of():List.of(actor),"name||' '||code",q,limit,offset);
   }
   @GetMapping("/projects/{project}/{kind}") @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
   public Object objects(@PathVariable long project,@PathVariable String kind,@RequestParam(defaultValue="") String q,

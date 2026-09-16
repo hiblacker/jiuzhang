@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
 public class ProductRefreshDriver {
   private static final Logger LOG=LoggerFactory.getLogger(ProductRefreshDriver.class);
   private final DatasetRefreshService refresh;
-  public ProductRefreshDriver(DatasetRefreshService refresh){this.refresh=refresh;}
+  private final OperationalIncidentService incidents;
+  public ProductRefreshDriver(DatasetRefreshService refresh,OperationalIncidentService incidents){this.refresh=refresh;this.incidents=incidents;}
   @Scheduled(fixedDelayString="${bydw.lake.calendar-interval-ms:10000}")
-  public void tick(){try{refresh.reconcileAll(Instant.now());}catch(Exception e){LOG.error("Dataset refresh reconciliation failed: {}",e.getClass().getSimpleName());}}
+  public void tick(){try{refresh.reconcileAll(Instant.now());incidents.reconcile(null,null);}catch(Exception e){LOG.error("Dataset refresh reconciliation failed: {}",e.getClass().getSimpleName());}}
 }

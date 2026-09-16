@@ -108,6 +108,26 @@ try:
     assert result['rows'] == [{'order_id': '001', 'amount': '12345678901234567.89'}, {'order_id': '003', 'amount': '0.00'}]
     api(prefix + '/query', {'columns': ['team']}, token, 400)
     assert api(prefix + '/query', {'equals': {'order_id': "' OR TRUE --"}}, token)['rows'] == []
+    typed = api(prefix + '/query', {'releaseId': commerce['release'], 'filters': [{'field': 'amount', 'op': 'GTE', 'value': '8.20'}], 'sort': [{'field': 'amount', 'direction': 'DESC'}]}, token)
+    assert typed['rows'] == [{'order_id': '001', 'amount': '12345678901234567.89'}]
+    assert api(prefix + '/query', {'filters': [{'field': 'order_id', 'op': 'IN', 'values': ['001', '002']}]}, token)['rows'] == typed['rows']
+    api(prefix + '/query', {'filters': [{'field': 'amount', 'op': 'GT', 'value': 'invalid-number'}]}, token, 400)
+    api(prefix + '/query', {'sort': [{'field': 'team', 'direction': 'ASC'}]}, token, 400)
+    api(prefix + '/query', {'limit': 4294967297}, token, 400)
+    api(prefix + '/policy', {'identity': reader_id, 'columns': ['order_id'], 'rowEquals': {}, 'expectedRevision': 0}, status=409)
+    audits = api(f"warehouse/projects/{commerce['project']}/query-audit")['items']
+    assert any(a['actor'] == reader_id and a['release_id'] == commerce['release'] and a['policy_revision'] == 1 for a in audits)
+    assert '12345678901234567.89' not in json.dumps(audits) and "' OR TRUE --" not in json.dumps(audits)
+    # Service credentials rotate independently from browser sessions and remain project-owned.
+    service_route = f"warehouse/projects/{commerce['project']}/service-identities"
+    client = api(service_route, {'id': 'report-' + suffix, 'role': 'VIEWER'})
+    api(prefix + '/policy', {'identity': client['id'], 'columns': ['order_id'], 'rowEquals': {'team': 'east'}})
+    assert len(api(prefix + '/query', {}, client['token'])['rows']) == 2
+    rotated = api(service_route + '/' + client['id'] + '/rotate', {'expectedRevision': 1})
+    api(prefix + '/query', {}, client['token'], 401)
+    assert len(api(prefix + '/query', {}, rotated['token'])['rows']) == 2
+    api(service_route + '/' + client['id'] + '/revoke', {'expectedRevision': 2})
+    api(prefix + '/query', {}, rotated['token'], 401)
     api(f"warehouse/projects/{datasets[1]['project']}/datasets/{datasets[1]['dataset']}/query", {}, token, 403)
     api('warehouse/builds/claim', {'runtimeRefs': list(profiles)}, token, 401)
     export_request = urllib.request.Request(base + '/api/v1/' + prefix + '/export', data=json.dumps({'releaseId': commerce['release']}).encode(), headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'})
@@ -264,7 +284,15 @@ try:
     api(refresh_route + '/reconcile', {'day': today})
     assert api(refresh_route + '/windows')['items'][0]['state'] == 'NEEDS_ATTENTION'
     assert api(managed_prefix + '/query', {})['releaseId'] == old_release
+    incident_route = f"warehouse/projects/{commerce['project']}/incidents"
+    api(incident_route + '/reconcile', {})
+    incidents = api(incident_route)['items']; incident = next(i for i in incidents if i['dataset_id'] == model['id'] and i['state'] == 'OPEN')
+    observations = api(incident_route + '/' + str(incident['id']))['observations']
+    api(incident_route + '/reconcile', {})
+    assert len(api(incident_route + '/' + str(incident['id']))['observations']) == len(observations)
     api(f"warehouse/projects/{commerce['project']}/members", {'identity': service_identity, 'role': 'OWNER'})
+    api(incident_route + '/' + str(incident['id']) + '/acknowledge', {'expectedRevision': incident['revision'], 'ownerIdentity': service_identity, 'reason': 'Restore required project role'})
+    assert api(incident_route + '/' + str(incident['id']))['incident']['state'] == 'ACKNOWLEDGED'
     refresh_plan = api(refresh_route)
     api(refresh_route + '/state', {'state': 'PAUSED', 'expectedRevision': refresh_plan['revision'], 'reason': 'Pause before automatic publication'})
     api(refresh_route + '/reconcile', {'day': today})
@@ -275,6 +303,10 @@ try:
     api(refresh_route + '/reconcile', {'day': today})
     assert api(refresh_route + '/windows')['items'][0]['state'] == 'PUBLISHED'
     assert api(managed_prefix + '/query', {})['rows'][0]['amount'] == '16.50'
+    api(incident_route + '/reconcile', {})
+    recovered = api(incident_route + '/' + str(incident['id']))['incident']
+    assert recovered['state'] == 'RECOVERED' and recovered['recovery_reference'].startswith('release/')
+    assert api(managed_prefix + '/description')['freshness']['state'] == 'FRESH'
     refresh_plan = api(refresh_route)
     api(refresh_route + '/state', {'state': 'PAUSED', 'expectedRevision': refresh_plan['revision'], 'reason': 'Finish synthetic fixture'})
     evidence = {'state': 'PASS', 'themes': 2, 'checks': ['real dbt SQL', 'Git-pinned bundle', 'quality gate', 'immutable SQL tables', 'row-and-column policies', 'fixed release query and CSV export', 'exact decimal', 'leading zero', 'project isolation', 'competing publication', 'stale input rejection', 'failed build keeps release', 'declared output type gate'],

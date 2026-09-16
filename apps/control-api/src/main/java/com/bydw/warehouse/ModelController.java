@@ -28,7 +28,7 @@ public class ModelController {
   public Object impact(@PathVariable long project, @PathVariable long dataset, @RequestParam int version, HttpServletRequest r) { return models.impact(project, dataset, version, actor(r)); }
   @PostMapping(value = "/projects/{project}/datasets/{dataset}/export", produces = "text/csv;charset=UTF-8")
   public org.springframework.http.ResponseEntity<String> export(@PathVariable long project, @PathVariable long dataset, @RequestBody JsonNode body, HttpServletRequest r) {
-    var result = query.query(project, dataset, body, actor(r));
+    var result = query.export(project, dataset, body, actor(r));
     @SuppressWarnings("unchecked") var columns = (List<String>) result.get("columns");
     @SuppressWarnings("unchecked") var rows = (List<Map<String, Object>>) result.get("rows");
     var csv = new StringBuilder(String.join(",", columns.stream().map(this::csv).toList())).append("\r\n");
@@ -50,6 +50,8 @@ public class ModelController {
   public Object cancel(@PathVariable long project, @PathVariable long dataset, @PathVariable long build, HttpServletRequest r) { return execution.cancel(project, dataset, build, actor(r)); }
   @PostMapping("/projects/{project}/datasets/{dataset}/builds/{build}/publish")
   public Object publish(@PathVariable long project, @PathVariable long dataset, @PathVariable long build, @RequestBody JsonNode body, HttpServletRequest r) { return execution.publish(project, dataset, build, body.path("reason").asText(), actor(r)); }
+  @GetMapping("/projects/{project}/datasets/{dataset}/description") public Object description(@PathVariable long project,@PathVariable long dataset,HttpServletRequest r){return query.description(project,dataset,actor(r));}
+  @GetMapping("/projects/{project}/datasets/{dataset}/policies") public Object policies(@PathVariable long project,@PathVariable long dataset,HttpServletRequest r){return query.policies(project,dataset,actor(r));}
   @PostMapping("/projects/{project}/datasets/{dataset}/policy")
   public Object policy(@PathVariable long project, @PathVariable long dataset, @RequestBody JsonNode body, HttpServletRequest r) { return query.policy(project, dataset, body, actor(r)); }
   @PostMapping("/projects/{project}/datasets/{dataset}/query")

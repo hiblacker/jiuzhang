@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdir, readdir } from 'node:fs/promises';
+import { mkdir, readdir, statfs } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { atomicJson, readJson, withLock, digest } from '../../tools/lake-runtime.mjs';
@@ -197,6 +197,10 @@ async function flush(options, directory) {
 export async function runOnce(options, registry) {
   const outbox = path.join(registry.lakeRoot, 'worker-outbox', options.instance);
   await mkdir(outbox, { recursive: true, mode: 0o700 });
+  if(registry.version===2){
+    const storage=await statfs(registry.lakeRoot,{bigint:true});
+    await request(options,'environment-heartbeat',{environment:registry.environment,availableBytes:String(storage.bavail*storage.bsize),totalBytes:String(storage.blocks*storage.bsize)});
+  }
   if (!await flush(options, outbox)) return { state: 'OUTBOX_PENDING' };
   const runtimeRefs = [...Object.keys(registry.profiles), ...(registry.version === 2 ? [`managed-${registry.environment}`] : [])];
   const turnFile = path.join(outbox,'dispatch-turn.json');

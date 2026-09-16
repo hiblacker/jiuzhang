@@ -153,7 +153,7 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
     if ("POST".equals(method) && (path.equals("/api/v1/warehouse/model-packages/claim")||path.matches("/api/v1/warehouse/model-packages/[0-9]+/finish"))) return Access.WORKER;
     if ("POST".equals(method) && MODEL_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
     if ("POST".equals(method) && PROBE_WORKER.matcher(path).matches()) return Access.WORKER;
-    if ("POST".equals(method) && path.equals("/api/v1/lake/request-budget")) return Access.WORKER;
+    if ("POST".equals(method) && (path.equals("/api/v1/lake/request-budget")||path.equals("/api/v1/lake/environment-heartbeat"))) return Access.WORKER;
     if ("GET".equals(method) && (CHECKPOINT_READ.matcher(path).matches()
         || JOB_READ.matcher(path).matches())) return Access.EITHER;
     return Access.ADMIN;

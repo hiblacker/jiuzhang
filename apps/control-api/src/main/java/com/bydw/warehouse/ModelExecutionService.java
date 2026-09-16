@@ -106,7 +106,7 @@ public class ModelExecutionService {
       boolean passed = count <= contract.path("maxOutputRows").asLong() && nulls == 0 && duplicates == 0;
       result.put("rowCount", count).put("nullKeysOrRequired", nulls).put("duplicateKeys", duplicates).put("qualityPassed", passed);
       var rules=quality.evaluate(contract,b,count);
-      result.set("rules",rules);result.put("rulesConfigured",contract.has("qualityRules"));
+      result.set("rules",rules);result.put("rulesConfigured",contract.path("qualityRules").isArray()&&!contract.path("qualityRules").isEmpty());
       for(JsonNode rule:rules)if(!rule.path("passed").asBoolean()&&rule.path("severity").asText().equals("BLOCK"))passed=false;
       result.put("qualityPassed",passed);
       if (!passed) state = "REJECTED";

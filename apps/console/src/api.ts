@@ -1,6 +1,6 @@
 let csrf: { headerName: string; token: string } | null = null
 export class ApiError extends Error {
-  constructor(public status: number, public code: string, message: string, public requestId = '') { super(message) }
+  constructor(public status: number, public code: string, message: string, public requestId = '') { super(message===code?message:`${message} (${code})`) }
 }
 export async function csrfToken() {
   const response = await fetch('/api/v1/auth/csrf', { credentials: 'same-origin' })
@@ -36,3 +36,9 @@ export async function logout() { await api('/auth/logout', {}); csrf = null }
 export interface Project { id: number; name: string; code: string; role: 'OWNER'|'ENGINEER'|'VIEWER' }
 export interface Identity { identity: string; platformAdmin: boolean; projects: Project[] }
 export interface Page<T> { items: T[]; total: number; limit: number; offset: number }
+export async function exportCsv(path: string, body: unknown, filename: string) {
+  const token=csrf||await csrfToken()
+  const response=await fetch(`/api/v1${path}`,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',[token.headerName]:token.token},body:JSON.stringify(body)})
+  if(!response.ok){const error=await response.json().catch(()=>({}));if(response.status===401)window.dispatchEvent(new Event('session-expired'));throw new ApiError(response.status,error.code||'EXPORT_FAILED',error.message||'导出失败')}
+  const url=URL.createObjectURL(await response.blob()),anchor=document.createElement('a');anchor.href=url;anchor.download=filename;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+}
