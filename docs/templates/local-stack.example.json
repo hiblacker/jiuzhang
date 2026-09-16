@@ -42,15 +42,14 @@
     },
     "console": {
       "command": [
-        "/opt/python/bin/python3",
-        "-m",
-        "http.server",
-        "8081",
-        "--bind",
-        "127.0.0.1",
-        "--directory",
-        "/opt/jiuzhang/apps/console"
+        "/opt/node/bin/node",
+        "/opt/jiuzhang/apps/console/server.mjs"
       ],
+      "env": {
+        "PORT": "8081",
+        "HOST": "127.0.0.1",
+        "CONSOLE_API_ORIGIN": "http://127.0.0.1:8080"
+      },
       "healthUrl": "http://127.0.0.1:8081"
     },
     "ingestion-worker": {

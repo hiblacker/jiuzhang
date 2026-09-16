@@ -7,20 +7,25 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
-    "build": "vue-tsc --noEmit && vite build",
-    "check": "vue-tsc --noEmit",
-    "test": "node ../../tests/product-browser.mjs"
+    "dev": "vite --host 127.0.0.1 --port 4173 --strictPort",
+    "typecheck": "vue-tsc --noEmit",
+    "check": "npm run typecheck",
+    "build": "npm run typecheck && vite build && node scripts/notices.mjs",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "test": "node ../../tests/product-browser.mjs",
+    "licenses": "node scripts/dependencies.mjs"
   },
   "dependencies": {
+    "lucide-vue-next": "1.0.0",
     "naive-ui": "2.45.3",
     "vue": "3.5.42"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@vitejs/plugin-vue": "6.0.9",
     "playwright": "1.62.1",
     "typescript": "5.9.3",
-    "vite": "7.3.6",
+    "vite": "8.3.0",
     "vue-tsc": "3.3.11"
   }
 }

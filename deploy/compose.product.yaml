@@ -52,7 +52,7 @@ services:
       CONTROL_API_WORKER_TOKEN: ${CONTROL_API_WORKER_TOKEN:?required}
       BROWSER_COOKIE_SECURE: ${BROWSER_COOKIE_SECURE:-false}
       LAKE_CALENDAR_DRIVER: local
-    ports: ["127.0.0.1:${PRODUCT_API_PORT:-60283}:8080", "127.0.0.1:${PRODUCT_CONSOLE_PORT:-60284}:8080"]
+    ports: ["127.0.0.1:${PRODUCT_API_PORT:-60283}:8080", "127.0.0.1:${PRODUCT_CONSOLE_PORT:-60284}:8081"]
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080; printf \"GET /actuator/health HTTP/1.0\\r\\n\\r\\n\" >&3; head -1 <&3 | grep -q 200'"]
       interval: 5s
@@ -94,5 +94,13 @@ services:
     depends_on:
       control-api: {condition: service_healthy}
     restart: unless-stopped
+  console:
+    image: jiuzhang/console:0.2.0-dev.2
+    platform: linux/amd64
+    network_mode: service:control-api
+    environment:
+      CONSOLE_API_ORIGIN: http://127.0.0.1:8080
+    depends_on:
+      control-api: {condition: service_healthy}
 volumes:
   product-db-data:

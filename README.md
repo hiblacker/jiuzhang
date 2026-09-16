@@ -23,6 +23,8 @@
 
 ## 当前状态
 
+- Vue/Naive UI 前端已完成实现、构建和本机隔离交互验证；真实 API/容器联调及 Windows 既有回归问题另列边界，见 [UI-02 建设记录](docs/38-vue-console.md)。
+
 - 2026-09-16：一期本地产品交付完成：真实整库及每日 Worker、四格式目录/API、项目角色、Git/dbt 模型、质量发布、授权查询、原件重处理、结构变更确认、简单操作页面、完整容器运行包和联合备份恢复。157 表、1,617,565 行已入湖；详见[最终验收与边界](docs/37-phase-one-acceptance.md)、[本机启动](deploy/LOCAL_RUNTIME.md)及[容器启动](deploy/PRODUCT_RUNTIME.md)。下列日期条目为历史过程，不代表当前仍缺这些已交付能力。
 
 - 2026-09-15：已在用户授权的测试源 TLS 例外下完成真实整库原始快照和一个每日窗口：157/157 表、1,617,565 行、765,352,734 字节逐表校验通过，并验证同窗口幂等；证据见[入湖实现与实际验收记录](docs/34-lake-implementation-evidence.md)。
@@ -110,4 +112,4 @@ git diff --check
 
 - [整库与每日持续入湖：执行顺序、基础契约与验收](docs/31-warehouse-implementation-plan.md)（当前执行依据，无工时排期）
 - [入湖实现与实际验收记录](docs/34-lake-implementation-evidence.md)（真实源、文件/API/模型测试与明确未完成范围）
-- [入湖控制台](apps/console/README.md)（只读控制台启动方式）
+- [入湖控制台](apps/console/README.md)（Vue/Naive UI 操作控制台与测试入口）
