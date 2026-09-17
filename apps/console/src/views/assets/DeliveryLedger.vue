@@ -13,7 +13,8 @@ import {
   NSpace,
   NTag,
 } from 'naive-ui';
-import { api, type Page } from '@/api';
+import { api } from '@/api';
+import { usePagedQuery } from '@/composables/usePagedQuery';
 import AppJsonBlock from '@/components/AppJsonBlock.vue';
 import AppPager from '@/components/AppPager.vue';
 import { useErrorToast } from '@/composables/useErrorToast';
@@ -25,11 +26,7 @@ const props = defineProps<{
   canManage: boolean;
 }>();
 const day = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date());
-const plan = ref<Record<string, any> | null>(null),
-  windows = ref<Record<string, any>[]>([]),
-  total = ref(0),
-  page = ref(1),
-  show = ref(false),
+const show = ref(false),
   error = ref(''),
   busy = ref(false),
   members = ref<{ identity_id: string; role: string }[]>([]),
@@ -37,6 +34,26 @@ const plan = ref<Record<string, any> | null>(null),
   detailVisible = ref(false),
   reason = ref(''),
   targetDay = ref(day());
+const plan = ref<Record<string, any> | null>(null);
+const planError = ref('');
+const {
+  rows: windows,
+  page,
+  total,
+  listError,
+  load: loadWindows,
+} = usePagedQuery<Record<string, unknown>>({
+  route: ({ page: current, limit }) => `${route()}/windows?limit=${limit}&offset=${(current - 1) * limit}`,
+  resetKey: () => [props.project, props.dataset],
+});
+async function loadPlan() {
+  try {
+    plan.value = await api<Record<string, any>>(route());
+  } catch (failure) {
+    planError.value = (failure as Error).message;
+  }
+}
+/** Refreshes the plan and the window page together; actions call this after a change. */
 const form = reactive({
   serviceIdentity: '',
   publishMode: 'MANUAL',
@@ -85,36 +102,22 @@ const columns = [
   },
 ];
 const route = () => `/warehouse/projects/${props.project}/datasets/${props.dataset}/refresh`;
-let generation = 0;
-async function retry(window: Record<string, any>) {
+/** Refreshes the plan and the window page together; actions call this after a change. */
+async function retry(target: Record<string, any>) {
   busy.value = true;
   error.value = '';
   try {
-    await api(route() + `/windows/${window.id}/retry`, { expectedBuildId: window.build_id, reason: reason.value });
+    await api(route() + `/windows/${target.id}/retry`, { expectedBuildId: target.build_id, reason: reason.value });
     detailVisible.value = false;
     await load();
-  } catch (e) {
-    error.value = (e as Error).message;
+  } catch (failure) {
+    error.value = (failure as Error).message;
   } finally {
     busy.value = false;
   }
 }
 async function load() {
-  const current = ++generation;
-  error.value = '';
-  try {
-    const [p, w] = await Promise.all([
-      api<Record<string, any>>(route()),
-      api<Page<Record<string, any>>>(route() + `/windows?limit=25&offset=${(page.value - 1) * 25}`),
-    ]);
-    if (current === generation) {
-      plan.value = p;
-      windows.value = w.items;
-      total.value = w.total;
-    }
-  } catch (e) {
-    if (current === generation) error.value = (e as Error).message;
-  }
+  await Promise.all([loadPlan(), loadWindows()]);
 }
 async function configure() {
   busy.value = true;
@@ -193,13 +196,13 @@ async function toggle() {
 watch(
   () => [props.project, props.dataset],
   () => {
-    page.value = 1;
-    void load();
+    void loadPlan();
   },
   { immediate: true },
 );
-watch(page, () => void load());
 useErrorToast(error);
+useErrorToast(listError);
+useErrorToast(planError);
 </script>
 <template>
   <n-card title="每日数据集刷新" class="gap"

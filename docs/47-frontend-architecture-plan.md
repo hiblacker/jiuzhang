@@ -543,3 +543,17 @@ const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
 验证：`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（新增 4 条 `page renders with its heading and content`）。
 
 **下一步（Round 3 起）**：迁 `DeliveryLedger` 需要先把 `load()` 的"计划 + 分页窗口"合并取数拆成两段（组合式函数管窗口分页，计划单独取），再迁 `ModelsView` 的双列表与 `DatasetsView` 的 offset 分页——这几处契约与 `usePagedQuery` 现有能力不同，属于"扩展组合式函数"的前置工作。
+
+### 14.13 列表页迁移（继续）：DeliveryLedger 已完成
+
+`views/assets/DeliveryLedger.vue`（交付账本，出现在"数据开发"页）原先的 `load()` 把**计划**与**分页窗口**合并成一次 `Promise.all` 取数，并自带 `generation` 守卫，窗口分页因此游离在组合式函数之外。现拆成：
+
+- `usePagedQuery` 管窗口分页（`route` 为 `${route()}/windows?limit&offset`，`resetKey` 为 `[props.project, props.dataset]`）；
+- `loadPlan()` 单独取计划（失败进 `planError`，由 toast 提示）；
+- `load()` 保留原语义（动作后同时刷新计划与窗口），因此 `configure`/`reconcile`/`retry` 等调用点无需改动。
+
+过程记录：脚本化删除时按"从 `let generation` 到 `load()` 结束"切片，误删了夹在中间的 `retry()`，被 `vue-tsc` 立刻抓出并补回——说明"机械替换 + 类型检查"这一组合确实有效。
+
+效果：告警 288 → **286**（基线同步下调）；镜像 `0.2.0-dev.22`；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（含 `/models` 页面渲染断言，账本即在该页）。
+
+**剩余**：`ModelsView`（数据集 + 模型包两个列表）、`DatasetsView`（offset 分页 + CSV 导出）需要先给组合式函数加"offset 模式/多列表"能力；随后是逐页 DTO 类型化与 complexity 收口。

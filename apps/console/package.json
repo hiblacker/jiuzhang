@@ -12,7 +12,7 @@
     "check": "npm run typecheck && npm run format:check && npm run lint",
     "test:unit": "node --import ../../tests/helpers/console-alias.mjs --test ../../tests/console-*.test.mjs",
     "build": "npm run typecheck && npm run format:check && npm run lint && vite build && node scripts/notices.mjs",
-    "lint": "eslint src --max-warnings 288",
+    "lint": "eslint src --max-warnings 286",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,css,json}\" vite.config.ts",
     "format:check": "prettier --check \"src/**/*.{ts,vue,css,json}\" vite.config.ts",
