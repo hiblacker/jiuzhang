@@ -10,7 +10,7 @@ from pathlib import Path
 parser = argparse.ArgumentParser()
 parser.add_argument('--api-tag', default='0.2.0-dev.18')
 parser.add_argument('--worker-tag', default='0.2.0-dev.24')
-parser.add_argument('--console-tag', default='0.2.0-dev.13')
+parser.add_argument('--console-tag', default='0.2.0-dev.14')
 parser.add_argument('--online-maven', action='store_true', help='Allow the configured Aliyun mirror; offline by default')
 args = parser.parse_args()
 repo = Path(__file__).resolve().parents[1]
