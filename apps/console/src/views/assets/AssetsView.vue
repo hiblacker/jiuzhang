@@ -9,12 +9,13 @@ import {
   NDescriptionsItem,
   NInput,
   NModal,
-  NPagination,
   NSpace,
   NTag,
 } from 'naive-ui';
 import { api, type Page } from '@/api';
 import { useProjectStore } from '@/stores/project';
+import AppJsonBlock from '@/components/AppJsonBlock.vue';
+import AppPager from '@/components/AppPager.vue';
 const project = useProjectStore();
 const projectId = computed(() => project.selected?.id ?? 0);
 interface Asset {
@@ -105,11 +106,9 @@ watch(page, () => void load());
         >搜索</n-button
       ><n-tag>{{ total }} 个资产版本</n-tag></n-space
     ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert
-    ><n-data-table :columns="columns" :data="rows" :loading="busy" :row-key="(r) => r.id" /><n-pagination
+    ><n-data-table :columns="columns" :data="rows" :loading="busy" :row-key="(r) => r.id" /><AppPager
       v-model:page="page"
       :item-count="total"
-      :page-size="25"
-      class="gap"
   /></n-card>
   <n-modal v-model:show="show" preset="card" :title="detail?.name" style="width: min(900px, 96vw)"
     ><n-descriptions bordered :column="2"
@@ -119,8 +118,8 @@ watch(page, () => void load());
       ><n-descriptions-item label="大小（字节）">{{ detail?.byte_count }}</n-descriptions-item></n-descriptions
     >
     <h3>字段与结构</h3>
-    <pre class="json-detail">{{ JSON.stringify(detail?.schema, null, 2) }}</pre>
+    <AppJsonBlock :value="detail?.schema" />
     <h3>版本与追溯信息</h3>
-    <pre class="json-detail">{{ JSON.stringify({ ...detail, schema: undefined }, null, 2) }}</pre>
+    <AppJsonBlock :value="{ ...detail, schema: undefined }" />
   </n-modal>
 </template>

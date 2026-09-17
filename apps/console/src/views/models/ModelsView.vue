@@ -8,7 +8,6 @@ import {
   NFormItem,
   NInput,
   NModal,
-  NPagination,
   NSelect,
   NSpace,
   NTabPane,
@@ -19,6 +18,8 @@ import { api, type Page } from '@/api';
 import { usePermissionStore } from '@/stores/permission';
 import { useProjectStore } from '@/stores/project';
 import type { PickedAsset } from '@/views/assets/AssetPicker.vue';
+import AppJsonBlock from '@/components/AppJsonBlock.vue';
+import AppPager from '@/components/AppPager.vue';
 const RefreshPanel = defineAsyncComponent(() => import('@/views/assets/DeliveryLedger.vue'));
 const AssetPicker = defineAsyncComponent(() => import('@/views/assets/AssetPicker.vue'));
 const permission = usePermissionStore();
@@ -362,11 +363,7 @@ watch(
         "
         >搜索</n-button
       ></n-space
-    ><n-data-table :columns="columns" :data="rows" :loading="busy" /><n-pagination
-      v-model:page="page"
-      :item-count="total"
-      :page-size="25"
-      class="gap"
+    ><n-data-table :columns="columns" :data="rows" :loading="busy" /><AppPager v-model:page="page" :item-count="total"
   /></n-card>
   <template v-else
     ><n-space class="gap"
@@ -441,11 +438,9 @@ watch(
       ><n-button type="primary" :loading="busy" :disabled="!repository || !projectPath" @click="importPackage"
         >提交打包任务</n-button
       ><n-button @click="loadPackages().catch((e) => (error = e.message))">刷新包列表</n-button></n-space
-    ><n-data-table :columns="packageColumns" :data="packages" /><n-pagination
+    ><n-data-table :columns="packageColumns" :data="packages" /><AppPager
       v-model:page="packagePage"
       :item-count="packageTotal"
-      :page-size="25"
-      class="gap"
   /></n-modal>
   <n-modal v-model:show="creating" preset="card" title="绑定模型与项目资产" style="width: min(850px, 96vw)"
     ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert
@@ -485,7 +480,7 @@ watch(
         ><n-alert v-if="!buildDetail?.result?.rulesConfigured" type="info"
           >扩展质量规则尚未配置，基础结构、唯一性和必填检查仍执行。</n-alert
         >
-        <pre class="json-detail">{{ JSON.stringify(buildDetail?.result, null, 2) }}</pre></n-tab-pane
+        <AppJsonBlock :value="buildDetail?.result" /></n-tab-pane
       ><n-tab-pane name="lineage" tab="节点依赖"
         ><n-data-table
           :columns="[
@@ -497,11 +492,8 @@ watch(
         <p v-if="!buildDetail?.result?.worker?.lineage?.length">
           尚未取得 dbt 节点依赖；动态 SQL 的列级依赖未解析。
         </p></n-tab-pane
-      ><n-tab-pane name="inputs" tab="输入版本">
-        <pre class="json-detail">{{ JSON.stringify(buildDetail?.watermark, null, 2) }}</pre>
-      </n-tab-pane></n-tabs
-    ></n-modal
-  >
+      ><n-tab-pane name="inputs" tab="输入版本"> <AppJsonBlock :value="buildDetail?.watermark" /> </n-tab-pane></n-tabs
+  ></n-modal>
   <n-modal v-model:show="publishVisible" preset="card" title="发布已验证候选" style="width: min(620px, 94vw)"
     ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
     <p>发布前再次检查当前版本、输入新旧、来源状态和数据权限。</p>

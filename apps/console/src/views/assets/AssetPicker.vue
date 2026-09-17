@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { h, ref, watch } from 'vue';
-import { NAlert, NButton, NDataTable, NInput, NPagination, NSpace } from 'naive-ui';
+import { NAlert, NButton, NDataTable, NInput, NSpace } from 'naive-ui';
 import { api, type Page } from '@/api';
+import AppPager from '@/components/AppPager.vue';
 export interface PickedAsset {
   id: string;
   source_code: string;
@@ -90,10 +91,8 @@ watch(page, () => void load());
       >搜索</n-button
     ></n-space
   ><n-alert v-if="error" type="error">{{ error }}</n-alert
-  ><n-data-table :columns="columns" :data="rows" :loading="busy" :row-key="(r) => r.id" /><n-pagination
+  ><n-data-table :columns="columns" :data="rows" :loading="busy" :row-key="(r) => r.id" /><AppPager
     v-model:page="page"
     :item-count="total"
-    :page-size="25"
-    class="gap"
   />
 </template>

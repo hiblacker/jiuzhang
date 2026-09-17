@@ -9,7 +9,6 @@ import {
   NFormItem,
   NInput,
   NModal,
-  NPagination,
   NSelect,
   NSpace,
   NTag,
@@ -17,6 +16,8 @@ import {
 import { api, exportCsv, type Page } from '@/api';
 import { usePermissionStore } from '@/stores/permission';
 import { useProjectStore } from '@/stores/project';
+import AppJsonBlock from '@/components/AppJsonBlock.vue';
+import AppPager from '@/components/AppPager.vue';
 const permission = usePermissionStore();
 const project = useProjectStore();
 const projectId = computed(() => project.selected?.id ?? 0);
@@ -265,11 +266,7 @@ watch(
         "
         >搜索</n-button
       ></n-space
-    ><n-data-table :columns="listing" :data="rows" :loading="busy" /><n-pagination
-      v-model:page="page"
-      :item-count="total"
-      :page-size="25"
-      class="gap"
+    ><n-data-table :columns="listing" :data="rows" :loading="busy" /><AppPager v-model:page="page" :item-count="total"
   /></n-card>
   <template v-else
     ><n-space class="gap"
@@ -383,7 +380,7 @@ watch(
   ></template>
   <n-modal v-model:show="queryExample" preset="card" title="数据服务调用示例" style="width: min(800px, 96vw)"
     ><p>在项目设置创建服务身份，并为其授予所需行列权限。示例固定发布版本，可复用于查询及导出。</p>
-    <pre class="json-detail">{{ example }}</pre>
+    <AppJsonBlock :value="example" />
   </n-modal>
   <n-modal v-model:show="showPolicy" preset="card" title="行列授权" style="width: min(740px, 96vw)"
     ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert

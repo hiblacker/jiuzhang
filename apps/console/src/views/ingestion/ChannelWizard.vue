@@ -18,6 +18,7 @@ import {
   type DataTableColumns,
 } from 'naive-ui';
 import { api } from '@/api';
+import AppJsonBlock from '@/components/AppJsonBlock.vue';
 const props = defineProps<{
   project: number;
   instances: { id: number; name: string; code: string }[];
@@ -781,18 +782,20 @@ onMounted(() => void load());
   <n-modal v-model:show="changeVisible" preset="card" title="确认采集规则变更" style="width: min(800px, 95vw)"
     ><n-alert v-if="error" type="error">{{ error }}</n-alert>
     <p>新规则需重新预检与启用计划，既有执行和历史交付约定继续保留。</p>
-    <pre class="json-detail">{{
-      JSON.stringify(
-        {
-          previous: channel?.config,
-          proposed: settings(),
-          connectionVersion: form.connectionVersion,
-          impact: changeImpact,
-        },
-        null,
-        2,
-      )
-    }}</pre>
+    <AppJsonBlock
+      :value="
+        JSON.stringify(
+          {
+            previous: channel?.config,
+            proposed: settings(),
+            connectionVersion: form.connectionVersion,
+            impact: changeImpact,
+          },
+          null,
+          2,
+        )
+      "
+    />
     <n-input v-model:value="changeReason" placeholder="范围或规则变更原因" /><n-button
       class="gap"
       type="primary"
@@ -813,7 +816,7 @@ onMounted(() => void load());
         connection?.active_version
       }}。发布新版本后，各通道通过“修改采集规则”显式选择，正在执行的配置不会被改写。凭证由管理员在批准资源边界内轮换。
     </p>
-    <pre class="json-detail">{{ JSON.stringify(changeImpact, null, 2) }}</pre>
+    <AppJsonBlock :value="changeImpact" />
     <n-form-item v-if="connection?.kind !== 'MYSQL_SNAPSHOT'" label="连接说明"
       ><n-input v-model:value="connectionDescription" /></n-form-item
     ><n-form-item label="新版本原因"><n-input v-model:value="connectionReason" /></n-form-item

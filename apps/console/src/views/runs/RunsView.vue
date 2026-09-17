@@ -8,7 +8,6 @@ import {
   NFormItem,
   NInput,
   NModal,
-  NPagination,
   NSelect,
   NSpace,
   NTabPane,
@@ -18,6 +17,8 @@ import { api, type Page } from '@/api';
 import { usePermissionStore } from '@/stores/permission';
 import { useProjectStore } from '@/stores/project';
 import { useSessionStore } from '@/stores/session';
+import AppJsonBlock from '@/components/AppJsonBlock.vue';
+import AppPager from '@/components/AppPager.vue';
 const permission = usePermissionStore();
 const project = useProjectStore();
 const session = useSessionStore();
@@ -229,7 +230,7 @@ watch(page, () => void load());
     ><n-data-table
       :columns="tab === 'runs' ? runColumns : tab === 'incidents' ? incidentColumns : auditColumns"
       :data="rows"
-      :loading="busy" /><n-pagination v-model:page="page" :item-count="total" :page-size="25" class="gap"
+      :loading="busy" /><AppPager v-model:page="page" :item-count="total"
   /></n-card>
   <n-modal
     v-model:show="visible"
@@ -237,7 +238,7 @@ watch(page, () => void load());
     :title="tab === 'runs' ? '采集执行详情' : '异常观察与处理'"
     style="width: min(980px, 96vw)"
     ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
-    <pre class="json-detail">{{ JSON.stringify(detail, null, 2) }}</pre>
+    <AppJsonBlock :value="detail" />
     <template v-if="tab === 'runs' && canOperate"
       ><n-space class="gap"
         ><n-button

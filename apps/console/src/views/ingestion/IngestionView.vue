@@ -11,7 +11,6 @@ import {
   NInput,
   NInputNumber,
   NModal,
-  NPagination,
   NSelect,
   NSpace,
   NTag,
@@ -20,6 +19,7 @@ import {
 import { api, type Page } from '@/api';
 import { usePermissionStore } from '@/stores/permission';
 import { useProjectStore } from '@/stores/project';
+import AppPager from '@/components/AppPager.vue';
 const permission = usePermissionStore();
 const project = useProjectStore();
 const projectId = computed(() => project.selected?.id ?? 0);
@@ -236,7 +236,7 @@ onMounted(() => void load());
       ></n-space
     >
     <n-data-table :columns="columns" :data="rows" :loading="busy" :row-key="(row) => row.id" />
-    <n-pagination v-model:page="page" :item-count="total" :page-size="25" class="gap" />
+    <AppPager v-model:page="page" :item-count="total" />
   </n-card>
   <template v-else>
     <n-space class="gap"

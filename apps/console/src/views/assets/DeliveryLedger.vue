@@ -9,12 +9,13 @@ import {
   NInput,
   NInputNumber,
   NModal,
-  NPagination,
   NSelect,
   NSpace,
   NTag,
 } from 'naive-ui';
 import { api, type Page } from '@/api';
+import AppJsonBlock from '@/components/AppJsonBlock.vue';
+import AppPager from '@/components/AppPager.vue';
 const props = defineProps<{
   project: number;
   dataset: number;
@@ -224,11 +225,7 @@ watch(page, () => void load());
           @click="toggle"
           >{{ plan.state === 'ACTIVE' ? '暂停计划' : '恢复计划' }}</n-button
         ><n-button :disabled="!reason.trim()" @click="reconcile(true)">批准该日迟到补算</n-button></n-space
-      ><n-data-table :columns="columns" :data="windows" /><n-pagination
-        v-model:page="page"
-        :item-count="total"
-        :page-size="25"
-        class="gap"
+      ><n-data-table :columns="columns" :data="windows" /><AppPager v-model:page="page" :item-count="total"
     /></template>
   </n-card>
   <n-modal v-model:show="show" preset="card" title="每日刷新计划" style="width: min(850px, 96vw)"
@@ -302,6 +299,6 @@ watch(page, () => void load());
         >使用相同输入重试</n-button
       ></template
     >
-    <pre class="json-detail">{{ JSON.stringify(detail, null, 2) }}</pre>
+    <AppJsonBlock :value="detail" />
   </n-modal>
 </template>
