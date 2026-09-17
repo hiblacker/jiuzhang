@@ -5,9 +5,15 @@
   "accepted": {
     "result": "PASS: 124 exact dependencies; official integrity and license declarations match.",
     "installed": {
-      "prettier": "3.9.7"
+      "prettier": "3.9.7",
+      "eslint": "10.10.0",
+      "@eslint/js": "10.0.1",
+      "typescript-eslint": "8.70.0",
+      "eslint-plugin-vue": "10.11.0",
+      "eslint-config-prettier": "10.1.8",
+      "globals": "17.12.0"
     },
-    "note": "Prettier 单独即可通过门禁；控制台格式化能力不依赖任何许可例外。"
+    "note": "Prettier 单独即可通过门禁；ESLint 需经 ADR-018 的 dev-only 例外批准后才落地。"
   },
   "blocked": {
     "gate_message": "LICENSE_REVIEW_REQUIRED: minimatch: BlueOak-1.0.0",
@@ -41,7 +47,14 @@
       "结论：在当前白名单下，ESLint 10 路线需要 BlueOak-1.0.0，ESLint 9 路线需要 Python-2.0，二者必选其一；未擅自修改白名单"
     ]
   },
-  "pending_decision": "是否批准将 BlueOak-1.0.0（ESLint 10 路线，推荐）或 Python-2.0（ESLint 9 路线）加入 dev-only 依赖许可白名单；未批准前 P0 只落地 Prettier 格式化，lint 部分不动",
+  "decision": {
+    "approved_at": "2026-09-17",
+    "approved_by": "user",
+    "choice": "A",
+    "scope": "BlueOak-1.0.0 accepted for packages flagged dev only; runtime dependencies keep the original allowlist",
+    "implementation": "apps/console/scripts/dependencies.mjs adds a devOnlyAccepted set and a devOnlyException branch; the generated dependency-review.json carries a licenseNotes entry for BlueOak-1.0.0",
+    "verification": "npm run licenses -> PASS: 226 exact dependencies; official integrity and license declarations match."
+  },
   "not_verified": [
     "任何新增依赖的传递依赖许可与兼容性在最终选型后必须重新执行 npm run licenses 并留存输出",
     "ESLint 与 vue-tsc/vite/Naive UI 的实际共存问题需在获批后实测"

@@ -390,12 +390,28 @@ CI 门禁顺序：`lint → format:check → typecheck → test:unit → build �
 
 执行中发现并记录的格式化陷阱：`semi: false` 下 Prettier 会把**多语句内联事件处理器**拆成多行并去掉分隔符（如 `@click="a=1;b=2"` → 两行），Vue 解析即失败（构建报 `Error parsing JavaScript expression`）。共 29 处，全部集中在「翻页/刷新」类模板逻辑。P0 选择保留 `semi: true` 让这 29 处重新合法（语义与格式化前一致），并把"把模板逻辑抽成命名方法"列入 P4；抽出后即可回到 `semi: false`。
 
-### 14.2 P0-2（ESLint）：待你批准许可例外
+### 14.2 P0-2（ESLint）：已完成 2026-09-17
 
-实测结论：在当前许可白名单下，**ESLint 10 路线需要 BlueOak-1.0.0（minimatch@10.2.6，dev-only）**，ESLint 9 路线需要 Python-2.0（argparse，dev-only），二者必选其一；我没有擅自放宽 `scripts/dependencies.mjs` 的白名单。三种选择的取舍：
+**决策（用户批准方案 A）**：接受 BlueOak-1.0.0 作为 **dev-only** 依赖许可例外，采用 ESLint 10 + typescript-eslint 8.70（含类型感知规则）。例外在门禁里是**按包作用域**放的，不是全局放宽：
 
-| 选项 | 内容 | 影响 |
-|---|---|---|
-| A（推荐） | 批准 BlueOak-1.0.0 用于 dev-only 工具链，用 ESLint 10 + typescript-eslint 8.70 | 拿到完整规则集与**类型感知**规则（`no-floating-promises` 等）；SPDX 登记、无 copyleft、有 Notices 保留义务，不进运行时分发物 |
-| B | 改用 ESLint 9 + typescript-eslint 8.55，批准 Python-2.0 | 版本更保守，规则集相同；需接受另一个许可例外 |
-| C | 不引入 ESLint，只保留 Prettier + `vue-tsc` | 零例外；但 §8 的体量/分层/`any` 约束只能靠人工与类型检查，P0 的可读性收益打折 |
+```js
+// apps/console/scripts/dependencies.mjs
+const devOnlyAccepted = new Set(['BlueOak-1.0.0']);
+const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
+```
+
+即：只有 `dev` 包能用该许可证，任何会进入控制台分发物的运行时依赖仍必须落在原白名单内。许可证据与 SPND 属性见[许可记录](research/frontend-lint-license-2026-09-17.json)。
+
+| 项 | 结果 |
+|---|---|
+| 依赖 | `eslint 10.10.0`、`@eslint/js 10.0.1`、`typescript-eslint 8.70.0`、`eslint-plugin-vue 10.11.0`、`eslint-config-prettier 10.1.8`、`globals 17.12.0`（全部精确锁定） |
+| 门禁 | `npm run licenses` **PASS：226 个精确依赖**（含 dev-only 例外校验） |
+| 配置 | `apps/console/eslint.config.js`：flat config，`js.configs.recommended` + `recommendedTypeChecked`（`parserOptions.projectService`）+ `pluginVue.configs['flat/recommended']`，`eslint-config-prettier` 收尾（格式归 Prettier，配置里不再写布局规则） |
+| 脚本 | `lint`（`--max-warnings 316` 基线封顶）、`lint:fix`；`lint` 已接入 `check` 与 `build` |
+| 首次测量 | 334 条存量违规（error 256 / warn 78），涉及 25 个文件 |
+| 规则策略 | **error**：正确性（`no-console` 限 warn/error、`vue/no-mutating-props`）、体量上限（`max-lines` 800）；**warn（基线 316，只减不增）**：`no-unsafe-*` 系列、`no-explicit-any`、`restrict-template-expressions`、`no-base-to-string`、`no-misused-promises`（均源于未类型化的 API/DTO 层，P2 建立 `api/` 类型后收口）、`complexity`（6 处，P4 拆分 god component 时收口）、`max-lines`（1 处：`IngestionManager.vue` 824 行，P4 拆分） |
+| 已修的真问题 | 未用导入/变量 3 处、属性顺序 5 处、多余类型断言 1 处、`v-for` 变量遮蔽同名 prop 1 处、可选函数 prop 缺默认值 1 处、无 await 的 async 3 处（旧 `views/` 文件中为满足类型声明保留 `async`，改为带原因的定点抑制） |
+| 关闭的误报规则 | `vue/no-deprecated-filter`：Vue 3 无过滤器，该规则只会命中绑定属性里的 TS 联合类型（如 `:value="x as string \| number"`） |
+| 验证 | `npm run build`（typecheck + format:check + lint + vite + notices）通过；控制台镜像 `0.2.0-dev.14` 重建成功（镜像内 `npm run build` 同样过 lint 门禁）；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（资产 3 行）；`node --test tests/*.test.mjs` 134 项（132 通过、1 跳过、1 项为宿主机缺 openpyxl 的既存失败）；`node tools/check-docs.mjs`、`git diff --check` 通过 |
+
+**基线只减不增**：修掉违规时把 `package.json` 里的 `--max-warnings` 同步下调；任一阶段（P1 路由、P2 类型化、P4 拆分）完成后必须下调该数字，最终目标是 0。
