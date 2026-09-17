@@ -27,3 +27,5 @@ Thumbs.db
 
 # Reproducible container build inputs (never commit binaries)
 deploy/artifacts/
+# Spike output (root-owned inside the container)
+poc/seatunnel-sql/out/
