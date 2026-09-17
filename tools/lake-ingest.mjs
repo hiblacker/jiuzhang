@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { makeOptions } from './mysql-discover.mjs';
 import { atomicJson, currentDay, digest, durableRename, hashFile, readJson as readMetadata, validateDay, withLock } from './lake-runtime.mjs';
+import { sourceLedger } from './source-ledger.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_CONFIG = path.join(ROOT, 'secrets/mysql-development.local.json');
@@ -333,9 +334,8 @@ export async function run(options = parseArgs([])) {
   const batchId = options.batchId ?? `${options.mode}-${new Date().toISOString().replace(/[-:.TZ]/gu, '').slice(0, 14)}-${randomUUID().slice(0, 8)}`;
   if (!BATCH_ID.test(batchId)) fail('INVALID_BATCH_ID');
   if (options.dryRun) return runSnapshot(options, config, inventory, batchId);
-  return withLock(path.join(options.lakeRoot, 'mysql-ingest.lock'), async () => {
-    const ledgerPath = path.join(options.lakeRoot, 'daily-ledger.json');
-    const ledger = await readMetadata(ledgerPath, { version: 2, windows: {} });
+  return withLock(path.join(options.lakeRoot, `mysql-ingest-${options.sourceCode}.lock`), async () => {
+    const { file: ledgerPath, ledger } = await sourceLedger(options.lakeRoot, 'mysql', options.sourceCode);
     const planHash = digest(JSON.stringify(inventory));
     const key = `${options.sourceCode}|${inventory.plan_version}|${planHash}|${options.window}`;
     if (options.mode === 'daily') {

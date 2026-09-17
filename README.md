@@ -46,12 +46,15 @@
 
 | 文档 | 用途 |
 |---|---|
+| [产品工作台实施进度](docs/40-product-workbench-progress.md) | 下一批实际代码、检查结果、迁移与剩余工作 |
+| [下一批产品实施方案](docs/38-next-product-implementation-plan.md) / [契约与验收清单](docs/39-next-product-acceptance-contract.md) | 待评审：多系统接入管理、自动数据交付、数据服务与异常运营，含 30 项验收案例 |
 | [一期实现与验收结果](docs/37-phase-one-acceptance.md) | 30/31/33 逐项核对、真实数据与测试证据、未验收边界和下一阶段 |
 | [Luna 开发执行提示词](LUNA_TASK.md) | 全部任务、国内源、既有授权、开发顺序与验收要求 |
 | [入湖详细实施设计](docs/33-lake-implementation-design.md) | 对象、持久化提交、每日数据库/文件、API、模型、接口与工作包 |
 | [整库接入执行依据](docs/32-whole-database-discovery.md) | 已授权发现的 157 表、首批计划和执行边界 |
 | [数据仓库产品分析与可行性报告](docs/30-warehouse-product-feasibility.md) | 通用数仓定位、数据库/API/文件夹入湖、18 个 GitHub 项目调研；当前以整库和每日入湖为先 |
 | [产品范围与最终目标](docs/01-product-scope.md) | 产品边界、角色、一期取舍、最终目标 |
+| [新版工作台安装与操作](docs/41-product-workbench-runbook.md) | 邀请登录、统一接入、模型发布、数据消费、升级及合成 CI |
 | [总体架构与详细设计](docs/02-architecture.md) | 部署边界、模块、元数据、接口、安全与发布 |
 | [数据加工与指标规范](docs/03-data-processing.md) | 增量、历史、周期统计、幂等和补数 |
 | [一期开发计划](docs/04-phase-one-plan.md) | 人员假设、W1–W18、工作包、依赖和里程碑 |

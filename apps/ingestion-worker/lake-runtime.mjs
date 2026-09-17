@@ -1,11 +1,12 @@
 import { spawn } from 'node:child_process';
-import { mkdir, readdir } from 'node:fs/promises';
+import { mkdir, readdir, statfs } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { atomicJson, readJson, withLock, digest } from '../../tools/lake-runtime.mjs';
 import { buildManifestRequest, buildInventoryRequest } from '../../tools/lake-register.mjs';
 import { verifyCurrentSchema } from '../../tools/lake-discover.mjs';
 import { fileAssets, apiAssets } from '../../tools/lake-assets.mjs';
+import { validateManagedRegistry, managedProfile, probeManaged } from './managed-runtime.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const CODE = /^[a-z][a-z0-9_-]{1,99}$/u;
@@ -14,6 +15,12 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const fail = code => { throw new Error(code); };
 
 export function validateRegistry(value) {
+  if (value?.version === 2) {
+    validateManagedRegistry(value);
+    if(Object.keys(value.profiles??{}).length>99)fail('TOO_MANY_LEGACY_PROFILES');
+    if (Object.keys(value.profiles ?? {}).length) validateRegistry({ ...value, version: 1 });
+    return { ...value, profiles: value.profiles ?? {} };
+  }
   if (value?.version !== 1 || !path.isAbsolute(value.lakeRoot ?? '')
       || !value.profiles || typeof value.profiles !== 'object' || Array.isArray(value.profiles)) fail('INVALID_RUNTIME_REGISTRY');
   const entries = Object.entries(value.profiles);
@@ -63,10 +70,10 @@ async function request(options, route, body) {
   return response.json();
 }
 
-async function child(script, args, signal) {
+async function child(script, args, signal, extraEnv = {}) {
   const processGroup = process.platform !== 'win32';
   const running = spawn(process.execPath, [path.join(ROOT, script), ...args], { cwd: ROOT,
-    stdio: ['ignore', 'pipe', 'pipe'], detached: processGroup, env: process.env });
+    stdio: ['ignore', 'pipe', 'pipe'], detached: processGroup, env: { ...process.env, ...extraEnv } });
   let stdout = '', stderr = '', killTimer;
   running.stdout.on('data', bytes => { stdout = (stdout + bytes.toString()).slice(0, 20000); });
   running.stderr.on('data', bytes => { stderr = (stderr + bytes.toString()).slice(0, 4000); });
@@ -91,9 +98,11 @@ async function child(script, args, signal) {
   } finally { clearTimeout(killTimer); signal.removeEventListener('abort', stop); }
 }
 
-async function execute(registry, task, signal) {
-  let profile = registry.profiles[task.runtime_ref];
+async function execute(registry, task, signal, options) {
+  let profile = task.configurationJson ? await managedProfile(registry, task) : registry.profiles[task.runtime_ref];
   if (!profile || profile.kind !== task.kind || profile.sourceCode !== task.source_code) fail('RUNTIME_SCOPE_MISMATCH');
+  if ((task.configurationJson || task.sharedRequestBudget) && task.kind === 'REST_PULL') profile.environment = { ...profile.environment,
+    LAKE_REQUEST_BUDGET: JSON.stringify({url:options.controlApi,worker:options.instance,scope:'execution',id:task.id,leaseToken:task.leaseToken}) };
   const batch = `exec-${task.id}`;
   const common = ['--lake-root', registry.lakeRoot];
   let result, manifest;
@@ -153,10 +162,10 @@ async function execute(registry, task, signal) {
   } else {
     if (task.processing_input?.batchId) {
       result = await child('tools/api-reprocess.mjs', [...common, '--config', profile.config, '--source-code', profile.sourceCode,
-        '--window', task.business_date, '--batch-id', task.processing_input.batchId], signal);
+        '--window', task.business_date, '--batch-id', task.processing_input.batchId], signal, profile.environment);
     } else {
     try { result = await child('tools/rest-ingest.mjs', [...common, '--config', profile.config,
-      '--window', task.business_date, '--batch-id', batch], signal); }
+      '--window', task.business_date, '--batch-id', batch], signal, profile.environment); }
     catch (error) {
       const failed = await readJson(path.join(registry.lakeRoot, 'api', profile.sourceCode, batch, 'batch.failed.json'), null);
       if (!failed || signal.aborted) throw error;
@@ -170,14 +179,14 @@ async function execute(registry, task, signal) {
 }
 
 async function flush(options, directory) {
-  for (const name of (await readdir(directory)).filter(name => /^\d+\.json$/u.test(name)).sort()) {
+  for (const name of (await readdir(directory)).filter(name => /^(?:probe-)?\d+\.json$/u.test(name)).sort()) {
     const file = path.join(directory, name), receipt = await readJson(file);
     if (receipt.acknowledged || receipt.abandoned) continue;
     try {
-      receipt.response = await request(options, `executions/${receipt.executionId}/finish`, receipt.completion);
+      receipt.response = await request(options, `${receipt.probeId ? 'probes' : 'executions'}/${receipt.probeId ?? receipt.executionId}/finish`, receipt.completion);
       receipt.acknowledged = true; await atomicJson(file, receipt);
     } catch (error) {
-      if (['EXECUTION_LEASE_LOST', 'EXECUTION_RESULT_IMMUTABLE'].includes(error.message)) {
+      if (['EXECUTION_LEASE_LOST', 'EXECUTION_RESULT_IMMUTABLE', 'PROBE_LEASE_LOST', 'PROBE_RESULT_IMMUTABLE'].includes(error.message)) {
         receipt.abandoned = error.message; await atomicJson(file, receipt);
       } else return false;
     }
@@ -188,9 +197,34 @@ async function flush(options, directory) {
 export async function runOnce(options, registry) {
   const outbox = path.join(registry.lakeRoot, 'worker-outbox', options.instance);
   await mkdir(outbox, { recursive: true, mode: 0o700 });
+  if(registry.version===2){
+    const storage=await statfs(registry.lakeRoot,{bigint:true});
+    await request(options,'environment-heartbeat',{environment:registry.environment,availableBytes:String(storage.bavail*storage.bsize),totalBytes:String(storage.blocks*storage.bsize)});
+  }
   if (!await flush(options, outbox)) return { state: 'OUTBOX_PENDING' };
-  const task = await request(options, 'executions/claim', { runtimeRefs: Object.keys(registry.profiles) });
+  const runtimeRefs = [...Object.keys(registry.profiles), ...(registry.version === 2 ? [`managed-${registry.environment}`] : [])];
+  const turnFile = path.join(outbox,'dispatch-turn.json');
+  const turn = await readJson(turnFile,{preferProbe:true});
+  let task;
+  if(registry.version===2&&!turn.preferProbe)task=await request(options,'executions/claim',{runtimeRefs});
+  if (registry.version === 2 && (!task || task.state==='IDLE')) {
+    const probe = await request(options, 'probes/claim', { environment: registry.environment });
+    if (probe.state !== 'IDLE') {
+      let completion;
+      try { completion = { state: 'COMPLETE', result: await probeManaged(registry, probe,
+        {url:options.controlApi,worker:options.instance,scope:'probe',id:probe.id,leaseToken:probe.leaseToken}) }; }
+      catch (error) { completion = { state: 'FAILED', result: null, errorCode: /^[A-Z0-9_:-]{1,120}$/u.test(error.message) ? error.message : 'MANAGED_PROBE_FAILED' }; }
+      const receiptFile=path.join(outbox,`probe-${probe.id}.json`);
+      await atomicJson(receiptFile,{probeId:probe.id,completion:{...completion,leaseToken:probe.leaseToken},acknowledged:false});
+      await atomicJson(turnFile,{preferProbe:false});
+      await flush(options,outbox);
+      const receipt=await readJson(receiptFile);
+      return { state:receipt.abandoned?'LEASE_LOST':receipt.acknowledged?receipt.response.state:'OUTBOX_PENDING',probeId:probe.id };
+    }
+  }
+  if(!task||task.state==='IDLE')task=await request(options, 'executions/claim', { runtimeRefs });
   if (task.state === 'IDLE') return task;
+  if(registry.version===2)await atomicJson(turnFile,{preferProbe:true});
   const abort = new AbortController();
   let heartbeatBusy = false, cancelled = false;
   const heartbeat = setInterval(async () => {
@@ -205,7 +239,7 @@ export async function runOnce(options, registry) {
   const terminate = () => abort.abort();
   process.once('SIGTERM', terminate); process.once('SIGINT', terminate);
   let completion;
-  try { completion = await execute(registry, task, abort.signal); }
+  try { completion = await execute(registry, task, abort.signal, options); }
   catch (error) { completion = { state: cancelled ? 'CANCELLED' : 'FAILED',
     errorCode: /^[A-Z0-9_:-]{1,120}$/u.test(error.message) ? error.message : 'WORKER_EXECUTION_FAILED',
     result: error.schemaChange ? { schemaChange: { ...error.schemaChange,
@@ -232,7 +266,7 @@ export async function run(options) {
     do {
       let result;
       try { result = await runOnce(options, registry); }
-      catch (error) { if (options.once) throw error; result = { state: 'CONTROL_API_UNAVAILABLE' }; }
+      catch (error) { if (options.once) throw error; result = { state: /^[A-Z0-9_:-]{1,120}$/u.test(error.message) ? error.message : 'CONTROL_API_UNAVAILABLE' }; }
       const message = JSON.stringify(result);
       if (result.state !== 'IDLE' && message !== lastMessage) console.log(message);
       lastMessage = message;

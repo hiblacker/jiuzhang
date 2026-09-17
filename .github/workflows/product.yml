@@ -1,0 +1,65 @@
+name: Synthetic product verification
+on:
+  pull_request:
+  push:
+    branches: [main, 'codex/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: product-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  product:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: docker.m.daocloud.io/library/postgres:16.15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: synthetic-ci-postgres-only
+        ports: ['5432/tcp']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 3s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.1'
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: '21.0.5'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12.14'
+      - name: Install verified Maven 3.9.9 from domestic mirror
+        run: |
+          curl --fail --location --retry 3 https://repo.huaweicloud.com/apache/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz --output "$RUNNER_TEMP/maven.tar.gz"
+          echo 'a555254d6b53d267965a3404ecb14e53c3827c09c3b94b5678835887ab404556bfaf78dcfe03ba76fa2508649dca8531c74bca4d5846513522404d48e8c4ac8b  '"$RUNNER_TEMP/maven.tar.gz" | sha512sum --check
+          tar -xzf "$RUNNER_TEMP/maven.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/apache-maven-3.9.9/bin" >> "$GITHUB_PATH"
+      - name: Install locked dependencies from domestic mirrors
+        run: |
+          npm ci --prefix apps/console --registry=https://registry.npmmirror.com --ignore-scripts
+          python -m pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple --only-binary=:all: --require-hashes -r deploy/product-requirements.txt
+          python -m pip check
+      - name: Install the pinned Playwright Chromium build
+        env:
+          PLAYWRIGHT_DOWNLOAD_HOST: https://cdn.npmmirror.com/binaries/playwright
+        run: node apps/console/node_modules/playwright/cli.js install chromium
+      - name: Verify synthetic product
+        env:
+          LAKE_REVIEW_ALLOW_MIGRATIONS: isolated
+          LAKE_REVIEW_JDBC_URL: jdbc:postgresql://127.0.0.1:${{ job.services.postgres.ports[5432] }}/lake_review
+          LAKE_REVIEW_DB_OWNER: postgres
+          LAKE_REVIEW_DB_OWNER_PASSWORD: synthetic-ci-postgres-only
+        run: |
+          export LAKE_REVIEW_DBT_PYTHON="$(command -v python)"
+          export LAKE_PYTHON="$LAKE_REVIEW_DBT_PYTHON"
+          python tools/verify-product.py

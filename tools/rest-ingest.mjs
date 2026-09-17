@@ -3,6 +3,7 @@ import { access, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { atomicJson, dayBounds, digest, durableRename, parseExactJson, readJson, validateDay, withLock } from './lake-runtime.mjs';
+import { sourceLedger } from './source-ledger.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_LAKE_ROOT = path.join(ROOT, '.lake-data');
@@ -182,6 +183,24 @@ async function readBody(response, maxBytes) {
 
 async function requestJson(url, config, token) {
   for (let attempt = 1; attempt <= config.retry.max_attempts; attempt += 1) {
+    const budget = config.requestBudget ?? (process.env.LAKE_REQUEST_BUDGET ? JSON.parse(process.env.LAKE_REQUEST_BUDGET) : null);
+    if (budget) {
+      const response = await fetch(budget.url + '/api/v1/lake/request-budget', {
+        method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.CONTROL_API_WORKER_TOKEN}`,
+          'x-worker-instance': budget.worker }, body: JSON.stringify({ id: budget.id, scope: budget.scope, leaseToken: budget.leaseToken }),
+        redirect: 'error', signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) fail('API_REQUEST_BUDGET_UNAVAILABLE');
+      const grant = await response.json();
+      if (!Number.isSafeInteger(grant.waitMillis) || grant.waitMillis < 0 || grant.waitMillis > 1000000) fail('API_REQUEST_BUDGET_INVALID');
+      await sleep(grant.waitMillis);
+      const valid = await fetch(budget.url + '/api/v1/lake/request-budget', {
+        method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.CONTROL_API_WORKER_TOKEN}`,
+          'x-worker-instance': budget.worker }, body: JSON.stringify({ id: budget.id, scope: budget.scope, leaseToken: budget.leaseToken, validateOnly: true }),
+        redirect: 'error', signal: AbortSignal.timeout(15000),
+      });
+      if (!valid.ok) fail('API_REQUEST_BUDGET_LEASE_LOST');
+    }
     await sleep(Math.max(0, (config.lastRequestAt ?? 0) + 1000 / (config.requests_per_second ?? 5) - Date.now()));
     config.lastRequestAt = Date.now();
     const controller = new AbortController();
@@ -235,9 +254,10 @@ async function runUnlocked(options) {
   const config = validateConfig(JSON.parse(configText));
   const configSha256 = digest(configText);
   const ledgerKey = `${config.source_code}|${configSha256}|${options.window}`;
-  const ledgerPath = path.join(options.lakeRoot, 'api-ledger.json');
+  const ledgerState = options.dryRun ? null : await sourceLedger(options.lakeRoot, 'api', config.source_code);
+  const ledgerPath = ledgerState?.file;
   if (options.window && !options.dryRun) {
-    const ledger = await readJson(ledgerPath, { version: 2, windows: {} });
+    const ledger = ledgerState.ledger;
     const existing = ledger.windows?.[ledgerKey];
     if (existing?.state === 'COMPLETE') {
       const previous = await readJson(path.join(options.lakeRoot, 'api', config.source_code, existing.batchId, 'batch.json'));
@@ -321,7 +341,7 @@ async function runUnlocked(options) {
     manifest.finishedAt = new Date().toISOString();
     await atomicJson(path.join(batchRoot, 'batch.json'), manifest);
     if (options.window) {
-      const ledger = await readJson(ledgerPath, { version: 2, windows: {} });
+      const ledger = ledgerState.ledger;
       ledger.windows[ledgerKey] = { batchId, state: 'COMPLETE', finishedAt: manifest.finishedAt, pageCount: manifest.pages.length, rowCount: totalRows };
       await atomicJson(ledgerPath, ledger);
     }
@@ -343,7 +363,8 @@ function assertSafeQuery(url, config) {
 
 export async function run(options) {
   if (options.window) validateDay(options.window);
-  return options.dryRun ? runUnlocked(options) : withLock(path.join(options.lakeRoot, 'api-ingest.lock'), () => runUnlocked(options));
+  const config = validateConfig(await readJson(options.config));
+  return options.dryRun ? runUnlocked(options) : withLock(path.join(options.lakeRoot, `api-ingest-${config.source_code}.lock`), () => runUnlocked(options));
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -356,4 +377,4 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   }
 }
 
-export { buildInitialUrl, buildPageUrl, getNextUrl, parseArgs, recordsFrom, validateConfig, valueAt };
+export { buildInitialUrl, buildPageUrl, getNextUrl, parseArgs, recordsFrom, validateConfig, valueAt, requestJson, tokenFromEnv };

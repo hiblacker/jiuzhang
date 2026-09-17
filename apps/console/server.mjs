@@ -18,13 +18,22 @@ return http.createServer(async (request, response) => {
       if (!['GET', 'POST'].includes(request.method)) { response.writeHead(405); response.end(); return; }
       const parts = []; let bytes = 0;
       for await (const chunk of request) { bytes += chunk.length; if (bytes > 1048576) { response.writeHead(413); response.end(); return; } parts.push(chunk); }
+      const forwarded = {};
+      for (const name of ['accept', 'authorization', 'content-type', 'cookie', 'x-csrf-token', 'x-xsrf-token']) {
+        if (request.headers[name]) forwarded[name] = request.headers[name];
+      }
       const upstream = await fetch(new URL(url.pathname + url.search, target), {
         method: request.method, redirect: 'manual', signal: AbortSignal.timeout(15000),
-        headers: { 'Content-Type': 'application/json', ...(request.headers.authorization ? { Authorization: request.headers.authorization } : {}) },
+        headers: forwarded,
         body: request.method === 'POST' ? Buffer.concat(parts) : undefined,
       });
       if (upstream.status >= 300 && upstream.status < 400) throw new Error('UPSTREAM_REDIRECT_REJECTED');
-      response.writeHead(upstream.status, { 'Content-Type': upstream.headers.get('content-type') || 'application/json' });
+      const upstreamHeaders = { 'Content-Type': upstream.headers.get('content-type') || 'application/json' };
+      const requestId = upstream.headers.get('x-request-id');
+      if (requestId) upstreamHeaders['X-Request-Id'] = requestId;
+      const cookies = upstream.headers.getSetCookie?.() || [];
+      if (cookies.length) upstreamHeaders['Set-Cookie'] = cookies;
+      response.writeHead(upstream.status, upstreamHeaders);
       if (upstream.body) for await (const chunk of upstream.body) response.write(chunk);
       response.end(); return;
     }

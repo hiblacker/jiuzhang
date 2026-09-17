@@ -23,7 +23,11 @@ public class ProductAccessService {
     var rows = jdbc.queryForList("SELECT id FROM warehouse.identity WHERE token_sha256 = ? AND enabled", hash(token));
     return rows.isEmpty() ? null : rows.getFirst().get("id").toString();
   }
-  public boolean admin(String actor) { return "local-admin".equals(actor); }
+  public boolean admin(String actor) {
+    if ("local-admin".equals(actor)) return true;
+    if (actor == null) return false;
+    return Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM warehouse.browser_account a JOIN warehouse.identity i ON i.id=a.identity_id WHERE i.id=? AND i.enabled AND a.platform_admin)",Boolean.class,actor));
+  }
   public void requireAdmin(String actor) { if (!admin(actor)) denied(); }
   public String require(long project, String actor, String minimum) {
     if (jdbc.queryForObject("SELECT count(*) FROM warehouse.project WHERE id = ?", Long.class, project) != 1) denied();

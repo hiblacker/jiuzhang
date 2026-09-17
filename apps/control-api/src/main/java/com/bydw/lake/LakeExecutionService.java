@@ -27,9 +27,10 @@ public class LakeExecutionService {
   private final ObjectMapper json;
   private final LakeRegistrationService registration;
   private final ExternalAssetService assets;
+  private final com.bydw.warehouse.ManagedRuntimeService managedRuntime;
   private static final Set<String> KINDS = Set.of("MYSQL_SNAPSHOT", "FILE_SCAN", "REST_PULL");
-  public LakeExecutionService(JdbcTemplate jdbc, ObjectMapper json, LakeRegistrationService registration, ExternalAssetService assets) {
-    this.jdbc = jdbc; this.json = json; this.registration = registration; this.assets = assets;
+  public LakeExecutionService(JdbcTemplate jdbc, ObjectMapper json, LakeRegistrationService registration, ExternalAssetService assets, com.bydw.warehouse.ManagedRuntimeService managedRuntime) {
+    this.jdbc = jdbc; this.json = json; this.registration = registration; this.assets = assets;this.managedRuntime=managedRuntime;
   }
 
   @Transactional
@@ -46,6 +47,11 @@ public class LakeExecutionService {
       JsonNode value = r.contract().get(field);
       int min = field.equals("pollSeconds") ? 60 : 0, max = field.equals("pollSeconds") ? 3600 : 31;
       if (value != null && (!value.isIntegralNumber() || !value.canConvertToInt() || value.intValue() < min || value.intValue() > max)) bad("INVALID_DELIVERY_RETRY_POLICY");
+    }
+    if (r.contract().has("daysOfWeek")) {
+      var weekdays=r.contract().path("daysOfWeek");var unique=new java.util.HashSet<Integer>();
+      if(!weekdays.isArray()||weekdays.isEmpty()||weekdays.size()>7)bad("INVALID_SCHEDULE_DAYS");
+      for(JsonNode day:weekdays)if(!day.isIntegralNumber()||day.asInt()<1||day.asInt()>7||!unique.add(day.asInt()))bad("INVALID_SCHEDULE_DAYS");
     }
     if (r.kind().equals("MYSQL_SNAPSHOT") && (r.historicalRead() || r.inventoryVersion() == null)) bad("MYSQL_PLAN_REQUIRES_CURRENT_SNAPSHOT");
     var source = jdbc.queryForList("SELECT id FROM control.source_connection WHERE code = ?", r.sourceCode());
@@ -108,10 +114,11 @@ public class LakeExecutionService {
     retryPending(now);
     int created = 0;
     for (var plan : jdbc.queryForList("""
-        SELECT p.id, p.active_version, v.* FROM lake.ingestion_plan p JOIN lake.plan_version v
+        SELECT p.id, p.source_id, p.active_version, v.* FROM lake.ingestion_plan p JOIN lake.plan_version v
           ON v.plan_id = p.id AND v.version = p.active_version WHERE p.state = 'ACTIVE'
-        ORDER BY p.id FOR UPDATE OF p SKIP LOCKED LIMIT 200
+        ORDER BY p.last_claimed_at NULLS FIRST,p.id FOR UPDATE OF p SKIP LOCKED
         """)) {
+      if(managedRuntime.sourcePaused(((Number)plan.get("source_id")).longValue()))continue;
       ZoneId zone = ZoneId.of(plan.get("timezone").toString());
       LocalDate today = now.atZone(zone).toLocalDate();
       LocalTime trigger = ((Time) plan.get("trigger_time")).toLocalTime();
@@ -121,8 +128,9 @@ public class LakeExecutionService {
           SELECT day::date AS day FROM generate_series(?::date, ?::date, interval '1 day') day
           WHERE NOT EXISTS (SELECT 1 FROM lake.execution_window w WHERE w.plan_id = ?
             AND w.plan_version = ? AND w.business_date = day::date AND w.revision = 1)
+          AND (NOT jsonb_exists(?::jsonb, 'daysOfWeek') OR (?::jsonb->'daysOfWeek') @> to_jsonb(extract(isodow FROM day)::integer))
           ORDER BY day LIMIT 31
-          """, plan.get("start_date"), Date.valueOf(due), plan.get("id"), plan.get("active_version"));
+          """, plan.get("start_date"), Date.valueOf(due), plan.get("id"), plan.get("active_version"),plan.get("contract").toString(),plan.get("contract").toString());
       for (var date : dates) {
         LocalDate day = ((Date) date.get("day")).toLocalDate();
         boolean unavailable = !(Boolean) plan.get("historical_read") && day.isBefore(today);
@@ -137,11 +145,12 @@ public class LakeExecutionService {
   public Map<String, Object> trigger(long planId, LocalDate day, boolean revision, String reason, String actor) {
     if (day == null || reason == null || reason.isBlank() || reason.length() > 300) bad("TRIGGER_REASON_REQUIRED");
     var plans = jdbc.queryForList("""
-        SELECT p.id, p.active_version, v.* FROM lake.ingestion_plan p JOIN lake.plan_version v
+        SELECT p.id, p.source_id, p.active_version, v.* FROM lake.ingestion_plan p JOIN lake.plan_version v
         ON v.plan_id = p.id AND v.version = p.active_version WHERE p.id = ? FOR UPDATE OF p
         """, planId);
     if (plans.isEmpty()) bad("PLAN_NOT_FOUND");
     var p = plans.getFirst();
+    if(managedRuntime.sourcePaused(((Number)p.get("source_id")).longValue()))conflict("INGESTION_PAUSED");
     LocalDate today = Instant.now().atZone(ZoneId.of(p.get("timezone").toString())).toLocalDate();
     if (day.isAfter(today)) bad("FUTURE_WINDOW");
     if (!(Boolean) p.get("historical_read") && day.isBefore(today)) conflict("HISTORICAL_SNAPSHOT_UNAVAILABLE");
@@ -168,6 +177,8 @@ public class LakeExecutionService {
   public Map<String, Object> claim(String worker, List<String> runtimeRefs) {
     if (runtimeRefs == null || runtimeRefs.isEmpty() || runtimeRefs.size() > 100
         || runtimeRefs.stream().anyMatch(ref -> ref == null || !ref.matches("[a-z][a-z0-9_-]{1,99}"))) bad("WORKER_CAPABILITIES_REQUIRED");
+    // Serialize only the short reservation transaction, never the extraction itself.
+    jdbc.queryForObject("SELECT pg_advisory_xact_lock(73401921)",Object.class);
     expire(Instant.now());
     retryPending(Instant.now());
     // A current-state snapshot queued before midnight cannot recreate yesterday.
@@ -184,14 +195,23 @@ public class LakeExecutionService {
         """);
     String allowed = String.join(",", Collections.nCopies(runtimeRefs.size(), "?"));
     var plans = jdbc.queryForList("""
-        SELECT p.id FROM lake.ingestion_plan p JOIN lake.plan_version v ON v.plan_id = p.id AND v.version = p.active_version
+        SELECT p.id,p.source_id,v.contract FROM lake.ingestion_plan p JOIN lake.plan_version v ON v.plan_id = p.id AND v.version = p.active_version
         WHERE p.state = 'ACTIVE' AND v.runtime_ref IN (%s)
         AND EXISTS (SELECT 1 FROM lake.execution_window w JOIN lake.execution_attempt a ON a.window_id = w.id
           WHERE w.plan_id = p.id AND a.state = 'QUEUED' AND a.not_before <= clock_timestamp() AND w.plan_version = p.active_version)
         AND NOT EXISTS (SELECT 1 FROM lake.execution_window w JOIN lake.execution_attempt a ON a.window_id = w.id
           WHERE w.plan_id = p.id AND a.state = 'RUNNING')
-        ORDER BY p.id FOR UPDATE OF p SKIP LOCKED LIMIT 1
+        ORDER BY (SELECT bs.last_claimed_at FROM warehouse.ingest_channel ch JOIN warehouse.ingest_connection cn ON cn.id=ch.connection_id
+          JOIN warehouse.system_instance si ON si.id=cn.instance_id JOIN warehouse.business_system bs ON bs.id=si.system_id WHERE ch.source_id=p.source_id) NULLS FIRST,
+          p.last_claimed_at NULLS FIRST,p.id FOR UPDATE OF p SKIP LOCKED
         """.formatted(allowed), runtimeRefs.toArray());
+    var eligible=new java.util.ArrayList<Map<String,Object>>();
+    for(var plan:plans){JsonNode config;try{config=json.readTree(plan.get("contract").toString());}catch(Exception e){throw new IllegalStateException("INVALID_PLAN_CONFIG");}
+      String reason=managedRuntime.dispatchReason(((Number)plan.get("source_id")).longValue(),config,worker);
+      jdbc.update("UPDATE lake.ingestion_plan SET dispatch_reason=? WHERE id=?",reason,plan.get("id"));
+      if(reason==null){eligible.add(plan);break;}
+    }
+    plans=eligible;
     if (plans.isEmpty()) return Map.of("state", "IDLE");
     var attempt = jdbc.queryForMap("""
         SELECT a.id, a.window_id, a.attempt, w.business_date, w.window_start, w.window_end, w.revision, w.mode, w.processing_input,
@@ -206,10 +226,13 @@ public class LakeExecutionService {
     UUID token = UUID.randomUUID();
     jdbc.update("UPDATE lake.execution_attempt SET state = 'RUNNING', lease_owner = ?, lease_token = ?, lease_expires_at = clock_timestamp() + interval '60 seconds', started_at = clock_timestamp() WHERE id = ?", worker, token, attempt.get("id"));
     jdbc.update("UPDATE lake.execution_window SET state = 'RUNNING' WHERE id = ?", attempt.get("window_id"));
+    jdbc.update("UPDATE lake.ingestion_plan SET last_claimed_at=clock_timestamp(),dispatch_reason=NULL WHERE id=?",plans.getFirst().get("id"));
+    managedRuntime.markDispatched(((Number)plans.getFirst().get("source_id")).longValue());
     attempt.put("leaseToken", token.toString()); attempt.put("state", "RUNNING"); attempt.put("leaseSeconds", 60);
     decode(attempt, "contract");
     decode(attempt, "processing_input");
     decode(attempt, "runtime_inventory");
+    managedRuntime.attach(attempt,worker);
     return attempt;
   }
 
@@ -356,12 +379,13 @@ public class LakeExecutionService {
   @Transactional
   public Map<String, Object> retry(long id, String actor) {
     var rows = jdbc.queryForList("""
-        SELECT a.*, v.max_attempts, w.plan_version, p.active_version FROM lake.execution_attempt a JOIN lake.execution_window w ON w.id = a.window_id
+        SELECT a.*, v.max_attempts, w.plan_version, p.active_version,p.source_id FROM lake.execution_attempt a JOIN lake.execution_window w ON w.id = a.window_id
         JOIN lake.plan_version v ON v.plan_id = w.plan_id AND v.version = w.plan_version
         JOIN lake.ingestion_plan p ON p.id = w.plan_id WHERE a.id = ? FOR UPDATE OF a, w
         """, id);
     if (rows.isEmpty()) bad("EXECUTION_NOT_FOUND");
     var a = rows.getFirst();
+    if(managedRuntime.sourcePaused(((Number)a.get("source_id")).longValue()))conflict("INGESTION_PAUSED");
     if (!a.get("plan_version").equals(a.get("active_version"))) conflict("PLAN_SUPERSEDED");
     if (!Set.of("FAILED", "INCOMPLETE", "CANCELLED").contains(a.get("state"))) conflict("EXECUTION_NOT_RETRYABLE");
     int next = ((Number) a.get("attempt")).intValue() + 1;
@@ -428,6 +452,10 @@ public class LakeExecutionService {
         JOIN lake.plan_version v ON v.plan_id = w.plan_id AND v.version = w.plan_version
         JOIN lake.ingestion_plan p ON p.id = w.plan_id AND p.active_version = w.plan_version
         WHERE p.state = 'ACTIVE' AND NOT a.cancel_requested
+          AND NOT EXISTS (SELECT 1 FROM warehouse.ingest_channel ch JOIN warehouse.ingest_connection c ON c.id=ch.connection_id
+            JOIN warehouse.system_instance i ON i.id=c.instance_id JOIN warehouse.business_system s ON s.id=i.system_id
+            WHERE ch.source_id=p.source_id AND (ch.lifecycle IN ('PAUSED','RETIRED') OR c.lifecycle IN ('PAUSED','RETIRED')
+              OR i.lifecycle IN ('PAUSED','RETIRED') OR s.lifecycle IN ('PAUSED','RETIRED')))
           AND NOT EXISTS (SELECT 1 FROM lake.execution_attempt later WHERE later.window_id = a.window_id AND later.attempt > a.attempt)
           AND (v.historical_read OR w.business_date >= (? AT TIME ZONE v.timezone)::date)
           AND (

@@ -13,19 +13,35 @@ public class ModelExecutionService {
   private final JdbcTemplate jdbc;
   private final ModelService models;
   private final ObjectMapper json;
-  public ModelExecutionService(JdbcTemplate jdbc, ModelService models, ObjectMapper json) { this.jdbc = jdbc; this.models = models; this.json = json; }
+  private final ModelPackageService packages;
+  private final QualityRuleService quality;
+  public ModelExecutionService(JdbcTemplate jdbc,ModelService models,ObjectMapper json,ModelPackageService packages,QualityRuleService quality){this.jdbc=jdbc;this.models=models;this.json=json;this.packages=packages;this.quality=quality;}
   @Transactional
   public Map<String, Object> claim(List<String> refs, String worker) {
     if (refs == null || refs.isEmpty() || refs.size() > 100 || refs.stream().anyMatch(r -> r == null || !r.matches("[a-z][a-z0-9_-]{1,99}"))) bad("MODEL_CAPABILITIES_REQUIRED");
     jdbc.update("UPDATE warehouse.model_build SET state = 'FAILED', error_code = 'MODEL_LEASE_EXPIRED', finished_at = clock_timestamp() WHERE state = 'RUNNING' AND lease_expires_at <= clock_timestamp()");
     var rows = jdbc.queryForList("""
-        SELECT b.*, v.runtime_ref, v.git_revision, v.bundle_sha256, v.contract, d.project_id
+        SELECT b.*, v.runtime_ref, v.git_revision, v.bundle_sha256, v.contract,v.package_id, d.project_id
         FROM warehouse.model_build b JOIN warehouse.model_version v ON v.dataset_id = b.dataset_id AND v.version = b.model_version
         JOIN warehouse.dataset d ON d.id = b.dataset_id WHERE b.state = 'QUEUED' AND v.runtime_ref IN (%s)
-        ORDER BY b.id FOR UPDATE OF b SKIP LOCKED LIMIT 1
+        ORDER BY b.id FOR UPDATE OF b SKIP LOCKED
         """.formatted(String.join(",", Collections.nCopies(refs.size(), "?"))), refs.toArray());
     if (rows.isEmpty()) return Map.of("state", "IDLE");
-    var row = rows.getFirst(); UUID token = UUID.randomUUID();
+    Map<String,Object> row=null;
+    for(var candidate:rows){
+      try{
+        if(candidate.get("requested_by")!=null)models.requireInputsActive(((Number)candidate.get("project_id")).longValue(),models.tree(candidate.get("contract")),candidate.get("requested_by").toString());
+        var refresh=jdbc.queryForList("SELECT p.state,p.active_version,w.plan_version,v.operational_owner FROM warehouse.refresh_build rb JOIN warehouse.refresh_window w ON w.id=rb.window_id JOIN warehouse.refresh_plan p ON p.id=w.plan_id JOIN warehouse.refresh_plan_version v ON v.plan_id=w.plan_id AND v.version=w.plan_version WHERE rb.build_id=?",candidate.get("id"));
+        if(!refresh.isEmpty()&&(!refresh.getFirst().get("state").equals("ACTIVE")||!refresh.getFirst().get("active_version").equals(refresh.getFirst().get("plan_version"))))continue;
+        if(!refresh.isEmpty())models.dataset(((Number)candidate.get("project_id")).longValue(),((Number)candidate.get("dataset_id")).longValue(),refresh.getFirst().get("operational_owner").toString(),"OWNER");
+        packages.checkBuild(candidate,worker);row=candidate;break;
+      }catch(com.bydw.api.ApiException e){
+        if(Set.of("MODEL_INPUT_SOURCE_PAUSED","MODEL_WORKER_NOT_ALLOWED").contains(e.code()))continue;
+        jdbc.update("UPDATE warehouse.model_build SET state='FAILED',error_code='MODEL_ACCESS_REVOKED',finished_at=clock_timestamp() WHERE id=?",candidate.get("id"));
+      }
+    }
+    if(row==null)return Map.of("state","IDLE");
+    UUID token = UUID.randomUUID();
     jdbc.update("UPDATE warehouse.model_build SET state = 'RUNNING', lease_token = ?, lease_owner = ?, lease_expires_at = clock_timestamp() + interval '60 seconds', started_at = clock_timestamp() WHERE id = ?", token, worker, row.get("id"));
     row.put("state", "RUNNING"); row.put("leaseToken", token.toString());
     for (String key : List.of("contract", "inputs", "watermark")) models.decode(row, key);
@@ -90,6 +106,10 @@ public class ModelExecutionService {
       long duplicates = jdbc.queryForObject("SELECT count(*) FROM (SELECT " + keySql + " FROM " + table + " GROUP BY " + keySql + " HAVING count(*) > 1) bad_keys", Long.class);
       boolean passed = count <= contract.path("maxOutputRows").asLong() && nulls == 0 && duplicates == 0;
       result.put("rowCount", count).put("nullKeysOrRequired", nulls).put("duplicateKeys", duplicates).put("qualityPassed", passed);
+      var rules=quality.evaluate(contract,b,count);
+      result.set("rules",rules);result.put("rulesConfigured",contract.path("qualityRules").isArray()&&!contract.path("qualityRules").isEmpty());
+      for(JsonNode rule:rules)if(!rule.path("passed").asBoolean()&&rule.path("severity").asText().equals("BLOCK"))passed=false;
+      result.put("qualityPassed",passed);
       if (!passed) state = "REJECTED";
       }
     }
@@ -113,7 +133,14 @@ public class ModelExecutionService {
     if (!existing.isEmpty()) return Map.of("releaseId", existing.getFirst().get("id"), "reused", true);
     var candidates = jdbc.queryForList("SELECT * FROM warehouse.model_build WHERE id = ? AND dataset_id = ? AND state = 'READY'", build, dataset);
     if (candidates.isEmpty()) conflict("MODEL_NOT_READY");
+    var refresh=jdbc.queryForList("SELECT p.state,p.active_version,w.plan_version,v.operational_owner FROM warehouse.refresh_build rb JOIN warehouse.refresh_window w ON w.id=rb.window_id JOIN warehouse.refresh_plan p ON p.id=w.plan_id JOIN warehouse.refresh_plan_version v ON v.plan_id=w.plan_id AND v.version=w.plan_version WHERE rb.build_id=?",build);
+    if(!refresh.isEmpty()&&(!refresh.getFirst().get("state").equals("ACTIVE")||!refresh.getFirst().get("active_version").equals(refresh.getFirst().get("plan_version"))))conflict("REFRESH_PLAN_PAUSED_OR_CHANGED");
+    if(!refresh.isEmpty())models.dataset(project,dataset,refresh.getFirst().get("operational_owner").toString(),"OWNER");
     var b = candidates.getFirst();
+    JsonNode candidateContract=models.tree(jdbc.queryForObject("SELECT contract FROM warehouse.model_version WHERE dataset_id=? AND version=?",String.class,dataset,b.get("model_version")));
+    models.requireInputsActive(project,candidateContract,actor);
+    quality.checkPublicationPolicies(dataset,candidateContract);
+
     if (!Objects.equals(d.get("active_release_id"), b.get("expected_release_id"))) conflict("ACTIVE_RELEASE_CHANGED");
     if (!d.get("active_model_version").equals(b.get("model_version"))) conflict("MODEL_VERSION_SUPERSEDED");
     if (d.get("active_release_id") != null) {

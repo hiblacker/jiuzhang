@@ -1,60 +1,38 @@
 # 完整产品本地运行包
 
-当前入口为 [compose.product.yaml](compose.product.yaml)：PostgreSQL、显式迁移、角色配置、Java 控制 API、Node 接入 Worker、Python/dbt 模型 Worker、独立 Vue 控制台。前端构建与本机隔离浏览器验证已完成；本次 console 镜像和完整 Compose 尚未运行，边界见 [UI-02](../docs/38-vue-console.md)。原 [compose.yaml](compose.yaml) 保留早期合成 Worker 验证。已有真实数据的本机原生环境使用 [LOCAL_RUNTIME.md](LOCAL_RUNTIME.md)。
+当前 [Compose](compose.product.yaml)提供 PostgreSQL、显式迁移、Java 控制 API、独立 Vue 工作台、Node 接入 Worker 和 Python/dbt 模型 Worker。新版安装、初始化邀请、三条操作主流程及升级步骤以 [产品工作台手册](../docs/41-product-workbench-runbook.md)为准。控制 API 的 JAR 仍包含同一份页面，可用于不启用独立控制台的部署。
 
-## 新环境启动
-
-需要现有 Docker Compose、Java 21、Maven、Python 3.12 和 Git。当前容器固定为 linux/amd64；macOS arm64 验证使用 Docker 模拟，未验证 NAS。默认只监听本机回环。配置工具创建新目录及随机独立凭证，拒绝覆盖；不要复用其他项目的数据卷。
-
-在仓库根目录执行：
+## 固定构建
 
 ```bash
-python3 tools/product-config.py --root work/product-local --env-file secrets/product-local.env
+python3 tools/product-config.py --root work/product-next --env-file secrets/product-next.env
 python3 tools/product-build.py
-docker compose --env-file secrets/product-local.env -p jiuzhang-product -f deploy/compose.product.yaml config --quiet
-docker compose --env-file secrets/product-local.env -p jiuzhang-product -f deploy/compose.product.yaml up -d
-docker compose --env-file secrets/product-local.env -p jiuzhang-product -f deploy/compose.product.yaml ps
+docker compose --env-file secrets/product-next.env -p jiuzhang-next -f deploy/compose.product.yaml config --quiet
+docker compose --env-file secrets/product-next.env -p jiuzhang-next -f deploy/compose.product.yaml up -d
 ```
 
-页面 `http://127.0.0.1:60284`，API `http://127.0.0.1:60283`，数据库回环端口 57224。页面默认使用同源 API 代理，输入配置文件中的 Admin Token；令牌不保存到浏览器存储。可继续使用显式回环 API 地址与已批准 CORS。默认配置没有登记数据源或启动采集任务。
+配置工具只创建新目录，默认不登记业务来源。API 使用 60283，工作台使用 60284；独立控制台通过同源代理转发会话 Cookie 与 CSRF 请求。页面使用账号会话，初始化使用 `tools/product-bootstrap.py`，不在页面粘贴 Admin Token。
 
-构建默认复用 Maven 本地缓存；缓存不完整时加 `--online-maven`，通过 [Aliyun 配置](maven-settings.xml) 下载。Python 从清华源下载精确版本并逐包校验哈希；镜像通过国内镜像路径取得。57 个 wheel 哈希已与官方 PyPI 元数据逐项核对。锁及内部许可边界见 [运行锁](product-runtime-lock.json)、[Python 锁](product-requirements.txt)、[Debian 锁](product-apt-packages.txt)。
+Node 22.23.1、Python 3.12.14、PostgreSQL 16.15、MySQL CLI 8.0.43、57 个 Linux wheel、Debian 包与基础镜像版本继续固定。前端先 `npm ci` 和构建，再打 Java 包及独立控制台；Worker 镜像包含完整采集模块。API 与 Worker 默认标签为 `0.2.0-dev.3`，控制台为 `0.2.0-dev.2`；已有标签拒绝覆盖。
 
-默认生成 `control-api:0.1.0-dev.17`、`product-worker:0.1.0-dev.4`、`console:0.2.0-dev.1`。Worker 新标签仅反映镜像不再复制控制台源码，执行逻辑未修改；原有 dev.3 镜像不覆盖。已有标签时构建拒绝覆盖；代码变化后给对应的 `--api-tag`、`--worker-tag` 或 `--console-tag` 新值，并同步 Compose。`deploy/artifacts/build.json` 保存模型 Git revision、JAR 摘要、镜像标签和构建时工作树状态。API 构建步骤跳过测试；控制台构建执行类型检查但不执行浏览器测试，均不能替代验收检查。
+构建默认复用 Maven 缓存；缺包时加 `--online-maven` 使用 [Aliyun 配置](maven-settings.xml)。npm 使用 npmmirror，Python 使用清华镜像且逐包校验哈希。[运行锁](product-runtime-lock.json)、[Python 锁](product-requirements.txt)、[Debian 锁](product-apt-packages.txt)和 [前端锁](../apps/console/package-lock.json)共同约束依赖。构建跳过测试，不能替代验收。
 
-仅更新页面可独立构建新标签的 `deploy/Dockerfile.console` 并更新 Compose 的 console 服务；构建使用国内 npm 源、精确锁文件及关闭安装脚本。运行镜像仅带编译产物、第三方 NOTICE、静态服务和 Node 运行时，不含 npm 构建依赖。固定前端依赖安装已获批准；以下镜像构建仍待可用 Docker 环境验证：
+## 持久目录与兼容
 
-```bash
-docker build --platform linux/amd64 -f deploy/Dockerfile.console -t jiuzhang/console:0.2.0-dev.1 .
-```
+- `PRODUCT_LAKE_ROOT`：原件、按来源账本、执行回执、模型工作目录与封存包。
+- `PRODUCT_INBOX_ROOT`：外部工具落文件的目录，只读挂载；平台不依赖具体传输工具。
+- `PRODUCT_CONFIG_ROOT`：批准资源注册表、认证引用与私有环境文件。
+- `PRODUCT_MODELS_ROOT`：管理员批准的 Git 仓库，按实际项目授权；页面日常模型更新不重建镜像。
+- 命名卷 `product-db-data`：PostgreSQL。禁止以 `down -v` 更新。
 
-执行前确认目标标签尚不存在；后续修改使用新标签。页面独立镜像尚未在本机实际构建。
+默认 Worker v2 仅登记文件资源边界；模型 Worker 在无批准仓库时空闲。旧 v1 profile 和镜像内 `/models.git` 只为兼容保留。批准边界配置修改后重启对应 Worker；业务连接/通道/计划修改通过控制面保存版本。
 
-## 接入配置与操作
+两个 Worker 共享 API 网络命名空间；更新 API 容器时一并重建 Worker。旧安装须补 `PRODUCT_MODELS_ROOT` 并停止旧静态页。切换按来源账本前先停旧采集进程，不让新旧 Worker 同时写同一湖目录。
 
-1. 在页面创建项目、登记来源、将来源绑定到项目；实际目录和凭证由管理员配置到 `config/`，HTTP 不接收任意执行路径。
-2. 目录默认 `daily-files` 对应 `folder-source`；外部把 CSV、xlsx、JSON/JSONL、Parquet 放入 `inbox/YYYY-MM-DD/`，以同名 `.done` 或已约定的交付清单闭合。按[交付契约](../docs/33-lake-implementation-design.md)配置单文件/多文件包、空交付、等待期和解析规则。平台不依赖具体传输工具。
-3. 创建 FILE_SCAN 计划，runtimeRef 填 `daily-files`。后台每日触发，文件未齐按契约自动复查；页面提供暂停、补采、重试、取消、原件重解析和结果查询。
-4. MySQL 与 API profile 使用[注册表模板](../docs/templates/lake-runtime.example.json)，路径改为容器内 `/run/secrets/` 和 `/data/lake/`。将所需配置、inventory、CA 放在 `config/`；源认证环境变量放 `config/source.env`。MySQL 默认严格 TLS，单次原始快照默认上限 4 GiB，可在受控 profile 设置 `maxSnapshotBytes`；超限不提交完成批次。仅已有测试例外可配置 `allowUnverifiedTestTls: true`，同时提供与源配置哈希一致的 `mysql-development-tls-authorization.local.json`；不会自动扩大授权。
-5. 来源 Schema 改变时先阻断，页面展示差异；管理员写明理由后批准新清单/计划，下一执行使用新版本。旧原件和发布保留。
-6. SQL 在 Git 模型目录修改并提交。模型镜像内 `/models.git` 是构建时的 Git bundle；新 SQL 提交需重建新的 Worker 镜像。填写 `model-runtime.json` 中实际项目 ID、来源映射，使用[模型登记工具](../apps/model-worker/README.md)描述或登记固定版本。页面选择输入资产，构建、查看质量、发布，再给用户配置数据集行列权限。
+## 验证和恢复
 
-配置在 Worker 启动时读取；修改配置后重启对应 Worker。共享 API 网络命名空间，使 Worker 继续通过回环访问控制 API。更新 API 容器时一起重新创建两个 Worker 和页面。
+[一期验收](../docs/37-phase-one-acceptance.md)保留旧 V001–V017 容器与真实 MySQL 证据；[新版进度](../docs/40-product-workbench-progress.md)记录本批实际检查，不能混用。
 
-## 验收、升级及恢复
+已有合成容器环境可运行 `tests/product-compose-integration.py` 验证 v1 兼容；新版动态接入与浏览器流程使用 `tools/verify-product.py`；批准 `daily-files` 资源尚未登记的全新容器测试环境，可用 `python3 tests/product-compose-managed.py --settings secrets/product-next.json` 验证运行中的 v2 Worker 无需重启即可接入新通道。仅针对隔离合成环境运行，禁止套用在已投入使用的目录。
 
-独立合成环境的容器验收命令如下；会新增合成项目、来源和数据集，保留数据，最后暂停合成计划。不要对已投入使用的目录运行此测试。
-
-```bash
-# 使用已安装模型依赖的 Python；settings 与 env 来自同一次配置生成
-python tests/product-compose-integration.py --settings secrets/product-local.json \
-  --env-file secrets/product-local.env --project-name jiuzhang-product
-```
-
-已实际验证：V001–V017 新库迁移、已有迁移校验、三类数据库角色、容器文件入湖、真实 dbt SQL、质量发布、精确小数/前导零、VIEWER 行列授权和 Worker 重启。容器 MySQL 8.0.43 CLI 对真实测试源完成只读结构检查：157 表、0 未支持对象，与原生最新 Schema 相同。真实整库数据及每日主链路在原生环境验证，见[最终验收](../docs/37-phase-one-acceptance.md)。
-
-已有环境按“暂停计划并等待任务结束 → 备份 → 停 Worker/API → 追加迁移及校验 → 配置角色 → 更新镜像并启动 → 核验旧 release → 恢复计划”前向升级；不要编辑已经执行的 V001–V017。失败保留数据和迁移账本，修正后继续前向恢复。
-
-本轮实际联合备份还原使用原生 PostgreSQL 17 工具，见[手册与证据](LOCAL_RUNTIME.md)。容器 PostgreSQL 16 不能直接打开该物理备份。容器迁移到另一宿主前须停止写入并联合保留命名卷、湖区、Git 模型与私有配置；异机/生产恢复尚未演练，不把原生恢复结果套用于不同主版本。
-
-本机验证环境可以 `docker compose ... stop` 停止并保留数据；禁止用 `down -v` 作为更新方式。当前未配置自动删除原件。单次快照限额不能代替磁盘容量监控及业务保留期。
+升级采用“暂停和排空 → 联合备份 → 停 Worker/API → 校验与追加迁移 → 配置角色 → 启动新版 → 核对旧 release → 恢复计划”。保留已执行迁移和历史数据，以向前修复恢复。原生 PostgreSQL 17 物理备份不能直接由容器 16 打开；异机/NAS/生产恢复须独立演练。

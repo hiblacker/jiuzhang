@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(-90) // Runs after Spring Security has restored the browser session.
 public class RequestAuthenticationFilter extends OncePerRequestFilter {
   public static final String REQUEST_ID_ATTRIBUTE = "bydw.requestId";
   public static final String PRINCIPAL_ATTRIBUTE = "bydw.principal";
@@ -41,6 +41,7 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
       "^/api/v1/lake/executions/(?:claim|[0-9]+/(?:heartbeat|finish))/?$");
   private static final Pattern MODEL_EXECUTION_WORKER = Pattern.compile(
       "^/api/v1/warehouse/builds/(?:claim|[0-9]+/(?:heartbeat|finish))/?$");
+  private static final Pattern PROBE_WORKER = Pattern.compile("^/api/v1/lake/probes/(?:claim|[0-9]+/finish)/?$");
   private static final Pattern WORKER_INSTANCE = Pattern.compile(
       "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$");
 
@@ -49,6 +50,8 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
   private final ObjectMapper objectMapper;
   @Autowired(required = false)
   private ProductAccessService productAccess;
+  @Autowired(required = false)
+  private BrowserAccountService browserAccounts;
 
   public RequestAuthenticationFilter(
       @Value("${bydw.security.admin-token}") String configuredAdminToken,
@@ -95,10 +98,17 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
     Access access = accessFor(request.getMethod(), request.getRequestURI());
     boolean admin = MessageDigest.isEqual(adminToken, supplied);
     boolean worker = MessageDigest.isEqual(workerToken, supplied);
+    String browserActor = null;
+    if (authorization == null && browserAccounts != null) {
+      var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+      if (authentication != null && authentication.isAuthenticated()) browserActor = browserAccounts.sessionActor(authentication.getPrincipal());
+      if (browserActor != null && productAccess != null && productAccess.admin(browserActor)) admin = true;
+    }
     String projectIdentity = null;
     if (!admin && !worker && access != Access.WORKER && productAccess != null && request.getRequestURI().startsWith("/api/v1/warehouse/")) {
       projectIdentity = productAccess.authenticate(new String(supplied, StandardCharsets.UTF_8));
     }
+    if (!admin && browserActor != null && access != Access.WORKER && request.getRequestURI().startsWith("/api/v1/warehouse/")) projectIdentity = browserActor;
     boolean accepted = access == Access.ADMIN ? admin
         : access == Access.WORKER ? worker : admin || worker;
     accepted = accepted || projectIdentity != null;
@@ -127,6 +137,8 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
       }
     } else if (projectIdentity != null) {
       request.setAttribute(PRINCIPAL_ATTRIBUTE, projectIdentity);
+    } else if (browserActor != null) {
+      request.setAttribute(PRINCIPAL_ATTRIBUTE, browserActor);
     } else {
       request.setAttribute(PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL);
     }
@@ -138,7 +150,10 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
         || BATCH_MUTATION.matcher(path).matches())) return Access.WORKER;
     if ("POST".equals(method) && LAKE_MANIFEST_WRITE.matcher(path).matches()) return Access.WORKER;
     if ("POST".equals(method) && LAKE_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
+    if ("POST".equals(method) && (path.equals("/api/v1/warehouse/model-packages/claim")||path.matches("/api/v1/warehouse/model-packages/[0-9]+/finish"))) return Access.WORKER;
     if ("POST".equals(method) && MODEL_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
+    if ("POST".equals(method) && PROBE_WORKER.matcher(path).matches()) return Access.WORKER;
+    if ("POST".equals(method) && (path.equals("/api/v1/lake/request-budget")||path.equals("/api/v1/lake/environment-heartbeat"))) return Access.WORKER;
     if ("GET".equals(method) && (CHECKPOINT_READ.matcher(path).matches()
         || JOB_READ.matcher(path).matches())) return Access.EITHER;
     return Access.ADMIN;
@@ -146,7 +161,9 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
 
   private boolean isPublicPath(String path) {
     return path.equals("/api/v1/status") || path.equals("/actuator/health")
-        || path.startsWith("/actuator/health/");
+        || path.startsWith("/actuator/health/") || path.equals("/api/v1/auth/csrf")
+        || path.equals("/api/v1/auth/activate")
+        || (!path.startsWith("/api/") && !path.startsWith("/actuator/"));
   }
 
   private enum Access { ADMIN, WORKER, EITHER }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T10:10:22.774Z",
+  "generatedAt": "2026-09-16T15:32:45.170Z",
   "registry": "https://registry.npmmirror.com",
   "verifiedAgainst": "https://registry.npmjs.org",
   "installationScripts": "disabled",
@@ -86,6 +86,292 @@
       "tarball": "https://registry.npmmirror.com/@emotion/hash/-/hash-0.8.0.tgz"
     },
     {
+      "name": "@esbuild/aix-ppc64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/aix-ppc64/-/aix-ppc64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/android-arm",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-kXXoiPVVGQcnIYGOeaovwOURpniDBpSq4A03qkQ+BMQqtGG6HYap3xne9C1O1yo4TR3qxlCX5IqqmX6fFo2Lqg==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/android-arm/-/android-arm-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/android-arm64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-5YfKeeI8qWfBZIX+u2xZC3Zlb3Os/gLS2sbEKM+I4ZOcsWmHS2WLysCcQZDAFRslDUU5Oiq44gf6PYN1vGwG5A==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/android-arm64/-/android-arm64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/android-x64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-O387ite7SzUyCcy3JQX4P4bLtEA7bLLkx+esve5JHnyYfNTxcVpXZo9jhdB0lTKN44gztELTdU7nS8Nr16Fs1Q==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/android-x64/-/android-x64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/darwin-arm64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/darwin-arm64/-/darwin-arm64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/darwin-x64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-uq6suIWYP37qzGddBKPw5QEQPi6HiLGsO7UmkpfyaYNQ3D+rN6w6WfwH+nuqcGXWvawGwxOEroO4YGnFh95azw==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/darwin-x64/-/darwin-x64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/freebsd-arm64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-n+I0BTSRIoy+d6RPKnEVwql5UwBJolytvY4mAOIEJorKlqgPII8ix6slVVrfZ5Tnj7glIZvloylbB/EJPMWEXw==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/freebsd-x64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-78XJTJkvPs0kz2w61301PJjXl4g7q3JqiYMZ/M/yVI73EHBrCRTgkhu9oqG7vPqq+a/yadEW8aD+agKlk5xrmg==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/freebsd-x64/-/freebsd-x64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/linux-arm",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-XlDnu2q5yoqems+xay6wSAcg9DDD7K9RLKZEBOMZm3ckNpJBvOX20tSfby8KfrrhINDyv9V2YVZKY/SpoGJI8w==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/linux-arm/-/linux-arm-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/linux-arm64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/linux-arm64/-/linux-arm64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/linux-ia32",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-CYbnj78HsIeA+DhgUKgFCfvNsTHFhMMrinUrMZpDXJXKN8T3XViTZ/+wtHeVxEWY8ewSzTFN+nRmSwO2tZaLUQ==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/linux-ia32/-/linux-ia32-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/linux-loong64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-buwkd8nsph4R+ajRvw0qM5Hja/TXQow3ptzWO2EbG/cqcIkHloRrdlBtQlshyYGTNFvfkfJ5tpPLVkY4DtsPfQ==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/linux-loong64/-/linux-loong64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/linux-mips64el",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-ZVykbDyk7519VwiNb9Lcj9m8XM6v5V9uKPvrEMkkEedVewf+0itkhahp4HDpgERXhwLRpWFypsGbG/J8s0QjJA==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/linux-mips64el/-/linux-mips64el-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/linux-ppc64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-CAXl+Dtd9UUuJd8pKKdwh6MLm3MUMiqMPmhZ3tTSXPqfyQ3vDl6R5hZdZ/kYojK4ofXtdfSv1tFq8XzWx3heNQ==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/linux-ppc64/-/linux-ppc64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/linux-riscv64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-GeXCej4IQtU1B+QlDV8W/RRvbzI3O/Stss+/bCXv4lZls5WGRtu2a+3JkA3i4qIUlMXpcHebWpF8AkJhATowuA==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/linux-riscv64/-/linux-riscv64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/linux-s390x",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-3H1weTYZPxt/WOhByszQZybS9w5lKzUn1FDMsgEChbHWQwHYQQRfBxgCcZvPhjHfKyJjIievvMmEUawJrdY9Dg==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/linux-s390x/-/linux-s390x-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/linux-x64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/linux-x64/-/linux-x64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/netbsd-arm64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-sSATRjPeDBg3pdgHoQfoYBob11Kk1FGa9lui5RIHZCoCkJa9QKlvl3/vKz2usCmYYjs7ymJR/2Nnsqe+Hjt5nw==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/netbsd-x64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-lqnzCV+mM0gIADaKihiCg6ifgfU2L3h5E33rNQBN1Y4MaVGnzryzmvvf7UHxprpQdE8hpqLolJ9Rl+SkIRDpyw==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/netbsd-x64/-/netbsd-x64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/openbsd-arm64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-AL2qJILH7lNjrDmCQDvdxMfAUIv8KMNZOvrwAQ8i8//ntL9FflhOyMJ8OZSMBb8/AWXe3/5v5S20y3zCoZWKoQ==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/openbsd-x64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-QtiuPytchRyC4rwUKhexJdQKvDuZ6hWloi3igqPQNUJCS1/v9EiO3UTOXR6A3FoMo4fnAKbWJdqaIwhOzh8qEw==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/openbsd-x64/-/openbsd-x64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/openharmony-arm64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-WkhYDmpTjLvGlScA1rwjRUmhl4k8oXR3cIbtqWmELgU/dFeHHlEllxDvdWcNJV9rbzCexB5vz8gtNewWLgCT7Q==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/sunos-x64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/sunos-x64/-/sunos-x64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/win32-arm64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/win32-arm64/-/win32-arm64-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/win32-ia32",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/win32-ia32/-/win32-ia32-0.28.2.tgz"
+    },
+    {
+      "name": "@esbuild/win32-x64",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/@esbuild/win32-x64/-/win32-x64-0.28.2.tgz"
+    },
+    {
       "name": "@jridgewell/sourcemap-codec",
       "version": "1.6.0",
       "license": "MIT",
@@ -109,14 +395,14 @@
     },
     {
       "name": "@oxc-project/types",
-      "version": "0.149.0",
+      "version": "0.150.0",
       "license": "MIT",
-      "integrity": "sha512-Efcc+iF0j3Bf67YjEqIqWXbX5XddXoK/Mw4K1/JuXwRCZ8N16VR7iT23nlCc9XrveFVh/E5Rqs2StT0V8v9LdA==",
+      "integrity": "sha512-rDS5/31E9HfPl/CIzGrn0DOlvBbXFseQ5URJ9sYMfstbKLD/c6Gm9vmRzRGDdAXyOIL4zmO37lc9RIwYqVruZw==",
       "development": true,
       "optional": false,
       "hasInstallScript": false,
       "repository": "git+https://github.com/oxc-project/oxc.git",
-      "tarball": "https://registry.npmmirror.com/@oxc-project/types/-/types-0.149.0.tgz"
+      "tarball": "https://registry.npmmirror.com/@oxc-project/types/-/types-0.150.0.tgz"
     },
     {
       "name": "@playwright/test",
@@ -131,168 +417,168 @@
     },
     {
       "name": "@rolldown/binding-android-arm-eabi",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-tN5aztYkKCte4i5SIrrz5yK/HMjEuCqCSCJa418jOV8tZ1cBY3YF2otxB1ktPxzsLA1BeTqwapK0bfjxNvHJVw==",
+      "integrity": "sha512-tNISae1QEf/vkb3xkRcjV5SEdzPE97We5IVaa2Z8jSszQPZ8U60B/YCYpw4QI7VidYsBtKavczXf+DyDs9WGxw==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-android-arm-eabi/-/binding-android-arm-eabi-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-android-arm-eabi/-/binding-android-arm-eabi-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-android-arm64",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-dIYTWl9XprMUiQFoc55KUyk/oS8SKYH3zFl0LTR7RT0Xj4hgSVyuJcroH8JUu8RcpF8fTB6E0aOwCkZoYPcDSQ==",
+      "integrity": "sha512-YC8YsI30o606GTZi0VyzYlsDKFP8W61i/QzayHDkLbNEz/IShqAmTa+hsJRj13xTHA0H+6fk4b2UmGn+Q/cMlg==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-android-arm64/-/binding-android-arm64-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-android-arm64/-/binding-android-arm64-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-darwin-arm64",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-PCSDQGXD2IyTEFrcgPyBM8jJuGmrbCMuoIOXdbEGVemruKACXoLQJrb+A45Z0L5t1RQkdfJprAYPkikbh7dzdA==",
+      "integrity": "sha512-IwhlH3qK5urrY8hZiEgGkHKEFN901p/p2bjxCxJlr4GyNnF7wYpUvK+Y43uaRYuC4hpfjzbR3SJC3arX1jGvmw==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-darwin-arm64/-/binding-darwin-arm64-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-darwin-arm64/-/binding-darwin-arm64-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-darwin-x64",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-Uk7lRsGhPFHVX/sAUC6D5H9Ol30dFHd6iquokll2th3LpdJ3F5CzQB+7DHn0Ri2mG+U7k2zXiPHDrwZenXhwSA==",
+      "integrity": "sha512-XxpJfVzFh+jilRxIXUqcfYAYcunIc/XEzIizsOL1fcJee5Sf7H3mH8WlLmfHfluz5amqR88QQo9izKtmMlavAw==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-darwin-x64/-/binding-darwin-x64-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-darwin-x64/-/binding-darwin-x64-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-freebsd-x64",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-DjszaTEVogPqA5bYzsEeqDCQxbcp2fexQwKcRspYji2yzR68fCf+e4fx6kBSRDwX5/brZaHw/hWS9+A/+/w9sQ==",
+      "integrity": "sha512-kSfvhmgeWyfkbT3p/1s5vSgboogoah2zkm9fX2zjg2hHxSV7T4KhMWRUUaRk4OXNqoD3QAUeRqLcs1aZOK4U1g==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-freebsd-x64/-/binding-freebsd-x64-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-freebsd-x64/-/binding-freebsd-x64-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-linux-arm-gnueabihf",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-zmwa7FTmdzB6aaEEuuls18H6Ap5JmJPSoPTuXixeJZV6tG40SyLkApQtz1g8ptZtiEKqj9OM0oNLPh1AgvE31Q==",
+      "integrity": "sha512-1RVzG17pxqbTfYLC352JlLt6kKLG+6Hr30n8DlIJqsnV5luUDd2Qdx9Ayw1Cabfyb1K9k0jXEZ7evxkRoT+uiw==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-arm-gnueabihf/-/binding-linux-arm-gnueabihf-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-arm-gnueabihf/-/binding-linux-arm-gnueabihf-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-linux-arm64-gnu",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-KdYQDPHwJVnbFwdTGMgxsI9SqblBlz6STGM+w1We/d5B8OWWidYH0MwkU/uA1wM5fIpO2MkOVxXrNzzuZhw9ew==",
+      "integrity": "sha512-BXqPvZ2drqVD+/Z8UpKwcs4Mp7grM+eGFku4CAEKrEtcbAsUpzREphK1sogCRZGreVPiMkiiBtw0n3TPteuqvw==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-linux-arm64-musl",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-jFJTifHnNPY+yzOoNZQfSIysrVyXzEQPhPnOUjmD1bcQGHH6s7c8cViKWar8YplQImE5N9JRqMCLrM2CdxOrZA==",
+      "integrity": "sha512-11vWvo8YDwLzukt27J3aYDWU+gg2P7J+ZOmiJ0hkF5BXZDW7pVya7r40MXDy6ya0i9KamoENSVKIugvJNgFXIA==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-linux-ppc64-gnu",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-FhiOziBDWPBjbcmRzfLyIJnaP7AVMFXT7YCXPjXxj7wKU3vx24RjrCNN/zjvVa+N2vVoHJwCoUBvsrN/DG3zIA==",
+      "integrity": "sha512-a1tijMkdwsIARtc0F39ApURROkf3NwqinI6TOiSSWCTR7dT96dffNvMUtDHnq64wKNTIZOIlzKrFvvFUznJiyw==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-linux-s390x-gnu",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-WnHfADMzOV2Y55wlx1hzzQnar/wDt/VdvWSD99r18Mz9ylNieIGOkRx3UV21h7m/eJvjySYJkO26VvGNFkwsIQ==",
+      "integrity": "sha512-x6SQNdAvv4c3hWqTMaWuawzMX9myaCs/yEmlGsxJzkdClnHW7FbrjQuSiRDhuSYzEYoEMhsaJy9qHG/XNemJPQ==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-linux-x64-gnu",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-H9tRr5ibfXFVLxbPOseVewewFpl28zcEdjRDt2FTUZU7odxP0gEv1ki4/kGmcGOh78oRwZuuQllGLZ9zTJp84g==",
+      "integrity": "sha512-9s0AZ8BFK5/n7B/TBoa2yJE3gI3KURrbXcPBlsAsvjU4VeJKgE90y1YtNxyEUIcHPQkg6/yfF3qihUrcM/Kf0Q==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-linux-x64-musl",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-UefiqfM3D6IVNlZ8tSGs9+Ejjud2T+oxO0IHADU45Y+lyEjD2dVFyZHbkfX0LUb5Zugo/oIv1eCO/KVYhgYJYA==",
+      "integrity": "sha512-P7VWAmV+WdJluH7ovnRGoiv2i8To7GAZ+kGzfGup635cyL7SyYl3lSUaA3Gp5THf0n/Co5EyEqb2zbqq+nMOHQ==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-x64-musl/-/binding-linux-x64-musl-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-linux-x64-musl/-/binding-linux-x64-musl-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-openharmony-arm64",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-637Ke4kWSy6rp9cxQ9gMOXlxPgIw/c1beASV4M//3+9I4uwBVOOl74G+e3zyU3u19U7RkRl/HuewixZ/Z6+Rjg==",
+      "integrity": "sha512-1qixtsE4BK8h+yS3BfmZ09UhA7O/N4IACva6YBr7EBvCJraByTuRcgOTaiA62Tm0vey3UcKXLOaoGHtYmNGEVg==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-openharmony-arm64/-/binding-openharmony-arm64-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-openharmony-arm64/-/binding-openharmony-arm64-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-win32-arm64-msvc",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-xWBkPOF1Q9k/Gv1nQXnVdLxKu74jXppuOM4Z3mnypVUJJJwLsMl7hNJGRAUJoG8A5MgOI1ACKM+wBFxSJzKy4A==",
+      "integrity": "sha512-ok8IQjcEPs1AKZfuEUznVBrJw+gK4soq+bx8b1X2XoMqVClarc1q5JDmVtWXY1xfr6ZuHTAsPXHTgTrqKTZeww==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-win32-arm64-msvc/-/binding-win32-arm64-msvc-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-win32-arm64-msvc/-/binding-win32-arm64-msvc-1.2.9.tgz"
     },
     {
       "name": "@rolldown/binding-win32-x64-msvc",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-uz2ZvfgXbxqNwijjjbxrnvALwpyODDcgc1T1N8N3rf/DXKQmaFwmB4LX4yyjggpwN2obdQLb2rgirX5ffCWYng==",
+      "integrity": "sha512-Ip2mXoU0hM0boq3Rf+ekuT653OROSo6aSYcPT1VHE4q52KvyxgFkQgrgb/IEsxOuvQ2fZZbs8khJAyCEPM24/g==",
       "development": true,
       "optional": true,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/@rolldown/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/@rolldown/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.2.9.tgz"
     },
     {
       "name": "@rolldown/pluginutils",
@@ -581,6 +867,17 @@
       "tarball": "https://registry.npmmirror.com/entities/-/entities-7.0.1.tgz"
     },
     {
+      "name": "esbuild",
+      "version": "0.28.2",
+      "license": "MIT",
+      "integrity": "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": true,
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "tarball": "https://registry.npmmirror.com/esbuild/-/esbuild-0.28.2.tgz"
+    },
+    {
       "name": "estree-walker",
       "version": "2.0.2",
       "license": "MIT",
@@ -615,14 +912,14 @@
     },
     {
       "name": "fsevents",
-      "version": "2.3.2",
+      "version": "2.3.3",
       "license": "MIT",
-      "integrity": "sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==",
+      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
       "development": true,
       "optional": true,
       "hasInstallScript": true,
       "repository": "git+https://github.com/fsevents/fsevents.git",
-      "tarball": "https://registry.npmmirror.com/fsevents/-/fsevents-2.3.2.tgz"
+      "tarball": "https://registry.npmmirror.com/fsevents/-/fsevents-2.3.3.tgz"
     },
     {
       "name": "highlight.js",
@@ -900,6 +1197,17 @@
       "tarball": "https://registry.npmmirror.com/playwright-core/-/playwright-core-1.62.1.tgz"
     },
     {
+      "name": "fsevents",
+      "version": "2.3.2",
+      "license": "MIT",
+      "integrity": "sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==",
+      "development": true,
+      "optional": true,
+      "hasInstallScript": true,
+      "repository": "git+https://github.com/fsevents/fsevents.git",
+      "tarball": "https://registry.npmmirror.com/fsevents/-/fsevents-2.3.2.tgz"
+    },
+    {
       "name": "postcss",
       "version": "8.5.28",
       "license": "MIT",
@@ -912,14 +1220,14 @@
     },
     {
       "name": "rolldown",
-      "version": "1.2.8",
+      "version": "1.2.9",
       "license": "MIT",
-      "integrity": "sha512-Z67nTmhZe7anqnM/EjI392w5i/ANUinjip7QYsOyN37oayduxt3ksdX0hf5OOamkAd53BiIHfbfSzfUmzKFQqQ==",
+      "integrity": "sha512-hx/Pv0N1haXRb11qkfnK5MXB/iqr7i0yjWQqmO9uHqZpBgQSqzc8UsSnEpalsh+j1I8qQ2CkXAkJC8Br3dKSlg==",
       "development": true,
       "optional": false,
       "hasInstallScript": false,
       "repository": "git+https://github.com/rolldown/rolldown.git",
-      "tarball": "https://registry.npmmirror.com/rolldown/-/rolldown-1.2.8.tgz"
+      "tarball": "https://registry.npmmirror.com/rolldown/-/rolldown-1.2.9.tgz"
     },
     {
       "name": "seemly",
@@ -997,17 +1305,6 @@
       "hasInstallScript": false,
       "repository": "git+https://github.com/vitejs/vite.git",
       "tarball": "https://registry.npmmirror.com/vite/-/vite-8.3.0.tgz"
-    },
-    {
-      "name": "fsevents",
-      "version": "2.3.3",
-      "license": "MIT",
-      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
-      "development": true,
-      "optional": true,
-      "hasInstallScript": true,
-      "repository": "git+https://github.com/fsevents/fsevents.git",
-      "tarball": "https://registry.npmmirror.com/fsevents/-/fsevents-2.3.3.tgz"
     },
     {
       "name": "vooks",

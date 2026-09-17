@@ -1,5 +1,6 @@
 """Git-pinned dbt execution. Runtime paths and database credentials stay local."""
 import argparse
+import base64
 import csv
 import datetime as dt
 import decimal
@@ -177,13 +178,71 @@ def load_input(connection, schema, root, item, maximum, stop):
     return count
 
 
+def package_root(registry):
+    return Path(registry.get('packageRoot', str(Path(registry['workRoot']) / 'packages')))
+
+
+def package_files(registry, repository, sha):
+    if repository not in registry.get('repositories', {}) or not re.fullmatch('[0-9a-f]{64}', sha):
+        fail('MODEL_PACKAGE_SCOPE_MISMATCH')
+    cache = package_root(registry) / repository / (sha + '.json')
+    if not cache.exists() or cache.stat().st_size > 30 * 1024 * 1024:
+        fail('MODEL_PACKAGE_NOT_AVAILABLE')
+    sealed = json.loads(cache.read_text())
+    files = {name: base64.b64decode(value, validate=True) for name, value in sealed['files'].items()}
+    if not files or len(files) > 500 or sum(map(len, files.values())) > 20 * 1024 * 1024:
+        fail('MODEL_BUNDLE_LIMIT')
+    for name in files:
+        if Path(name).is_absolute() or '..' in Path(name).parts:
+            fail('MODEL_PACKAGE_PATH_INVALID')
+    identity = ''.join(name + '\0' + hashlib.sha256(files[name]).hexdigest() + '\n' for name in sorted(files))
+    if hashlib.sha256(identity.encode()).hexdigest() != sha:
+        fail('MODEL_BUNDLE_INTEGRITY_MISMATCH')
+    return files
+
+
+def prepare_package(registry, task):
+    profile = registry.get('repositories', {}).get(task['repository_code'])
+    if not profile or task['project_path'] not in profile.get('projectPaths', []) or task['project_id'] not in profile.get('projectIds', []):
+        fail('MODEL_REPOSITORY_SCOPE_MISMATCH')
+    revision = task['requested_revision']
+    if not re.fullmatch('[A-Za-z0-9][A-Za-z0-9._/-]{0,199}', revision) or '..' in revision:
+        fail('INVALID_MODEL_REVISION')
+    commit = subprocess.check_output(['git', '-C', profile['repository'], 'rev-parse', '--verify', revision + '^{commit}'], text=True, timeout=15).strip()
+    sha, files = bundle(profile['repository'], task['project_path'], commit)
+    contract = json.loads(files['contract.json'])
+    cache = package_root(registry) / task['repository_code'] / (sha + '.json')
+    if not cache.exists():
+        atomic(cache, {'files': {name: base64.b64encode(value).decode() for name, value in files.items()}})
+    package_files(registry, task['repository_code'], sha)
+    return {'state': 'COMPLETE', 'gitRevision': commit, 'bundleSha256': sha, 'fileCount': len(files), 'contract': contract}
+
+
 def execute(registry, task, stop):
-    profile = registry['profiles'].get(task['runtime_ref'])
-    if not profile or profile['projectId'] != task['project_id']:
-        fail('MODEL_RUNTIME_SCOPE_MISMATCH')
-    sha, files = bundle(profile['repository'], profile['projectPath'], task['git_revision'])
-    if sha != task['bundle_sha256'] or bound_contract(files, profile) != task['contract']:
-        fail('MODEL_BUNDLE_CONTRACT_MISMATCH')
+    if task.get('package_id'):
+        repository = task['repositoryRef']
+        profile = registry.get('repositories', {}).get(repository)
+        if not profile or task['project_id'] not in profile.get('projectIds', []):
+            fail('MODEL_RUNTIME_SCOPE_MISMATCH')
+        sha = task['bundle_sha256']
+        files = package_files(registry, repository, sha)
+        contract = json.loads(files['contract.json'])
+        if len(contract['inputs']) != len(task['contract']['inputs']):
+            fail('MODEL_BUNDLE_CONTRACT_MISMATCH')
+        bindings = {value['alias']: value for value in task['contract']['inputs']}
+        for source in contract['inputs']:
+            binding = bindings.get(source['alias'], {})
+            source['sourceCode'] = binding.get('sourceCode')
+            source['objectName'] = binding.get('objectName')
+        if contract != task['contract']:
+            fail('MODEL_BUNDLE_CONTRACT_MISMATCH')
+    else:
+        profile = registry['profiles'].get(task['runtime_ref'])
+        if not profile or profile['projectId'] != task['project_id']:
+            fail('MODEL_RUNTIME_SCOPE_MISMATCH')
+        sha, files = bundle(profile['repository'], profile['projectPath'], task['git_revision'])
+        if sha != task['bundle_sha256'] or bound_contract(files, profile) != task['contract']:
+            fail('MODEL_BUNDLE_CONTRACT_MISMATCH')
     root = Path(registry['workRoot']) / str(task['id'])
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     project = root / 'project'; project.mkdir(exist_ok=True, mode=0o700)
@@ -242,10 +301,10 @@ def flush(options, directory):
         if receipt.get('acknowledged') or receipt.get('abandoned'):
             continue
         try:
-            receipt['response'] = request(options, 'builds/' + str(receipt['id']) + '/finish', receipt['completion'])
+            receipt['response'] = request(options, ('model-packages/' if receipt.get('package') else 'builds/') + str(receipt['id']) + '/finish', receipt['completion'])
             receipt['acknowledged'] = True
         except RuntimeError as error:
-            if str(error) in ['MODEL_LEASE_LOST', 'MODEL_COMPLETION_IMMUTABLE']:
+            if str(error) in ['MODEL_LEASE_LOST', 'MODEL_COMPLETION_IMMUTABLE', 'PACKAGE_LEASE_LOST', 'PACKAGE_RESULT_IMMUTABLE']:
                 receipt['abandoned'] = str(error)
             else:
                 return False
@@ -258,7 +317,32 @@ def once(options, registry):
     outbox.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not flush(options, outbox):
         return {'state': 'OUTBOX_PENDING'}
-    task = request(options, 'builds/claim', {'runtimeRefs': list(registry['profiles'])})
+    refs = list(registry.get('profiles', {})) + ['package-' + ref for ref in registry.get('repositories', {})]
+    if not refs:
+        return {'state': 'IDLE'}
+    turn_path = Path(registry['workRoot']) / ('dispatch-' + options.instance + '.json')
+    turn = json.loads(turn_path.read_text()) if turn_path.exists() else {'package': True}
+    task = None
+    if not turn['package']:
+        task = request(options, 'builds/claim', {'runtimeRefs': refs})
+    if registry.get('repositories') and (task is None or task['state'] == 'IDLE'):
+        package = request(options, 'model-packages/claim', {'repositories': list(registry['repositories'])})
+        if package['state'] != 'IDLE':
+            try:
+                completion = prepare_package(registry, package)
+            except Exception as error:
+                completion = {'state': 'FAILED', 'errorCode': str(error) if re.fullmatch('[A-Z0-9_:-]{1,120}', str(error)) else 'PACKAGE_PREPARATION_FAILED'}
+            completion['leaseToken'] = package['leaseToken']
+            receipt_file = outbox / ('package-' + str(package['id']) + '.json')
+            atomic(receipt_file, {'id': package['id'], 'package': True, 'completion': completion, 'acknowledged': False})
+            atomic(turn_path, {'package': False})
+            flush(options, outbox)
+            receipt = json.loads(receipt_file.read_text())
+            return {'packageId': package['id'], 'state': receipt.get('response', {}).get('state', 'OUTBOX_PENDING')}
+    if task is None or task['state'] == 'IDLE':
+        task = request(options, 'builds/claim', {'runtimeRefs': refs})
+    if task['state'] != 'IDLE':
+        atomic(turn_path, {'package': True})
     if task['state'] == 'IDLE':
         return task
     stop = threading.Event(); finished = threading.Event()
@@ -314,8 +398,14 @@ def main():
     options.api = options.api.rstrip('/')
     options.token = os.environ['CONTROL_API_WORKER_TOKEN']
     registry = json.loads(Path(options.registry).read_text())
-    if registry.get('version') != 1 or not Path(registry['lakeRoot']).is_absolute() or not Path(registry['workRoot']).is_absolute() or not registry['profiles']:
+    if registry.get('version') not in [1, 2] or not Path(registry['lakeRoot']).is_absolute() or not Path(registry['workRoot']).is_absolute():
         fail('INVALID_MODEL_REGISTRY')
+    registry.setdefault('profiles', {})
+    if len(registry['profiles']) + len(registry.get('repositories', {})) > 100:
+        fail('MODEL_CAPABILITIES_LIMIT')
+    for ref, profile in registry.get('repositories', {}).items():
+        if not re.fullmatch('[a-z][a-z0-9_-]{1,70}', ref) or not Path(profile.get('repository', '')).is_absolute() or not profile.get('projectPaths') or not profile.get('projectIds'):
+            fail('INVALID_MODEL_REPOSITORY')
     last = None
     while not options.stopping.is_set():
         try:
@@ -328,7 +418,7 @@ def main():
             print(json.dumps(result), flush=True)
         last = result
         if options.once:
-            return 0 if result['state'] in ['READY', 'IDLE'] else 1
+            return 0 if result['state'] in ['READY', 'IDLE', 'COMPLETE'] else 1
         options.stopping.wait(2)
     return 0
 

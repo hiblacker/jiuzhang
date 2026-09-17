@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/lake")
 public class LakeExecutionController {
   private final LakeExecutionService service;
-  public LakeExecutionController(LakeExecutionService service) { this.service = service; }
+  private final com.bydw.warehouse.SystemDeliveryService delivery;
+  private final com.bydw.warehouse.DatasetRefreshService refresh;
+  public LakeExecutionController(LakeExecutionService service,com.bydw.warehouse.SystemDeliveryService delivery,com.bydw.warehouse.DatasetRefreshService refresh) { this.service = service;this.delivery=delivery;this.refresh=refresh; }
   @GetMapping("/plans") public List<Map<String, Object>> plans() { return service.plans(); }
   @PostMapping("/plans") public Map<String, Object> plan(@RequestBody LakePlanRequest body, HttpServletRequest request) { return service.savePlan(body, actor(request)); }
   @PostMapping("/plans/{id}/state") public Map<String, Object> state(@PathVariable long id, @RequestBody State body, HttpServletRequest request) {
@@ -23,7 +25,7 @@ public class LakeExecutionController {
   @PostMapping("/plans/{id}/trigger") public Map<String, Object> trigger(@PathVariable long id, @RequestBody Trigger body, HttpServletRequest request) {
     return service.trigger(id, body.day(), body.revision(), body.reason(), actor(request));
   }
-  @PostMapping("/calendar/reconcile") public Map<String, Object> reconcile() { return service.reconcile(Instant.now()); }
+  @PostMapping("/calendar/reconcile") public Map<String, Object> reconcile() { var result=new java.util.LinkedHashMap<String,Object>(service.reconcile(Instant.now()));result.put("systemDelivery",delivery.reconcile(Instant.now()));result.put("datasetRefresh",refresh.reconcileAll(Instant.now()));return result; }
   @GetMapping("/windows") public List<Map<String, Object>> windows(@RequestParam(required = false) Long planId) { return service.windows(planId); }
   @GetMapping("/executions") public List<Map<String, Object>> attempts(@RequestParam(required = false) Long planId) { return service.attempts(planId); }
   @PostMapping("/executions/claim") public Map<String, Object> claim(@RequestBody Capabilities body, HttpServletRequest request) { return service.claim(actor(request), body.runtimeRefs()); }
