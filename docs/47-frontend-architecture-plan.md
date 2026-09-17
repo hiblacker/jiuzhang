@@ -415,3 +415,24 @@ const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
 | 验证 | `npm run build`（typecheck + format:check + lint + vite + notices）通过；控制台镜像 `0.2.0-dev.14` 重建成功（镜像内 `npm run build` 同样过 lint 门禁）；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（资产 3 行）；`node --test tests/*.test.mjs` 134 项（132 通过、1 跳过、1 项为宿主机缺 openpyxl 的既存失败）；`node tools/check-docs.mjs`、`git diff --check` 通过 |
 
 **基线只减不增**：修掉违规时把 `package.json` 里的 `--max-warnings` 同步下调；任一阶段（P1 路由、P2 类型化、P4 拆分）完成后必须下调该数字，最终目标是 0。
+
+### 14.3 P1（vue-router + 页面层）：已完成 2026-09-17
+
+| 项 | 结果 |
+|---|---|
+| 依赖 | `vue-router 4.6.4`（精确锁定；选 4.x 而非 5.x，因为 5.x 的 peer 里带 `pinia`/`@pinia/colada`/`vite` 等额外约束，对本项目没有必要） |
+| 路由 | `src/router/routes.ts`（路由表 + `meta{title,menu,public,roles}`，类型通过 `declare module 'vue-router'` 扩展）、`src/router/index.ts`（`createWebHistory` + 守卫） |
+| 守卫 | 首次导航前先跑 `bootstrapSession()`（否则硬刷新会把已登录用户弹回登录页），再判登录态、`meta.roles`；未登录访问受保护路径会带 `redirect` 回登录页 |
+| 布局 | `src/layouts/AppLayout.vue`（侧边栏**由路由表派生**、页头标题取 `route.meta.title`、项目切换弹窗）、`src/layouts/BlankLayout.vue`（登录外壳） |
+| 页面层 | 现 13 个根组件用 `git mv` 迁入 `views/<领域>/`：`overview/OverviewView`、`ingestion/{IngestionView,ChannelWizard,SqlDefinitionPanel,DeliveryPanel,OperationBar}`、`assets/{AssetsView,AssetPicker,DeliveryLedger}`、`models/ModelsView`、`datasets/DatasetsView`、`runs/RunsView`、`settings/SettingsView`；新增 `views/session/LoginView.vue`、`views/NotFoundView.vue` |
+| 清理 | 删除 5 个 0 引用的旧 `views/*.vue` 与仅被它们使用的 `tabs.ts`（其内容属已废弃的 token 客户端那一代） |
+| 入口 | `App.vue` 只剩 `NConfigProvider` + `RouterView`；`main.ts` 装路由；会话/项目状态暂存 `src/stores/session.ts`（P2 拆成 Pinia） |
+| 别名与静态服务 | 启用 `@/`（vite `resolve.alias` + tsconfig `paths`）；`base` 改为 `/`；`server.mjs` 增加 SPA 回退（**无扩展名**的未知路径返回外壳，带扩展名的仍 404），`tests/console-server.test.mjs` 补断言 |
+| 许可 | vue-router 的运行时依赖 `@vue/devtools-api@6.6.4` 声明 MIT 但发布包不含许可文件；按既有做法新增 `licenses/devtools-api-MIT.txt` 补件并登记到 `scripts/notices.mjs`（`npm run licenses` 仍 PASS，通知打包 48 个运行时依赖） |
+| 验证 | `npm run build`（typecheck + format:check + lint + vite + notices）通过；lint 警告 **295**（316 → 296 → 295，基线随之下调）；`node --test tests/*.test.mjs` 134 项（132 通过、1 跳过、1 项既存 openpyxl 失败）；控制台镜像 `0.2.0-dev.15` 重建；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS，并新增三条断言：**深链 `/assets` 直接打开且刷新停在原页**、**浏览器后退回到上一页**、**未知路径渲染 404 页而不是白屏**（探针实测 `/assets`、`/models`、`/no-such-page` 均按预期渲染，无页面错误） |
+
+本阶段的两处有意偏差与欠账：
+
+1. 平台管理员**没有项目**时，原实现会直接把"项目与设置"页当作落地页；现在改为一张明确的引导卡片（"还没有可用的项目" + 选择项目按钮），设置页仍从菜单可达。
+2. 视图仍在通过 `AppLayout` 的 `pageProps` 计算属性收 props（保持原契约）；P2 建 Pinia 后改为视图直接读 store，届时删除这个垫片。
+3. 角色拒绝路径（如 VIEWER 直接访问 `/models`）未放进浏览器验收（需要第二个 VIEWER 账号），改由 P5 的路由守卫单元测试覆盖；浏览器验收只覆盖了"菜单按角色隐藏"与 404。
