@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { NAlert, NButton, NCard, NDataTable, NSpace, NTag } from 'naive-ui';
 import { api, type Page } from '@/api';
-const props = defineProps<{ project: number }>();
-const emit = defineEmits<{ navigate: [string] }>();
+import { useRouter } from 'vue-router';
+import { useProjectStore } from '@/stores/project';
+const router = useRouter();
+const project = useProjectStore();
+const projectId = computed(() => project.selected?.id ?? 0);
 const error = ref(''),
   incidents = ref<Record<string, any>[]>([]),
   datasets = ref<Record<string, any>[]>([]),
@@ -15,13 +18,13 @@ async function load() {
   const current = ++generation;
   try {
     const [sources, data, issues] = await Promise.all([
-      api<Page<Record<string, any>>>(`/warehouse/catalog/projects/${props.project}/sources?limit=1`),
-      api<Page<Record<string, any>>>(`/warehouse/catalog/projects/${props.project}/datasets?limit=5`),
-      api<Page<Record<string, any>>>(`/warehouse/projects/${props.project}/incidents?state=OPEN&limit=5`),
+      api<Page<Record<string, any>>>(`/warehouse/catalog/projects/${projectId.value}/sources?limit=1`),
+      api<Page<Record<string, any>>>(`/warehouse/catalog/projects/${projectId.value}/datasets?limit=5`),
+      api<Page<Record<string, any>>>(`/warehouse/projects/${projectId.value}/incidents?state=OPEN&limit=5`),
     ]);
     const descriptions = await Promise.all(
       data.items.map((d) =>
-        api<Record<string, any>>(`/warehouse/projects/${props.project}/datasets/${d.id}/description`),
+        api<Record<string, any>>(`/warehouse/projects/${projectId.value}/datasets/${d.id}/description`),
       ),
     );
     if (current === generation) {
@@ -44,7 +47,7 @@ const names: Record<string, string> = {
   UNKNOWN: '未知',
 };
 watch(
-  () => props.project,
+  () => projectId.value,
   () => void load(),
 );
 onMounted(() => void load());
@@ -55,15 +58,15 @@ onMounted(() => void load());
     <n-card title="统一接入"
       ><h2>{{ sourceCount }} 条采集来源</h2>
       <p>业务系统、环境、连接与每日交付。</p>
-      <n-button @click="emit('navigate', 'systems')">管理接入</n-button></n-card
+      <n-button @click="router.push('/systems')">管理接入</n-button></n-card
     ><n-card title="数据服务"
       ><h2>{{ datasetCount }} 个数据集</h2>
       <p>固定发布版本、数据新鲜度与行列授权。</p>
-      <n-button @click="emit('navigate', 'datasets')">查看数据服务</n-button></n-card
+      <n-button @click="router.push('/datasets')">查看数据服务</n-button></n-card
     ><n-card title="待处理异常"
       ><h2>{{ incidentCount }} 项</h2>
       <p>确认处理责任，跟踪实际恢复。</p>
-      <n-button @click="emit('navigate', 'runs')">进入运行中心</n-button></n-card
+      <n-button @click="router.push('/runs')">进入运行中心</n-button></n-card
     >
   </section>
   <n-card title="数据集状态（前 5 项）" class="gap"

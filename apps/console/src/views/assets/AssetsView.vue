@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, ref, watch } from 'vue';
+import { computed, h, ref, watch } from 'vue';
 import {
   NAlert,
   NButton,
@@ -14,7 +14,9 @@ import {
   NTag,
 } from 'naive-ui';
 import { api, type Page } from '@/api';
-const props = defineProps<{ project: number }>();
+import { useProjectStore } from '@/stores/project';
+const project = useProjectStore();
+const projectId = computed(() => project.selected?.id ?? 0);
 interface Asset {
   id: string;
   source_code: string;
@@ -54,7 +56,7 @@ async function load() {
   error.value = '';
   try {
     const result = await api<Page<Asset>>(
-      `/warehouse/catalog/projects/${props.project}/assets?q=${encodeURIComponent(q.value)}&limit=25&offset=${(page.value - 1) * 25}`,
+      `/warehouse/catalog/projects/${projectId.value}/assets?q=${encodeURIComponent(q.value)}&limit=25&offset=${(page.value - 1) * 25}`,
     );
     if (current === generation) {
       rows.value = result.items;
@@ -68,14 +70,14 @@ async function load() {
 }
 async function inspect(row: Asset) {
   try {
-    detail.value = await api(`/warehouse/projects/${props.project}/assets/${row.id}`);
+    detail.value = await api(`/warehouse/projects/${projectId.value}/assets/${row.id}`);
     show.value = true;
   } catch (e) {
     error.value = (e as Error).message;
   }
 }
 watch(
-  () => props.project,
+  () => projectId.value,
   () => {
     page.value = 1;
     detail.value = null;

@@ -3,8 +3,11 @@ import { ref } from 'vue';
 import { NAlert, NButton, NCard, NFormItem, NInput } from 'naive-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { api, login } from '@/api';
-import { identify, session } from '@/stores/session';
+import { useProjectStore } from '@/stores/project';
+import { useSessionStore } from '@/stores/session';
 
+const session = useSessionStore();
+const project = useProjectStore();
 const route = useRoute();
 const router = useRouter();
 const username = ref('');
@@ -48,11 +51,9 @@ async function submit() {
       activate.value = false;
       status.value = '密码已设置，请用新密码登录。';
     } else {
-      session.project = null;
-      session.projectPage = 1;
-      session.projectSearch = '';
+      project.reset();
       await login(username.value, password.value);
-      await identify();
+      await session.identify();
       const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/overview';
       await router.push(redirect);
     }

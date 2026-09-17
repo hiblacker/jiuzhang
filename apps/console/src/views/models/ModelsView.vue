@@ -16,10 +16,15 @@ import {
   NTag,
 } from 'naive-ui';
 import { api, type Page } from '@/api';
+import { usePermissionStore } from '@/stores/permission';
+import { useProjectStore } from '@/stores/project';
 import type { PickedAsset } from '@/views/assets/AssetPicker.vue';
 const RefreshPanel = defineAsyncComponent(() => import('@/views/assets/DeliveryLedger.vue'));
 const AssetPicker = defineAsyncComponent(() => import('@/views/assets/AssetPicker.vue'));
-const props = defineProps<{ project: number; canManage: boolean }>();
+const permission = usePermissionStore();
+const project = useProjectStore();
+const projectId = computed(() => project.selected?.id ?? 0);
+const canManage = computed(() => permission.canManage);
 interface Dataset {
   id: number;
   code: string;
@@ -141,7 +146,7 @@ const buildColumns = [
           },
           () => '质量与依赖',
         ),
-        ...(r.state === 'READY' && props.canManage
+        ...(r.state === 'READY' && canManage.value
           ? [
               h(
                 NButton,
@@ -175,7 +180,7 @@ async function load() {
   error.value = '';
   try {
     const result = await api<Page<Dataset>>(
-      `/warehouse/catalog/projects/${props.project}/models?q=${encodeURIComponent(q.value)}&limit=25&offset=${(page.value - 1) * 25}`,
+      `/warehouse/catalog/projects/${projectId.value}/models?q=${encodeURIComponent(q.value)}&limit=25&offset=${(page.value - 1) * 25}`,
     );
     if (current === generation) {
       rows.value = result.items;
@@ -187,7 +192,7 @@ async function load() {
     if (current === generation) busy.value = false;
   }
 }
-const route = () => `/warehouse/projects/${props.project}/datasets/${selected.value?.id}`;
+const route = () => `/warehouse/projects/${projectId.value}/datasets/${selected.value?.id}`;
 async function inspect(row: Dataset) {
   selected.value = row;
   bindings.value = {};
@@ -213,7 +218,7 @@ async function refresh() {
 }
 async function loadPackages() {
   const result = await api<Page<Package>>(
-    `/warehouse/projects/${props.project}/model-packages?limit=25&offset=${(packagePage.value - 1) * 25}`,
+    `/warehouse/projects/${projectId.value}/model-packages?limit=25&offset=${(packagePage.value - 1) * 25}`,
   );
   packages.value = result.items;
   packageTotal.value = result.total;
@@ -222,7 +227,7 @@ async function openImport() {
   busy.value = true;
   error.value = '';
   try {
-    repositories.value = await api(`/warehouse/projects/${props.project}/model-repositories`);
+    repositories.value = await api(`/warehouse/projects/${projectId.value}/model-repositories`);
     repository.value = repositories.value[0]?.code || null;
     packagePage.value = 1;
     await loadPackages();
@@ -237,7 +242,7 @@ async function importPackage() {
   busy.value = true;
   error.value = '';
   try {
-    await api(`/warehouse/projects/${props.project}/model-packages`, {
+    await api(`/warehouse/projects/${projectId.value}/model-packages`, {
       repository: repository.value,
       projectPath: projectPath.value,
       revision: gitRef.value,
@@ -258,7 +263,7 @@ async function saveModel() {
   busy.value = true;
   error.value = '';
   try {
-    const result = await api<{ id: number; version: number }>(`/warehouse/projects/${props.project}/models`, {
+    const result = await api<{ id: number; version: number }>(`/warehouse/projects/${projectId.value}/models`, {
       code: modelCode.value,
       name: modelName.value,
       expectedVersion: selected.value?.active_model_version || 0,
@@ -328,7 +333,7 @@ watch(packagePage, () => loadPackages().catch((e) => (error.value = e.message)))
 watch(version, () => (bindings.value = {}));
 watch(page, () => void load());
 watch(
-  () => props.project,
+  () => projectId.value,
   () => {
     selected.value = null;
     creating.value = false;
@@ -406,7 +411,7 @@ watch(
       <p class="muted">展示最近 200 次构建。每次构建和发布保留固定模型、输入与质量结果。</p>
       <RefreshPanel
         v-if="version && contract"
-        :project="project"
+        :project="projectId"
         :dataset="selected.id"
         :model-version="version"
         :inputs="contract.inputs"
@@ -469,7 +474,7 @@ watch(
   >
   <n-modal v-model:show="picker" preset="card" title="选择完整资产版本" style="width: min(1080px, 96vw)"
     ><AssetPicker
-      :project="project"
+      :project="projectId"
       :source="creating ? undefined : wanted?.sourceCode"
       :object="creating ? undefined : wanted?.objectName"
       @select="choose"

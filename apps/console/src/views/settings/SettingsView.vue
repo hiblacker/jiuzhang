@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, reactive, ref, watch } from 'vue';
+import { computed, h, reactive, ref, watch } from 'vue';
 import {
   NAlert,
   NButton,
@@ -15,8 +15,16 @@ import {
   NTabs,
 } from 'naive-ui';
 import { api } from '@/api';
-const props = defineProps<{ project: number | null; canManage: boolean; admin: boolean; identity: string }>();
-const emit = defineEmits<{ projectsChanged: [] }>();
+import { usePermissionStore } from '@/stores/permission';
+import { useProjectStore } from '@/stores/project';
+import { useSessionStore } from '@/stores/session';
+const session = useSessionStore();
+const permission = usePermissionStore();
+const project = useProjectStore();
+const projectId = computed(() => project.selected?.id ?? 0);
+const canManage = computed(() => permission.canManage);
+const admin = computed(() => session.isAdmin);
+const identity = computed(() => session.identity?.identity ?? '');
 const error = ref(''),
   busy = ref(false),
   members = ref<Record<string, any>[]>([]),
@@ -77,7 +85,7 @@ const memberColumns = [
           },
           () => '调整角色',
         ),
-        ...(props.admin
+        ...(admin.value
           ? [
               h(NButton, { size: 'small', onClick: () => reset(r.identity_id) }, () => '重置密码'),
               h(NButton, { size: 'small', onClick: () => revokeSession(r.identity_id) }, () => '撤销会话'),
@@ -112,15 +120,15 @@ async function action(work: () => Promise<void>) {
   }
 }
 async function load() {
-  if (props.project && props.canManage)
+  if (projectId.value && canManage.value)
     [members.value, services.value] = await Promise.all([
-      api<Record<string, any>[]>(`/warehouse/projects/${props.project}/members`),
-      api<Record<string, any>[]>(`/warehouse/projects/${props.project}/service-identities`),
+      api<Record<string, any>[]>(`/warehouse/projects/${projectId.value}/members`),
+      api<Record<string, any>[]>(`/warehouse/projects/${projectId.value}/service-identities`),
     ]);
-  if (props.admin) {
+  if (admin.value) {
     environments.value = await api('/warehouse/environments');
     workers.value = await api('/warehouse/workers');
-    if (props.project) resources.value = await api(`/warehouse/projects/${props.project}/resources`);
+    if (projectId.value) resources.value = await api(`/warehouse/projects/${projectId.value}/resources`);
   }
 }
 async function copySecret() {
@@ -139,7 +147,7 @@ async function invite() {
   await action(async () => {
     const result = await api<{ invitation: string }>('/warehouse/accounts/invite', {
       ...member,
-      projectId: props.project,
+      projectId: projectId.value,
     });
     reveal('一次性开户邀请（24 小时有效）', result.invitation);
     await load();
@@ -147,7 +155,7 @@ async function invite() {
 }
 async function saveMember() {
   await action(async () => {
-    await api(`/warehouse/projects/${props.project}/members`, { identity: member.identity, role: member.role });
+    await api(`/warehouse/projects/${projectId.value}/members`, { identity: member.identity, role: member.role });
     await load();
   });
 }
@@ -160,12 +168,12 @@ async function reset(id: string) {
 async function revokeSession(id: string) {
   await action(async () => {
     await api(`/warehouse/accounts/${id}/revoke-sessions`, {});
-    if (id === props.identity) window.dispatchEvent(new Event('session-expired'));
+    if (id === identity.value) window.dispatchEvent(new Event('session-expired'));
   });
 }
 async function createService() {
   await action(async () => {
-    const result = await api<{ token: string }>(`/warehouse/projects/${props.project}/service-identities`, service);
+    const result = await api<{ token: string }>(`/warehouse/projects/${projectId.value}/service-identities`, service);
     reveal('服务令牌，仅此处显示', result.token);
     await load();
   });
@@ -173,7 +181,7 @@ async function createService() {
 async function rotate(row: Record<string, any>) {
   await action(async () => {
     const result = await api<{ token: string }>(
-      `/warehouse/projects/${props.project}/service-identities/${row.identity_id}/rotate`,
+      `/warehouse/projects/${projectId.value}/service-identities/${row.identity_id}/rotate`,
       { expectedRevision: row.token_revision },
     );
     reveal('新服务令牌，旧令牌已失效', result.token);
@@ -182,7 +190,7 @@ async function rotate(row: Record<string, any>) {
 }
 async function revoke(row: Record<string, any>) {
   await action(async () => {
-    await api(`/warehouse/projects/${props.project}/service-identities/${row.identity_id}/revoke`, {
+    await api(`/warehouse/projects/${projectId.value}/service-identities/${row.identity_id}/revoke`, {
       expectedRevision: row.token_revision,
     });
     await load();
@@ -192,7 +200,7 @@ async function createProject() {
   await action(async () => {
     await api('/warehouse/projects', projectForm);
     Object.assign(projectForm, { code: '', name: '', description: '' });
-    emit('projectsChanged');
+    await session.identify();
   });
 }
 async function saveEnvironment() {
@@ -210,7 +218,7 @@ async function saveEnvironment() {
 async function saveResource() {
   await action(async () => {
     const result = await api<{ id: number }>('/warehouse/resources', resource);
-    await api(`/warehouse/resources/${result.id}/grant`, { projectId: props.project });
+    await api(`/warehouse/resources/${result.id}/grant`, { projectId: projectId.value });
     if (resource.kind === 'MYSQL_SNAPSHOT') {
       await api(`/warehouse/resources/${result.id}/datasource`, {
         datasourceType: datasource.datasourceType,
@@ -279,11 +287,11 @@ async function saveRepository() {
         .map((v) => v.trim())
         .filter(Boolean),
     });
-    await api(`/warehouse/model-repositories/${repository.code}/grant`, { projectId: props.project });
+    await api(`/warehouse/model-repositories/${repository.code}/grant`, { projectId: projectId.value });
   });
 }
 watch(
-  () => [props.project, props.canManage],
+  () => [projectId.value, canManage.value],
   () => {
     members.value = [];
     services.value = [];

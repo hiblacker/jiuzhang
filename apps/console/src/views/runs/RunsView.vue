@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, ref, watch } from 'vue';
+import { computed, h, ref, watch } from 'vue';
 import {
   NAlert,
   NButton,
@@ -15,7 +15,16 @@ import {
   NTabs,
 } from 'naive-ui';
 import { api, type Page } from '@/api';
-const props = defineProps<{ project: number; canOperate: boolean; canManage: boolean; identity: string }>();
+import { usePermissionStore } from '@/stores/permission';
+import { useProjectStore } from '@/stores/project';
+import { useSessionStore } from '@/stores/session';
+const permission = usePermissionStore();
+const project = useProjectStore();
+const session = useSessionStore();
+const projectId = computed(() => project.selected?.id ?? 0);
+const canManage = computed(() => permission.canManage);
+const canOperate = computed(() => permission.canOperate);
+const identity = computed(() => session.identity?.identity ?? '');
 const tab = ref('runs'),
   q = ref(''),
   state = ref(''),
@@ -27,7 +36,7 @@ const tab = ref('runs'),
   detail = ref<Record<string, any> | null>(null),
   visible = ref(false),
   reason = ref(''),
-  owner = ref(props.identity);
+  owner = ref(identity.value);
 const systemCode = ref(''),
   instanceCode = ref(''),
   connectionCode = ref(''),
@@ -76,10 +85,10 @@ async function load() {
     const pagination = `limit=25&offset=${(page.value - 1) * 25}`;
     const route =
       tab.value === 'runs'
-        ? `/warehouse/catalog/projects/${props.project}/runs?q=${encodeURIComponent(q.value)}&systemCode=${encodeURIComponent(systemCode.value)}&instanceCode=${encodeURIComponent(instanceCode.value)}&connectionCode=${encodeURIComponent(connectionCode.value)}&sourceCode=${encodeURIComponent(sourceCode.value)}&state=${state.value}&${pagination}`
+        ? `/warehouse/catalog/projects/${projectId.value}/runs?q=${encodeURIComponent(q.value)}&systemCode=${encodeURIComponent(systemCode.value)}&instanceCode=${encodeURIComponent(instanceCode.value)}&connectionCode=${encodeURIComponent(connectionCode.value)}&sourceCode=${encodeURIComponent(sourceCode.value)}&state=${state.value}&${pagination}`
         : tab.value === 'audit'
-          ? `/warehouse/projects/${props.project}/query-audit?${pagination}`
-          : `/warehouse/projects/${props.project}/incidents?q=${encodeURIComponent(q.value)}&state=${state.value}&${pagination}`;
+          ? `/warehouse/projects/${projectId.value}/query-audit?${pagination}`
+          : `/warehouse/projects/${projectId.value}/incidents?q=${encodeURIComponent(q.value)}&state=${state.value}&${pagination}`;
     const result = await api<Page<Record<string, any>>>(route);
     if (current === generation) {
       rows.value = result.items;
@@ -95,10 +104,10 @@ async function inspect(row: Record<string, any>) {
   error.value = '';
   try {
     detail.value = await api(
-      `/warehouse/projects/${props.project}/${tab.value === 'runs' ? 'runs' : 'incidents'}/${row.id}`,
+      `/warehouse/projects/${projectId.value}/${tab.value === 'runs' ? 'runs' : 'incidents'}/${row.id}`,
     );
     reason.value = '';
-    owner.value = detail.value?.incident?.owner_identity || props.identity;
+    owner.value = detail.value?.incident?.owner_identity || identity.value;
     visible.value = true;
   } catch (e) {
     error.value = (e as Error).message;
@@ -108,7 +117,7 @@ async function operate(action: string) {
   busy.value = true;
   error.value = '';
   try {
-    await api(`/warehouse/projects/${props.project}/runs/${detail.value?.id}/${action}`, { reason: reason.value });
+    await api(`/warehouse/projects/${projectId.value}/runs/${detail.value?.id}/${action}`, { reason: reason.value });
     visible.value = false;
     await load();
   } catch (e) {
@@ -121,7 +130,7 @@ async function acknowledge() {
   busy.value = true;
   error.value = '';
   try {
-    await api(`/warehouse/projects/${props.project}/incidents/${detail.value?.incident.id}/acknowledge`, {
+    await api(`/warehouse/projects/${projectId.value}/incidents/${detail.value?.incident.id}/acknowledge`, {
       expectedRevision: detail.value?.incident.revision,
       ownerIdentity: owner.value,
       reason: reason.value,
@@ -138,7 +147,7 @@ async function reconcile() {
   busy.value = true;
   error.value = '';
   try {
-    await api(`/warehouse/projects/${props.project}/incidents/reconcile`, {});
+    await api(`/warehouse/projects/${projectId.value}/incidents/reconcile`, {});
     await load();
   } catch (e) {
     error.value = (e as Error).message;
@@ -147,7 +156,7 @@ async function reconcile() {
   }
 }
 watch(
-  () => [props.project, tab.value],
+  () => [projectId.value, tab.value],
   () => {
     page.value = 1;
     state.value = '';

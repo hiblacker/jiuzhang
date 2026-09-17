@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineAsyncComponent, h, onMounted, reactive, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, h, onMounted, reactive, ref, watch } from 'vue';
 import {
   NAlert,
   NButton,
@@ -18,7 +18,13 @@ import {
   type DataTableColumns,
 } from 'naive-ui';
 import { api, type Page } from '@/api';
-const props = defineProps<{ project: number; canManage: boolean; canIngest: boolean }>();
+import { usePermissionStore } from '@/stores/permission';
+import { useProjectStore } from '@/stores/project';
+const permission = usePermissionStore();
+const project = useProjectStore();
+const projectId = computed(() => project.selected?.id ?? 0);
+const canManage = computed(() => permission.canManage);
+const canIngest = computed(() => permission.canIngest);
 const OperationBar = defineAsyncComponent(() => import('./OperationBar.vue'));
 const IngestionManager = defineAsyncComponent(() => import('./ChannelWizard.vue'));
 interface System {
@@ -112,7 +118,7 @@ async function load() {
   error.value = '';
   try {
     const result = await api<Page<System>>(
-      `/warehouse/projects/${props.project}/systems?q=${encodeURIComponent(q.value)}&environment=${encodeURIComponent(environment.value)}&lifecycle=${lifecycle.value}&limit=25&offset=${(page.value - 1) * 25}`,
+      `/warehouse/projects/${projectId.value}/systems?q=${encodeURIComponent(q.value)}&environment=${encodeURIComponent(environment.value)}&lifecycle=${lifecycle.value}&limit=25&offset=${(page.value - 1) * 25}`,
     );
     if (current === generation) {
       rows.value = result.items;
@@ -128,7 +134,7 @@ async function detail(row: System) {
   error.value = '';
   try {
     const result = await api<{ system: System; instances: Instance[] }>(
-      `/warehouse/projects/${props.project}/systems/${row.id}`,
+      `/warehouse/projects/${projectId.value}/systems/${row.id}`,
     );
     selected.value = result.system;
     instances.value = result.instances;
@@ -158,7 +164,7 @@ async function save() {
   error.value = '';
   try {
     const result = await api<System>(
-      `/warehouse/projects/${props.project}/systems${editing.value ? '/' + selected.value?.id : ''}`,
+      `/warehouse/projects/${projectId.value}/systems${editing.value ? '/' + selected.value?.id : ''}`,
       form,
     );
     modal.value = false;
@@ -175,7 +181,7 @@ async function saveInstance() {
   busy.value = true;
   error.value = '';
   try {
-    await api(`/warehouse/projects/${props.project}/systems/${selected.value.id}/instances`, instanceForm);
+    await api(`/warehouse/projects/${projectId.value}/systems/${selected.value.id}/instances`, instanceForm);
     instanceModal.value = false;
     await detail(selected.value);
     await load();
@@ -186,7 +192,7 @@ async function saveInstance() {
   }
 }
 watch(
-  () => props.project,
+  () => projectId.value,
   () => {
     selected.value = null;
     page.value = 1;
@@ -239,7 +245,7 @@ onMounted(() => void load());
     >
     <OperationBar
       v-if="canManage"
-      :project="project"
+      :project="projectId"
       :targets="[{ type: 'system', id: selected.id, expectedVersion: selected.revision }]"
       @changed="
         detail(selected);
@@ -275,7 +281,7 @@ onMounted(() => void load());
         :columns="instanceColumns"
         :data="instances" /><OperationBar
         v-if="canManage"
-        :project="project"
+        :project="projectId"
         :targets="
           instances
             .filter((i) => checkedInstances.includes(i.id))
@@ -288,7 +294,7 @@ onMounted(() => void load());
     /></n-card>
     <IngestionManager
       v-if="canIngest"
-      :project="project"
+      :project="projectId"
       :instances="instances"
       :can-manage="canIngest"
       :can-activate="canManage"

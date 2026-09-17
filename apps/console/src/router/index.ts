@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { bootstrapSession, role, session } from '@/stores/session';
+import { usePermissionStore } from '@/stores/permission';
+import { useSessionStore } from '@/stores/session';
 import { routes } from './routes';
 
 export const router = createRouter({
@@ -9,14 +10,15 @@ export const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
+  const session = useSessionStore();
   // The first navigation waits for the session bootstrap: a hard refresh must not bounce a
   // signed-in user to the login page before the cookie has been checked.
-  if (!session.ready) await bootstrapSession();
+  if (!session.ready) await session.bootstrap();
   if (to.meta.public) return true;
   if (!session.identity) {
     return { name: 'login', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } };
   }
   const allowed = to.meta.roles;
-  if (allowed && !allowed.includes(role.value ?? '')) return { name: 'overview' };
+  if (allowed && !allowed.includes(usePermissionStore().role ?? '')) return { name: 'overview' };
   return true;
 });

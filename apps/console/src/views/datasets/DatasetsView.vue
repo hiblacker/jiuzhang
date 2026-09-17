@@ -15,7 +15,12 @@ import {
   NTag,
 } from 'naive-ui';
 import { api, exportCsv, type Page } from '@/api';
-const props = defineProps<{ project: number; canManage: boolean }>();
+import { usePermissionStore } from '@/stores/permission';
+import { useProjectStore } from '@/stores/project';
+const permission = usePermissionStore();
+const project = useProjectStore();
+const projectId = computed(() => project.selected?.id ?? 0);
+const canManage = computed(() => permission.canManage);
 interface Dataset {
   id: number;
   name: string;
@@ -47,7 +52,7 @@ const filterField = ref<string | null>(null),
   policyIdentity = ref<string | null>(null),
   policyColumns = ref<string[]>([]),
   rowConditions = ref<{ field: string | null; value: string; isNull: boolean }[]>([]);
-const route = () => `/warehouse/projects/${props.project}/datasets/${selected.value?.id}`;
+const route = () => `/warehouse/projects/${projectId.value}/datasets/${selected.value?.id}`;
 const fields = computed(() => description.value?.fields || []);
 const fieldOptions = computed(() =>
   fields.value.map((f: any) => ({ label: `${f.description || f.name} (${f.name})`, value: f.name })),
@@ -75,7 +80,7 @@ async function load() {
   error.value = '';
   try {
     const value = await api<Page<Dataset>>(
-      `/warehouse/catalog/projects/${props.project}/datasets?q=${encodeURIComponent(q.value)}&limit=25&offset=${(page.value - 1) * 25}`,
+      `/warehouse/catalog/projects/${projectId.value}/datasets?q=${encodeURIComponent(q.value)}&limit=25&offset=${(page.value - 1) * 25}`,
     );
     if (current === generation) {
       rows.value = value.items;
@@ -158,7 +163,7 @@ async function grant() {
   error.value = '';
   try {
     [members.value, policies.value] = await Promise.all([
-      api<typeof members.value>(`/warehouse/projects/${props.project}/members`),
+      api<typeof members.value>(`/warehouse/projects/${projectId.value}/members`),
       api<Record<string, any>[]>(route() + '/policies'),
     ]);
     policyIdentity.value = null;
@@ -208,7 +213,7 @@ watch(policyIdentity, () => {
 });
 const example = computed(
   () =>
-    `POST /api/v1/warehouse/projects/${props.project}/datasets/${selected.value?.id}/query\nAuthorization: Bearer <服务令牌>\nContent-Type: application/json\n\n${JSON.stringify(request(), null, 2)}`,
+    `POST /api/v1/warehouse/projects/${projectId.value}/datasets/${selected.value?.id}/query\nAuthorization: Bearer <服务令牌>\nContent-Type: application/json\n\n${JSON.stringify(request(), null, 2)}`,
 );
 let descriptionGeneration = 0;
 watch(release, async (value) => {
@@ -233,7 +238,7 @@ watch(release, async (value) => {
 });
 watch(page, () => void load());
 watch(
-  () => props.project,
+  () => projectId.value,
   () => {
     selected.value = null;
     page.value = 1;
