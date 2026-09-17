@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, h, onMounted, reactive, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, h, reactive, ref, watch } from 'vue';
 import {
   NButton,
   NCard,
@@ -15,7 +15,8 @@ import {
   NTag,
   type DataTableColumns,
 } from 'naive-ui';
-import { api, type Page } from '@/api';
+import { api } from '@/api';
+import { usePagedQuery } from '@/composables/usePagedQuery';
 import { usePermissionStore } from '@/stores/permission';
 import { useProjectStore } from '@/stores/project';
 import AppPager from '@/components/AppPager.vue';
@@ -50,16 +51,25 @@ interface Instance {
   purpose: string;
   lifecycle: string;
 }
-const rows = ref<System[]>([]),
-  selected = ref<System | null>(null),
+const selected = ref<System | null>(null),
   instances = ref<Instance[]>([]);
-const q = ref(''),
-  environment = ref(''),
-  lifecycle = ref(''),
-  page = ref(1),
-  total = ref(0),
-  busy = ref(false),
-  error = ref(''),
+const environment = ref(''),
+  lifecycle = ref('');
+const {
+  rows,
+  query: q,
+  page,
+  total,
+  loading: busy,
+  listError,
+  load,
+  search,
+} = usePagedQuery<System>({
+  route: ({ page: current, query, limit }) =>
+    `/warehouse/projects/${projectId.value}/systems?q=${encodeURIComponent(query)}&environment=${encodeURIComponent(environment.value)}&lifecycle=${lifecycle.value}&limit=${limit}&offset=${(current - 1) * limit}`,
+  resetKey: () => projectId.value,
+});
+const error = ref(''),
   modal = ref(false),
   instanceModal = ref(false);
 const form = reactive({
@@ -111,25 +121,6 @@ const instanceColumns: DataTableColumns<Instance> = [
   { title: '环境', key: 'environment' },
   { title: '用途', key: 'purpose' },
 ];
-let generation = 0;
-async function load() {
-  const current = ++generation;
-  busy.value = true;
-  error.value = '';
-  try {
-    const result = await api<Page<System>>(
-      `/warehouse/projects/${projectId.value}/systems?q=${encodeURIComponent(q.value)}&environment=${encodeURIComponent(environment.value)}&lifecycle=${lifecycle.value}&limit=25&offset=${(page.value - 1) * 25}`,
-    );
-    if (current === generation) {
-      rows.value = result.items;
-      total.value = result.total;
-    }
-  } catch (e) {
-    if (current === generation) error.value = (e as Error).message;
-  } finally {
-    if (current === generation) busy.value = false;
-  }
-}
 async function detail(row: System) {
   error.value = '';
   try {
@@ -195,13 +186,10 @@ watch(
   () => projectId.value,
   () => {
     selected.value = null;
-    page.value = 1;
-    void load();
   },
 );
-watch(page, () => void load());
-onMounted(() => void load());
 useErrorToast(error);
+useErrorToast(listError);
 </script>
 <template>
   <n-card v-if="!selected" title="系统目录">
@@ -212,10 +200,7 @@ useErrorToast(error);
         v-model:value="q"
         placeholder="系统、编码、组织或责任人"
         style="width: 270px"
-        @keyup.enter="
-          page = 1;
-          load();
-        "
+        @keyup.enter="search()"
       /><n-select
         v-model:value="environment"
         :options="[{ label: '全部环境', value: '' }, ...environmentOptions]"
@@ -227,13 +212,7 @@ useErrorToast(error);
           ...Object.entries(lifecycleNames).map(([value, label]) => ({ value, label })),
         ]"
         style="width: 130px"
-      /><n-button
-        @click="
-          page = 1;
-          load();
-        "
-        >搜索</n-button
-      ></n-space
+      /><n-button @click="search()">搜索</n-button></n-space
     >
     <n-data-table :columns="columns" :data="rows" :loading="busy" :row-key="(row) => row.id" />
     <AppPager v-model:page="page" :item-count="total" />

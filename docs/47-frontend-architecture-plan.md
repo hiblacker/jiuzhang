@@ -519,3 +519,11 @@ const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
 **保留为页内内容的提示**（不是通知，不该消失）：SQL 面板的规则说明与校验问题列表、「按表清单/整表」等策略说明、预检发现的表数量与不支持对象、RunsView 的"确认含义"说明、SettingsView 的资源类型说明。这些是页面内容的一部分，转成 toast 会让用户无法回看。
 
 **验证**：`npm run build` 通过（0 error / 290 warning 不变）；`/assets` 与 `/runs` 实测 **0 个页内 alert**（探针脚本 `work/diagnostics/alert-probe2.mjs`）；`tests/sql-ingestion-ui.mjs` 更新为断言 `.n-message` 中的 `EXTRACTION_MODE_NOT_IMPLEMENTED`，真实浏览器验收 PASS；控制台镜像 `0.2.0-dev.19`；全量测试 144 项（142 通过、1 跳过、1 项既存 openpyxl 失败）。
+
+### 14.10 列表页迁移（继续）：IngestionView 已完成
+
+`views/ingestion/IngestionView.vue` 的"系统列表"改用 `usePagedQuery`：删掉手写的 `generation` 竞态守卫、`load()`、分页与项目切换的 watcher，改由组合式函数统一处理；保留 `load`（动作后原地刷新）与 `search`（回车/搜索按钮回到第一页）两种语义，模板里的内联 `page = 1; load();` 处理器一并改为 `search()`。净效果：该文件少约 20 行重复代码，行为不变。
+
+验证：`npm run build` 通过（0 error / 290 warning）；控制台镜像 `0.2.0-dev.20` 重建；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（该用例正好覆盖"接入管理 → 搜索系统 → 选择连接 → 打开向导 → SQL 面板"整条路径）。
+
+**仍未迁移**：`RunsView`（多 tab，按 tab 切换路由与筛选）、`ModelsView`（数据集与模型包两个列表）、`DatasetsView`（offset 分页 + 导出）、`DeliveryLedger`（两个列表）——它们的契约与当前 `usePagedQuery` 不同，需要先扩展组合式函数（多列表/offset 模式）再迁移。
