@@ -13,7 +13,7 @@ import {
   NSpace,
   NTag,
 } from 'naive-ui';
-import { api } from './api';
+import { api } from '@/api';
 const props = defineProps<{ project: number; instance: number; canManage: boolean }>();
 interface Member {
   sourceId: number;

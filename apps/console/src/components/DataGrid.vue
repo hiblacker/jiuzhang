@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, h } from 'vue';
 import { NButton, NDataTable, NSpace, NTag, type DataTableColumns } from 'naive-ui';
-import { display, type Action, type Column, type Row } from '../types';
+import { display, type Action, type Column, type Row } from '@/types';
 const props = withDefaults(
   defineProps<{
     rows: Row[];

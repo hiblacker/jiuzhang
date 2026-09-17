@@ -31,6 +31,10 @@ test('console serves built assets and forwards scoped auth and browser session s
     assert.match(index.headers.get('content-security-policy'), /frame-ancestors 'none'/);
     const asset = await fetch(base + '/assets/main.js'); assert.equal(asset.status, 200); assert.match(asset.headers.get('content-type'), /javascript/);
     assert.equal((await fetch(base + '/private.txt')).status, 404);
+    const deepLink = await fetch(base + '/systems');
+    assert.equal(deepLink.status, 200); assert.match(await deepLink.text(), /synthetic console/);
+    assert.equal((await fetch(base + '/runs/12')).status, 200);
+    assert.equal((await fetch(base + '/missing.js')).status, 404);
     assert.equal((await fetch(base + '/%2e%2e%5cprivate.txt')).status, 403);
     assert.equal((await fetch(base + '/api/v1/projects', { method: 'DELETE' })).status, 405);
     const query = await fetch(base + '/api/v1/warehouse/projects?scope=1', { method: 'POST', headers: { Authorization: 'Bearer synthetic-only', Cookie: 'synthetic-session=1', 'X-CSRF-TOKEN': 'synthetic-csrf', 'Content-Type': 'application/json' }, body: '{"test":true}' });

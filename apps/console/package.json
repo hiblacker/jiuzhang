@@ -11,7 +11,7 @@
     "typecheck": "vue-tsc --noEmit",
     "check": "npm run typecheck && npm run format:check && npm run lint",
     "build": "npm run typecheck && npm run format:check && npm run lint && vite build && node scripts/notices.mjs",
-    "lint": "eslint src --max-warnings 316",
+    "lint": "eslint src --max-warnings 295",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,css,json}\" vite.config.ts",
     "format:check": "prettier --check \"src/**/*.{ts,vue,css,json}\" vite.config.ts",
@@ -22,7 +22,8 @@
   "dependencies": {
     "lucide-vue-next": "1.0.0",
     "naive-ui": "2.45.3",
-    "vue": "3.5.42"
+    "vue": "3.5.42",
+    "vue-router": "4.6.4"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

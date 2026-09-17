@@ -14,7 +14,7 @@ import {
   NSpace,
   NTag,
 } from 'naive-ui';
-import { api, exportCsv, type Page } from './api';
+import { api, exportCsv, type Page } from '@/api';
 const props = defineProps<{ project: number; canManage: boolean }>();
 interface Dataset {
   id: number;

@@ -1,5 +1,5 @@
 import { computed, onScopeDispose, reactive, ref } from 'vue';
-import type { Project as TokenProject } from './types';
+import type { Project as TokenProject } from '@/types';
 import { ApiError as TokenApiError, createTransport } from './transport';
 
 let csrf: { headerName: string; token: string } | null = null;

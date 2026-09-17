@@ -43,12 +43,20 @@ return http.createServer(async (request, response) => {
     if (relative.includes('\\') || relative.includes('\0')) { response.writeHead(403); response.end(); return; }
     const file = path.resolve(root, '.' + (relative === '/' ? '/index.html' : relative));
     if (!file.startsWith(root + path.sep) && file !== path.join(root, 'index.html')) { response.writeHead(403); response.end(); return; }
-    const info = await stat(file).catch(() => null);
+    let info = await stat(file).catch(() => null);
+    let serve = file;
+    // Client routes are real paths now, so an unknown path without a file extension gets the
+    // shell (deep links and reloads depend on it). Anything that looks like a file still 404s.
+    if (!info?.isFile() && !path.extname(relative)) {
+      const shell = path.join(root, 'index.html');
+      const shellInfo = await stat(shell).catch(() => null);
+      if (shellInfo?.isFile()) { serve = shell; info = shellInfo; }
+    }
     if (!info?.isFile()) { response.writeHead(404); response.end(); return; }
-    response.setHeader('Content-Type', types[path.extname(file)] || 'application/octet-stream');
+    response.setHeader('Content-Type', types[path.extname(serve)] || 'application/octet-stream');
     response.setHeader('Content-Length', info.size);
     response.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https: http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'self'; object-src 'none'");
-    response.end(request.method === 'HEAD' ? undefined : await readFile(file));
+    response.end(request.method === 'HEAD' ? undefined : await readFile(serve));
   } catch {
     if (!response.headersSent) response.writeHead(502, { 'Content-Type': 'application/json' });
     response.end(JSON.stringify({ code: 'CONSOLE_UPSTREAM_UNAVAILABLE' }));

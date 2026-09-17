@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T11:19:09.708Z",
+  "generatedAt": "2026-09-17T11:25:15.150Z",
   "registry": "https://registry.npmmirror.com",
   "verifiedAgainst": "https://registry.npmjs.org",
   "installationScripts": "disabled",
@@ -1053,6 +1053,17 @@
       "hasInstallScript": false,
       "repository": "git+https://github.com/vuejs/core.git",
       "tarball": "https://registry.npmmirror.com/@vue/compiler-ssr/-/compiler-ssr-3.5.42.tgz"
+    },
+    {
+      "name": "@vue/devtools-api",
+      "version": "6.6.4",
+      "license": "MIT",
+      "integrity": "sha512-sGhTPMuXqZ1rVOk32RylztWkfXTRhuS7vgAKv0zjqk8gbsHkJ7xfFf+jbySxt7tWObEJwyKaHMikV/WGDiQm8g==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/vuejs/vue-devtools.git",
+      "tarball": "https://registry.npmmirror.com/@vue/devtools-api/-/devtools-api-6.6.4.tgz"
     },
     {
       "name": "@vue/language-core",
@@ -2428,6 +2439,17 @@
       "hasInstallScript": false,
       "repository": "git+https://github.com/vuejs/vue-eslint-parser.git",
       "tarball": "https://registry.npmmirror.com/vue-eslint-parser/-/vue-eslint-parser-10.4.1.tgz"
+    },
+    {
+      "name": "vue-router",
+      "version": "4.6.4",
+      "license": "MIT",
+      "integrity": "sha512-Hz9q5sa33Yhduglwz6g9skT8OBPii+4bFn88w6J+J4MfEo4KRRpmiNG/hHHkdbRFlLBOqxN8y8gf2Fb0MTUgVg==",
+      "development": false,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/vuejs/router.git",
+      "tarball": "https://registry.npmmirror.com/vue-router/-/vue-router-4.6.4.tgz"
     },
     {
       "name": "vue-tsc",

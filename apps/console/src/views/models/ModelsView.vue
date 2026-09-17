@@ -15,10 +15,10 @@ import {
   NTabs,
   NTag,
 } from 'naive-ui';
-import { api, type Page } from './api';
-import type { PickedAsset } from './AssetPicker.vue';
-const RefreshPanel = defineAsyncComponent(() => import('./RefreshPanel.vue'));
-const AssetPicker = defineAsyncComponent(() => import('./AssetPicker.vue'));
+import { api, type Page } from '@/api';
+import type { PickedAsset } from '@/views/assets/AssetPicker.vue';
+const RefreshPanel = defineAsyncComponent(() => import('@/views/assets/DeliveryLedger.vue'));
+const AssetPicker = defineAsyncComponent(() => import('@/views/assets/AssetPicker.vue'));
 const props = defineProps<{ project: number; canManage: boolean }>();
 interface Dataset {
   id: number;

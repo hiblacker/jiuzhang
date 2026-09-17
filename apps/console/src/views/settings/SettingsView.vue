@@ -14,7 +14,7 @@ import {
   NTabPane,
   NTabs,
 } from 'naive-ui';
-import { api } from './api';
+import { api } from '@/api';
 const props = defineProps<{ project: number | null; canManage: boolean; admin: boolean; identity: string }>();
 const emit = defineEmits<{ projectsChanged: [] }>();
 const error = ref(''),

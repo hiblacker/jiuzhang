@@ -17,10 +17,10 @@ import {
   NTag,
   type DataTableColumns,
 } from 'naive-ui';
-import { api, type Page } from './api';
+import { api, type Page } from '@/api';
 const props = defineProps<{ project: number; canManage: boolean; canIngest: boolean }>();
 const OperationBar = defineAsyncComponent(() => import('./OperationBar.vue'));
-const IngestionManager = defineAsyncComponent(() => import('./IngestionManager.vue'));
+const IngestionManager = defineAsyncComponent(() => import('./ChannelWizard.vue'));
 interface System {
   max_parallel: number;
   id: number;

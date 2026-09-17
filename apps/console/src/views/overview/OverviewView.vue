@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { NAlert, NButton, NCard, NDataTable, NSpace, NTag } from 'naive-ui';
-import { api, type Page } from './api';
+import { api, type Page } from '@/api';
 const props = defineProps<{ project: number }>();
 const emit = defineEmits<{ navigate: [string] }>();
 const error = ref(''),

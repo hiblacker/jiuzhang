@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { NAlert, NButton, NDataTable, NInput, NModal, NSelect, NSpace } from 'naive-ui';
-import { api } from './api';
+import { api } from '@/api';
 export interface OperationTarget {
   type: 'system' | 'instance' | 'connection' | 'channel';
   id: number;

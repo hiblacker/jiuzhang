@@ -9,6 +9,7 @@ const supplements = new Map([
   ['node_modules/@css-render/plugin-bem@0.15.14', 'css-render-MIT.txt'],
   ['node_modules/@css-render/vue3-ssr@0.15.14', 'css-render-MIT.txt'],
   ['node_modules/vdirs@0.1.8', 'vdirs-MIT.txt'],
+  ['node_modules/@vue/devtools-api@6.6.4', 'devtools-api-MIT.txt'],
 ]);
 const sections = ['Jiuzhang Console - third-party notices\nThis file describes third-party packages only; it does not license the application.'];
 for (const [location, pkg] of Object.entries(lock.packages)) {

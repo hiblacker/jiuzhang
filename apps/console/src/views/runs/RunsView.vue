@@ -14,7 +14,7 @@ import {
   NTabPane,
   NTabs,
 } from 'naive-ui';
-import { api, type Page } from './api';
+import { api, type Page } from '@/api';
 const props = defineProps<{ project: number; canOperate: boolean; canManage: boolean; identity: string }>();
 const tab = ref('runs'),
   q = ref(''),

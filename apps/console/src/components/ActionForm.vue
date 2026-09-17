@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, useId } from 'vue';
 import { NButton, NCheckbox, NForm, NFormItem, NInput, NInputNumber, NSelect, NSpace, NAlert } from 'naive-ui';
-import { type Field, type Row } from '../types';
+import { type Field, type Row } from '@/types';
 const props = defineProps<{ fields: Field[]; initial?: Row; submitLabel?: string; busy?: boolean }>();
 const emit = defineEmits<{ submit: [value: Row] }>();
 const prefix = useId();

@@ -19,7 +19,7 @@ import {
   type DataTableColumns,
   type TreeOption,
 } from 'naive-ui';
-import { api } from './api';
+import { api } from '@/api';
 const props = defineProps<{ project: number; source: number; canActivate: boolean }>();
 const emit = defineEmits<{ ready: [boolean] }>();
 interface Column {

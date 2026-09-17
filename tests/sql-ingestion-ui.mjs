@@ -222,6 +222,19 @@ try {
   assert.equal(asset.row_count, 3, JSON.stringify(asset));
   step('runtime asset registered through the UI-configured plan', {assetId: asset.id, rowCount: asset.row_count});
 
+  // ---- P1 routing: real paths, reload stays, history works, unknown paths explain themselves.
+  await page.goto(`${consoleUrl}/assets`);
+  await page.getByRole('heading', {name: '资产目录', exact: true}).waitFor();
+  await page.reload();
+  await page.getByRole('heading', {name: '资产目录', exact: true}).waitFor();
+  step('deep link opens the page and a reload stays there', {path: '/assets'});
+  await page.goBack();
+  await page.getByRole('heading', {name: '运行中心', exact: true}).waitFor();
+  step('browser back returns to the previous page');
+  await page.goto(`${consoleUrl}/no-such-page`);
+  await page.getByText('这个地址没有对应的页面，可能链接已过期。', {exact: true}).waitFor();
+  step('unknown path renders the not-found page instead of a blank screen');
+
   assert.deepEqual(errors, [], `browser errors: ${errors.join('; ')}`);
   evidence.state = 'PASS';
   evidence.owner = owner;

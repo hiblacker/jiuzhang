@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { h, ref, watch } from 'vue';
 import { NAlert, NButton, NDataTable, NInput, NPagination, NSpace } from 'naive-ui';
-import { api, type Page } from './api';
+import { api, type Page } from '@/api';
 export interface PickedAsset {
   id: string;
   source_code: string;

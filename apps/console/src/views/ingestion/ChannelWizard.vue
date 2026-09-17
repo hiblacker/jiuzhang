@@ -17,7 +17,7 @@ import {
   NTag,
   type DataTableColumns,
 } from 'naive-ui';
-import { api } from './api';
+import { api } from '@/api';
 const props = defineProps<{
   project: number;
   instances: { id: number; name: string; code: string }[];
@@ -26,7 +26,7 @@ const props = defineProps<{
 }>();
 const OperationBar = defineAsyncComponent(() => import('./OperationBar.vue'));
 const DeliveryPanel = defineAsyncComponent(() => import('./DeliveryPanel.vue'));
-const SqlIngestion = defineAsyncComponent(() => import('./SqlIngestion.vue'));
+const SqlIngestion = defineAsyncComponent(() => import('./SqlDefinitionPanel.vue'));
 interface Connection {
   revision: number;
   config?: Record<string, unknown>;

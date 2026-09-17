@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { NDrawer, NDrawerContent, NDescriptions, NDescriptionsItem, NCode } from 'naive-ui';
-import { display, object } from '../types';
+import { display, object } from '@/types';
 const props = defineProps<{ title: string; value: unknown; show: boolean }>();
 defineEmits<{ 'update:show': [value: boolean] }>();
 const flat = computed(() => Object.entries(object(props.value)).filter(([, v]) => v == null || typeof v !== 'object'));

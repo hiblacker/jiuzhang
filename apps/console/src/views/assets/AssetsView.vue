@@ -13,7 +13,7 @@ import {
   NSpace,
   NTag,
 } from 'naive-ui';
-import { api, type Page } from './api';
+import { api, type Page } from '@/api';
 const props = defineProps<{ project: number }>();
 interface Asset {
   id: string;
