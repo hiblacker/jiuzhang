@@ -29,7 +29,7 @@ for key in ['LAKE_REVIEW_CONTROL_PASSWORD', 'LAKE_REVIEW_WORKER_PASSWORD', 'LAKE
 (repo / 'work/lake-review').mkdir(parents=True, exist_ok=True)
 checks = [
     ('frontend', ['npm', 'run', 'build', '--prefix', 'apps/console']),
-    ('node', ['node', '--test', *map(str, sorted((repo / 'tests').glob('*.test.mjs')))]),
+    ('node', ['node', '--import', './tests/helpers/console-alias.mjs', '--test', *map(str, sorted((repo / 'tests').glob('*.test.mjs')))]),
     ('python', [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_*.py']),
     ('api-browser-scale', ['mvn', '-q', *(['-o'] if env.get('LAKE_REVIEW_MAVEN_OFFLINE') == 'true' else []),
                            '-s', 'deploy/maven-settings.xml', '-f', 'apps/control-api/pom.xml', 'verify']),
