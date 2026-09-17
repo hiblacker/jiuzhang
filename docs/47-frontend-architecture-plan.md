@@ -557,3 +557,11 @@ const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
 效果：告警 288 → **286**（基线同步下调）；镜像 `0.2.0-dev.22`；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（含 `/models` 页面渲染断言，账本即在该页）。
 
 **剩余**：`ModelsView`（数据集 + 模型包两个列表）、`DatasetsView`（offset 分页 + CSV 导出）需要先给组合式函数加"offset 模式/多列表"能力；随后是逐页 DTO 类型化与 complexity 收口。
+
+### 14.14 列表页迁移（继续）：ModelsView 数据集列表已完成
+
+`views/models/ModelsView.vue` 的**数据集列表**（`/models` 主列表）改用 `usePagedQuery`：删掉 `q/page/total/rows/busy` 五个 ref 与手写 `load()`（含 `generation` 守卫），`resetKey` 为 `projectId`；项目切换的 watcher 只保留"清空选中项、关闭新建表单"，分页与首次加载交给组合式函数。
+
+结论修正：**多列表不需要扩展组合式函数**——`usePagedQuery` 是工厂函数，第二次调用即第二个列表。因此 `ModelsView` 的模型包列表（`packagePage/packageTotal`）与 `DatasetsView` 的 offset 分页都可以用同样方式处理，只需为后者传 `limit: 50` 并把原来的"上一页/下一页（offset±50）"按钮映射为 `page` 增减。
+
+效果：该文件少约 15 行重复代码，告警保持 286（该页行数据本就有 `Dataset` 接口类型，所以计数不变，属"结构改善但无告警变化"）；镜像 `0.2.0-dev.23`；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（`/models` 页面断言覆盖本页）。

@@ -15,6 +15,7 @@ import {
   NTag,
 } from 'naive-ui';
 import { api, type Page } from '@/api';
+import { usePagedQuery } from '@/composables/usePagedQuery';
 import { usePermissionStore } from '@/stores/permission';
 import { useProjectStore } from '@/stores/project';
 import type { PickedAsset } from '@/views/assets/AssetPicker.vue';
@@ -57,13 +58,21 @@ interface Package {
   error_code: string;
   contract: Contract;
 }
-const q = ref(''),
-  page = ref(1),
-  total = ref(0),
-  rows = ref<Dataset[]>([]),
-  selected = ref<Dataset | null>(null),
-  error = ref(''),
-  busy = ref(false);
+const selected = ref<Dataset | null>(null),
+  error = ref('');
+const {
+  rows,
+  query: q,
+  page,
+  total,
+  loading: busy,
+  listError,
+  load,
+} = usePagedQuery<Dataset>({
+  route: ({ page: current, query, limit }) =>
+    `/warehouse/catalog/projects/${projectId.value}/models?q=${encodeURIComponent(query)}&limit=${limit}&offset=${(current - 1) * limit}`,
+  resetKey: () => projectId.value,
+});
 const versions = ref<{ version: number; contract: Contract; git_revision: string; bundle_sha256: string }[]>([]),
   version = ref<number | null>(null),
   builds = ref<Record<string, any>[]>([]),
@@ -175,25 +184,6 @@ const buildDetail = ref<Record<string, any> | null>(null),
   publishBuild = ref<number | null>(null),
   publishVisible = ref(false),
   publishReason = ref('');
-let generation = 0;
-async function load() {
-  const current = ++generation;
-  busy.value = true;
-  error.value = '';
-  try {
-    const result = await api<Page<Dataset>>(
-      `/warehouse/catalog/projects/${projectId.value}/models?q=${encodeURIComponent(q.value)}&limit=25&offset=${(page.value - 1) * 25}`,
-    );
-    if (current === generation) {
-      rows.value = result.items;
-      total.value = result.total;
-    }
-  } catch (e) {
-    if (current === generation) error.value = (e as Error).message;
-  } finally {
-    if (current === generation) busy.value = false;
-  }
-}
 const route = () => `/warehouse/projects/${projectId.value}/datasets/${selected.value?.id}`;
 async function inspect(row: Dataset) {
   selected.value = row;
@@ -333,18 +323,16 @@ watch(repository, () => {
 });
 watch(packagePage, () => loadPackages().catch((e) => (error.value = e.message)));
 watch(version, () => (bindings.value = {}));
-watch(page, () => void load());
 watch(
   () => projectId.value,
   () => {
     selected.value = null;
     creating.value = false;
-    page.value = 1;
-    void load();
   },
   { immediate: true },
 );
 useErrorToast(error);
+useErrorToast(listError);
 </script>
 <template>
   <n-card v-if="!selected" title="数据开发"
