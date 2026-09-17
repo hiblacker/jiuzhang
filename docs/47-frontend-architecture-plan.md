@@ -527,3 +527,9 @@ const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
 验证：`npm run build` 通过（0 error / 290 warning）；控制台镜像 `0.2.0-dev.20` 重建；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（该用例正好覆盖"接入管理 → 搜索系统 → 选择连接 → 打开向导 → SQL 面板"整条路径）。
 
 **仍未迁移**：`RunsView`（多 tab，按 tab 切换路由与筛选）、`ModelsView`（数据集与模型包两个列表）、`DatasetsView`（offset 分页 + 导出）、`DeliveryLedger`（两个列表）——它们的契约与当前 `usePagedQuery` 不同，需要先扩展组合式函数（多列表/offset 模式）再迁移。
+
+### 14.11 列表页迁移（继续）：RunsView 已完成
+
+`views/runs/RunsView.vue` 改用 `usePagedQuery`：路由按 `tab` 分支（采集执行 / 查询审计 / 站内异常）仍写在调用处的 `route` 闭包里，`resetKey` 为 `[projectId, tab]`；手写的 `generation` 守卫、`load()`、`page` watcher 与"切 tab 重置"里的分页逻辑删除，筛选条件的清空与详情面板关闭保留在视图自己的 watcher 中。行数据类型由 `Record<string, any>` 收紧为 `Record<string, unknown>`。
+
+效果：告警 290 → **288**（基线同步下调）；镜像 `0.2.0-dev.21`；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（用例进入运行中心，覆盖该页渲染与菜单路由）。

@@ -13,7 +13,8 @@ import {
   NTabPane,
   NTabs,
 } from 'naive-ui';
-import { api, type Page } from '@/api';
+import { api } from '@/api';
+import { usePagedQuery } from '@/composables/usePagedQuery';
 import { usePermissionStore } from '@/stores/permission';
 import { useProjectStore } from '@/stores/project';
 import { useSessionStore } from '@/stores/session';
@@ -28,17 +29,32 @@ const canManage = computed(() => permission.canManage);
 const canOperate = computed(() => permission.canOperate);
 const identity = computed(() => session.identity?.identity ?? '');
 const tab = ref('runs'),
-  q = ref(''),
   state = ref(''),
-  page = ref(1),
-  total = ref(0),
-  rows = ref<Record<string, any>[]>([]),
   error = ref(''),
-  busy = ref(false),
   detail = ref<Record<string, any> | null>(null),
   visible = ref(false),
   reason = ref(''),
   owner = ref(identity.value);
+const {
+  rows,
+  query: q,
+  page,
+  total,
+  loading: busy,
+  listError,
+  load,
+} = usePagedQuery<Record<string, unknown>>({
+  route: ({ page: current, query, limit }) => {
+    const pagination = `limit=${limit}&offset=${(current - 1) * limit}`;
+    if (tab.value === 'runs') {
+      return `/warehouse/catalog/projects/${projectId.value}/runs?q=${encodeURIComponent(query)}&systemCode=${encodeURIComponent(systemCode.value)}&instanceCode=${encodeURIComponent(instanceCode.value)}&connectionCode=${encodeURIComponent(connectionCode.value)}&sourceCode=${encodeURIComponent(sourceCode.value)}&state=${state.value}&${pagination}`;
+    }
+    return tab.value === 'audit'
+      ? `/warehouse/projects/${projectId.value}/query-audit?${pagination}`
+      : `/warehouse/projects/${projectId.value}/incidents?q=${encodeURIComponent(query)}&state=${state.value}&${pagination}`;
+  },
+  resetKey: () => [projectId.value, tab.value],
+});
 const systemCode = ref(''),
   instanceCode = ref(''),
   connectionCode = ref(''),
@@ -78,30 +94,6 @@ const auditColumns = [
   { title: '结果', key: 'result' },
   { title: '请求 ID', key: 'request_id' },
 ];
-let generation = 0;
-async function load() {
-  const current = ++generation;
-  busy.value = true;
-  error.value = '';
-  try {
-    const pagination = `limit=25&offset=${(page.value - 1) * 25}`;
-    const route =
-      tab.value === 'runs'
-        ? `/warehouse/catalog/projects/${projectId.value}/runs?q=${encodeURIComponent(q.value)}&systemCode=${encodeURIComponent(systemCode.value)}&instanceCode=${encodeURIComponent(instanceCode.value)}&connectionCode=${encodeURIComponent(connectionCode.value)}&sourceCode=${encodeURIComponent(sourceCode.value)}&state=${state.value}&${pagination}`
-        : tab.value === 'audit'
-          ? `/warehouse/projects/${projectId.value}/query-audit?${pagination}`
-          : `/warehouse/projects/${projectId.value}/incidents?q=${encodeURIComponent(q.value)}&state=${state.value}&${pagination}`;
-    const result = await api<Page<Record<string, any>>>(route);
-    if (current === generation) {
-      rows.value = result.items;
-      total.value = result.total;
-    }
-  } catch (e) {
-    if (current === generation) error.value = (e as Error).message;
-  } finally {
-    if (current === generation) busy.value = false;
-  }
-}
 async function inspect(row: Record<string, any>) {
   error.value = '';
   try {
@@ -160,20 +152,17 @@ async function reconcile() {
 watch(
   () => [projectId.value, tab.value],
   () => {
-    page.value = 1;
     state.value = '';
     systemCode.value = '';
     instanceCode.value = '';
     connectionCode.value = '';
     sourceCode.value = '';
-    rows.value = [];
     visible.value = false;
-    void load();
   },
   { immediate: true },
 );
-watch(page, () => void load());
 useErrorToast(error);
+useErrorToast(listError);
 </script>
 <template>
   <n-card title="运行与异常"
