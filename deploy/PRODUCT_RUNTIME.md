@@ -13,7 +13,7 @@ docker compose --env-file secrets/product-next.env -p jiuzhang-next -f deploy/co
 
 配置工具只创建新目录，默认不登记业务来源。API 使用 60283，工作台使用 60284；独立控制台通过同源代理转发会话 Cookie 与 CSRF 请求。页面使用账号会话，初始化使用 `tools/product-bootstrap.py`，不在页面粘贴 Admin Token。
 
-Node 22.23.1、Python 3.12.14、PostgreSQL 16.15、MySQL CLI 8.0.43、57 个 Linux wheel、Debian 包与基础镜像版本继续固定。前端先 `npm ci` 和构建，再打 Java 包及独立控制台；Worker 镜像包含完整采集模块。API 默认标签为 `0.2.0-dev.17`、Worker 为 `0.2.0-dev.24`，控制台为 `0.2.0-dev.7`；已有标签拒绝覆盖。
+Node 22.23.1、Python 3.12.14、PostgreSQL 16.15、MySQL CLI 8.0.43、57 个 Linux wheel、Debian 包与基础镜像版本继续固定。前端先 `npm ci` 和构建，再打 Java 包及独立控制台；Worker 镜像包含完整采集模块。API 默认标签为 `0.2.0-dev.18`、Worker 为 `0.2.0-dev.24`，控制台为 `0.2.0-dev.12`；已有标签拒绝覆盖。
 
 构建默认复用 Maven 缓存；缺包时加 `--online-maven` 使用 [Aliyun 配置](maven-settings.xml)。npm 使用 npmmirror，Python 使用清华镜像且逐包校验哈希。[运行锁](product-runtime-lock.json)、[Python 锁](product-requirements.txt)、[Debian 锁](product-apt-packages.txt)和 [前端锁](../apps/console/package-lock.json)共同约束依赖。构建跳过测试，不能替代验收。
 

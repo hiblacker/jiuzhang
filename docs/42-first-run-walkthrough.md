@@ -2,7 +2,7 @@
 
 本机 Compose 产品栈（API `60283`、工作台 `60284`）的逐步操作手册。界面字段名与按钮标签取自当前代码 `apps/console/src/*.vue`（提交 `239b377`）；概念与边界见 [41 号运行手册](41-product-workbench-runbook.md)，验收项与现场条件见 [39 号契约](39-next-product-acceptance-contract.md)。
 
-**证据边界**：流程四（注册 SQL）2026-09-17 在 api `0.2.0-dev.17` / worker `0.2.0-dev.24` / console `0.2.0-dev.7` 上由 `tests/sql-ingestion-integration.py` 端到端跑通（精确十进制字符串、遮罩预览、JOIN、资产与作业映射；证据见 [45 号文档 §10](45-sql-ingestion-with-seatunnel.md)）。流程一的入湖链路与流程二的 Git 模型打包，2026-09-17 在 `0.2.0-dev.5` 镜像上本机实测通过（脚本与结论见 `work/diagnostics/`，该目录不提交）；流程二的构建/发布与流程三的授权/查询沿用 [40 号文档](40-product-workbench-progress.md) 记录的浏览器验收，本次未在本机逐步录证。
+**证据边界**：流程四（注册 SQL）2026-09-17 在 api `0.2.0-dev.18` / worker `0.2.0-dev.24` / console `0.2.0-dev.12` 上由 `tests/sql-ingestion-integration.py` 端到端跑通，并由 `tests/sql-ingestion-ui.mjs` 在真实浏览器里逐控件验收（开户、登录、表树、校验反馈、遮罩预览、版本启用、交付计划、资产落湖）（精确十进制字符串、遮罩预览、JOIN、资产与作业映射；证据见 [45 号文档 §10](45-sql-ingestion-with-seatunnel.md)）。流程一的入湖链路与流程二的 Git 模型打包，2026-09-17 在 `0.2.0-dev.5` 镜像上本机实测通过（脚本与结论见 `work/diagnostics/`，该目录不提交）；流程二的构建/发布与流程三的授权/查询沿用 [40 号文档](40-product-workbench-progress.md) 记录的浏览器验收，本次未在本机逐步录证。
 
 ## 0. 开工前：环境里已有什么
 
@@ -143,10 +143,13 @@ docker exec -e PGPASSWORD="$WAREHOUSE_DB_PASSWORD" jiuzhang-next-warehouse-db-1 
 1. 「项目与设置」→ 数据源：登记 MySQL 连接（主机、端口、库、账号、凭据引用名），保存后自动做一次**连接测试**；只有拿到"只读证明"的数据源才能被 SQL 渠道使用。密码只落在 `${PRODUCT_CONFIG_ROOT}/datasources/<凭据引用>.json`（0600），界面不回显。
 2. 「接入管理」→ 新建接入 → 步骤 1「连接与采集规则」：
    - 来源模式选 **注册 SQL**；
-   - 这一步不再选表，直接进入 SQL 面板：面板上方列出**允许使用的表**（点击可插入表名），下方是 SQL 文本域；
+   - 这一步不再选表，直接进入 SQL 面板：左侧是**已批准对象树**（库→表，可搜索；点击在光标处插入带反引号的对象名），右侧是 SQL 文本域；预览成功后还会出现"结果列"快捷按钮；
    - 依次点 **校验**（看是否有阻断项：写操作、多语句、系统库、未声明参数）→ **保存草稿** → **预览**。
 3. 预览结果：最多 1000 行（服务端硬上限，界面不可调大）；勾选为**遮罩列**的字段显示为 `***`；预览会写入审计。预览是启用版本的前置条件——没跑成功预览就存不出可启用版本。
-4. 在面板里填写**粒度**与**唯一键**，点 **保存为新版本**，再对目标版本点 **启用**（必须填启用原因，会写审计；默认不强制双人评审）。
+4. 在面板里填写**粒度**与**唯一键**（可选填**脱敏列**），选择**抽取模式**：
+   - **全量快照**：每次跑整段查询，当前唯一可执行的模式；
+   - **水位增量**：需要选一个来自预览结果列的**水位列**。执行层（P0-c）尚未实现增量，该模式的版本**可以保存但无法启用**——点启用会明确报 `EXTRACTION_MODE_NOT_IMPLEMENTED`，不会悄悄按全量跑。
+   然后点 **保存为新版本**，再对目标版本点 **启用**（必须填启用原因，会写审计；默认不强制双人评审）。
 5. 步骤 2「测试与发现」在 SQL 模式下不需要预检；直接到步骤 3「交付计划」：时区固定 `Asia/Shanghai`、触发时间、起始日期、`lateDays`、超时与最大尝试次数 → **确认范围并启用**。
 6. 「采集今日」立刻跑一次；完成后到「运行中心」看这次执行（SeaTunnel 作业 id、状态、耗时都在这里），再到资产/数据集侧看到新落湖的对象。
 7. 核对落湖：`work/product-next/lake/raw/<渠道 code>/<批次>/<渠道 code>/data.jsonl` 与 `schema.json`，批次元数据在 `lake/batches/<批次>/batch.json`（含 `sqlVersionId`、`sqlSha256`、`scalarEncoding=mysql-char-v2`、`inventoryVersion`）。
@@ -156,6 +159,7 @@ docker exec -e PGPASSWORD="$WAREHOUSE_DB_PASSWORD" jiuzhang-next-warehouse-db-1 
 | 现象 / 错误码 | 含义 | 处理 |
 |---|---|---|
 | `SQL_VERSION_NOT_ENABLED` | 渠道没有已启用的 SQL 版本 | 先在 SQL 面板保存版本并**启用** |
+| `EXTRACTION_MODE_NOT_IMPLEMENTED` | 该版本声明为水位增量，但执行层只做全量（P0-c 未实现） | 改存一个**全量快照**版本并启用；增量能力落地后再启用增量版本 |
 | `SUCCESSFUL_SQL_PREVIEW_REQUIRED` | 该版本没有成功预览记录 | 回到 SQL 面板点**预览**，等状态变 `COMPLETED` |
 | 预览 `SQL_BLOCKED` | 静态校验有阻断项 | 按面板提示改 SQL（去写操作/多语句/系统库/未声明参数） |
 | 执行 `SEATUNNEL_EXTRACT_FAILED` | SeaTunnel 作业失败 | 看 Worker 日志里的 `detail` 与作业状态；确认源库连通与列名正确 |

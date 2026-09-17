@@ -87,3 +87,20 @@ python3 tools/verify-product.py
 脚本运行前端类型/构建、Node、Python、真实 PostgreSQL/API/Worker/dbt、浏览器、规模、文档与 diff 检查。它不安装依赖、不读 secrets、不连接真实源。输出仅放 `work/product-review/`，含合成账号的私有文件不上传 CI artifact。未推送的工作流不声称 GitHub CI 已运行。
 
 浏览器自动化与真实使用者验收分别记录。A18 需要一位未参与开发的使用者按上述步骤完成三条主流程；连续真实每日窗口、真实目录/API、NAS 和生产上线也须各自留证，不能由合成回放或等待分钟数替代。
+## 7. 注册 SQL 接入（P0-b）的验收与运维
+
+一套最小可复现路径（合成数据源，本机回环）：
+
+```bash
+python3 tests/sql-ingestion-integration.py --settings secrets/product-next.json   # 端到端（HTTP/worker/落湖）
+node tests/sql-ingestion-ui.mjs --settings secrets/product-next.json               # 真实浏览器逐控件验收
+```
+
+两者都要求：栈已起（`docker compose --env-file secrets/product-next.env -p jiuzhang-next -f deploy/compose.product.yaml up -d`）、合成 MySQL 源 `jiuzhang-source-mysql` 可达、凭据文件 `${PRODUCT_CONFIG_ROOT}/datasources/<凭据引用>.json`（0600）存在。每次运行都会新建带随机后缀的资源/系统/渠道，可反复执行，不会相互覆盖。
+
+运维要点：
+
+- **改 worker 的 `tools/*.mjs` 必须重建 worker 镜像**（工具是 COPY 进镜像的）；**api 只重建不重启会让 worker 失联**——worker 与控制台共用 control-api 的网络命名空间，所以 `up -d` 要整栈执行。
+- 镜像标签只递增不覆盖：当前 api `0.2.0-dev.18`、worker `0.2.0-dev.24`、console `0.2.0-dev.12`、SeaTunnel `apache/seatunnel:2.3.13`。
+- 注册 SQL 的执行证据：`lake/raw/<渠道 code>/<批次>/<渠道 code>/data.jsonl`、`schema.json`、`lake/batches/<批次>/batch.json`（含 `sqlVersionId`、`sqlSha256`、`inventoryVersion`、`scalarEncoding`），作业映射在 `warehouse.seatunnel_job`。
+- 未实现的能力不要当成可用：水位增量版本无法启用（`EXTRACTION_MODE_NOT_IMPLEMENTED`），列级表树、按列脱敏规则、运行中心取消接线仍在后续工作包。

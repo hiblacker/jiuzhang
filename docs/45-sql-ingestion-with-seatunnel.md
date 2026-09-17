@@ -451,12 +451,42 @@ python3 tests/sql-ingestion-integration.py --settings secrets/product-next.json
 
 `batch.json`：`extractor=SEATUNNEL`、`scalarEncoding=mysql-char-v2`、`consistency=SINGLE_STATEMENT_READ`、`inventoryVersion=1`、`sqlVersionId=12`、`tables[0]={state:RAW_COMMITTED,rowCount:3,bytes:384,sha256:b4bbc2b0…}`。预览侧：3 行、约 1.6 秒、`amount` 三个精确十进制值、`customer_name` 遮罩为 `***`。
 
-检查项：`node --test tests/*.test.mjs` 134 项（132 通过、1 跳过；唯一失败为宿主机 `python3` 缺 `openpyxl` 的 Excel 用例，与本次改动无关）；`mvn -o -f apps/control-api/pom.xml test` 80 项 0 失败（14 项跳过，需活库）；`node tools/check-docs.mjs`、`git diff --check` 见提交说明。镜像标签：api `0.2.0-dev.17`、worker `0.2.0-dev.24`、console `0.2.0-dev.7`、SeaTunnel `apache/seatunnel:2.3.13`。
+检查项：`node --test tests/*.test.mjs` 134 项（132 通过、1 跳过；唯一失败为宿主机 `python3` 缺 `openpyxl` 的 Excel 用例，与本次改动无关）；`mvn -o -f apps/control-api/pom.xml test` 80 项 0 失败（14 项跳过，需活库）；`node tools/check-docs.mjs`、`git diff --check` 见提交说明。镜像标签：api `0.2.0-dev.18`、worker `0.2.0-dev.24`、console `0.2.0-dev.12`、SeaTunnel `apache/seatunnel:2.3.13`。
 
-### 10.4 已知限制（未做，勿当成已支持）
+### 10.4 B3 前端与真实浏览器验收（2026-09-17 补齐）
+
+`SqlIngestion.vue` 承担向导步骤 2 的整块 SQL 定义：可搜索的**已批准对象树**（库→表，点击在光标处插入反引号标识符）、结果列快捷插入、SQL 文本域、粒度/唯一键/脱敏列、校验问题列表、预览网格（列头带 `·` 表示推断类型）、版本表与启用原因；**抽取模式**（全量快照 / 水位增量）与水位列（来自预览结果列）也在此声明，并明确标注增量执行尚未实现。
+
+`tests/sql-ingestion-ui.mjs` 在运行中的栈上做真实浏览器验收（自建合成数据源，先用邀请码在界面开户再登录）：
+
+```
+node tests/sql-ingestion-ui.mjs --settings secrets/product-next.json
+→ [ok] owner account activated through the console form / owner signed in through the console
+  [ok] wizard opened the SQL panel for the registered-SQL channel
+  [ok] approved-object tree filters and inserts at the caret
+  [ok] static validation reports a blocking issue in the panel
+  [ok] draft saved from the panel
+  [ok] capped preview rendered with exact decimals and masking
+  [ok] the panel refuses to enable the unimplemented incremental version {"version":1}
+  [ok] full-snapshot version saved and enabled from the panel {"version":2}
+  [ok] delivery plan activated through the wizard
+  [ok] run centre reachable for the operator
+  [ok] runtime asset registered through the UI-configured plan {"assetId":"mysql:5","rowCount":3}
+  {"state":"PASS","owner":"sqlui_1011896a","sourceId":36,"assetId":"mysql:5"}
+```
+
+这次浏览器验收抓到三个只在真机上才暴露的缺陷，均已修复并留证：
+
+1. **表树为空**：已批准表按单库场景以**裸表名**存储，而首次实现要求 `库.` 前缀分组，导致树判定为无表；改为单库时裸名归入该库，多库时提供"（未标注库）"节点。
+2. **预览网格只有行号列**：`columns` 曾是常量，在预览数据到达前求值，实际只渲染 `#` 列；改为响应式计算。
+3. **全量模式保存版本失败**：面板给 `watermarkColumn` 传了显式 `null`，API 按"字段存在即必须为文本"拒绝（`INVALID_FIELD`），即全量这一**主路径**在界面上不可用；改为仅在增量模式发送该字段。
+
+### 10.5 已知限制（未做，勿当成已支持）
 
 - **结果类型是推断值**：SeaTunnel 批模式下 `--column-type-info` 无输出，`schema.json` 的 `type` 由取值模式推断并标 `inferred:true`；正式建模前需要人工确认或改用元数据探测。
 - **遮罩是整值 `***`**：尚无按列规则（保留首尾、哈希、域映射），脱敏清单由谁维护仍待定（§9）。
-- **增量未实现**：`UPDATED_AT_KEYSET` 水位增量（`lake.object_watermark` + 重叠重读）属 P0-c，当前只跑全量快照。
+- **增量未实现**：`UPDATED_AT_KEYSET` 水位增量（`lake.object_watermark` + 重叠重读）属 P0-c，当前只跑全量快照；该模式的版本可以保存但**无法启用**，启用/激活会以 `EXTRACTION_MODE_NOT_IMPLEMENTED` 明确拒绝（ADR-017），不会静默降级成全量。
+- **表树只到表级**：列级节点需要列元数据服务（P1）；当前用预览结果列做"结果列快捷插入"替代。
+- **前端仍非 §5.2 的全屏抽屉**：没有 Monaco 高亮/行号/格式化、参数自动识别面板、DiffView 与 `Ctrl+Enter` 快捷键，均在 [44 号控制台重构计划](44-console-redesign-plan.md) 内，未随本次交付。
 - **控制台编辑器是纯文本域**：无高亮/自动补全/DiffView，见 [44 号控制台重构计划](44-console-redesign-plan.md)。
 - **取消链路**：`stop-job` 已在尖峰验证，但运行中心里"取消注册 SQL 运行"尚未接线。

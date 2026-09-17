@@ -110,6 +110,12 @@ sql_text = ('SELECT o.id AS order_id, o.`订单编号` AS order_no, o.`金额` A
             'FROM biz_order o LEFT JOIN customer c ON c.id = o.id ORDER BY o.id')
 table_route = f'warehouse/projects/{args.project}/channels/{source}'
 
+context = api(f'{table_route}/sql')
+assert context['datasource']['availableSchemas'] == ['erp'], context['datasource']
+assert context['datasource']['availableTables'] == ['biz_order', 'customer'], context['datasource']
+step('editor context exposes approved schemas and tables for the tree',
+     {'schemas': context['datasource']['availableSchemas'], 'tables': context['datasource']['availableTables']})
+
 validation = api(f'{table_route}/sql/validate', {'sqlText': sql_text})
 assert validation['blocked'] is False, f"validator blocked the query: {validation['issues']}"
 step('SQL validation accepts JOIN with non-ASCII identifiers',
@@ -136,6 +142,18 @@ assert all(value == '***' for value in masked_values), masked_values
 step('preview completed, decimals exact, masked column hidden',
      {'columns': names, 'rowCount': preview['row_count'], 'truncated': preview['truncated'],
       'elapsedMs': preview['elapsed_ms'], 'amounts': amounts})
+
+incremental = api(f'{table_route}/sql/versions', {'extractionMode': 'UPDATED_AT_KEYSET', 'watermarkColumn': 'updated_at'})
+assert incremental['state'] == 'VALIDATED' and incremental['extraction_mode'] == 'UPDATED_AT_KEYSET', incremental
+enabled_anyway = True
+try:
+    api(f"{table_route}/sql/versions/{incremental['id']}/enable", {'reason': 'P0-b 验收负例'})
+except AssertionError as failure:
+    assert 'EXTRACTION_MODE_NOT_IMPLEMENTED' in str(failure), failure
+    enabled_anyway = False
+assert enabled_anyway is False, 'an unimplemented incremental mode was enabled silently'
+step('declared increment is refused while only full extraction exists',
+     {'versionId': incremental['id'], 'code': 'EXTRACTION_MODE_NOT_IMPLEMENTED'})
 
 version = api(f'{table_route}/sql/versions', {'extractionMode': 'FULL'})
 assert version['state'] == 'VALIDATED', version

@@ -22,6 +22,7 @@
 
 | ADR-016 | 注册 SQL 计划绑定"合成单对象 inventory"，SQL 版本以 `queryTrace` 固定进计划契约 | 端到端验收通过，2026-09-17 | 一条注册查询只产出一个结果集，故激活时以渠道 code 为对象名登记单对象 inventory（列集来自已启用版本的结果列），计划因此与表清单快照走同一条 manifest 完整性链路（未绑定的计划无法提交 manifest）。契约键名不能含 `sql/token/path` 等词，否则被 `rejectSecrets` 拒绝，故记为 `queryMode` + `queryTrace{versionId,sha256}` |
 
+| ADR-017 | 已声明但未实现的抽取模式必须显式拒绝，禁止静默降级 | 端到端负例通过，2026-09-17 | 执行层（SeaTunnel 作业）目前只做整段查询的全量抽取，不读水位窗口；`UPDATED_AT_KEYSET` 版本可以保存（记录意图与水位列），但启用与激活都以 `EXTRACTION_MODE_NOT_IMPLEMENTED` 拒绝。宁可挡住，也不让‘增量’名下的批次实际是全量 |
 技术选型报告给出的是候选及推荐，不自动将ADR-007变为已确认。
 
 ## 2. W1–W2必须澄清
