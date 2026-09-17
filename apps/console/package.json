@@ -9,8 +9,10 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 4173 --strictPort",
     "typecheck": "vue-tsc --noEmit",
-    "check": "npm run typecheck",
-    "build": "npm run typecheck && vite build && node scripts/notices.mjs",
+    "check": "npm run typecheck && npm run format:check",
+    "build": "npm run typecheck && npm run format:check && vite build && node scripts/notices.mjs",
+    "format": "prettier --write \"src/**/*.{ts,vue,css,json}\" vite.config.ts",
+    "format:check": "prettier --check \"src/**/*.{ts,vue,css,json}\" vite.config.ts",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "test": "node ../../tests/product-browser.mjs",
     "licenses": "node scripts/dependencies.mjs"
@@ -24,6 +26,7 @@
     "@playwright/test": "1.62.1",
     "@vitejs/plugin-vue": "6.0.9",
     "playwright": "1.62.1",
+    "prettier": "3.9.7",
     "typescript": "5.9.3",
     "vite": "8.3.0",
     "vue-tsc": "3.3.11"

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T15:32:45.170Z",
+  "generatedAt": "2026-09-17T11:10:22.210Z",
   "registry": "https://registry.npmmirror.com",
   "verifiedAgainst": "https://registry.npmjs.org",
   "installationScripts": "disabled",
@@ -1217,6 +1217,17 @@
       "hasInstallScript": false,
       "repository": "git+https://github.com/postcss/postcss.git",
       "tarball": "https://registry.npmmirror.com/postcss/-/postcss-8.5.28.tgz"
+    },
+    {
+      "name": "prettier",
+      "version": "3.9.7",
+      "license": "MIT",
+      "integrity": "sha512-T3mF5P7HFzZVLDQuCUNtJj6WK1pcpLMweMNUVwGb01bLNkH9AkKxtZvmInw8K6bnn2O3d6/5RHl6zSHiBAD0Og==",
+      "development": true,
+      "optional": false,
+      "hasInstallScript": false,
+      "repository": "git+https://github.com/prettier/prettier.git",
+      "tarball": "https://registry.npmmirror.com/prettier/-/prettier-3.9.7.tgz"
     },
     {
       "name": "rolldown",
