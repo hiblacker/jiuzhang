@@ -467,3 +467,43 @@ const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
 | 搜索栏（输入 + 搜索按钮） | 5 处，但外层结构（form/space）与回车行为不完全一致 | **未封装**：P4 逐页重写时统一为 `AppFilterBar` |
 
 验证：`npm run build` 通过；lint 警告 **292**（294 → 292）；`node --test tests/*.test.mjs` 129 项（127 通过、1 跳过、1 项既存 openpyxl 失败）；控制台镜像 `0.2.0-dev.17` 重建；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS。
+
+### 14.6 P4（页面拆分与组合式函数）：已完成 2026-09-17
+
+| 项 | 结果 |
+|---|---|
+| 组合式函数 | `src/composables/usePagedQuery.ts`（列表页通用的"查询＋分页＋竞态丢弃＋resetKey 重置"）、`src/composables/useAsync.ts`（按钮动作的 busy/error/run）。已改接 `views/assets/AssetsView.vue`、`views/assets/AssetPicker.vue` |
+| 拆页 | `views/ingestion/ChannelWizard.vue` **827 → 735 行**：两个"变更确认"弹窗抽为 `ConnectionChangeModals.vue`（`defineModel` 双向绑定 + 两个事件）；`settings()` 抽为纯函数 `views/ingestion/channelSettings.ts`（含 `ChannelFormState` 类型，表单在两处共用同一形状） |
+| 规则收紧 | `max-lines` 由 warn **恢复为 error**（800 行），当前无违规；`complexity`/`max-lines-per-function` 仍为 warn（`resume()` 复杂度 52 等 6 处，属后续拆页工作） |
+| 类型化 | `ApiError` 去掉 TS 参数属性（显式字段 + 赋值），使 `api/http.ts` 可被纯 Node 直接导入（单测无需构建步骤）；`channelSettings` 的参数由 `Record<string, any>` 换成 `ChannelFormState` |
+| 验证 | `npm run build` 通过；lint 警告 **290**（294 → 292 → 290，且 `max-lines` 由 warn 变 error 属额外收紧）；控制台镜像 `0.2.0-dev.18` 重建；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS |
+
+未改接的 5 个列表页（`IngestionView`/`RunsView`/`ModelsView` 双列表/`DatasetsView` 基于 offset 的分页/`DeliveryLedger` 双列表）保留各自实现：它们的筛选条件、双列表与 offset 分页与 `usePagedQuery` 的契约不同，强行套用会引入行为差异；随这些页面的拆分一起迁移。
+
+### 14.7 P5（单元测试与门禁）：已完成 2026-09-17
+
+不新增依赖：使用仓库既有的 Node 测试运行器（`node --test`），把控制台逻辑的单测放进 `tests/console-*.test.mjs`，因此 CI（`tools/verify-product.py` 第 32 行）与本地同一命令即可覆盖。
+
+| 测试文件 | 覆盖 |
+|---|---|
+| `tests/console-channel-settings.test.mjs` | 全库/表清单/注册 SQL 三种 MySQL 形态、文件通道的交付契约与三种解析器分支、REST 通道在连接模板上的覆盖 |
+| `tests/console-stores.test.mjs` | 项目 store 的加载/总数/默认选中、角色→能力（VIEWER/ENGINEER/OWNER 三档）、**过期响应丢弃**（先发的请求不得覆盖后发的页） |
+| `tests/console-composables.test.mjs` | `usePagedQuery` 的分页/搜索/失败报告/resetKey 回到第一页 |
+| `tests/console-routes.test.mjs` | 只有登录页是 `public`、`/` 重定向到工作台、菜单与 `meta.title` 一一对应、**仅"数据开发"受角色限制**、页面名唯一、未知路径落到 404 |
+
+配套改动：`tests/helpers/console-alias.mjs` + `console-alias-hooks.mjs` 提供"TypeScript 风格解析"（`@/` 别名、无扩展名相对导入、裸包解析到 `apps/console/node_modules`），让单测直接加载**与打包器相同的源文件**，而不必把相对路径塞进应用代码；`tools/verify-product.py` 与 `apps/console` 的 `test:unit` 脚本都带上该加载器。
+
+验证：`node --import ./tests/helpers/console-alias.mjs --test tests/*.test.mjs` → **144 项（142 通过、1 跳过、1 项既存 openpyxl 失败）**；新增 15 项控制台单测全绿。
+
+### 14.8 阶段状态
+
+| 阶段 | 状态 | 备注 |
+|---|---|---|
+| P0 工具链（Prettier + ESLint） | ✅ 完成 | 见 §14.1、§14.2；警告基线 316 → 290 |
+| P1 路由与页面层 | ✅ 完成 | 见 §14.3 |
+| P2 Pinia 与统一 API 客户端 | ✅ 完成 | 见 §14.4；token 层已删除 |
+| P3 通用组件 | ✅ 完成 | 见 §14.5；仅抽出有真实重复的组件 |
+| P4 页面拆分与组合式函数 | ✅ 完成 | 见 §14.6；`max-lines` 已收紧为 error |
+| P5 单元测试与门禁 | ✅ 完成 | 见 §14.7；无新增依赖 |
+
+**仍未完成（明确不在本次范围或属后续工作包）**：`complexity`/`max-lines-per-function` 仍为 warn（6 处复杂函数，随剩余页面拆分收口）；剩下约 290 条告警主体是未类型化的行数据（逐页 DTO 化）；`AppStatusTag`/`AppReasonField`/`AppFilterBar` 待相应页面重写时抽取；文档 44 的界面重构（Monaco、DiffView、全屏抽屉）未纳入本次迁移。
