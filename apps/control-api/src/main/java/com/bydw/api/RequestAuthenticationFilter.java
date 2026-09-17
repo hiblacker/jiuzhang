@@ -42,6 +42,11 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
   private static final Pattern MODEL_EXECUTION_WORKER = Pattern.compile(
       "^/api/v1/warehouse/builds/(?:claim|[0-9]+/(?:heartbeat|finish))/?$");
   private static final Pattern PROBE_WORKER = Pattern.compile("^/api/v1/lake/probes/(?:claim|[0-9]+/finish)/?$");
+  // Typed datasources and registered SQL: the same worker performs connection tests,
+  // previews and the SeaTunnel extraction, so these are worker-only routes.
+  private static final Pattern DATASOURCE_TEST_WORKER = Pattern.compile("^/api/v1/lake/resource-tests/(?:claim|[0-9]+/finish)/?$");
+  private static final Pattern SQL_PREVIEW_WORKER = Pattern.compile("^/api/v1/lake/sql-previews/(?:claim|[0-9]+/finish)/?$");
+  private static final Pattern SEATUNNEL_JOB_REPORT = Pattern.compile("^/api/v1/lake/seatunnel-jobs/?$");
   private static final Pattern WORKER_INSTANCE = Pattern.compile(
       "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$");
 
@@ -153,6 +158,9 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
     if ("POST".equals(method) && (path.equals("/api/v1/warehouse/model-packages/claim")||path.matches("/api/v1/warehouse/model-packages/[0-9]+/finish"))) return Access.WORKER;
     if ("POST".equals(method) && MODEL_EXECUTION_WORKER.matcher(path).matches()) return Access.WORKER;
     if ("POST".equals(method) && PROBE_WORKER.matcher(path).matches()) return Access.WORKER;
+    if ("POST".equals(method) && (DATASOURCE_TEST_WORKER.matcher(path).matches()
+        || SQL_PREVIEW_WORKER.matcher(path).matches()
+        || SEATUNNEL_JOB_REPORT.matcher(path).matches())) return Access.WORKER;
     if ("POST".equals(method) && (path.equals("/api/v1/lake/request-budget")||path.equals("/api/v1/lake/environment-heartbeat"))) return Access.WORKER;
     if ("GET".equals(method) && (CHECKPOINT_READ.matcher(path).matches()
         || JOB_READ.matcher(path).matches())) return Access.EITHER;

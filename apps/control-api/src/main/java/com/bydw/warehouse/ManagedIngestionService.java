@@ -187,9 +187,39 @@ public class ManagedIngestionService {
   @Transactional public Object activate(long project,long source,JsonNode b,String actor){
     var ch=channel(project,source,actor,"OWNER");jdbc.queryForObject("SELECT pg_advisory_xact_lock(?)",Object.class,source);
     var c=connection(project,((Number)ch.get("connection_id")).longValue(),actor,"OWNER");
+    JsonNode channelConfig=tree(ch.get("config"));
+    boolean registeredSql=c.get("kind").equals("MYSQL_SNAPSHOT")&&"REGISTERED_SQL".equals(channelConfig.path("sourceMode").asText("TABLE_LIST"));
+    Long inventoryVersion=null;
+    JsonNode queryTrace=null;
+    if(registeredSql){
+      // A registered-SQL channel proves itself with a completed preview of the bound version:
+      // it shows that the connection, the account and the query all work.
+      var versions=jdbc.queryForList("SELECT id,sql_sha256,result_columns,unique_key,extraction_mode FROM warehouse.extraction_sql_version WHERE source_id=? AND state='ENABLED'",source);
+      if(versions.isEmpty())bad("SQL_VERSION_NOT_ENABLED");
+      var version=versions.getFirst();
+      var previews=jdbc.queryForList("SELECT id FROM warehouse.sql_preview_request WHERE source_id=? AND sql_sha256=? AND state='COMPLETED' ORDER BY id DESC LIMIT 1",source,version.get("sql_sha256"));
+      if(previews.isEmpty())bad("SUCCESSFUL_SQL_PREVIEW_REQUIRED");
+      // One registered query yields exactly one result set, so the plan binds to a synthetic
+      // single-object inventory named after the channel. That keeps raw bytes traceable through
+      // the same inventory/manifest chain as a discovered table snapshot (an unbound plan could
+      // never have its manifest committed), while the SQL version stays pinned in the contract.
+      long planVersion=jdbc.queryForObject("SELECT coalesce(max(active_version),0)+1 FROM lake.ingestion_plan WHERE source_id=?",Long.class,source);
+      var schema=json.createObjectNode();schema.set("columns",tree(version.get("result_columns")));
+      var scope=json.createObjectNode().put("queryMode","REGISTERED")
+        .put("sqlVersionId",((Number)version.get("id")).longValue()).put("sqlSha256",version.get("sql_sha256").toString());
+      var object=json.createObjectNode();
+      object.put("objectName",ch.get("code").toString()).put("objectType","TABLE");
+      object.set("schema",schema);object.set("primaryKey",tree(version.get("unique_key")));
+      object.put("required",true).put("strategy","UPDATED_AT_KEYSET".equals(version.get("extraction_mode"))?"UPDATED_AT_KEYSET":"FULL_SNAPSHOT").put("state","READY");
+      try{
+        registration.registerInventory(new RegisterInventoryRequest(ch.get("code").toString(),planVersion,java.time.OffsetDateTime.now(),
+          scope,ProductAccessService.hash(schema.toString()),List.of(json.treeToValue(object,RegisterInventoryRequest.InventoryObject.class))),actor);
+      }catch(com.fasterxml.jackson.core.JsonProcessingException e){bad("INVALID_DISCOVERED_INVENTORY");}
+      inventoryVersion=planVersion;
+      queryTrace=json.createObjectNode().put("versionId",((Number)version.get("id")).longValue()).put("sha256",version.get("sql_sha256").toString());
+    }else{
     var probes=jdbc.queryForList("SELECT result FROM warehouse.ingestion_probe WHERE id=? AND source_id=? AND channel_version=? AND state='COMPLETE'",b.path("probeId").asLong(-1),source,ch.get("active_version"));
     if(probes.isEmpty())bad("SUCCESSFUL_CURRENT_PROBE_REQUIRED");JsonNode result=tree(probes.getFirst().get("result"));
-    Long inventoryVersion=null;
     if(c.get("kind").equals("MYSQL_SNAPSHOT")){
       try{
         var request=json.treeToValue(result.path("inventoryRequest"),RegisterInventoryRequest.class);
@@ -198,7 +228,9 @@ public class ManagedIngestionService {
         jdbc.update("UPDATE lake.inventory SET runtime_json=?::jsonb WHERE id=? AND runtime_json IS NULL",result.path("inventory").toString(),saved.inventoryId());
       }catch(com.fasterxml.jackson.core.JsonProcessingException e){bad("INVALID_DISCOVERED_INVENTORY");}
     }
+    }
     var contract=json.createObjectNode().put("channelVersion",((Number)ch.get("active_version")).intValue()).put("pollSeconds",integer(b,"pollSeconds",60,60,3600)).put("lateDays",integer(b,"lateDays",7,0,31));
+    if(registeredSql)contract.put("queryMode","REGISTERED").set("queryTrace",queryTrace);
     if(b.has("daysOfWeek"))contract.set("daysOfWeek",b.path("daysOfWeek"));
     runtime.configuration(source,((Number)ch.get("active_version")).intValue(),null);
     String timezone=text(b,"timezone",80,true);if(!timezone.equals("Asia/Shanghai")&&!c.get("kind").equals("MYSQL_SNAPSHOT"))bad("CONNECTOR_TIMEZONE_NOT_SUPPORTED");
@@ -214,7 +246,7 @@ public class ManagedIngestionService {
   private void decode(Map<String,Object> row,String field){row.put(field,tree(row.get(field)));}
   private JsonNode configuration(JsonNode config,String kind,boolean channel){
     if(!config.isObject()||config.toString().length()>65536)bad("INVALID_INGEST_CONFIGURATION");
-    Set<String> allowed=channel?switch(kind){case "FILE_SCAN"->Set.of("relativeDirectory","datePartitioned","delivery");case "MYSQL_SNAPSHOT"->Set.of("tables");default->Set.of("path","query","pagination","success","window","allow_empty","json_schema");}:switch(kind){case "MYSQL_SNAPSHOT"->Set.of("database");default->Set.of("description");};
+    Set<String> allowed=channel?switch(kind){case "FILE_SCAN"->Set.of("relativeDirectory","datePartitioned","delivery");case "MYSQL_SNAPSHOT"->Set.of("tables","sourceMode","sqlVersionId");default->Set.of("path","query","pagination","success","window","allow_empty","json_schema");}:switch(kind){case "MYSQL_SNAPSHOT"->Set.of("database");default->Set.of("description");};
     config.fieldNames().forEachRemaining(k->{if(!allowed.contains(k))bad("CONFIGURATION_FIELD_NOT_ALLOWED");});
     if(!channel&&kind.equals("MYSQL_SNAPSHOT"))text(config,"database",64,true);
     if(channel&&kind.equals("FILE_SCAN")){
@@ -222,9 +254,19 @@ public class ManagedIngestionService {
       if(!config.path("delivery").isObject())bad("FILE_DELIVERY_CONTRACT_REQUIRED");
     }
     if(channel&&kind.equals("REST_PULL")){config.path("query").fieldNames().forEachRemaining(k->{if(k.matches("(?i).*(token|auth|key|secret|password|cookie).*"))bad("SECRET_VALUE_FORBIDDEN");});String path=text(config,"path",300,true);if(!path.startsWith("/")||path.startsWith("//")||path.contains("..")||path.contains("?")||path.contains("#"))bad("INVALID_API_PATH");}
-    if(channel&&kind.equals("MYSQL_SNAPSHOT")&&config.has("tables")){
-      if(!config.path("tables").isArray()||config.path("tables").size()>10000)bad("INVALID_TABLE_SCOPE");
-      for(JsonNode t:config.path("tables"))if(!t.isTextual()||t.asText().isBlank()||t.asText().length()>64)bad("INVALID_TABLE_SCOPE");
+    if(channel&&kind.equals("MYSQL_SNAPSHOT")){
+      String sourceMode=config.path("sourceMode").asText("TABLE_LIST");
+      if(!List.of("TABLE_LIST","REGISTERED_SQL").contains(sourceMode))bad("INVALID_SOURCE_MODE");
+      if(sourceMode.equals("REGISTERED_SQL")){
+        // Registered SQL binds the channel to its enabled, versioned definition instead of a
+        // table list. The version itself is resolved at activation from the single ENABLED row,
+        // so enabling a new version is the explicit switch and no id has to be kept in config.
+        if(config.has("sqlVersionId"))bad("CONFIGURATION_FIELD_NOT_ALLOWED");
+        if(config.has("tables"))bad("CONFIGURATION_FIELD_NOT_ALLOWED");
+      }else{
+        if(!config.path("tables").isArray()||config.path("tables").isEmpty()||config.path("tables").size()>10000)bad("INVALID_TABLE_SCOPE");
+        for(JsonNode t:config.path("tables"))if(!t.isTextual()||t.asText().isBlank()||t.asText().length()>64)bad("INVALID_TABLE_SCOPE");
+      }
     }
     rejectSecrets(config);return config;
   }

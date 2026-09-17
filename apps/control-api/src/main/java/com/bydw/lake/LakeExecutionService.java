@@ -53,6 +53,9 @@ public class LakeExecutionService {
       if(!weekdays.isArray()||weekdays.isEmpty()||weekdays.size()>7)bad("INVALID_SCHEDULE_DAYS");
       for(JsonNode day:weekdays)if(!day.isIntegralNumber()||day.asInt()<1||day.asInt()>7||!unique.add(day.asInt()))bad("INVALID_SCHEDULE_DAYS");
     }
+    // A MySQL snapshot must be bound to a registered inventory and must never claim history.
+    // A registered-SQL channel satisfies both through the synthetic single-object inventory the
+    // control plane creates when it activates the bound SQL version.
     if (r.kind().equals("MYSQL_SNAPSHOT") && (r.historicalRead() || r.inventoryVersion() == null)) bad("MYSQL_PLAN_REQUIRES_CURRENT_SNAPSHOT");
     var source = jdbc.queryForList("SELECT id FROM control.source_connection WHERE code = ?", r.sourceCode());
     if (source.isEmpty()) throw new ApiException(HttpStatus.NOT_FOUND, "SOURCE_NOT_FOUND", "Source is not registered");
@@ -215,7 +218,8 @@ public class LakeExecutionService {
     if (plans.isEmpty()) return Map.of("state", "IDLE");
     var attempt = jdbc.queryForMap("""
         SELECT a.id, a.window_id, a.attempt, w.business_date, w.window_start, w.window_end, w.revision, w.mode, w.processing_input,
-          v.kind, v.runtime_ref, v.contract, v.inventory_version, v.timeout_seconds, s.code AS source_code, i.runtime_json AS runtime_inventory
+          v.kind, v.runtime_ref, v.contract, v.inventory_version, v.timeout_seconds, s.code AS source_code, p.source_id,
+          i.runtime_json AS runtime_inventory
         FROM lake.execution_attempt a JOIN lake.execution_window w ON w.id = a.window_id
         JOIN lake.plan_version v ON v.plan_id = w.plan_id AND v.version = w.plan_version
         JOIN lake.ingestion_plan p ON p.id = w.plan_id JOIN control.source_connection s ON s.id = p.source_id

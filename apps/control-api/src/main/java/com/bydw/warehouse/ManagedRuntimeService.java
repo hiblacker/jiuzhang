@@ -12,11 +12,15 @@ import org.springframework.stereotype.Service;
 @Service
 public class ManagedRuntimeService {
   private final JdbcTemplate jdbc;private final ObjectMapper json;private final ProductAccessService access;
-  public ManagedRuntimeService(JdbcTemplate jdbc,ObjectMapper json,ProductAccessService access){this.jdbc=jdbc;this.json=json;this.access=access;}
+  private final String seatunnelUrl;
+  public ManagedRuntimeService(JdbcTemplate jdbc,ObjectMapper json,ProductAccessService access,
+      @org.springframework.beans.factory.annotation.Value("${bydw.seatunnel.url:http://seatunnel:5801}") String seatunnelUrl){
+    this.jdbc=jdbc;this.json=json;this.access=access;this.seatunnelUrl=seatunnelUrl;}
   public Map<String,Object> configuration(long source,int version,String worker) {
     var rows=jdbc.queryForList("""
         SELECT s.code AS source_code,v.config AS channel_config,cv.config AS connection_config,v.created_by,ps.project_id,
           r.code AS resource_ref,r.kind,r.environment_code,r.resource_group,r.max_bytes,r.requests_per_second,
+          r.datasource_type,r.credential_ref,r.config AS datasource_config,r.statement_timeout_ms,
           e.worker_ids,c.lifecycle AS channel_state,cn.lifecycle AS connection_state,i.lifecycle AS instance_state,bs.lifecycle AS system_state
         FROM warehouse.channel_version v JOIN warehouse.ingest_channel c ON c.source_id=v.source_id
         JOIN control.source_connection s ON s.id=c.source_id JOIN warehouse.project_source ps ON ps.source_id=s.id
@@ -43,6 +47,27 @@ public class ManagedRuntimeService {
           .put("resourceGroup",row.get("resource_group").toString()).put("maxBytes",((Number)row.get("max_bytes")).longValue())
           .put("requestsPerSecond",((Number)row.get("requests_per_second")).doubleValue());
       config.set("connection",json.readTree(row.get("connection_config").toString()));config.set("channel",json.readTree(row.get("channel_config").toString()));
+      JsonNode channel=config.path("channel");
+      if("REGISTERED_SQL".equals(channel.path("sourceMode").asText("TABLE_LIST"))){
+        var versions=jdbc.queryForList("SELECT * FROM warehouse.extraction_sql_version WHERE source_id=? AND state='ENABLED'",source);
+        if(versions.isEmpty())conflict("SQL_VERSION_NOT_ENABLED");
+        var sqlVersionRow=versions.getFirst();
+        long sqlVersionId=((Number)sqlVersionRow.get("id")).longValue();
+        config.put("sourceMode","REGISTERED_SQL");
+        config.put("objectName",row.get("source_code").toString());
+        config.put("sqlVersionId",sqlVersionId);
+        config.put("sqlVersion",((Number)sqlVersionRow.get("version")).intValue());
+        config.put("sqlText",sqlVersionRow.get("sql_text").toString());
+        config.put("sqlSha256",sqlVersionRow.get("sql_sha256").toString());
+        config.put("extractionMode",sqlVersionRow.get("extraction_mode").toString());
+        if(sqlVersionRow.get("watermark_column")!=null)config.put("watermarkColumn",sqlVersionRow.get("watermark_column").toString());
+        config.set("resultColumns",json.readTree(sqlVersionRow.get("result_columns").toString()));
+        config.put("datasourceType",String.valueOf(row.get("datasource_type")));
+        config.put("credentialRef",String.valueOf(row.get("credential_ref")));
+        config.put("statementTimeoutMs",((Number)row.get("statement_timeout_ms")).longValue());
+        config.set("datasource",json.readTree(row.get("datasource_config").toString()));
+        config.put("seatunnelUrl",seatunnelUrl);
+      }
       String serialized=config.toString();return Map.of("configurationJson",serialized,"configurationSha256",ProductAccessService.hash(serialized));
     }catch(com.fasterxml.jackson.core.JsonProcessingException e){throw new IllegalStateException("INVALID_STORED_CONFIG");}
   }
