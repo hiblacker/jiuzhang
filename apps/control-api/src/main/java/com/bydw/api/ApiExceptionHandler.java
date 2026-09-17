@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -27,6 +28,14 @@ public class ApiExceptionHandler {
   @ExceptionHandler(MethodArgumentTypeMismatchException.class)
   ResponseEntity<ApiError> invalidParameter(HttpServletRequest request) {
     return error(HttpStatus.BAD_REQUEST, "INVALID_PARAMETER", "Request parameter has an invalid type", request);
+  }
+
+  // An unmapped path reaches Spring's static resource handler, which fails with
+  // NoResourceFoundException. Without this handler the catch-all below turned a
+  // plain routing mistake into 500 INTERNAL_ERROR and an ERROR log line.
+  @ExceptionHandler(NoResourceFoundException.class)
+  ResponseEntity<ApiError> notFound(HttpServletRequest request) {
+    return error(HttpStatus.NOT_FOUND, "NOT_FOUND", "请求的地址不存在", request);
   }
 
   @ExceptionHandler(Exception.class)
