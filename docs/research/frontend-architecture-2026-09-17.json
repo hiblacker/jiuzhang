@@ -1,0 +1,71 @@
+{
+  "observed_at": "2026-09-17T09:40:00.000Z",
+  "purpose": "控制台前端架构规范与重构方案（docs/47）的参考依据：成熟 Vue 3 后台项目的目录分层、官方 lint/类型检查工具链配置要点",
+  "scope": "仅作架构参考。未复制任何项目代码，未据此新增依赖，也不构成本仓库的许可、兼容性或安全审查结论。",
+  "collection_method": "本次会话 web_search 通道返回 HTTP 503（No available channel），因此改为直接 HTTP 抓取项目目录清单与官方文档页面。",
+  "sources": [
+    {
+      "kind": "repository_directory_listing",
+      "repository": "vbenjs/vue-vben-admin",
+      "url": "https://api.github.com/repos/vbenjs/vue-vben-admin/contents/apps/web-antd/src",
+      "upstream_ref": "main",
+      "resolved_commit": null,
+      "note": "通过 GitHub contents API 读取目录清单，未解析到固定提交 SHA；仅用于观察分层。",
+      "observed_entries": [
+        "adapter", "api", "app.vue", "bootstrap.ts", "layouts", "locales", "main.ts",
+        "preferences.ts", "router", "store", "views"
+      ]
+    },
+    {
+      "kind": "repository_directory_listing",
+      "repository": "soybeanjs/soybean-admin",
+      "url": "https://api.github.com/repos/soybeanjs/soybean-admin/contents/src",
+      "upstream_ref": "main",
+      "resolved_commit": null,
+      "note": "同上，目录清单观察用途。",
+      "observed_entries": [
+        "App.vue", "assets", "components", "constants", "enum", "hooks", "layouts", "locales",
+        "main.ts", "plugins", "router", "service", "store", "styles", "theme", "typings", "utils", "views"
+      ]
+    },
+    {
+      "kind": "official_documentation",
+      "title": "ESLint Configuration Files (flat config)",
+      "url": "https://eslint.org/docs/latest/use/configure/configuration-files",
+      "verified_points": [
+        "配置文件名为 eslint.config.js/.mjs/.cjs/.ts/.mts/.cts，导出一个配置对象数组",
+        "提供 defineConfig() 辅助函数",
+        "配置对象字段：name/basePath/files/ignores/extends/language/languageOptions/linterOptions/processor/plugins/rules/settings",
+        "ignores 单独成对象时作为全局忽略，作用于所有配置对象"
+      ]
+    },
+    {
+      "kind": "official_documentation",
+      "title": "eslint-plugin-vue User Guide",
+      "url": "https://eslint.vuejs.org/user-guide/",
+      "verified_points": [
+        "flat config 用法为 ...pluginVue.configs['flat/recommended']",
+        "插件要求 ESLint ^8.57.0 || ^9.0.0 || ^10.0.0，Node ^18.18.0 || ^20.9.0 || >=21.1.0",
+        "TypeScript 项目需把 TS 解析器放在 languageOptions.parserOptions.parser，由 vue-eslint-parser 作外层解析器",
+        "与 Prettier 组合时安装 eslint-config-prettier，并在配置数组末尾追加它",
+        "推荐示例同时使用 eslint.configs.recommended、typescript-eslint 与 pluginVue flat/recommended"
+      ]
+    },
+    {
+      "kind": "official_documentation",
+      "title": "typescript-eslint: Linting with Type Information",
+      "url": "https://typescript-eslint.io/getting-started/typed-linting/",
+      "verified_points": [
+        "启用类型感知规则：使用带 TypeChecked 后缀的共享配置（recommendedTypeChecked/strictTypeChecked/stylisticTypeChecked）",
+        "需设置 languageOptions.parserOptions.projectService: true，让解析器按文件查找 TSConfig",
+        "类型感知规则较慢，作者仍强烈建议启用，并建议在 IDE 缓存与 CI 中承担该开销"
+      ]
+    }
+  ],
+  "not_verified": [
+    "DataEase 前端目录结构：本仓库 46 号文档将其作为产品/数据源交互参考（GPL-3.0，只读参考），本次未抓取其源码目录，故方案中不引用其具体分层。",
+    "vue-pure-admin 目录结构：本次未抓取，方案中不引用。",
+    "Vue 官方状态管理章节与 Pinia 文档：本次未抓取该页面，方案中把 vue-router + Pinia 作为生态默认组合提出，但标注为需要在评审时确认，不作为已核验的官方结论。",
+    "任何新增依赖的许可证与传递依赖：本方案只提出候选，安装前必须按 ADR-008 与 docs/09 的依赖纪律逐项固定版本并留存许可证据。"
+  ]
+}
