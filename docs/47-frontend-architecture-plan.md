@@ -565,3 +565,13 @@ const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
 结论修正：**多列表不需要扩展组合式函数**——`usePagedQuery` 是工厂函数，第二次调用即第二个列表。因此 `ModelsView` 的模型包列表（`packagePage/packageTotal`）与 `DatasetsView` 的 offset 分页都可以用同样方式处理，只需为后者传 `limit: 50` 并把原来的"上一页/下一页（offset±50）"按钮映射为 `page` 增减。
 
 效果：该文件少约 15 行重复代码，告警保持 286（该页行数据本就有 `Dataset` 接口类型，所以计数不变，属"结构改善但无告警变化"）；镜像 `0.2.0-dev.23`；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（`/models` 页面断言覆盖本页）。
+
+### 14.15 列表页迁移（继续）：DatasetsView 已完成（列表页迁移收口）
+
+`views/datasets/DatasetsView.vue` 的**数据集列表**改用 `usePagedQuery`（`resetKey` 为 `projectId`），删掉 `rows/q/page/total/busy` 五个 ref 与手写 `load()`（含 `generation` 守卫）。
+
+范围界定（写清楚以免误解）：该页的 `offset` ref 属于**查询结果预览**的分页（offset±50 与 CSV 导出），不是数据集列表的分页，因此保持原样不动——`usePagedQuery` 负责的是"页面级列表"，结果窗口属于另一类交互，若要统一应另抽 `useResultWindow`。
+
+至此，目标里列的 5 个列表页（IngestionView / RunsView / ModelsView / DatasetsView / DeliveryLedger）**已全部迁移完毕**（ModelsView 的模型包列表可用第二次调用同样处理，属可选收尾）。剩余为逐页 DTO 类型化与 complexity 收口。
+
+效果：告警保持 286（该页列表行数据已有 `Dataset` 接口类型）；镜像 `0.2.0-dev.24`；浏览器验收 PASS（`/datasets` 页面断言覆盖本页）。

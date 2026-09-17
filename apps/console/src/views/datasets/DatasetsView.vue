@@ -13,7 +13,8 @@ import {
   NSpace,
   NTag,
 } from 'naive-ui';
-import { api, exportCsv, type Page } from '@/api';
+import { api, exportCsv } from '@/api';
+import { usePagedQuery } from '@/composables/usePagedQuery';
 import { usePermissionStore } from '@/stores/permission';
 import { useProjectStore } from '@/stores/project';
 import AppJsonBlock from '@/components/AppJsonBlock.vue';
@@ -29,19 +30,27 @@ interface Dataset {
   code: string;
   active_release_id: number | null;
 }
-const rows = ref<Dataset[]>([]),
-  q = ref(''),
-  page = ref(1),
-  total = ref(0),
-  selected = ref<Dataset | null>(null),
+const selected = ref<Dataset | null>(null),
   description = ref<Record<string, any> | null>(null),
   releases = ref<Record<string, any>[]>([]),
   release = ref<number | null>(null),
   columns = ref<string[]>([]),
   result = ref<Record<string, any> | null>(null),
   offset = ref(0),
-  busy = ref(false),
   error = ref('');
+const {
+  rows,
+  query: q,
+  page,
+  total,
+  loading: busy,
+  listError,
+  load,
+} = usePagedQuery<Dataset>({
+  route: ({ page: current, query, limit }) =>
+    `/warehouse/catalog/projects/${projectId.value}/datasets?q=${encodeURIComponent(query)}&limit=${limit}&offset=${(current - 1) * limit}`,
+  resetKey: () => projectId.value,
+});
 const filterField = ref<string | null>(null),
   filterOp = ref('EQ'),
   filterValue = ref(''),
@@ -75,25 +84,6 @@ const names: Record<string, string> = {
   NOT_CONFIGURED: '新鲜度要求未配置',
   UNKNOWN: '新鲜度未知',
 };
-let generation = 0;
-async function load() {
-  const current = ++generation;
-  busy.value = true;
-  error.value = '';
-  try {
-    const value = await api<Page<Dataset>>(
-      `/warehouse/catalog/projects/${projectId.value}/datasets?q=${encodeURIComponent(q.value)}&limit=25&offset=${(page.value - 1) * 25}`,
-    );
-    if (current === generation) {
-      rows.value = value.items;
-      total.value = value.total;
-    }
-  } catch (e) {
-    if (current === generation) error.value = (e as Error).message;
-  } finally {
-    if (current === generation) busy.value = false;
-  }
-}
 async function inspect(row: Dataset) {
   selected.value = row;
   result.value = null;
@@ -238,17 +228,15 @@ watch(release, async (value) => {
     if (current === descriptionGeneration) error.value = (e as Error).message;
   }
 });
-watch(page, () => void load());
 watch(
   () => projectId.value,
   () => {
     selected.value = null;
-    page.value = 1;
-    void load();
   },
   { immediate: true },
 );
 useErrorToast(error);
+useErrorToast(listError);
 </script>
 <template>
   <n-card v-if="!selected" title="数据服务目录"
