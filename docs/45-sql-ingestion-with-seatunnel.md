@@ -32,15 +32,19 @@
 - REST 驱动：`POST http://seatunnel:5801/hazelcast/rest/maps/submit-job` → 返回 `jobId`；`GET .../job-info/{jobId}` 轮询状态（POC 适配器每 3 秒轮询）
 - 运行形态：`apache/seatunnel:2.3.13` 容器（版本已锁在 `poc/component/dependencies.lock.json`），`hazelcast` 端口 5801，`job.mode: batch`
 
-**本轮未能取证、必须在 P0 尖峰里实测确认的项**（写方案不写承诺）：
+**P0-a 尖峰实测结论（2026-09-17，`poc/seatunnel-sql/`，可复现）**：下表已全部取证，不再是假设。原始证据见该目录的 `results.json` 与 [README](../poc/seatunnel-sql/README.md)。
 
-| 待确认 | 为什么要紧 | 影响 |
-|---|---|---|
-| 文件 sink 的插件名与 `file_format_type` 能否产出 **JSONL**（每行一个 JSON），或只能产出 JSON 数组 | 现有 RAW 契约是 `raw/<source>/<batch>/<table>/data.jsonl`，被 `lake-register.mjs`、`ExternalAssetService`、`ModelService` 消费 | 决定"直接落 JSONL"还是"SeaTunnel 落中间格式 + 平台单遍规范化" |
-| 作业**取消**接口 | 运行中心已有"取消"语义 | 无取消接口时退化为"限额内跑完并丢弃"，需在验收里写明 |
-| `DECIMAL`/`DATETIME`/中文列名的类型保真细节 | 一期要求"原始类型及精度保留" | 决定是否需要 sink 后校验与拒绝规则 |
-| 行数/字节是否能从 SeaTunnel 指标取得 | 清单里必须有 rows/bytes/sha256 | **本方案不依赖它**：由平台扫描产物自行统计（见 §3.3） |
-| Zeta `local` 模式的并发槽位与内存占用 | 与资源 `maxParallel` 对齐 | 决定容器资源与并发上限 |
+| 问题 | 实测结论 |
+|---|---|
+| 文件 sink 能否直出 **JSONL** | **能**：每行一个 JSON，分片文件 `T_<jobId>_<hash>_0_1_0.json`；`isJsonl=true`、`isJsonArray=false` |
+| `DECIMAL` 精度 | 文件文本**逐位保留**（`12345678901234567.89`、`999999999999999999.99`），但 sink 写成**未加引号的 JSON 数字**，任何浮点读端都会静默丢精度。改用 `CAST(col AS CHAR)` 后写成**字符串**且位数不变 —— 与现有 `mysql-char-v2` 契约一致 |
+| `DATETIME` 形态 | 不加 CAST：**UTC 且无时区标记**（`2026-09-17T01:58:11.123`），毫秒为 0 时被省略；加 `CAST(... AS CHAR)`：**源本地墙钟** `2026-09-17 09:58:11.123`（可判定、与 `sourceTimeZone` 配套） |
+| 取消接口 | **存在且可用**：`POST /hazelcast/rest/maps/stop-job`，body `{"jobId":"…"}` → 200，状态转 `CANCELED`，**不残留半成品文件** |
+| 并发与内存 | 两个作业**同时 RUNNING**（`pending=0`），容器 2 GiB / 1 CPU 下占用 486–530 MiB |
+| 只读账号 | `CREATE TABLE` 被拒（`ERROR 1142`），`SELECT` 正常 —— 这正是连接测试要验的 |
+| 行数/字节 | 平台自行扫描产物统计，**不依赖**引擎指标（原方案成立） |
+
+**因尖峰而修改的设计**：① SQL 模式对精度敏感列（`DECIMAL`/`DATETIME`/`TIMESTAMP`）**注入 `CAST(col AS CHAR)`**，保持 JSONL 契约不变、读端零改动、时间可判定（示例作业 `poc/seatunnel-sql/jobs/orders-char-cast.json`）；② **字符集必须作为数据源显式字段**：尖峰首跑因 fixture 未 `SET NAMES utf8mb4` 导致列名双重编码而失败（现有产品路径已固定 `default-character-set=utf8mb4`，见 `tools/mysql-discover.mjs`）；③ 取消可直接暴露到界面，因为取消不留半成品。
 
 ## 2. 架构与数据流
 
@@ -95,6 +99,7 @@ SeaTunnel Zeta 2.3.13（新 compose 服务，仅内网，端口 5801）
 ```
 
 - 所有 `{{...}}` 由**平台注入**：连接信息来自已批准资源与凭证引用，`sourceCode`/`batchId`/`table` 来自本次执行，窗口参数来自计划。
+- **精度敏感列必须转文本**（P0-a 尖峰结论）：生成器对 `DECIMAL`/`DATETIME`/`TIMESTAMP` 列注入 `CAST(col AS CHAR)`，使 JSONL 与现有 `mysql-char-v2` 契约一致、读端零改动、时间以源本地墙钟表示。用户手写 SQL 时，校验层要求这些列已 CAST，否则阻断并给出自动修正建议。
 - 用户在编辑器里只能写 `SELECT` 本体与**已声明的占位参数**（见 §5.2）。
 - `parallelism` 固定 1（单表单文件，避免同表并发写导致清单与哈希难以对应）；提并发靠"多表并行"而不是"单表分片"。若后续需要分片，再评估 `partition_column`（本轮未取证）。
 
@@ -321,7 +326,7 @@ batches/<batchId>/batch.json                       ← 平台写：逐表 rows /
 | 作业 FAILED + SQL 语法 | SQL 语法错误：`<原始信息摘要>` | 否（改 SQL） |
 | 作业 FAILED + 超时 | 执行超过限额（3600 s）；可缩小范围或调整执行时间 | 是 |
 | 作业 FAILED + 超过最大行数/字节 | 结果超过本次预算（N 行 / M 字节） | 是 |
-| 取消请求（**接口待实测确认**） | 已请求取消；若引擎不支持取消，作业将在限额内结束并被丢弃 | —— |
+| 取消请求 | 已请求取消（`POST /hazelcast/rest/maps/stop-job`，实测可用且不残留半成品） | —— |
 | 产出校验失败 | 产出与清单不一致（`RAW_INTEGRITY_MISMATCH`），已拒绝登记 | 是 |
 
 ### 5.10 前端需要的接口（草案，需与后端确认）
@@ -363,7 +368,7 @@ POST /warehouse/projects/1/sql-drafts/12/preview
 
 | 阶段 | 交付 | 验收（可复现，含反例） |
 |---|---|---|
-| **P0-a 尖峰**（1–2 天） | SeaTunnel 容器接线 + 文件 sink 形态确认（JSONL？）+ 类型保真与取消接口实测 | 一张含 `DECIMAL(20,2)`/中文列/时间戳的合成表：产出 JSONL 且平台算出 rows/bytes/sha256；记录 sink 参数与取消结论，写成 ADR |
+| ~~P0-a 尖峰~~ **已完成 2026-09-17** | SeaTunnel 容器接线 + 文件 sink / 类型保真 / 取消 / 并发实测 | ✅ 见 §1 结论表与 [`poc/seatunnel-sql/`](../poc/seatunnel-sql/README.md)：JSONL 直出、`CAST` 保精度、`stop-job` 可用、2 作业并发；**遗留**：CPU 密集型并发与容量未测 |
 | **P0-b SQL 定义 + 全量执行** | 编辑器 + 校验 + 预览 + 版本 + SeaTunnel 单表全量抽取 → 落 RAW → 登记资产 | 拒绝 DDL/DML/多语句/越库/未声明参数/重名列；预览强制 LIMIT 且写审计；同窗口重复执行幂等；产出哈希与清单一致 |
 | **P0-c 增量水位** | `WHERE window_start/window_end` 注入 + 水位状态 + 重叠回读 | 半开窗口不重不漏；水位回拨/补数/迟到三组边界；跨日连续；重复执行复用结果 |
 | **P1-a 变更与影响** | DiffView + 列契约联动 + 影响面 | 改别名的下游契约与授权显式跟随；旧版本只读保留；回放可用 |

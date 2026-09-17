@@ -18,6 +18,7 @@
 | ADR-012 | SQL 放行策略：只读查询一律允许（含 JOIN/UNION/CTE/聚合） | 用户已确认，2026-09-17 | 禁止项收窄为 DDL/DML、多语句、跨库与系统库、副作用函数、未声明参数、自带 LIMIT；以粒度/唯一键声明与增量驱动表确认取代"禁止 JOIN" |
 | ADR-013 | 数据预览与 SQL 版本启用权限 | 用户已确认，2026-09-17 | 预览固定 `LIMIT 1000`、ENGINEER 可直接预览（脱敏+审计）；SQL 版本由 OWNER/管理员启用并写原因；默认不强制双人评审，`SQL_VERSION_REQUIRE_REVIEW` 可开启 |
 | ADR-014 | 多数据源采用"访问族 + 数据源类型"两维模型，先做 MySQL | 用户已确认，2026-09-17 | 不新建平行概念；JDBC 家族复用 SeaTunnel `Jdbc`；驱动与连接器逐项许可/版本准入，方案见 [46号文档](46-multi-datasource-design.md) |
+| ADR-015 | SQL 抽取的落湖形态：SeaTunnel 文件 sink 直出 JSONL + 精度敏感列 `CAST(... AS CHAR)` | 实测确认，2026-09-17 | 尖峰 `poc/seatunnel-sql/`：sink 可直出 JSONL，但 `DECIMAL` 写成未加引号的 JSON 数字会丢精度、时间被转成无标记 UTC；CAST 后为字符串且为源本地墙钟，与既有 `mysql-char-v2` 契约一致。取消用 `POST /hazelcast/rest/maps/stop-job`（不残留半成品）。字符集必须作为数据源显式字段 |
 
 技术选型报告给出的是候选及推荐，不自动将ADR-007变为已确认。
 

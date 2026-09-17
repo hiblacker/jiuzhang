@@ -1,0 +1,19 @@
+{
+  "env": {"job.mode": "batch", "parallelism": 1},
+  "source": [{
+    "plugin_name": "Jdbc",
+    "url": "jdbc:mysql://spike-mysql:3306/spike?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+    "driver": "com.mysql.cj.jdbc.Driver",
+    "user": "spike_ro",
+    "password": "__MYSQL_PASSWORD__",
+    "query": "SELECT id, `订单编号` AS order_no, CAST(`金额` AS CHAR) AS amount, CAST(`更新时间` AS CHAR) AS updated_at, `备注` AS note, '__BATCH__' AS batch_id FROM spike_orders ORDER BY id",
+    "fetch_size": 1000
+  }],
+  "transform": [],
+  "sink": [{
+    "plugin_name": "LocalFile",
+    "path": "/out/cast/orders",
+    "file_format_type": "json",
+    "options": {"is_enable_transaction": false}
+  }]
+}

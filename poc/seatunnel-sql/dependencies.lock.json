@@ -1,0 +1,25 @@
+{
+  "purpose": "P0-a spike (doc 45 section 1): SeaTunnel as the SQL extraction execution layer",
+  "date": "2026-09-17",
+  "network": "no downloads required; both images were already present from the approved POC-01 install lock",
+  "images": {
+    "apache/seatunnel:2.3.13": "apache/seatunnel@sha256:2b1d327df210fb35c2ec12487b0db52c95dc845a77864d3ee04f1886cdcd60e1",
+    "mysql:8.0.43": "mysql@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10"
+  },
+  "jdbcDriversInsideImage": {
+    "mysql-connector-java-8.0.27.jar": "present in /opt/seatunnel/lib; no custom image layer needed",
+    "postgresql-42.4.3.jar": "present in /opt/seatunnel/lib; PostgreSQL not exercised by this spike"
+  },
+  "connectorsInsideImage": ["connector-jdbc-2.3.13.jar", "connector-file-local-2.3.13.jar"],
+  "engineRestApi": {
+    "submit": "POST /hazelcast/rest/maps/submit-job",
+    "info": "GET /hazelcast/rest/maps/job-info/{jobId}",
+    "running": "GET /hazelcast/rest/maps/running-jobs",
+    "pending": "GET /hazelcast/rest/maps/pending-jobs",
+    "stop": "POST /hazelcast/rest/maps/stop-job  (body {\"jobId\": \"...\"})",
+    "source": "constant pool of org.apache.seatunnel.engine.server.rest.RestConstant in seatunnel-starter.jar",
+    "port": 5801
+  },
+  "runtimeLimits": {"cpus": 1.0, "mem_limit": "2g", "observed": "486-530 MiB with two concurrent SLEEP-bound jobs"},
+  "notCovered": ["CPU-bound concurrency", "volume/throughput", "CDC", "TLS", "SSH tunnel", "cluster mode", "failure injection", "non-MySQL dialects"]
+}

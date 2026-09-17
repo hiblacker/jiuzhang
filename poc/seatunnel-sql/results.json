@@ -1,0 +1,110 @@
+{
+  "environment": {
+    "images": {
+      "apache/seatunnel:2.3.13": "[apache/seatunnel:2.3.13] apache/seatunnel@sha256:2b1d327df210fb35c2ec12487b0db52c95dc845a77864d3ee04f1886cdcd60e1",
+      "mysql:8.0.43": "[mysql:8.0.43] mysql@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10"
+    },
+    "seed": {
+      "orders": "3",
+      "slow": "400",
+      "chineseColumnNameHexOk": "1"
+    }
+  },
+  "readOnlyAccount": {
+    "writeDenied": true,
+    "message": "ERROR 1142 (42000) at line 1: CREATE command denied to user 'spike_ro'@'localhost' for table 'should_fail'",
+    "selectWorks": true
+  },
+  "fileSink": {
+    "jobId": "1152870992540860417",
+    "jobStatus": "FINISHED",
+    "elapsedMs": 2931,
+    "acceptedConfig": true,
+    "files": [
+      {
+        "name": "T_1152870992540860417_aa60ebabb8_0_1_0.json",
+        "bytes": 427
+      }
+    ],
+    "rawHead": "{\"id\":1,\"order_no\":\"NO-0001\",\"amount\":12345678901234567.89,\"updated_at\":\"2026-09-17T01:58:11.123\",\"note\":null,\"batch_id\":\"spike-1789630663832\"}\n{\"id\":2,\"order_no\":\"NO-0002\",\"amount\":-0.01,\"updated_at\":\"2026-09-17T02:00:00\",\"note\":\"含中文备注\",\"batch_id\":\"spike-1789630663832\"}\n{\"id\":3,\"order_no\":\"NO-0003\",\"amount\":999999999999999999.99,\"updated_at\":\"2026-09-16T15:59:59.999\",\"note\":\"007\",\"batch_id\":\"spik",
+    "isJsonl": true,
+    "isJsonArray": false,
+    "lineCount": 3
+  },
+  "typeFidelity": {
+    "decimalExactInFileText": {
+      "12345678901234567.89": true,
+      "999999999999999999.99": true,
+      "-0.01": true,
+      "decimalsAreUnquotedJsonNumbers": true
+    },
+    "keys": [
+      "id",
+      "order_no",
+      "amount",
+      "updated_at",
+      "note",
+      "batch_id"
+    ],
+    "decimalPreserved": [
+      12345678901234568,
+      -0.01,
+      1000000000000000000
+    ],
+    "decimalExact": true,
+    "bigDecimalPreserved": 1000000000000000000,
+    "negativeDecimalPreserved": -0.01,
+    "datetime": [
+      "2026-09-17T01:58:11.123",
+      "2026-09-17T02:00:00",
+      "2026-09-16T15:59:59.999"
+    ],
+    "nullPreserved": true,
+    "chineseTextPreserved": "含中文备注",
+    "leadingZeroPreserved": "007",
+    "batchColumn": "spike-1789630663832",
+    "jsonTypes": {
+      "id": "number",
+      "order_no": "string",
+      "amount": "number",
+      "updated_at": "string",
+      "note": "object",
+      "batch_id": "string"
+    }
+  },
+  "charCastVariant": {
+    "jobId": "1152870992541122561",
+    "jobStatus": "FINISHED",
+    "rawHead": "{\"id\":1,\"order_no\":\"NO-0001\",\"amount\":\"12345678901234567.89\",\"updated_at\":\"2026-09-17 09:58:11.123\",\"note\":null,\"batch_id\":\"spike-1789630666764\"}\n{\"id\":2,\"order_no\":\"NO-0002\",\"amount\":\"-0.01\",\"updated_at\":\"2026-09-17 10:00:00.000\",\"note\":\"含中文备注\",\"batch_id\":\"spike-1789630666764\"}\n{\"id\":3,\"order_no\":\"NO-0003\",\"amount\":\"999999999999999999.99\",\"updated_at\":\"2026-09-16 23:59:59.999\",\"note\":\"007\",\"batch",
+    "decimalIsString": true,
+    "decimalExactString": "12345678901234567.89",
+    "updatedAtString": "2026-09-17 09:58:11.123",
+    "updatedAtIsSourceLocalWallClock": true
+  },
+  "cancel": {
+    "jobId": "1152870992541384705",
+    "runningBeforeCancel": 1,
+    "stopAttempts": [
+      {
+        "route": "/hazelcast/rest/maps/stop-job",
+        "status": 200,
+        "body": "{\"jobId\":\"1152870992541384705\"}"
+      }
+    ],
+    "statusAfterStop": "CANCELED",
+    "filesAfterCancel": 0
+  },
+  "concurrency": {
+    "submitted": [
+      "1152870992541646849",
+      "1152870992541712385"
+    ],
+    "statuses": [
+      "RUNNING",
+      "RUNNING"
+    ],
+    "runningJobs": 2,
+    "pendingJobs": 0,
+    "stats": "jiuzhang-st-spike-spike-seatunnel-1 cpu=4.30% mem=404.8MiB / 2GiB"
+  }
+}
