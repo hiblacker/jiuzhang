@@ -436,3 +436,19 @@ const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
 1. 平台管理员**没有项目**时，原实现会直接把"项目与设置"页当作落地页；现在改为一张明确的引导卡片（"还没有可用的项目" + 选择项目按钮），设置页仍从菜单可达。
 2. 视图仍在通过 `AppLayout` 的 `pageProps` 计算属性收 props（保持原契约）；P2 建 Pinia 后改为视图直接读 store，届时删除这个垫片。
 3. 角色拒绝路径（如 VIEWER 直接访问 `/models`）未放进浏览器验收（需要第二个 VIEWER 账号），改由 P5 的路由守卫单元测试覆盖；浏览器验收只覆盖了"菜单按角色隐藏"与 404。
+
+### 14.4 P2（Pinia + 统一 API 客户端 + 删除 token 层）：已完成 2026-09-17
+
+| 项 | 结果 |
+|---|---|
+| 依赖 | `pinia 3.0.4`（精确锁定；选 3.x，peer 只有 vue/typescript，不引入 4.x 的 `@vue/devtools-api ^8` 额外 peer） |
+| API 层 | `src/api/http.ts`（唯一的 HTTP 客户端：会话 cookie + CSRF + 统一 `ApiError` + `exportCsv`）、`src/api/types.ts`（`Project`/`Identity`/`Page`）、`src/api/index.ts` 统一出口——**所有既有 `import { api } from '@/api'` 调用点零改动** |
+| 状态层 | `src/stores/session.ts`（身份、bootstrap、登出、`isAdmin`）、`src/stores/project.ts`（项目列表/当前项目/分页/选择器/`syncRole`）、`src/stores/permission.ts`（`role`/`canManage`/`canIngest`/`canOperate`，唯一的能力来源） |
+| 视图 | 7 个页面改为直接读 store（`canManage`/`canIngest`/`canOperate`/`admin`/`identity`/`projectId` 由 store 派生），**删除 `AppLayout` 的 `pageProps` 垫片**；`AppLayout`、`LoginView`、路由守卫全部走 store |
+| 结构归位 | `src/types.ts` → `src/types/index.ts`（`@/types` 说明符不变，零导入改动） |
+| 删除 | `src/api.ts`、`src/transport.ts`（令牌传输层）与其测试 `tests/console-transport.test.mjs` |
+| 验证 | `npm run build`（typecheck + format:check + lint + vite + notices）通过；lint 警告 **294**（316 → 296 → 295 → 294）；`node --test tests/*.test.mjs` **129 项**（127 通过、1 跳过、1 项既存 openpyxl 失败）——总数从 134 降到 129 是随令牌层删除掉的 5 个传输层测试，属预期缩减；控制台镜像 `0.2.0-dev.16` 重建；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（含深链/刷新/后退/404 四条路由断言），说明整条 Pinia 化路径在真机上仍可用 |
+
+**一处事实更正**：P0 阶段我按宽泛 grep 判断"只有 `DatasetService.vue` 一个存活页面在用 token 客户端"；本次逐文件核对导入后确认**没有任何存活使用者**（`DatasetService` 命中的是它自己的局部 `request()` 函数）。因此 token 层的删除是纯减法，不需要迁移任何页面。
+
+**欠账（顺延）**：视图里仍有大量 `Record<string, any>` 行数据（294 条告警的主体）。P2 解决的是**层面**问题（单一类型化客户端 + 类型化 store + 无传输层分支），逐页 DTO 化与拆页同时进行更安全，故并入 P4；`max-lines`（`IngestionManager.vue` 824 行）与 6 处 `complexity` 同样在 P4 收口。
