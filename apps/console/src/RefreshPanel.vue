@@ -46,6 +46,7 @@ const form = reactive({
   maxSkewSeconds: 86400,
   freshnessSeconds: 172800,
   daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- pins the shape so later string indexing stays typed
   inputSelectors: {} as Record<string, { businessDayOffset: number }>,
 });
 const names: Record<string, string> = {

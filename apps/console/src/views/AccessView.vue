@@ -23,6 +23,7 @@ const modal = ref(false),
   initial = ref<Row>({});
 const issuedToken = ref(''),
   issuedIdentity = ref('');
+// eslint-disable-next-line @typescript-eslint/require-await -- the declared handler type returns a Promise
 let submitAction: (v: Row) => Promise<unknown> = async () => undefined;
 async function load() {
   if (admin) identities.value = await call<Row[]>('warehouse/identities');

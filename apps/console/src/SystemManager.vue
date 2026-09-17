@@ -205,11 +205,11 @@ onMounted(() => void load());
       ><n-input
         v-model:value="q"
         placeholder="系统、编码、组织或责任人"
+        style="width: 270px"
         @keyup.enter="
           page = 1;
           load();
         "
-        style="width: 270px"
       /><n-select
         v-model:value="environment"
         :options="[{ label: '全部环境', value: '' }, ...environmentOptions]"

@@ -10,8 +10,8 @@ const flat = computed(() => Object.entries(object(props.value)).filter(([, v]) =
   <n-drawer :show="show" :width="680" @update:show="$emit('update:show', $event)">
     <n-drawer-content :title="title" closable>
       <n-descriptions v-if="flat.length" bordered :column="1" label-placement="left">
-        <n-descriptions-item v-for="[key, value] of flat" :key="key" :label="key">{{
-          display(value)
+        <n-descriptions-item v-for="[key, item] of flat" :key="key" :label="key">{{
+          display(item)
         }}</n-descriptions-item>
       </n-descriptions>
       <n-code :code="JSON.stringify(value, null, 2)" word-wrap internal-no-highlight class="detail-code" />

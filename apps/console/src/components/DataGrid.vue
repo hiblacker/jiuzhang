@@ -10,7 +10,7 @@ const props = withDefaults(
     loading?: boolean;
     paginated?: boolean;
   }>(),
-  { paginated: true },
+  { paginated: true, actions: undefined },
 );
 const positive = ['COMPLETE', 'ACTIVE', 'RAW_COMMITTED', 'PARSED', 'READY', 'PUBLISHED', 'RECEIVED'];
 const negative = ['FAILED', 'MISSING', 'OVERDUE', 'REJECTED', 'INCOMPLETE'];

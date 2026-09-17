@@ -7,7 +7,6 @@ import {
   NAlert,
   NButton,
   NCard,
-  NCheckbox,
   NDataTable,
   NFormItem,
   NInput,
@@ -86,7 +85,6 @@ const columns = computed<DataTableColumns<unknown[]>>(() => [
   })),
 ]);
 const rows = computed(() => preview.value?.rows || []);
-const hasVersion = computed(() => versions.value.some((v) => v.state === 'ENABLED' || v.state === 'VALIDATED'));
 const enabledVersion = computed(() => versions.value.find((v) => v.state === 'ENABLED') || null);
 function format(value: unknown) {
   if (value === null || value === undefined) return '∅';
@@ -393,7 +391,7 @@ onMounted(() => void load());
               该数据源尚未登记允许的表；请先在数据源配置里填写允许的库与表。
             </p>
           </div>
-          <div class="muted" v-if="resultColumns.length" style="margin-top: 8px">
+          <div v-if="resultColumns.length" class="muted" style="margin-top: 8px">
             结果列（点击插入列名）：
             <n-button
               v-for="column in resultColumns"
@@ -491,12 +489,12 @@ onMounted(() => void load());
         >启用版本 {{ version.version }}</n-button
       ></n-space
     >
-    <p class="muted" v-if="enabledVersion">
+    <p v-if="enabledVersion" class="muted">
       当前启用：版本 {{ enabledVersion.version }}（{{
         enabledVersion.extraction_mode === 'FULL' ? '全量快照' : '水位增量'
       }}）
     </p>
-    <p class="muted" v-else>还没有启用的 SQL 版本：必须成功预览一次并保存版本后才能启用。</p>
-    <p class="muted" v-if="!canActivate">启用需要项目 OWNER 或平台管理员权限。</p>
+    <p v-else class="muted">还没有启用的 SQL 版本：必须成功预览一次并保存版本后才能启用。</p>
+    <p v-if="!canActivate" class="muted">启用需要项目 OWNER 或平台管理员权限。</p>
   </n-card>
 </template>

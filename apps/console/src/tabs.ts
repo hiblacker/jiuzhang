@@ -28,8 +28,8 @@ export function useTabs(initial: string) {
               ? tabs.length - 1
               : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
         event.preventDefault();
-        tabs[next]!.focus();
-        tabs[next]!.click();
+        tabs[next].focus();
+        tabs[next].click();
       },
     };
   }

@@ -30,6 +30,7 @@ const modal = ref(false),
 const detail = ref<unknown>(),
   detailTitle = ref('详情'),
   showDetail = ref(false);
+// eslint-disable-next-line @typescript-eslint/require-await -- the declared handler type returns a Promise
 let submitAction: (values: Row) => Promise<unknown> = async () => undefined;
 const visiblePlans = computed(() => plans.value.filter((p) => !filter.value || p.source_code.includes(filter.value)));
 const visibleExecutions = computed(() =>

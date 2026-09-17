@@ -4,7 +4,7 @@ import { NAlert, NButton, NEmpty, NModal, NSelect, NTabs, NTabPane, NTag, useMes
 import { Plus, Download, ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { engineer, owner, projectId, useApi } from '../api';
 import { useTabs } from '../tabs';
-import { object, type Action, type Dataset, type Field, type QueryResult, type Row } from '../types';
+import { type Action, type Dataset, type Field, type QueryResult, type Row } from '../types';
 import ActionForm from '../components/ActionForm.vue';
 import DataGrid from '../components/DataGrid.vue';
 import DetailDrawer from '../components/DetailDrawer.vue';
@@ -28,6 +28,7 @@ const modal = ref(false),
 const result = ref<QueryResult | null>(null),
   lastQuery = ref<Row | null>(null);
 const { activeTab, tabProps, panelProps } = useTabs('query');
+// eslint-disable-next-line @typescript-eslint/require-await -- the declared handler type returns a Promise
 let submitAction: (value: Row) => Promise<unknown> = async () => undefined;
 const selected = computed(() => datasets.value.find((d) => d.id === datasetId.value));
 function route() {
