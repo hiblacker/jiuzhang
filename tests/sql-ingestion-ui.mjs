@@ -236,6 +236,17 @@ try {
   await page.getByText('这个地址没有对应的页面，可能链接已过期。', {exact: true}).waitFor();
   step('unknown path renders the not-found page instead of a blank screen');
 
+  // Smoke pass over the pages the other assertions do not reach, so a refactor here cannot
+  // break a page silently.
+  for (const [path, heading] of [['/overview', '工作台'], ['/models', '数据开发'], ['/datasets', '数据服务'], ['/settings', '项目与设置']]) {
+    await page.goto(`${consoleUrl}${path}`);
+    // The shell heading is the single source of "which page am I on"; the card proves the view
+    // itself rendered instead of failing silently.
+    await page.locator('header h1').filter({hasText: heading}).waitFor();
+    await page.locator('.n-card').first().waitFor();
+    step('page renders with its heading and content', {path});
+  }
+
   assert.deepEqual(errors, [], `browser errors: ${errors.join('; ')}`);
   evidence.state = 'PASS';
   evidence.owner = owner;

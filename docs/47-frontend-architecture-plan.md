@@ -533,3 +533,13 @@ const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
 `views/runs/RunsView.vue` 改用 `usePagedQuery`：路由按 `tab` 分支（采集执行 / 查询审计 / 站内异常）仍写在调用处的 `route` 闭包里，`resetKey` 为 `[projectId, tab]`；手写的 `generation` 守卫、`load()`、`page` watcher 与"切 tab 重置"里的分页逻辑删除，筛选条件的清空与详情面板关闭保留在视图自己的 watcher 中。行数据类型由 `Record<string, any>` 收紧为 `Record<string, unknown>`。
 
 效果：告警 290 → **288**（基线同步下调）；镜像 `0.2.0-dev.21`；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（用例进入运行中心，覆盖该页渲染与菜单路由）。
+
+### 14.12 浏览器验收覆盖全部页面（Round 2）
+
+`tests/sql-ingestion-ui.mjs` 末尾新增一轮页面冒烟：依次打开 `/overview`、`/models`、`/datasets`、`/settings`，断言**页头标题**（`header h1`，即路由 `meta.title` 的唯一来源）与该页至少一张卡片可见，并沿用全局的 `pageerror` 收集（任何一页抛错都会让用例失败）。此前验收只覆盖接入管理、资产目录、运行中心三页，`/models`、`/datasets`、`/settings` 的重构没有真机守护。
+
+顺带记录一个坑：最初用 `getByRole('heading', {name})` 定位页头会失败（页面里存在同文本的其它元素/角色歧义），改用 `header h1` 选择器后稳定。
+
+验证：`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（新增 4 条 `page renders with its heading and content`）。
+
+**下一步（Round 3 起）**：迁 `DeliveryLedger` 需要先把 `load()` 的"计划 + 分页窗口"合并取数拆成两段（组合式函数管窗口分页，计划单独取），再迁 `ModelsView` 的双列表与 `DatasetsView` 的 offset 分页——这几处契约与 `usePagedQuery` 现有能力不同，属于"扩展组合式函数"的前置工作。
