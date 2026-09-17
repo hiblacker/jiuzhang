@@ -59,6 +59,7 @@
 | [MySQL 接入与数据查看方案](docs/43-mysql-ingestion-design.md) | 待评审：按表/增量/受限 SQL 接入、字段重命名与映射、已入湖数据预览页面 |
 | [控制台界面重构方案](docs/44-console-redesign-plan.md) | 待评审：现状证据、同类产品调研、设计令牌与组件规范、分阶段重构 |
 | [SeaTunnel SQL 接入实施方案](docs/45-sql-ingestion-with-seatunnel.md) | 待评审：用 SeaTunnel 执行登记式 SQL 接入，含作业模板、校验流水线、前端逐控件交互 |
+| [多数据源设计](docs/46-multi-datasource-design.md) | 待评审：参考 DataEase 的数据源模型，访问族+类型两维建模、连接测试与只读验证、前端数据源管理 |
 | [总体架构与详细设计](docs/02-architecture.md) | 部署边界、模块、元数据、接口、安全与发布 |
 | [数据加工与指标规范](docs/03-data-processing.md) | 增量、历史、周期统计、幂等和补数 |
 | [一期开发计划](docs/04-phase-one-plan.md) | 人员假设、W1–W18、工作包、依赖和里程碑 |
