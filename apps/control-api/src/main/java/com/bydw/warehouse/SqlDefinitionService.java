@@ -78,6 +78,7 @@ public class SqlDefinitionService {
             "resourceId", context.get("resource_id"),
             "datasourceType", String.valueOf(context.get("datasource_type")),
             "availableTables", tree(context.get("allowed_tables")),
+            "availableSchemas", tree(context.get("allowed_schemas")),
             "statementTimeoutMs", context.get("statement_timeout_ms")),
         "previewLimit", PREVIEW_LIMIT);
   }
@@ -229,6 +230,9 @@ public class SqlDefinitionService {
     var row = rows.getFirst();
     if ("ENABLED".equals(row.get("state"))) return versionView(row);
     if (!"VALIDATED".equals(row.get("state"))) conflict("SQL_VERSION_NOT_ENABLEABLE");
+    // The engine still extracts the whole query: it takes no watermark window yet. Refusing the
+    // enable keeps a declared increment from silently degrading into a full snapshot (P0-c).
+    if ("UPDATED_AT_KEYSET".equals(row.get("extraction_mode"))) bad("EXTRACTION_MODE_NOT_IMPLEMENTED");
     jdbc.update("""
         UPDATE warehouse.extraction_sql_version SET state='RETIRED'
          WHERE source_id=? AND state='ENABLED'

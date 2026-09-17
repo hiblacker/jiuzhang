@@ -199,6 +199,8 @@ public class ManagedIngestionService {
       var version=versions.getFirst();
       var previews=jdbc.queryForList("SELECT id FROM warehouse.sql_preview_request WHERE source_id=? AND sql_sha256=? AND state='COMPLETED' ORDER BY id DESC LIMIT 1",source,version.get("sql_sha256"));
       if(previews.isEmpty())bad("SUCCESSFUL_SQL_PREVIEW_REQUIRED");
+      // Defence in depth: an increment cannot be activated while the engine only does full extractions.
+      if("UPDATED_AT_KEYSET".equals(version.get("extraction_mode")))bad("EXTRACTION_MODE_NOT_IMPLEMENTED");
       // One registered query yields exactly one result set, so the plan binds to a synthetic
       // single-object inventory named after the channel. That keeps raw bytes traceable through
       // the same inventory/manifest chain as a discovered table snapshot (an unbound plan could
