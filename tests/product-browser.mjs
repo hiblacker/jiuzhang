@@ -30,6 +30,7 @@ await writeFile(path.join(root,'model-runtime.json'),JSON.stringify(modelRegistr
 async function modelOnce(){const child=spawn(process.env.LAKE_REVIEW_DBT_PYTHON,[path.join(repo,'apps/model-worker/worker.py'),'--registry',path.join(root,'model-runtime.json'),'--api',base,'--instance',id,'--once'],{cwd:repo,env:{...process.env,MODEL_DATABASE_PASSWORD:process.env.LAKE_REVIEW_MODEL_PASSWORD}});let log='';for(const pipe of [child.stdout,child.stderr])pipe.on('data',chunk=>log+=chunk);const code=await new Promise(resolve=>child.on('close',resolve));await writeFile(path.join(root,'model-worker.log'),log,{mode:0o600});assert.equal(code,0,'Model worker: inspect private log');}
 const browser=await chromium.launch({headless:true}),context=await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true}),page=await context.newPage();
 page.setDefaultTimeout(12000);page.on('pageerror',e=>errors.push(e.message));
+const sent=[];page.on('request',request=>sent.push(request.url()));
 const button=(name,scope=page)=>scope.getByRole('button',{name,exact:true});
 const modal=()=>page.locator('.n-modal:visible').last();
 const item=(label,scope=page)=>scope.locator('.n-form-item').filter({has:page.locator('.n-form-item-label').filter({hasText:new RegExp('^'+label+'$')})});
@@ -39,7 +40,16 @@ async function menu(name){await page.getByRole('menuitem',{name,exact:true}).cli
 async function activate(code){await button('使用邀请码开户 / 重置密码').click();await page.getByLabel('邀请码',{exact:true}).fill(code);await page.getByLabel('密码',{exact:true}).fill(password);await button('设置密码').click();await page.getByLabel('账号',{exact:true}).waitFor();}
 async function login(identity){await page.getByLabel('账号',{exact:true}).fill(identity);await page.getByLabel('密码',{exact:true}).fill(password);await button('登录').click();await page.getByRole('heading',{name:'工作台',exact:true}).waitFor();}
 try{
-  await page.goto(base);await activate(invitation.invitation);await login(owner);
+  await page.goto(base);
+  // Activation must name the failing field locally and never reach the API first.
+  await button('使用邀请码开户 / 重置密码').click();
+  await page.getByLabel('邀请码',{exact:true}).fill(invitation.invitation);await page.getByLabel('密码',{exact:true}).fill('short');await button('设置密码').click();
+  await page.getByText('密码至少 12 个字符，当前 5 个。',{exact:true}).waitFor();
+  await page.getByLabel('邀请码',{exact:true}).fill(invitation.invitation.slice(1));await page.getByLabel('密码',{exact:true}).fill(password);await button('设置密码').click();
+  await page.getByText(/邀请码应为 43 位，当前 42 位/).waitFor();
+  assert.equal(sent.filter(url=>url.includes('/api/v1/auth/activate')).length,0,'Local validation must run before the activation request');
+  await button('返回登录').click();
+  await activate(invitation.invitation);await login(owner);
   await menu('接入管理');await button('登记业务系统').click();await fill('稳定编码',id);await fill('系统名称','合成订单系统');await fill('业务责任人','合成业务负责人');await fill('技术责任人','合成技术负责人');await button('保存',modal()).click();
   await button('新增实例').click();await fill('实例编码','test');await fill('实例名称','合成测试实例');await button('保存',modal()).click();
   await button('接入新来源').click();await select('已授权执行资源','合成文件资源');await fill('连接编码','files');await fill('连接名称','每日订单目录');await fill('来源稳定编码',id+'_orders');await fill('采集通道名称','每日订单');await modal().getByRole('checkbox',{name:'每日子目录（YYYY-MM-DD）'}).uncheck();await fill('每日必需文件（每行一个相对文件名）','orders.csv');

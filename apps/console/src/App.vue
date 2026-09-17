@@ -19,7 +19,18 @@ const projectColumns=[{title:'项目',key:'name'},{title:'编码',key:'code'},{t
 let projectGeneration=0
 async function loadProjects(){const current=++projectGeneration;const result=await api<Page<Project>>(`/warehouse/catalog/projects?q=${encodeURIComponent(projectSearch.value)}&limit=25&offset=${(projectPage.value-1)*25}`);if(current===projectGeneration){projects.value=result.items;projectTotal.value=result.total;if(!selectedProject.value)selectedProject.value=result.items[0]||null}}
 async function identify(){identity.value=await api<Identity>('/warehouse/me');await loadProjects();if(selectedProject.value){const current=identity.value.projects.find(p=>p.id===selectedProject.value?.id);if(current)selectedProject.value=current}}
-async function signIn(){busy.value=true;error.value='';try{if(activate.value){await api('/auth/activate',{invitation:invitation.value,password:password.value});invitation.value='';activate.value=false}else{await login(username.value,password.value);selectedProject.value=null;projectPage.value=1;projectSearch.value='';page.value='home';await identify()}}catch(e){error.value=(e as Error).message}finally{password.value='';busy.value=false}}
+const INVITATION_LENGTH=43,MIN_PASSWORD_CHARS=12,MAX_PASSWORD_BYTES=72
+// Mirrors the control API pre-checks so a malformed paste or short password is
+// named before any request is sent; the server keeps the authoritative check.
+function activationProblem(invitation:string,password:string){
+  const code=invitation.trim()
+  if(code.length!==INVITATION_LENGTH)return `邀请码应为 ${INVITATION_LENGTH} 位，当前 ${code.length} 位。请只复制邀请文件里 invitation 的值，不要带引号、花括号或换行。`
+  if(!password)return '请输入要设置的密码。'
+  if(password.length<MIN_PASSWORD_CHARS)return `密码至少 ${MIN_PASSWORD_CHARS} 个字符，当前 ${password.length} 个。`
+  const bytes=new TextEncoder().encode(password).length
+  return bytes>MAX_PASSWORD_BYTES?`密码不能超过 ${MAX_PASSWORD_BYTES} 字节，当前 ${bytes} 字节（一个汉字按 3 字节计）。`:''
+}
+async function signIn(){if(activate.value){const problem=activationProblem(invitation.value,password.value);if(problem){error.value=problem;return}}busy.value=true;error.value='';try{if(activate.value){await api('/auth/activate',{invitation:invitation.value.trim(),password:password.value});invitation.value='';activate.value=false}else{await login(username.value,password.value);selectedProject.value=null;projectPage.value=1;projectSearch.value='';page.value='home';await identify()}}catch(e){error.value=(e as Error).message}finally{password.value='';busy.value=false}}
 async function signOut(){try{await logout();identity.value=null;selectedProject.value=null;projects.value=[];projectModal.value=false;page.value='home'}catch(e){error.value=(e as Error).message}}
 async function searchProjects(){try{await loadProjects()}catch(e){error.value=(e as Error).message}}
 watch(projectPage,()=>void searchProjects());watch(menu,items=>{if(!items.some(m=>m.key===page.value))page.value='home'})

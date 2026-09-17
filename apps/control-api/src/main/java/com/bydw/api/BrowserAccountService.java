@@ -91,7 +91,11 @@ public class BrowserAccountService implements UserDetailsService {
   }
   @Transactional
   public void activate(String token,String password) {
-    if (token == null || token.length()!=43 || password==null || password.length()<12 || password.getBytes(StandardCharsets.UTF_8).length>72) bad("INVALID_ACCOUNT_ACTIVATION");
+    // Keep the two independent pre-checks apart so a caller can tell a malformed
+    // invitation from an unusable password. Both stay 400 and neither reveals
+    // whether the well-formed invitation is still usable.
+    if (token == null || token.length()!=43) bad("INVALID_INVITATION_FORMAT","邀请码无效：应为 43 位，且不含引号、花括号或空白");
+    if (password==null || password.length()<12 || password.getBytes(StandardCharsets.UTF_8).length>72) bad("INVALID_PASSWORD_FORMAT","密码无效：至少 12 个字符，且不超过 72 字节");
     var rows=jdbc.queryForList("""
         SELECT t.identity_id FROM warehouse.account_invitation t JOIN warehouse.identity i ON i.id=t.identity_id
         WHERE t.token_sha256=? AND t.consumed_at IS NULL AND t.expires_at>clock_timestamp() AND i.enabled FOR UPDATE OF t
@@ -110,5 +114,6 @@ public class BrowserAccountService implements UserDetailsService {
   private static String random() {byte[] bytes=new byte[32];new SecureRandom().nextBytes(bytes);return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);}
   private void audit(String actor,String action,String resource) {jdbc.update("INSERT INTO control.audit_log(principal,action,resource,result,details) VALUES (?,?,?,'SUCCESS','{}'::jsonb)",actor,action,resource);}
   private static void bad(String code) {throw new ApiException(HttpStatus.BAD_REQUEST,code,"账号请求无效");}
+  private static void bad(String code,String message) {throw new ApiException(HttpStatus.BAD_REQUEST,code,message);}
   private static void conflict(String code) {throw new ApiException(HttpStatus.CONFLICT,code,"账号已存在，请直接管理项目成员");}
 }
