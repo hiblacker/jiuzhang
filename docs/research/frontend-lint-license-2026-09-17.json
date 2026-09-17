@@ -1,0 +1,49 @@
+{
+  "observed_at": "2026-09-17T11:30:00.000Z",
+  "purpose": "记录控制台 P0 工具链接入时的许可核验结果：Prettier 通过仓库许可门禁；ESLint 因依赖树中出现白名单外许可证而阻塞，需治理决策",
+  "method": "在 apps/console 安装候选依赖后执行仓库自带门禁 `npm run licenses`（scripts/dependencies.mjs：逐包比对 package-lock 的 license/integrity 与 registry.npmjs.org 元数据，并对照白名单）",
+  "accepted": {
+    "result": "PASS: 124 exact dependencies; official integrity and license declarations match.",
+    "installed": {
+      "prettier": "3.9.7"
+    },
+    "note": "Prettier 单独即可通过门禁；控制台格式化能力不依赖任何许可例外。"
+  },
+  "blocked": {
+    "gate_message": "LICENSE_REVIEW_REQUIRED: minimatch: BlueOak-1.0.0",
+    "allowlist": ["MIT", "ISC", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "0BSD", "CC0-1.0", "(MIT OR Apache-2.0)", "(MIT AND CC-BY-3.0)"],
+    "package": {
+      "name": "minimatch",
+      "version": "10.2.6",
+      "license": "BlueOak-1.0.0",
+      "scope": "development only, transitive",
+      "required_by": [
+        "eslint@10.10.0 (direct dependency of the eslint package and of @eslint/config-array@0.23.5)",
+        "@typescript-eslint/typescript-estree@8.70.0 (via typescript-eslint)"
+      ]
+    },
+    "license_evidence": {
+      "spdx_identifier": "BlueOak-1.0.0",
+      "spdx_url": "https://spdx.org/licenses/BlueOak-1.0.0.html",
+      "canonical_url": "https://blueoakcouncil.org/license/1.0.0",
+      "released": "2019-03-06",
+      "observed_properties": [
+        "每个贡献者授权他人实施一切否则会侵犯其版权或专利权的行为（版权与专利授权）",
+        "No contributor can revoke this license（不可撤销）",
+        "Notices：向他人分发时必须一并提供许可证文本或链接",
+        "No Liability：无担保、责任限制",
+        "SPDX 页面未标注 OSI 批准状态，本记录不作该断言"
+      ]
+    },
+    "avoidance_attempts": [
+      "改用 ESLint 9.39.5：minimatch 降为 3.1.5（ISC，白名单内），但 ESLint 9 经 @eslint/eslintrc -> js-yaml 引入 argparse@2.0.1（Python-2.0，同样不在白名单）",
+      "降级 typescript-eslint 到 8.55.0（minimatch ^9.0.5，ISC）：其 peer 仅接受 eslint ^8.57 || ^9，与 ESLint 10 冲突",
+      "结论：在当前白名单下，ESLint 10 路线需要 BlueOak-1.0.0，ESLint 9 路线需要 Python-2.0，二者必选其一；未擅自修改白名单"
+    ]
+  },
+  "pending_decision": "是否批准将 BlueOak-1.0.0（ESLint 10 路线，推荐）或 Python-2.0（ESLint 9 路线）加入 dev-only 依赖许可白名单；未批准前 P0 只落地 Prettier 格式化，lint 部分不动",
+  "not_verified": [
+    "任何新增依赖的传递依赖许可与兼容性在最终选型后必须重新执行 npm run licenses 并留存输出",
+    "ESLint 与 vue-tsc/vite/Naive UI 的实际共存问题需在获批后实测"
+  ]
+}

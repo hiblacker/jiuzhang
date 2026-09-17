@@ -180,9 +180,9 @@ apps/console/src/
 | 包 | 用途 | 备注 |
 |---|---|---|
 | `prettier` | 格式化 | 已确认采用；只做格式化，不承担 lint 规则 |
-| `eslint`、`@eslint/js` | lint 核心 | flat config |
+| `eslint`、`@eslint/js` | lint 核心 | flat config；**许可阻塞待决**：ESLint 10 的核心依赖 minimatch@10（BlueOak-1.0.0，dev-only）不在仓库许可白名单，ESLint 9 路线则引入 argparse（Python-2.0）；证据见[许可记录](research/frontend-lint-license-2026-09-17.json) |
 | `eslint-plugin-vue` | Vue 规则 | `flat/recommended` |
-| `typescript-eslint` | TS 规则 + 类型感知 | `recommendedTypeChecked` |
+| `typescript-eslint` | TS 规则 + 类型感知 | `recommendedTypeChecked`；版本受许可约束：8.70 引入 minimatch@10（BlueOak），8.55 的 peer 不接受 ESLint 10 |
 | `eslint-config-prettier` | 关闭与 Prettier 冲突的规则 | 放数组末尾 |
 | `vue-router` | 路由 | 生态默认（待评审确认，见 §11） |
 | `pinia` | 状态管理 | 同上 |
@@ -372,6 +372,30 @@ CI 门禁顺序：`lint → format:check → typecheck → test:unit → build �
 - [typescript-eslint 类型感知检查](https://typescript-eslint.io/getting-started/typed-linting/)
 - 说明：本次会话 `web_search` 通道返回 HTTP 503，上述页面均通过直接 HTTP 抓取获得；`DataEase`、`vue-pure-admin` 与 Vue/Pinia 官方页面未在本次抓取，故方案中不引用其具体结论。
 
-## 14. 开工顺序
+## 14. 开工顺序与执行记录
 
 决策已全部确认，按 P0 → P1 → P2 → P3 → P4 → P5 执行；每期独立提交，提交前跑 `npm run lint`、`npm run format:check`、`npm run typecheck`、`node --test tests/*.test.mjs`、`node tools/check-docs.mjs`、`git diff --check`，并给出对应浏览器验收结果。P0 的提交**只含工具链与格式化**，不含任何行为改动，并写入 `.git-blame-ignore-revs`。
+
+### 14.1 P0-1（Prettier 格式化）：已完成 2026-09-17
+
+| 项 | 结果 |
+|---|---|
+| 依赖 | `prettier 3.9.7`（精确锁定，唯一新增；`npm run licenses` PASS：124 个精确依赖，官方完整性/许可声明一致） |
+| 配置 | `apps/console/.prettierrc.json`、`.prettierignore`；`printWidth 120`、`singleQuote`、`trailingComma all` |
+| 脚本 | `format`、`format:check`，并接入 `check` 与 `build` |
+| 格式化范围 | `src/**/*.{ts,vue,css,json}` + `vite.config.ts`（27 个源文件） |
+| 规模变化 | 1289 行 → **6274 行**；最长单行 4096 → 141 字符 |
+| 验证 | `npm run build`（含 typecheck 与 format:check）通过；`node --test tests/*.test.mjs` 134 项（132 通过、1 跳过、1 项为宿主机缺 openpyxl 的既存失败）；控制台镜像 `0.2.0-dev.13` 重建后 `tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（资产 3 行）；`node tools/check-docs.mjs`、`git diff --check` 通过 |
+| 提交 | `chore(console): adopt Prettier formatting…` + `.git-blame-ignore-revs` 记录该提交，避免机械重排淹没作者信息 |
+
+执行中发现并记录的格式化陷阱：`semi: false` 下 Prettier 会把**多语句内联事件处理器**拆成多行并去掉分隔符（如 `@click="a=1;b=2"` → 两行），Vue 解析即失败（构建报 `Error parsing JavaScript expression`）。共 29 处，全部集中在「翻页/刷新」类模板逻辑。P0 选择保留 `semi: true` 让这 29 处重新合法（语义与格式化前一致），并把"把模板逻辑抽成命名方法"列入 P4；抽出后即可回到 `semi: false`。
+
+### 14.2 P0-2（ESLint）：待你批准许可例外
+
+实测结论：在当前许可白名单下，**ESLint 10 路线需要 BlueOak-1.0.0（minimatch@10.2.6，dev-only）**，ESLint 9 路线需要 Python-2.0（argparse，dev-only），二者必选其一；我没有擅自放宽 `scripts/dependencies.mjs` 的白名单。三种选择的取舍：
+
+| 选项 | 内容 | 影响 |
+|---|---|---|
+| A（推荐） | 批准 BlueOak-1.0.0 用于 dev-only 工具链，用 ESLint 10 + typescript-eslint 8.70 | 拿到完整规则集与**类型感知**规则（`no-floating-promises` 等）；SPDX 登记、无 copyleft、有 Notices 保留义务，不进运行时分发物 |
+| B | 改用 ESLint 9 + typescript-eslint 8.55，批准 Python-2.0 | 版本更保守，规则集相同；需接受另一个许可例外 |
+| C | 不引入 ESLint，只保留 Prettier + `vue-tsc` | 零例外；但 §8 的体量/分层/`any` 约束只能靠人工与类型检查，P0 的可读性收益打折 |
