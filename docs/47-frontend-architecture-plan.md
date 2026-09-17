@@ -1,14 +1,13 @@
-# 47 控制台前端架构规范与重构方案（评审稿，先不改代码）
+# 47 控制台前端架构规范与重构方案（已确认，待开工）
 
-> 状态：**待评审**。本文只给设计与步骤，不含代码改动。所有"现状"数据都在本机实测，命令与口径见 §1.4；外部参考的抓取记录见[前端架构参考证据](research/frontend-architecture-2026-09-17.json)。
+> 状态：**7 项决策已全部确认（2026-09-17）**，本文只给设计与步骤，尚未改动任何代码。所有"现状"数据都在本机实测，命令与口径见 §1.4；外部参考的抓取记录见[前端架构参考证据](research/frontend-architecture-2026-09-17.json)。
 > 关联：[44 号控制台重构计划](44-console-redesign-plan.md)（页面级交互设计）、[45 号 SQL 接入方案](45-sql-ingestion-with-seatunnel.md)（本轮新增的 SQL 面板）、[09 号工程治理](09-engineering-governance.md)（依赖与许可纪律）。
 
 ## 0. 结论摘要
 
 当前控制台的问题不是"功能不够"，而是**结构约束缺失**：27 个源文件、1289 行里塞进了全部页面逻辑，最长单行 4096 字符，没有 lint/格式化/路由/状态库，68 处内联样式，5 个文件是死代码，`src/api.ts` 同时并存两套鉴权客户端。
 
-> **已确认决策（2026-09-17，用户答复）**：② 不保留 token 客户端（统一到会话客户端）；③ 引入 Vitest；⑤ `views/` 保留并作为页面层；⑥ 不启用自动导入；⑦ 用 `views/` 表示页面（不再用 `features/`）；文件行数上限由 300 放宽到 **800** 行。
-> **仍待确认**：① 格式化是否引入 Prettier；④ 是否需要"每个页面一个网址"（下方 §5.1 用大白话解释）。这两项在确认前不进入 P0。
+> **已确认决策（2026-09-17）**：① 格式化统一到 **Prettier**（ESLint 只管正确性、分层与体量规则）；② **不保留** token 客户端（统一到会话客户端）；③ 引入 Vitest；④ **要**"每个页面一个网址"（vue-router）；⑤ `views/` 保留并作为页面层；⑥ 不启用自动导入；⑦ 用 `views/` 表示页面（不用 `features/`）；文件行数上限 **800** 行。
 
 建议按 6 期推进，**先做 P0+P1（收益最大、风险最低）**：
 
@@ -180,7 +179,7 @@ apps/console/src/
 
 | 包 | 用途 | 备注 |
 |---|---|---|
-| `prettier` | 格式化 | **待确认（决策①）**：采用则只做格式化、不做 lint |
+| `prettier` | 格式化 | 已确认采用；只做格式化，不承担 lint 规则 |
 | `eslint`、`@eslint/js` | lint 核心 | flat config |
 | `eslint-plugin-vue` | Vue 规则 | `flat/recommended` |
 | `typescript-eslint` | TS 规则 + 类型感知 | `recommendedTypeChecked` |
@@ -339,16 +338,16 @@ CI 门禁顺序：`lint → format:check → typecheck → test:unit → build �
 
 | # | 决策 | 结果 | 落地位置 |
 |---|---|---|---|
-| 1 | 格式化工具 | **待确认**：是否引入 Prettier（"统一"的含义需你确认，见下方问题） | §4.1、§4.4 |
+| 1 | 格式化工具 | **已确认：Prettier 管格式，ESLint 管正确性** | §4.1、§4.4 |
 | 2 | token transport 客户端 | **已确认：不保留**，统一到会话客户端；`transport.ts` 与 `tests/console-transport.test.mjs` 一并删除 | §6.1 |
 | 3 | 引入 Vitest | **已确认：是** | §9、P5 |
-| 4 | 每个页面一个网址（路由） | **待确认**：解释见 §11.1 | §5 |
+| 4 | 每个页面一个网址（路由） | **已确认：要**（解释见 §11.1） | §5 |
 | 5 | 旧 `views/*` 五个文件 | **已确认：保留 `views/` 目录作为页面层**；旧文件内容被真实页面覆盖（§3.3） | §3.1、§3.3 |
 | 6 | 自动导入 | **已确认：不启用** | §4.3 |
 | 7 | 页面层命名 | **已确认：`views/`**（不再用 `features/`） | §3.1 |
 | — | 单文件行数上限 | **已确认：800 行**（原建议 300） | §8 |
 
-### 11.1 第 4 项的大白话解释
+### 11.1 第 4 项的动因（大白话）
 
 现在的控制台，**所有页面共用同一个网址**（比如都是 `http://127.0.0.1:60284/`），页面切换只改内存里的一个变量。带来四个具体后果：
 
@@ -359,7 +358,7 @@ CI 门禁顺序：`lint → format:check → typecheck → test:unit → build �
 
 采用路由后（`http://…/systems`、`http://…/runs/12`）：上面四条全部成立——地址可直接分享、刷新停在原页、前进后退可用、可收藏具体页面。代价是 P1 需要多花约 1 人日做导航改造与守卫。
 
-**如果选"不要"**：保持现在的内存切换，P1 只做 App.vue 拆分（不引入 vue-router），省 1 人日，但上述四条永久成立。
+**决定：要**。因此 P1 引入 vue-router，上述四条问题一并解决；代价约 1 人日。
 
 ## 12. 明确不做
 
@@ -373,4 +372,6 @@ CI 门禁顺序：`lint → format:check → typecheck → test:unit → build �
 - [typescript-eslint 类型感知检查](https://typescript-eslint.io/getting-started/typed-linting/)
 - 说明：本次会话 `web_search` 通道返回 HTTP 503，上述页面均通过直接 HTTP 抓取获得；`DataEase`、`vue-pure-admin` 与 Vue/Pinia 官方页面未在本次抓取，故方案中不引用其具体结论。
 
-下一步：你确认 §11 的决策后，我从 P0 开始（第一个提交只含工具链与格式化，不含任何行为改动），每期结束给出测试与浏览器验收结果。
+## 14. 开工顺序
+
+决策已全部确认，按 P0 → P1 → P2 → P3 → P4 → P5 执行；每期独立提交，提交前跑 `npm run lint`、`npm run format:check`、`npm run typecheck`、`node --test tests/*.test.mjs`、`node tools/check-docs.mjs`、`git diff --check`，并给出对应浏览器验收结果。P0 的提交**只含工具链与格式化**，不含任何行为改动，并写入 `.git-blame-ignore-revs`。
