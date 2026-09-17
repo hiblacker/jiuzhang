@@ -575,3 +575,43 @@ const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
 至此，目标里列的 5 个列表页（IngestionView / RunsView / ModelsView / DatasetsView / DeliveryLedger）**已全部迁移完毕**（ModelsView 的模型包列表可用第二次调用同样处理，属可选收尾）。剩余为逐页 DTO 类型化与 complexity 收口。
 
 效果：告警保持 286（该页列表行数据已有 `Dataset` 接口类型）；镜像 `0.2.0-dev.24`；浏览器验收 PASS（`/datasets` 页面断言覆盖本页）。
+
+### 14.16 交接清单：剩余两块工作（Round 6 收口）
+
+列表页迁移目标已完成（见 §14.10–§14.15）。本目标剩下的两块**未完成**，原因是它们都需要逐字段核对模板用法、不能靠机械替换，工作量超出本目标剩余轮次：
+
+**（一）逐页 DTO 类型化**——当前共 **286** 条告警，全部是 `warn`（`--max-warnings 286` 封顶，只减不增）。按文件的前十名：
+
+| 文件 | 告警数 |
+|---|---|
+| `src/views/ingestion/ChannelWizard.vue` | 68 |
+| `src/views/assets/DeliveryLedger.vue` | 40 |
+| `src/views/settings/SettingsView.vue` | 37 |
+| `src/views/datasets/DatasetsView.vue` | 36 |
+| `src/views/models/ModelsView.vue` | 23 |
+| `src/views/ingestion/OperationBar.vue` | 18 |
+| `src/views/ingestion/SqlDefinitionPanel.vue` | 15 |
+| `src/api/http.ts` | 14 |
+| `src/views/runs/RunsView.vue` | 13 |
+| `src/views/ingestion/DeliveryPanel.vue` | 6 |
+
+按规则的前八名：
+
+| 规则 | 条数 |
+|---|---|
+| `@typescript-eslint/no-unsafe-member-access` | 90 |
+| `@typescript-eslint/no-unsafe-assignment` | 74 |
+| `@typescript-eslint/no-explicit-any` | 61 |
+| `@typescript-eslint/no-unsafe-argument` | 17 |
+| `@typescript-eslint/no-misused-promises` | 14 |
+| `@typescript-eslint/no-unsafe-call` | 11 |
+| `@typescript-eslint/no-unsafe-return` | 9 |
+| `complexity` | 5 |
+
+做法建议：从告警最多的 `views/ingestion/ChannelWizard.vue`（72，集中在 `Record<string, any>` 的配置对象与 `plan/contract`）开始，为每页定义行数据接口（字段取自模板与请求体），替换 `Record<string, any>`；`DeliveryLedger`（43）与 `DatasetsView`（37）次之。每页独立提交并重跑浏览器验收——`/models`、`/datasets`、`/settings` 已有页面冒烟断言（§14.12），`ChannelWizard` 有整条 SQL 流程断言。
+
+**（二）complexity 收口**——当前 6 处 `complexity` 与若干 `max-lines-per-function` 仍是 `warn`（`ChannelWizard.resume()` 复杂度 52、`settings()` 27、`RefreshPanel.configure()` 31、`ActionForm` 已随旧组件删除）。做法：把 `resume()` 按"解析配置 / 赋值表单 / 载入探针"拆成三个小函数，`configure()` 同理；随后把 `complexity`、`max-lines-per-function` 从 `warn` 收紧为 `error`，并同步下调 `--max-warnings`。
+
+**（三）可选**：`ModelsView` 的模型包列表可用第二次 `usePagedQuery` 调用收尾；`AppStatusTag`/`AppReasonField`/`AppFilterBar` 待上述页面重写时按"至少 3 处真实重复"的判断标准再抽（理由见 §14.5）。
+
+本目标的验证基线（Round 6 实测）：`npm run build` 通过（0 error / 286 warning）；`node --import ./tests/helpers/console-alias.mjs --test tests/*.test.mjs` 144 项（142 通过、1 跳过、1 项既存 openpyxl 失败）；`node tools/check-docs.mjs` PASS；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS（7 个页面 + SQL 全流程 + 路由四断言）；镜像 console `0.2.0-dev.24` / api `0.2.0-dev.18` / worker `0.2.0-dev.24`。
