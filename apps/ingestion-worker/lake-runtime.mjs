@@ -70,6 +70,71 @@ async function request(options, route, body) {
   return response.json();
 }
 
+/** Datasource credentials live outside the database: a name resolves to a 0600 file the
+ *  worker mounts read-only. The platform never stores or returns the secret itself. */
+async function resolveDatasourceCredential(reference) {
+  const root = process.env.DATASOURCE_CREDENTIAL_ROOT || '/run/secrets/datasources';
+  const file = path.join(root, `${reference}.json`);
+  const credential = await readJson(file, null);
+  if (!credential || typeof credential.user !== 'string' || typeof credential.password !== 'string'
+      || credential.user.length === 0 || credential.user.length > 128
+      || credential.password.length === 0 || credential.password.length > 512
+      || /[\r\n]/u.test(credential.user) || /[\r\n]/u.test(credential.password)) fail('DATASOURCE_CREDENTIAL_INVALID');
+  return { user: credential.user, password: credential.password };
+}
+
+/** Connection test: reachable AND refused for writes. A successful SELECT is not proof. */
+async function runResourceTest(registry, task, options) {
+  const credential = await resolveDatasourceCredential(task.credentialRef);
+  const configurationFile = path.join(registry.lakeRoot, 'managed-configurations', '_resource-tests', `${task.id}.json`);
+  await mkdir(path.dirname(configurationFile), { recursive: true, mode: 0o700 });
+  await atomicJson(configurationFile, {
+    datasourceType: task.datasourceType, datasource: task.config, credential,
+    allowedSchemas: task.allowedSchemas ?? [], statementTimeoutMs: task.statementTimeoutMs,
+  });
+  let outcome;
+  try {
+    outcome = await child('tools/datasource-test.mjs', ['--config', configurationFile, '--resource-code', task.resourceCode], new AbortController().signal);
+  } catch (error) {
+    outcome = { state: 'FAILED', errorCode: /^[A-Z0-9_:-]{1,120}$/u.test(error.message) ? error.message : 'DATASOURCE_TEST_FAILED' };
+  }
+  const completion = outcome.state === 'COMPLETE' && outcome.testState === 'PASSED'
+    ? { state: 'PASSED', serverVersion: outcome.serverVersion, serverTimezone: outcome.serverTimezone,
+        readableSchemaCount: outcome.readableSchemaCount, readOnlyVerified: true, latencyMs: outcome.latencyMs }
+    : { state: 'FAILED', errorCode: outcome.errorCode ?? 'DATASOURCE_TEST_FAILED', readOnlyVerified: outcome.readOnlyVerified === true };
+  await request(options, `resource-tests/${task.id}/finish`, completion);
+  return { resourceTestId: task.id, state: completion.state };
+}
+
+/** Preview: the same engine reads the source, always capped, rows returned masked by the API. */
+async function runSqlPreview(registry, task, options) {
+  const credential = await resolveDatasourceCredential(task.credentialRef);
+  const configurationFile = path.join(registry.lakeRoot, 'managed-configurations', task.sourceCode, `preview-${task.id}.json`);
+  const previewOut = path.join(registry.lakeRoot, 'managed-configurations', task.sourceCode, `preview-${task.id}.out.json`);
+  await mkdir(path.dirname(configurationFile), { recursive: true, mode: 0o700 });
+  await atomicJson(configurationFile, {
+    sourceId: undefined, sourceCode: task.sourceCode, sqlText: task.sqlText, sqlSha256: task.sqlSha256,
+    datasourceType: task.datasourceType, datasource: task.config, credential,
+    statementTimeoutMs: task.statementTimeoutMs, seatunnelUrl: process.env.SEATUNNEL_URL || 'http://seatunnel:5801',
+    previewLimit: task.limitRows ?? 1000,
+  });
+  let outcome;
+  try {
+    outcome = await child('tools/lake-seatunnel.mjs', ['--preview', '--lake-root', registry.lakeRoot,
+      '--source-code', task.sourceCode, '--batch-id', `preview-${task.id}`, '--config', configurationFile,
+      '--preview-out', previewOut], new AbortController().signal);
+    if (outcome.state === 'COMPLETE') outcome = { ...outcome, ...(await readJson(previewOut, {})) };
+  } catch (error) {
+    outcome = { state: 'FAILED', errorCode: /^[A-Z0-9_:-]{1,120}$/u.test(error.message) ? error.message : 'SQL_PREVIEW_FAILED' };
+  }
+  const completion = outcome.state === 'COMPLETE'
+    ? { state: 'COMPLETE', columns: outcome.columns, rows: outcome.rows, rowCount: outcome.rowCount,
+        truncated: outcome.truncated === true, elapsedMs: outcome.elapsedMs }
+    : { state: 'FAILED', errorCode: outcome.errorCode ?? 'SQL_PREVIEW_FAILED' };
+  await request(options, `sql-previews/${task.id}/finish`, completion);
+  return { sqlPreviewId: task.id, state: completion.state };
+}
+
 async function child(script, args, signal, extraEnv = {}) {
   const processGroup = process.platform !== 'win32';
   const running = spawn(process.execPath, [path.join(ROOT, script), ...args], { cwd: ROOT,
@@ -106,7 +171,32 @@ async function execute(registry, task, signal, options) {
   const batch = `exec-${task.id}`;
   const common = ['--lake-root', registry.lakeRoot];
   let result, manifest;
-  if (task.kind === 'MYSQL_SNAPSHOT') {
+  if (task.kind === 'MYSQL_SNAPSHOT' && profile.sourceMode === 'REGISTERED_SQL') {
+    if (!profile.datasource || typeof profile.datasource.credentialRef !== 'string'
+        || !profile.sql || typeof profile.sql.text !== 'string') fail('SQL_RUNTIME_PROFILE_INCOMPLETE');
+    const credential = await resolveDatasourceCredential(profile.datasource.credentialRef);
+    const statementTimeoutMs = Math.max(1000, Math.min(
+      Number(profile.datasource.statementTimeoutMs ?? 3600000), Number(task.timeout_seconds) * 1000));
+    const configurationFile = path.join(registry.lakeRoot, 'managed-configurations', profile.sourceCode, `sql-${task.id}.json`);
+    await atomicJson(configurationFile, {
+      sourceId: task.source_id, sourceCode: profile.sourceCode, objectName: profile.objectName,
+      batchId: batch, inventoryVersion: task.inventory_version, sqlText: profile.sql.text,
+      sqlSha256: profile.sql.sha256, sqlVersionId: profile.sql.versionId,
+      extractionMode: profile.sql.extractionMode, watermarkColumn: profile.sql.watermarkColumn,
+      resultColumns: profile.sql.resultColumns, uniqueKey: profile.sql.uniqueKey,
+      datasourceType: profile.datasource.type, datasource: profile.datasource.config, credential,
+      statementTimeoutMs, seatunnelUrl: profile.datasource.seatunnelUrl, executionAttemptId: task.id, fetchSize: 1000,
+    });
+    if (signal.aborted) fail('WORKER_EXECUTION_ABORTED');
+    const args = [...common, '--source-code', profile.sourceCode, '--batch-id', batch,
+      '--config', configurationFile, '--window', task.business_date];
+    result = await child('tools/lake-seatunnel.mjs', args, signal);
+    if (result.state !== 'COMPLETE') fail(result.errorCode ?? 'SEATUNNEL_EXTRACT_FAILED');
+    const local = path.join(registry.lakeRoot, 'batches', result.batchId, 'batch.json');
+    manifest = await buildManifestRequest(local, await readJson(local), { lakeRoot: registry.lakeRoot,
+      sourceCode: profile.sourceCode, planVersion: task.inventory_version });
+    manifest.runKey = `execution:${task.id}`; manifest.attempt = task.attempt; manifest.revision = task.revision;
+  } else if (task.kind === 'MYSQL_SNAPSHOT') {
     if (task.runtime_inventory) {
       const inventory = path.join(registry.lakeRoot, 'inventories', profile.sourceCode, `${task.inventory_version}.json`);
       await mkdir(path.dirname(inventory), { recursive: true, mode: 0o700 });
@@ -222,6 +312,12 @@ export async function runOnce(options, registry) {
       return { state:receipt.abandoned?'LEASE_LOST':receipt.acknowledged?receipt.response.state:'OUTBOX_PENDING',probeId:probe.id };
     }
   }
+  if (registry.version === 2) {
+    const test = await request(options, 'resource-tests/claim', { environment: registry.environment });
+    if (test.state !== 'IDLE') return await runResourceTest(registry, test, options);
+    const preview = await request(options, 'sql-previews/claim', { environment: registry.environment });
+    if (preview.state !== 'IDLE') return await runSqlPreview(registry, preview, options);
+  }
   if(!task||task.state==='IDLE')task=await request(options, 'executions/claim', { runtimeRefs });
   if (task.state === 'IDLE') return task;
   if(registry.version===2)await atomicJson(turnFile,{preferProbe:true});
@@ -240,7 +336,9 @@ export async function runOnce(options, registry) {
   process.once('SIGTERM', terminate); process.once('SIGINT', terminate);
   let completion;
   try { completion = await execute(registry, task, abort.signal, options); }
-  catch (error) { completion = { state: cancelled ? 'CANCELLED' : 'FAILED',
+  catch (error) { if (!cancelled && !/^[A-Z0-9_:-]{1,120}$/u.test(error.message ?? '')) {
+    console.error(JSON.stringify({ state: 'WORKER_EXECUTION_ERROR', detail: String(error.message ?? '').replace(/\s+/gu, ' ').slice(0, 300) })); }
+    completion = { state: cancelled ? 'CANCELLED' : 'FAILED',
     errorCode: /^[A-Z0-9_:-]{1,120}$/u.test(error.message) ? error.message : 'WORKER_EXECUTION_FAILED',
     result: error.schemaChange ? { schemaChange: { ...error.schemaChange,
       inventoryRequest: buildInventoryRequest(error.schemaChange.proposedInventory, task.source_code) } } : null, manifest: null }; }

@@ -24,3 +24,28 @@ test('managed file resources enforce digest, environment, real directory boundar
     assert.throws(()=>validateManagedRegistry({...registry,resources:{files:{kind:'SHELL',resourceGroup:'shared-files'}}}),/INVALID_MANAGED_RESOURCE/);
   } finally {await rm(root,{recursive:true,force:true});}
 });
+
+test('registered-SQL profile needs no local resource entry and keeps the platform snapshot limit', async () => {
+  const root=await mkdtemp(path.join(os.tmpdir(),'managed-sql-'));
+  try {
+    // A SQL datasource is approved by an administrator in the control plane; this local registry
+    // deliberately contains no entry for it.
+    const registry={version:2,environment:'local',lakeRoot:path.join(root,'lake'),resources:{}};
+    const config={protocol:2,sourceCode:'erp-orders',environment:'local',kind:'MYSQL_SNAPSHOT',
+      resourceRef:'erp-readonly',resourceGroup:'erp',channelVersion:3,maxBytes:268435456,sourceMode:'REGISTERED_SQL',
+      datasourceType:'MYSQL',credentialRef:'erp-readonly',seatunnelUrl:'http://seatunnel:5801',
+      statementTimeoutMs:60000,sqlVersionId:7,sqlText:'SELECT CAST(`订单编号` AS CHAR) AS order_no FROM `erp`.`biz_order`',
+      sqlSha256:'b'.repeat(64),extractionMode:'FULL',watermarkColumn:null,
+      resultColumns:[{name:'order_no',type:'VARCHAR'}],uniqueKey:['order_no']};
+    const task=()=>{const configurationJson=JSON.stringify(config);return {configurationJson,configurationSha256:digest(configurationJson),kind:'MYSQL_SNAPSHOT',source_code:'erp-orders'}};
+    const profile=await managedProfile(registry,task());
+    assert.equal(profile.sourceMode,'REGISTERED_SQL');
+    assert.equal(profile.maxSnapshotBytes,268435456);
+    assert.equal(profile.datasource.credentialRef,'erp-readonly');
+    assert.equal(profile.sql.versionId,7);
+    await assert.rejects(()=>managedProfile(registry,{...task(),configurationSha256:'c'.repeat(64)}),/DIGEST_MISMATCH/);
+    config.sqlSha256='not-a-digest';await assert.rejects(()=>managedProfile(registry,task()),/INVALID_SQL_DIGEST/);
+    config.sqlSha256='b'.repeat(64);config.datasourceType='POSTGRESQL';await assert.rejects(()=>managedProfile(registry,task()),/DATASOURCE_TYPE_NOT_SUPPORTED/);
+    config.datasourceType='MYSQL';config.maxBytes=undefined;await assert.rejects(()=>managedProfile(registry,task()),/INVALID_MANAGED_RESOURCE_LIMIT/);
+  } finally {await rm(root,{recursive:true,force:true});}
+});

@@ -35,16 +35,42 @@ export async function managedProfile(registry, task) {
   if (typeof task.configurationJson !== 'string' || task.configurationJson.length > 100000
       || digest(task.configurationJson) !== task.configurationSha256) fail('CONFIGURATION_DIGEST_MISMATCH');
   const config = JSON.parse(task.configurationJson), resource = registry.resources?.[config.resourceRef];
-  if (config.protocol !== 2 || config.environment !== registry.environment || !resource
-      || resource.kind !== config.kind || resource.resourceGroup !== config.resourceGroup
+  // A registered-SQL datasource is approved in the control plane (admin only) and bounded by its
+  // credential file, so it does not need a static entry in this local registry. File and REST
+  // resources still do, because their boundary is a local path or host list.
+  const registeredSql = config.kind === 'MYSQL_SNAPSHOT' && config.sourceMode === 'REGISTERED_SQL';
+  if (config.protocol !== 2 || config.environment !== registry.environment
+      || (!registeredSql && (!resource || resource.kind !== config.kind || resource.resourceGroup !== config.resourceGroup))
       || !CODE.test(config.sourceCode) || (task.source_code && config.sourceCode !== task.source_code)
       || (task.kind && config.kind !== task.kind)) fail('MANAGED_RESOURCE_SCOPE_MISMATCH');
   const root = path.join(registry.lakeRoot, 'managed-configurations', config.sourceCode, String(config.channelVersion), task.configurationSha256);
   await mkdir(root, { recursive: true, mode: 0o700 });
-  const maxBytes = Math.min(config.maxBytes, resource.maxBytes ?? config.maxBytes);
+  // Registered SQL is approved in the control plane and has no local resource entry, so the
+  // platform's snapshot limit is authoritative there; other kinds still take the stricter of the two.
+  const maxBytes = resource === undefined ? config.maxBytes
+    : Math.min(config.maxBytes, resource.maxBytes ?? config.maxBytes);
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 1024) fail('INVALID_MANAGED_RESOURCE_LIMIT');
   const profile = { kind: config.kind, sourceCode: config.sourceCode, resourceGroup: config.resourceGroup };
-  if (config.kind === 'MYSQL_SNAPSHOT') {
+  if (config.kind === 'MYSQL_SNAPSHOT' && config.sourceMode === 'REGISTERED_SQL') {
+    // Registered SQL: the platform already validated the text and the version is enabled;
+    // the worker only needs the definition, the dialect and where the engine lives.
+    if (!Number.isSafeInteger(config.sqlVersionId) || config.sqlVersionId < 1) fail('SQL_VERSION_REQUIRED');
+    if (typeof config.sqlText !== 'string' || config.sqlText.length === 0 || config.sqlText.length > 20000) fail('SQL_TEXT_REQUIRED');
+    if (!/^[0-9a-f]{64}$/u.test(String(config.sqlSha256 ?? ''))) fail('INVALID_SQL_DIGEST');
+    if (!['FULL', 'UPDATED_AT_KEYSET'].includes(config.extractionMode)) fail('INVALID_EXTRACTION_MODE');
+    if (!Array.isArray(config.resultColumns) || config.resultColumns.length === 0 || config.resultColumns.length > 500) fail('RESULT_COLUMNS_REQUIRED');
+    if (config.datasourceType !== 'MYSQL') fail('DATASOURCE_TYPE_NOT_SUPPORTED_BY_WORKER');
+    if (typeof config.credentialRef !== 'string' || !/^[a-z][a-z0-9_-]{1,60}$/u.test(config.credentialRef)) fail('INVALID_CREDENTIAL_REF');
+    if (typeof config.seatunnelUrl !== 'string' || !/^http:\/\/[A-Za-z0-9_.:-]{3,200}$/u.test(config.seatunnelUrl)) fail('INVALID_SEATUNNEL_URL');
+    Object.assign(profile, {
+      sourceMode: 'REGISTERED_SQL', objectName: config.sourceCode, maxSnapshotBytes: maxBytes,
+      sql: { versionId: config.sqlVersionId, text: config.sqlText, sha256: config.sqlSha256,
+        extractionMode: config.extractionMode, watermarkColumn: config.watermarkColumn ?? null,
+        resultColumns: config.resultColumns, uniqueKey: config.uniqueKey ?? [] },
+      datasource: { type: config.datasourceType, config: config.datasource ?? {}, credentialRef: config.credentialRef,
+        statementTimeoutMs: config.statementTimeoutMs, seatunnelUrl: config.seatunnelUrl },
+    });
+  } else if (config.kind === 'MYSQL_SNAPSHOT') {
     const secret = await readJson(resource.config);
     if (config.connection.database !== secret.database) fail('DATABASE_OUTSIDE_APPROVED_RESOURCE');
     const tables = config.channel.tables;
