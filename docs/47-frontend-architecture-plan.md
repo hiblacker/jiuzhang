@@ -452,3 +452,18 @@ const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
 **一处事实更正**：P0 阶段我按宽泛 grep 判断"只有 `DatasetService.vue` 一个存活页面在用 token 客户端"；本次逐文件核对导入后确认**没有任何存活使用者**（`DatasetService` 命中的是它自己的局部 `request()` 函数）。因此 token 层的删除是纯减法，不需要迁移任何页面。
 
 **欠账（顺延）**：视图里仍有大量 `Record<string, any>` 行数据（294 条告警的主体）。P2 解决的是**层面**问题（单一类型化客户端 + 类型化 store + 无传输层分支），逐页 DTO 化与拆页同时进行更安全，故并入 P4；`max-lines`（`IngestionManager.vue` 824 行）与 6 处 `complexity` 同样在 P4 收口。
+
+### 14.5 P3（通用组件）：已完成 2026-09-17（部分，其余并入 P4）
+
+先量化再封装，避免造出没人用的组件：
+
+| 模式 | 实测重复 | 处置 |
+|---|---|---|
+| `<pre class="json-detail">{{ JSON.stringify(x, null, 2) }}</pre>` | 6 个文件 9 处（含 1 处预置字符串、1 处多行表达式） | 抽出 `src/components/AppJsonBlock.vue`，9 处全部改接 |
+| `<n-pagination v-model:page :item-count :page-size="25" class="gap" />` | 7 个文件 8 处 | 抽出 `src/components/AppPager.vue`（`defineModel` + pageSize 默认 25），8 处全部改接，7 个视图里随之无用的 `NPagination` 导入一并删除 |
+| 旧共享组件 `DataGrid.vue`/`DetailDrawer.vue`/`ActionForm.vue` | **0 使用者**（只被 P1 删掉的旧 views 引用） | 删除（死代码） |
+| 状态→文案/颜色映射 | 仅 `ChannelWizard.vue` 一处定义；其余视图直接显示原始状态 | **未封装**：`AppStatusTag` 目前无 ≥3 处真实重复，造出来只会新增代码。并入 P4 逐页重写时统一（与控件文案变更一起做，避免现在仅为抽象而改动界面文案） |
+| 原因输入（暂停/重试/结构差异） | 4 个文件 6 处，但外层是弹窗/表单不同的容器与文案 | **未封装**：同上，P4 重写这些弹窗时一并抽 `AppReasonField`/`AppReasonDialog` |
+| 搜索栏（输入 + 搜索按钮） | 5 处，但外层结构（form/space）与回车行为不完全一致 | **未封装**：P4 逐页重写时统一为 `AppFilterBar` |
+
+验证：`npm run build` 通过；lint 警告 **292**（294 → 292）；`node --test tests/*.test.mjs` 129 项（127 通过、1 跳过、1 项既存 openpyxl 失败）；控制台镜像 `0.2.0-dev.17` 重建；`tests/sql-ingestion-ui.mjs` 真实浏览器验收 PASS。
