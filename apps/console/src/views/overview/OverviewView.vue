@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { NAlert, NButton, NCard, NDataTable, NSpace, NTag } from 'naive-ui';
+import { NButton, NCard, NDataTable, NSpace, NTag } from 'naive-ui';
 import { api, type Page } from '@/api';
 import { useRouter } from 'vue-router';
 import { useProjectStore } from '@/stores/project';
+import { useErrorToast } from '@/composables/useErrorToast';
 const router = useRouter();
 const project = useProjectStore();
 const projectId = computed(() => project.selected?.id ?? 0);
@@ -51,9 +52,9 @@ watch(
   () => void load(),
 );
 onMounted(() => void load());
+useErrorToast(error);
 </script>
 <template>
-  <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
   <section class="cards">
     <n-card title="统一接入"
       ><h2>{{ sourceCount }} 条采集来源</h2>

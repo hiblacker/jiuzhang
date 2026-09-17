@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, h } from 'vue';
+import { computed, h, watch } from 'vue';
 import {
-  NAlert,
   NButton,
   NCard,
   NDataTable,
@@ -17,6 +16,7 @@ import {
 import { RouterView, useRoute, useRouter } from 'vue-router';
 import type { Project } from '@/api';
 import { appRoutes } from '@/router/routes';
+import { notify } from '@/composables/notify';
 import { usePermissionStore } from '@/stores/permission';
 import { useProjectStore } from '@/stores/project';
 import { useSessionStore } from '@/stores/session';
@@ -35,7 +35,15 @@ const menuOptions = computed(() =>
     .map((item) => ({ key: `/${item.path}`, label: String(item.meta?.title ?? item.path) })),
 );
 const heading = computed(() => route.meta.title ?? '');
-const error = computed(() => session.error || project.error);
+watch(
+  () => session.error || project.error,
+  (message) => {
+    if (!message) return;
+    notify.error(message);
+    session.error = '';
+    project.error = '';
+  },
+);
 const projectColumns = [
   { title: '项目', key: 'name' },
   { title: '编码', key: 'code' },
@@ -79,7 +87,6 @@ async function onSignOut() {
           <n-button @click="onSignOut">退出</n-button>
         </n-space>
       </header>
-      <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
       <n-empty v-if="!project.selected && !session.isAdmin" description="尚未加入项目，请联系项目负责人" />
       <n-card v-else-if="!project.selected" title="还没有可用的项目" class="gap">
         <p class="muted">平台管理员需要先选择或创建一个项目，页面数据都挂在项目下。</p>

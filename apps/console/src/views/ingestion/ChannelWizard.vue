@@ -18,7 +18,9 @@ import {
   type DataTableColumns,
 } from 'naive-ui';
 import { api } from '@/api';
+import { notify } from '@/composables/notify';
 import { channelSettings, type ChannelFormState } from './channelSettings';
+import { useErrorToast } from '@/composables/useErrorToast';
 const props = defineProps<{
   project: number;
   instances: { id: number; name: string; code: string }[];
@@ -467,10 +469,16 @@ watch(modal, (v) => {
 });
 onUnmounted(() => clearTimeout(timer));
 onMounted(() => void load());
+useErrorToast(error);
+watch(
+  () => probe.value?.error_code,
+  (code) => {
+    if (code) notify.error(code);
+  },
+);
 </script>
 <template>
   <n-card title="连接与采集通道" class="gap">
-    <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
     <n-space class="gap"
       ><n-select
         v-model:value="instance"
@@ -508,7 +516,7 @@ onMounted(() => void load());
     <n-steps :current="step" class="gap"
       ><n-step title="连接与采集规则" /><n-step title="测试与发现" /><n-step title="交付计划"
     /></n-steps>
-    <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
+
     <template v-if="step === 1">
       <template v-if="!connection"
         ><n-form-item label="已授权执行资源"

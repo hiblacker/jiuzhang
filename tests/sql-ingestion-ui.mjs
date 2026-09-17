@@ -191,7 +191,8 @@ try {
   const incrementalVersion = await waitVersion('UPDATED_AT_KEYSET');
   await fillLabel('启用原因', 'P0-b 浏览器验收负例');
   await button(`启用版本 ${incrementalVersion}`).click();
-  await page.locator('.n-alert').filter({hasText: 'EXTRACTION_MODE_NOT_IMPLEMENTED'}).first().waitFor();
+  // The refusal is reported through the UI library's message toast, not an in-page alert.
+  await page.locator('.n-message').filter({hasText: 'EXTRACTION_MODE_NOT_IMPLEMENTED'}).first().waitFor();
   step('the panel refuses to enable the unimplemented incremental version', {version: incrementalVersion});
 
   await page.locator('.n-radio').filter({hasText: '全量快照'}).click();

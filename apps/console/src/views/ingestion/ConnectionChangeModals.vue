@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NAlert, NButton, NFormItem, NInput, NModal } from 'naive-ui';
+import { NButton, NFormItem, NInput, NModal } from 'naive-ui';
 import AppJsonBlock from '@/components/AppJsonBlock.vue';
 
 // The two "are you sure" dialogs of a rule/credential change. They are pure UI: the parent owns
@@ -10,7 +10,6 @@ const versionVisible = defineModel<boolean>('versionVisible', { required: true }
 const versionReason = defineModel<string>('versionReason', { required: true });
 const description = defineModel<string>('description', { required: true });
 const props = defineProps<{
-  error: string;
   impact: unknown;
   preview: unknown;
   activeVersion?: number;
@@ -22,7 +21,6 @@ const emit = defineEmits<{ confirmChange: []; saveVersion: [] }>();
 
 <template>
   <n-modal v-model:show="changeVisible" preset="card" title="确认采集规则变更" style="width: min(800px, 95vw)">
-    <n-alert v-if="props.error" type="error">{{ props.error }}</n-alert>
     <p>新规则需重新预检与启用计划，既有执行和历史交付约定继续保留。</p>
     <AppJsonBlock :value="props.preview" />
     <n-input v-model:value="changeReason" placeholder="范围或规则变更原因" />
@@ -36,7 +34,6 @@ const emit = defineEmits<{ confirmChange: []; saveVersion: [] }>();
     >
   </n-modal>
   <n-modal v-model:show="versionVisible" preset="card" title="连接版本与影响" style="width: min(800px, 95vw)">
-    <n-alert v-if="props.error" type="error">{{ props.error }}</n-alert>
     <p>
       当前版本
       {{

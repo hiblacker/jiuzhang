@@ -20,6 +20,7 @@ import { useProjectStore } from '@/stores/project';
 import type { PickedAsset } from '@/views/assets/AssetPicker.vue';
 import AppJsonBlock from '@/components/AppJsonBlock.vue';
 import AppPager from '@/components/AppPager.vue';
+import { useErrorToast } from '@/composables/useErrorToast';
 const RefreshPanel = defineAsyncComponent(() => import('@/views/assets/DeliveryLedger.vue'));
 const AssetPicker = defineAsyncComponent(() => import('@/views/assets/AssetPicker.vue'));
 const permission = usePermissionStore();
@@ -343,9 +344,9 @@ watch(
   },
   { immediate: true },
 );
+useErrorToast(error);
 </script>
 <template>
-  <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
   <n-card v-if="!selected" title="数据开发"
     ><template #header-extra><n-button type="primary" @click="openImport">从 Git 模型包建立数据集</n-button></template
     ><n-space class="gap"
@@ -414,8 +415,7 @@ watch(
         :inputs="contract.inputs"
         :can-manage="canManage" /></n-card
   ></template>
-  <n-modal v-model:show="importing" preset="card" title="登记 Git 模型包" style="width: min(980px, 96vw)"
-    ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
+  <n-modal v-model:show="importing" preset="card" title="登记 Git 模型包" style="width: min(980px, 96vw)">
     <p>选择管理员批准的 Git 项目；Worker 只打包已提交内容，保存固定提交和摘要。</p>
     <n-space
       ><n-form-item label="批准仓库"
@@ -443,7 +443,6 @@ watch(
       :item-count="packageTotal"
   /></n-modal>
   <n-modal v-model:show="creating" preset="card" title="绑定模型与项目资产" style="width: min(850px, 96vw)"
-    ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert
     ><n-space
       ><n-form-item label="数据集编码"><n-input v-model:value="modelCode" :disabled="!!selected" /></n-form-item
       ><n-form-item label="数据集名称"><n-input v-model:value="modelName" /></n-form-item
@@ -494,8 +493,7 @@ watch(
         </p></n-tab-pane
       ><n-tab-pane name="inputs" tab="输入版本"> <AppJsonBlock :value="buildDetail?.watermark" /> </n-tab-pane></n-tabs
   ></n-modal>
-  <n-modal v-model:show="publishVisible" preset="card" title="发布已验证候选" style="width: min(620px, 94vw)"
-    ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
+  <n-modal v-model:show="publishVisible" preset="card" title="发布已验证候选" style="width: min(620px, 94vw)">
     <p>发布前再次检查当前版本、输入新旧、来源状态和数据权限。</p>
     <n-form-item label="发布原因"><n-input v-model:value="publishReason" /></n-form-item
     ><n-button type="primary" :loading="busy" :disabled="!publishReason.trim()" @click="publish"

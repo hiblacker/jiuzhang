@@ -19,6 +19,7 @@ import { useProjectStore } from '@/stores/project';
 import { useSessionStore } from '@/stores/session';
 import AppJsonBlock from '@/components/AppJsonBlock.vue';
 import AppPager from '@/components/AppPager.vue';
+import { useErrorToast } from '@/composables/useErrorToast';
 const permission = usePermissionStore();
 const project = useProjectStore();
 const session = useSessionStore();
@@ -172,6 +173,7 @@ watch(
   { immediate: true },
 );
 watch(page, () => void load());
+useErrorToast(error);
 </script>
 <template>
   <n-card title="运行与异常"
@@ -226,7 +228,6 @@ watch(page, () => void load());
         "
         >刷新 / 搜索</n-button
       ><n-button v-if="tab === 'incidents' && canOperate" @click="reconcile">对账异常与真实恢复</n-button></n-space
-    ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert
     ><n-data-table
       :columns="tab === 'runs' ? runColumns : tab === 'incidents' ? incidentColumns : auditColumns"
       :data="rows"
@@ -237,7 +238,7 @@ watch(page, () => void load());
     preset="card"
     :title="tab === 'runs' ? '采集执行详情' : '异常观察与处理'"
     style="width: min(980px, 96vw)"
-    ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
+  >
     <AppJsonBlock :value="detail" />
     <template v-if="tab === 'runs' && canOperate"
       ><n-space class="gap"

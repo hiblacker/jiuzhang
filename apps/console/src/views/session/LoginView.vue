@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { NAlert, NButton, NCard, NFormItem, NInput } from 'naive-ui';
+import { NButton, NCard, NFormItem, NInput } from 'naive-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { api, login } from '@/api';
 import { useProjectStore } from '@/stores/project';
 import { useSessionStore } from '@/stores/session';
 
+import { useErrorToast, useToast } from '@/composables/useErrorToast';
 const session = useSessionStore();
 const project = useProjectStore();
 const route = useRoute();
@@ -64,13 +65,14 @@ async function submit() {
     busy.value = false;
   }
 }
+useErrorToast(error);
+useToast(status, 'success');
 </script>
 
 <template>
   <n-card class="login-card" title="九章数据平台">
     <p class="muted">统一接入 · 持续交付 · 可信数据</p>
-    <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
-    <n-alert v-else-if="status" type="success" class="gap">{{ status }}</n-alert>
+
     <form @submit.prevent="submit">
       <n-form-item v-if="!activate" label="账号">
         <n-input v-model:value="username" :input-props="{ 'aria-label': '账号' }" autocomplete="username" />

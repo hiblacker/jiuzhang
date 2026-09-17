@@ -16,6 +16,7 @@ import {
 import { api, type Page } from '@/api';
 import AppJsonBlock from '@/components/AppJsonBlock.vue';
 import AppPager from '@/components/AppPager.vue';
+import { useErrorToast } from '@/composables/useErrorToast';
 const props = defineProps<{
   project: number;
   dataset: number;
@@ -198,6 +199,7 @@ watch(
   { immediate: true },
 );
 watch(page, () => void load());
+useErrorToast(error);
 </script>
 <template>
   <n-card title="每日数据集刷新" class="gap"
@@ -206,7 +208,7 @@ watch(page, () => void load());
         plan?.configured ? '修改刷新计划' : '配置刷新计划'
       }}</n-button></template
     >
-    <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
+
     <p v-if="!plan?.configured">尚未配置自动刷新。先发布经验证的模型，再选择项目服务身份和每日输入规则。</p>
     <template v-else
       ><n-space
@@ -229,7 +231,6 @@ watch(page, () => void load());
     /></template>
   </n-card>
   <n-modal v-model:show="show" preset="card" title="每日刷新计划" style="width: min(850px, 96vw)"
-    ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert
     ><n-form-item label="项目服务身份"
       ><n-select
         v-model:value="form.serviceIdentity"
@@ -288,7 +289,6 @@ watch(page, () => void load());
     ><n-button type="primary" :loading="busy" @click="save">保存并启用此版本</n-button></n-modal
   >
   <n-modal v-model:show="detailVisible" preset="card" title="刷新窗口详情" style="width: min(880px, 96vw)"
-    ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert
     ><template v-if="detail && canManage && ['FAILED', 'CANCELLED'].includes(detail.state)"
       ><p>重试保留本次固定输入与模型版本；旧构建及失败记录继续保留。</p>
       <n-input v-model:value="reason" placeholder="重试原因" /><n-button

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, h, onMounted, reactive, ref, watch } from 'vue';
 import {
-  NAlert,
   NButton,
   NCard,
   NDataTable,
@@ -20,6 +19,7 @@ import { api, type Page } from '@/api';
 import { usePermissionStore } from '@/stores/permission';
 import { useProjectStore } from '@/stores/project';
 import AppPager from '@/components/AppPager.vue';
+import { useErrorToast } from '@/composables/useErrorToast';
 const permission = usePermissionStore();
 const project = useProjectStore();
 const projectId = computed(() => project.selected?.id ?? 0);
@@ -201,9 +201,9 @@ watch(
 );
 watch(page, () => void load());
 onMounted(() => void load());
+useErrorToast(error);
 </script>
 <template>
-  <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
   <n-card v-if="!selected" title="系统目录">
     <template #header-extra><n-button v-if="canManage" type="primary" @click="open()">登记业务系统</n-button></template>
     <p class="muted">当前项目授权范围内的系统与实例。目录可见性与数据权限分别管理。</p>
@@ -306,7 +306,6 @@ onMounted(() => void load());
     :title="editing ? '编辑系统信息' : '登记业务系统'"
     style="width: min(650px, 94vw)"
   >
-    <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
     <n-form-item label="稳定编码"
       ><n-input v-model:value="form.code" :disabled="editing" placeholder="例如 erp；登记后不变"
     /></n-form-item>
@@ -325,7 +324,6 @@ onMounted(() => void load());
     ><n-button type="primary" :loading="busy" @click="save">保存</n-button>
   </n-modal>
   <n-modal v-model:show="instanceModal" preset="card" title="新增环境实例" style="width: min(540px, 94vw)">
-    <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
     <n-form-item label="实例编码"><n-input v-model:value="instanceForm.code" /></n-form-item
     ><n-form-item label="实例名称"><n-input v-model:value="instanceForm.name" /></n-form-item
     ><n-form-item label="源系统环境"

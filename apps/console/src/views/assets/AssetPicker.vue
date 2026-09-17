@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { h, watch } from 'vue';
-import { NAlert, NButton, NDataTable, NInput, NSpace } from 'naive-ui';
+import { NButton, NDataTable, NInput, NSpace } from 'naive-ui';
 import AppPager from '@/components/AppPager.vue';
 import { usePagedQuery } from '@/composables/usePagedQuery';
 export interface PickedAsset {

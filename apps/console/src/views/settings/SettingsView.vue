@@ -18,6 +18,7 @@ import { api } from '@/api';
 import { usePermissionStore } from '@/stores/permission';
 import { useProjectStore } from '@/stores/project';
 import { useSessionStore } from '@/stores/session';
+import { useErrorToast } from '@/composables/useErrorToast';
 const session = useSessionStore();
 const permission = usePermissionStore();
 const project = useProjectStore();
@@ -302,9 +303,9 @@ watch(
 watch(secretVisible, (value) => {
   if (!value) secret.value = '';
 });
+useErrorToast(error);
 </script>
 <template>
-  <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
   <n-card v-if="admin" title="创建项目" class="gap"
     ><n-space
       ><n-form-item label="项目编码"><n-input v-model:value="projectForm.code" /></n-form-item

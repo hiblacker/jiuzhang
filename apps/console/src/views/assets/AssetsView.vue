@@ -1,20 +1,10 @@
 <script setup lang="ts">
 import { computed, h, ref } from 'vue';
-import {
-  NAlert,
-  NButton,
-  NCard,
-  NDataTable,
-  NDescriptions,
-  NDescriptionsItem,
-  NInput,
-  NModal,
-  NSpace,
-  NTag,
-} from 'naive-ui';
+import { NButton, NCard, NDataTable, NDescriptions, NDescriptionsItem, NInput, NModal, NSpace, NTag } from 'naive-ui';
 import { api } from '@/api';
 import { usePagedQuery } from '@/composables/usePagedQuery';
 import { useAsync } from '@/composables/useAsync';
+import { useErrorToast } from '@/composables/useErrorToast';
 import { useProjectStore } from '@/stores/project';
 import AppJsonBlock from '@/components/AppJsonBlock.vue';
 import AppPager from '@/components/AppPager.vue';
@@ -41,9 +31,13 @@ const { rows, query, page, total, loading, listError, search } = usePagedQuery<A
     `/warehouse/catalog/projects/${projectId.value}/assets?q=${encodeURIComponent(query)}&limit=${limit}&offset=${(page - 1) * limit}`,
   resetKey: () => projectId.value,
 });
+useErrorToast(listError);
 const detail = ref<AssetDetail | null>(null);
 const show = ref(false);
-const inspect = useAsync();
+const { error: inspectError, run: inspect } = useAsync();
+useErrorToast(inspectError);
+
+useErrorToast(listError);
 
 const columns = [
   {
@@ -60,7 +54,7 @@ const columns = [
 ];
 
 async function open(row: Asset) {
-  const loaded = await inspect.run(() => api<AssetDetail>(`/warehouse/projects/${projectId.value}/assets/${row.id}`));
+  const loaded = await inspect(() => api<AssetDetail>(`/warehouse/projects/${projectId.value}/assets/${row.id}`));
   if (!loaded) return;
   detail.value = loaded;
   show.value = true;
@@ -74,9 +68,6 @@ async function open(row: Asset) {
       <n-button @click="search()">搜索</n-button>
       <n-tag>{{ total }} 个资产版本</n-tag>
     </n-space>
-    <n-alert v-if="listError || inspect.error" type="error" class="gap">
-      {{ listError || inspect.error }}
-    </n-alert>
     <n-data-table :columns="columns" :data="rows" :loading="loading" :row-key="(row: Asset) => row.id" />
     <AppPager v-model:page="page" :item-count="total" />
   </n-card>

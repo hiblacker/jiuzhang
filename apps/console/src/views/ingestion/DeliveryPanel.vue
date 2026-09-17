@@ -1,19 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import {
-  NAlert,
-  NButton,
-  NCard,
-  NCheckbox,
-  NDataTable,
-  NFormItem,
-  NInput,
-  NModal,
-  NSelect,
-  NSpace,
-  NTag,
-} from 'naive-ui';
+import { NButton, NCard, NCheckbox, NDataTable, NFormItem, NInput, NModal, NSelect, NSpace, NTag } from 'naive-ui';
 import { api } from '@/api';
+import { useErrorToast } from '@/composables/useErrorToast';
 const props = defineProps<{ project: number; instance: number; canManage: boolean }>();
 interface Member {
   sourceId: number;
@@ -151,6 +140,7 @@ watch(
   },
   { immediate: true },
 );
+useErrorToast(error);
 </script>
 <template>
   <n-card title="每日交付完整性" class="gap">
@@ -162,14 +152,13 @@ watch(
       ><n-button v-if="canManage" @click="configure">配置交付约定</n-button
       ><n-tag>{{ names[status?.state] || status?.state || '加载中' }}</n-tag></n-space
     >
-    <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
+
     <p v-if="status?.required !== undefined">
       必需项 {{ status.complete }} / {{ status.required }} · 约定版本 {{ status.agreementVersion }}
     </p>
     <n-data-table :columns="columns" :data="status?.items || []" class="gap" />
   </n-card>
   <n-modal v-model:show="show" preset="card" title="配置实例交付约定" style="width: min(880px, 96vw)">
-    <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
     <n-space
       ><n-form-item label="生效日期"><n-input v-model:value="effectiveFrom" /></n-form-item
       ><n-form-item label="汇总时区"><n-input v-model:value="timezone" /></n-form-item

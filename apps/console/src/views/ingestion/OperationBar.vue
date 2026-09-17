@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { NAlert, NButton, NDataTable, NInput, NModal, NSelect, NSpace } from 'naive-ui';
+import { NButton, NDataTable, NInput, NModal, NSelect, NSpace } from 'naive-ui';
 import { api } from '@/api';
+import { useErrorToast } from '@/composables/useErrorToast';
 export interface OperationTarget {
   type: 'system' | 'instance' | 'connection' | 'channel';
   id: number;
@@ -79,6 +80,7 @@ async function execute() {
     busy.value = false;
   }
 }
+useErrorToast(error);
 </script>
 <template>
   <n-space class="gap" align="center"
@@ -103,11 +105,11 @@ async function execute() {
       >预览 {{ targets.length }} 项操作</n-button
     ></n-space
   >
-  <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
+
   <n-modal v-model:show="show" preset="card" title="核对操作影响" style="width: min(960px, 96vw)">
     <p>暂停允许已领取的任务完成；需要终止时使用取消。退役保留原件和历史发布，有下游依赖或在途执行时会拒绝。</p>
     <n-data-table :columns="columns" :data="preview?.items || []" />
-    <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
+
     <n-button class="gap" type="primary" :disabled="executed" :loading="busy" @click="execute">{{
       executed ? '操作已返回逐项结果' : '确认执行已预览的目标'
     }}</n-button>

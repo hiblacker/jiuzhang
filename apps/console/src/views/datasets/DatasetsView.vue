@@ -18,6 +18,7 @@ import { usePermissionStore } from '@/stores/permission';
 import { useProjectStore } from '@/stores/project';
 import AppJsonBlock from '@/components/AppJsonBlock.vue';
 import AppPager from '@/components/AppPager.vue';
+import { useErrorToast } from '@/composables/useErrorToast';
 const permission = usePermissionStore();
 const project = useProjectStore();
 const projectId = computed(() => project.selected?.id ?? 0);
@@ -247,9 +248,9 @@ watch(
   },
   { immediate: true },
 );
+useErrorToast(error);
 </script>
 <template>
-  <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
   <n-card v-if="!selected" title="数据服务目录"
     ><n-space class="gap"
       ><n-input
@@ -383,7 +384,6 @@ watch(
     <AppJsonBlock :value="example" />
   </n-modal>
   <n-modal v-model:show="showPolicy" preset="card" title="行列授权" style="width: min(740px, 96vw)"
-    ><n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert
     ><n-form-item label="项目查看者 / 服务身份"
       ><n-select
         v-model:value="policyIdentity"

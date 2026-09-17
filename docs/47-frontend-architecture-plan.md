@@ -507,3 +507,15 @@ const devOnlyException = !!item.dev && devOnlyAccepted.has(item.license);
 | P5 单元测试与门禁 | ✅ 完成 | 见 §14.7；无新增依赖 |
 
 **仍未完成（明确不在本次范围或属后续工作包）**：`complexity`/`max-lines-per-function` 仍为 warn（6 处复杂函数，随剩余页面拆分收口）；剩下约 290 条告警主体是未类型化的行数据（逐页 DTO 化）；`AppStatusTag`/`AppReasonField`/`AppFilterBar` 待相应页面重写时抽取；文档 44 的界面重构（Monaco、DiffView、全屏抽屉）未纳入本次迁移。
+
+### 14.9 反馈统一到 UI 库的 Message（2026-09-17 修复）
+
+用户报告：进入「资产目录」立即出现一个**空错误框**，且要求所有信息提示改用 UI 库的 Message，而不是放在页面里。
+
+**根因**：`useAsync()` 返回的是普通对象，模板对它内部的 ref **不做自动解包**；`AssetsView` 的模板写了 `v-if="listError || inspect.error"`，`inspect.error` 是 ref 对象本身（恒为真），于是空框常显。同一类写法在别处也可能踩到，所以顺手在模板中只使用解构后的 ref。
+
+**改法**：新增 `src/composables/notify.ts`（`createDiscreteApi(['message'])`，懒创建、无 DOM 时回退 `console.warn`，因此单测可直接导入）与 `src/composables/useErrorToast.ts`（`useToast(ref, level)`：监听到消息→弹 toast→清空来源 ref）。12 个视图与 `AppLayout` 的页内错误/成功提示全部改为 toast；`ConnectionChangeModals` 去掉与父级重复的错误框；`ChannelWizard` 的预检失败改为 toast。
+
+**保留为页内内容的提示**（不是通知，不该消失）：SQL 面板的规则说明与校验问题列表、「按表清单/整表」等策略说明、预检发现的表数量与不支持对象、RunsView 的"确认含义"说明、SettingsView 的资源类型说明。这些是页面内容的一部分，转成 toast 会让用户无法回看。
+
+**验证**：`npm run build` 通过（0 error / 290 warning 不变）；`/assets` 与 `/runs` 实测 **0 个页内 alert**（探针脚本 `work/diagnostics/alert-probe2.mjs`）；`tests/sql-ingestion-ui.mjs` 更新为断言 `.n-message` 中的 `EXTRACTION_MODE_NOT_IMPLEMENTED`，真实浏览器验收 PASS；控制台镜像 `0.2.0-dev.19`；全量测试 144 项（142 通过、1 跳过、1 项既存 openpyxl 失败）。

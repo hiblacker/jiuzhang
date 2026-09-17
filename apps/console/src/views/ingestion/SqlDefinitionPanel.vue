@@ -20,6 +20,7 @@ import {
   type TreeOption,
 } from 'naive-ui';
 import { api } from '@/api';
+import { useErrorToast, useToast } from '@/composables/useErrorToast';
 const props = defineProps<{ project: number; source: number; canActivate: boolean }>();
 const emit = defineEmits<{ ready: [boolean] }>();
 interface Column {
@@ -341,6 +342,8 @@ const versionColumns: DataTableColumns<Version> = [
   { title: '启用', key: 'enabled_by', render: (row) => row.enabled_by || '—' },
 ];
 onMounted(() => void load());
+useErrorToast(error);
+useToast(status, 'success');
 </script>
 
 <template>
@@ -349,8 +352,7 @@ onMounted(() => void load());
       >只允许单条只读查询（含
       JOIN/UNION/聚合）；禁止写入、改结构、跨库与系统库。正式执行前必须成功预览一次，平台会按结果列自动把精度敏感列转为文本。</n-alert
     >
-    <n-alert v-if="error" type="error" class="gap">{{ error }}</n-alert>
-    <n-alert v-if="status" type="success" class="gap">{{ status }}</n-alert>
+
     <n-space class="gap"
       ><n-tag>数据源 {{ datasourceType || '未配置' }}</n-tag
       ><n-tag>预览上限 {{ previewLimit }} 行（不可调大）</n-tag
