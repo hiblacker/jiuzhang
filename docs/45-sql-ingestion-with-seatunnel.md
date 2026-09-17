@@ -404,3 +404,59 @@ POST /warehouse/projects/1/sql-drafts/12/preview
 - 脱敏规则的初始清单（哪些列必遮）由谁维护。
 - 源库允许执行时段与并发上限（需要业务/运维给出窗口）。
 - 多数据源的目标类型顺序（见 46 号 §7）。
+
+## 10. 实现与验收（2026-09-17 完成）
+
+本节记录实际落地的形态、与上文计划的差异，以及可复现的验收证据；上文 §1–§9 是评审时的计划，若与本节的实现说明冲突，以本节为准。
+
+### 10.1 落地清单
+
+| 层 | 位置 | 内容 |
+|---|---|---|
+| 迁移 | `migrations/V027__typed_datasource_and_registered_sql.sql` | `ingest_resource` 增加 `datasource_type/config/credential_ref/statement_timeout_ms/allowed_schemas/allowed_tables/last_test_*`；新增 `resource_test_request`、`extraction_sql_draft`、`extraction_sql_version`（ENABLED 唯一）、`sql_preview_request`、`sql_preview_audit`、`seatunnel_job` |
+| 校验 | `SqlDefinitionValidator.java` | 静态闸门：单语句、仅 SELECT/WITH、禁 DDL/DML 与副作用、禁系统库、参数白名单、表白名单、`SELECT *`/自带 LIMIT 提示；JOIN/UNION/CTE/聚合放行（ADR-012） |
+| 控制面 | `DataSourceService`、`SqlDefinitionService`、`SqlIngestionController` | 数据源登记与只读证明、草稿/校验/预览/版本/启用、SeaTunnel 作业映射；worker 路由 `/api/v1/lake/{resource-tests,sql-previews,seatunnel-jobs}` 归 `Access.WORKER` |
+| 执行 | `apps/ingestion-worker/lake-runtime.mjs`、`managed-runtime.mjs`、`tools/lake-seatunnel.mjs`、`tools/datasource-test.mjs` | 连接测试与只读探针、预览（`LIMIT 1000` 兜底）、注册 SQL 抽取（全列 `CAST(... AS CHAR)`）、JSONL + `schema.json` + `batch.json` 落湖 |
+| 计划 | `ManagedRuntimeService`、`ManagedIngestionService`、`LakeExecutionService` | 多数据源 SELECT 与 SQL 模式作业配置；激活时登记合成 inventory（ADR-016）；计划契约 `queryMode=REGISTERED` + `queryTrace` |
+| 控制台 | `apps/console/src/SqlIngestion.vue`（接入向导步骤内嵌）、`IngestionManager.vue`、`ProjectSettings.vue` | SQL 面板（校验/保存/预览/存版本/启用）、来源模式切换、数据源登记与"测试连接" |
+
+### 10.2 与计划的差异（实现期修正）
+
+1. **注册 SQL 不是"无 inventory"**：预览、manifest 提交与项目资产都依赖 inventory/对象链路，未绑定的计划根本无法提交 manifest。改为激活时以渠道 code 为对象名登记**单对象合成 inventory**（列集来自已启用版本的结果列），计划 `inventory_version` 因此非空，`batch.json.inventoryVersion` 也如实记录该计划版本（ADR-016）。
+2. **契约键名约束**：计划契约会被 `rejectSecrets` 校验，键名含 `sql/password/token/path/...` 直接拒绝，故 SQL 版本追溯记为 `queryTrace{versionId,sha256}`，不写 `sqlVersionId`。
+3. **SQL 模式无需本地 worker 资源登记**：数据源由管理员在控制面批准、凭据在 `${PRODUCT_CONFIG_ROOT}/datasources/<ref>.json`（0600），因此 SQL profile 不再要求 `local-worker` 注册表条目；快照上限取平台配置的 `maxBytes`，缺失时以 `INVALID_MANAGED_RESOURCE_LIMIT` 明确失败而不是抛 `TypeError`。
+4. **claim 需返回 `source_id`**：作业映射上报要按来源归属，claim 负载补上 `p.source_id`。
+5. **worker 失败可诊断**：未预期异常在日志与 completion 中带受限 `detail`（`WORKER_EXECUTION_ERROR`），避免只看到 `WORKER_EXECUTION_FAILED`。
+
+### 10.3 验收证据
+
+```
+python3 tests/sql-ingestion-integration.py --settings secrets/product-next.json
+→ [ok] resource + datasource registered / connection test passed with read-only proof
+  [ok] channel created in registered-SQL mode / SQL validation accepts JOIN with non-ASCII identifiers
+  [ok] draft saved / preview completed, decimals exact, masked column hidden
+  [ok] SQL version validated and enabled / plan activated
+  [ok] asset registered from the raw batch {"assetId":"mysql:3","state":"RAW_COMMITTED","rowCount":3}
+  [ok] SeaTunnel job mapping recorded {"jobId":"1152889821280600065","state":"FINISHED"}
+  {"state": "PASS", "resourceCode": "sqldemo_241b3ae1", "sourceId": 24, "assetId": "mysql:3"}
+```
+
+落湖产物（`work/product-next/lake/raw/sqldemo_241b3ae1/exec-15/…`，`data.jsonl` 逐字）：
+
+```json
+{"order_id":"1","order_no":"NO-0001","amount":"12345678901234567.89","updated_at":"2026-09-17 09:58:11.123","customer_name":"东区"}
+{"order_id":"2","order_no":"NO-0002","amount":"-0.01","updated_at":"2026-09-17 10:00:00.000","customer_name":"西区"}
+{"order_id":"3","order_no":"NO-0003","amount":"999999999999999999.99","updated_at":"2026-09-16 23:59:59.999","customer_name":null}
+```
+
+`batch.json`：`extractor=SEATUNNEL`、`scalarEncoding=mysql-char-v2`、`consistency=SINGLE_STATEMENT_READ`、`inventoryVersion=1`、`sqlVersionId=12`、`tables[0]={state:RAW_COMMITTED,rowCount:3,bytes:384,sha256:b4bbc2b0…}`。预览侧：3 行、约 1.6 秒、`amount` 三个精确十进制值、`customer_name` 遮罩为 `***`。
+
+检查项：`node --test tests/*.test.mjs` 134 项（132 通过、1 跳过；唯一失败为宿主机 `python3` 缺 `openpyxl` 的 Excel 用例，与本次改动无关）；`mvn -o -f apps/control-api/pom.xml test` 80 项 0 失败（14 项跳过，需活库）；`node tools/check-docs.mjs`、`git diff --check` 见提交说明。镜像标签：api `0.2.0-dev.17`、worker `0.2.0-dev.24`、console `0.2.0-dev.7`、SeaTunnel `apache/seatunnel:2.3.13`。
+
+### 10.4 已知限制（未做，勿当成已支持）
+
+- **结果类型是推断值**：SeaTunnel 批模式下 `--column-type-info` 无输出，`schema.json` 的 `type` 由取值模式推断并标 `inferred:true`；正式建模前需要人工确认或改用元数据探测。
+- **遮罩是整值 `***`**：尚无按列规则（保留首尾、哈希、域映射），脱敏清单由谁维护仍待定（§9）。
+- **增量未实现**：`UPDATED_AT_KEYSET` 水位增量（`lake.object_watermark` + 重叠重读）属 P0-c，当前只跑全量快照。
+- **控制台编辑器是纯文本域**：无高亮/自动补全/DiffView，见 [44 号控制台重构计划](44-console-redesign-plan.md)。
+- **取消链路**：`stop-job` 已在尖峰验证，但运行中心里"取消注册 SQL 运行"尚未接线。

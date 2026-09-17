@@ -20,6 +20,8 @@
 | ADR-014 | 多数据源采用"访问族 + 数据源类型"两维模型，先做 MySQL | 用户已确认，2026-09-17 | 不新建平行概念；JDBC 家族复用 SeaTunnel `Jdbc`；驱动与连接器逐项许可/版本准入，方案见 [46号文档](46-multi-datasource-design.md) |
 | ADR-015 | SQL 抽取的落湖形态：SeaTunnel 文件 sink 直出 JSONL + 精度敏感列 `CAST(... AS CHAR)` | 实测确认，2026-09-17 | 尖峰 `poc/seatunnel-sql/`：sink 可直出 JSONL，但 `DECIMAL` 写成未加引号的 JSON 数字会丢精度、时间被转成无标记 UTC；CAST 后为字符串且为源本地墙钟，与既有 `mysql-char-v2` 契约一致。取消用 `POST /hazelcast/rest/maps/stop-job`（不残留半成品）。字符集必须作为数据源显式字段 |
 
+| ADR-016 | 注册 SQL 计划绑定"合成单对象 inventory"，SQL 版本以 `queryTrace` 固定进计划契约 | 端到端验收通过，2026-09-17 | 一条注册查询只产出一个结果集，故激活时以渠道 code 为对象名登记单对象 inventory（列集来自已启用版本的结果列），计划因此与表清单快照走同一条 manifest 完整性链路（未绑定的计划无法提交 manifest）。契约键名不能含 `sql/token/path` 等词，否则被 `rejectSecrets` 拒绝，故记为 `queryMode` + `queryTrace{versionId,sha256}` |
+
 技术选型报告给出的是候选及推荐，不自动将ADR-007变为已确认。
 
 ## 2. W1–W2必须澄清
