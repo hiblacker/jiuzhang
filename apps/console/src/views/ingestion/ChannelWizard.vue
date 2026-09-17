@@ -18,7 +18,7 @@ import {
   type DataTableColumns,
 } from 'naive-ui';
 import { api } from '@/api';
-import AppJsonBlock from '@/components/AppJsonBlock.vue';
+import { channelSettings, type ChannelFormState } from './channelSettings';
 const props = defineProps<{
   project: number;
   instances: { id: number; name: string; code: string }[];
@@ -28,6 +28,7 @@ const props = defineProps<{
 const OperationBar = defineAsyncComponent(() => import('./OperationBar.vue'));
 const DeliveryPanel = defineAsyncComponent(() => import('./DeliveryPanel.vue'));
 const SqlIngestion = defineAsyncComponent(() => import('./SqlDefinitionPanel.vue'));
+const ConnectionChangeModals = defineAsyncComponent(() => import('./ConnectionChangeModals.vue'));
 interface Connection {
   revision: number;
   config?: Record<string, unknown>;
@@ -155,7 +156,7 @@ const error = ref(''),
   sqlReady = ref(false);
 const sqlMode = computed(() => kind.value === 'MYSQL_SNAPSHOT' && form.sourceMode === 'REGISTERED_SQL');
 const day = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date());
-const defaults = () => ({
+const defaults = (): ChannelFormState => ({
   resourceId: null as number | null,
   connectionCode: '',
   connectionName: '',
@@ -196,7 +197,7 @@ const defaults = () => ({
   mysqlTables: '',
   sourceMode: 'TABLE_LIST',
 });
-const form = reactive(defaults());
+const form = reactive<ChannelFormState>(defaults());
 const selectedResource = computed(() => resources.value.find((r) => r.id === form.resourceId));
 const kind = computed(() => connection.value?.kind || selectedResource.value?.kind);
 const labels: Record<string, string> = { MYSQL_SNAPSHOT: 'MySQL', FILE_SCAN: '文件目录', REST_PULL: 'REST API' };
@@ -277,75 +278,7 @@ async function open(newConnection = false) {
   modal.value = true;
 }
 function settings() {
-  if (kind.value === 'MYSQL_SNAPSHOT') {
-    if (form.sourceMode === 'REGISTERED_SQL') return { sourceMode: 'REGISTERED_SQL' };
-    return form.mysqlTables.trim()
-      ? {
-          tables: form.mysqlTables
-            .split('\n')
-            .map((v) => v.trim())
-            .filter(Boolean),
-        }
-      : { sourceMode: 'TABLE_LIST' };
-  }
-  if (kind.value === 'REST_PULL') {
-    const result: Record<string, unknown> = {
-      ...(channel.value?.config || templateConfig.value),
-      path: form.path,
-      pagination: {
-        ...(channel.value?.config || templateConfig.value)?.pagination,
-        mode: form.pagination,
-        records_path: form.apiRecordsPath,
-        page_size: form.pageSize,
-        max_pages: form.maxPages,
-        ...(['next', 'token'].includes(form.pagination)
-          ? { next_path: form.nextPath, cursor_param: form.cursorParam }
-          : {}),
-      },
-    };
-    if (!form.successPath) delete result.success;
-    if (form.successPath)
-      result.success = {
-        path: form.successPath,
-        equals: form.successValue === 'true' ? true : form.successValue === 'false' ? false : form.successValue,
-      };
-    return result;
-  }
-  const parser: Record<string, unknown> = { ...(channel.value?.config || templateConfig.value)?.delivery?.parser };
-  if (form.format === 'csv') {
-    parser.encoding = form.encoding;
-    parser.delimiter = form.delimiter;
-  }
-  if (form.format === 'xlsx') {
-    if (form.sheets)
-      parser.sheets = form.sheets
-        .split(',')
-        .map((v) => v.trim())
-        .filter(Boolean);
-    if (form.range) parser.range = form.range;
-    parser.formulaPolicy = form.formulaPolicy;
-  }
-  if (form.format === 'json') parser.recordsPath = form.recordsPath;
-  return {
-    relativeDirectory: form.relativeDirectory,
-    datePartitioned: form.datePartitioned,
-    delivery: {
-      ...(channel.value?.config || templateConfig.value)?.delivery,
-      version: 1,
-      mode: form.mode,
-      readiness: form.readiness,
-      stableMs: form.stableMs,
-      expectedFiles: form.expectedFiles
-        .split('\n')
-        .map((v) => v.trim())
-        .filter(Boolean),
-      allowEmpty: form.allowEmpty,
-      allowContentRevision: form.allowContentRevision,
-      dueTime: form.dueTime,
-      dueDayOffset: form.dueDayOffset,
-      parser,
-    },
-  };
+  return channelSettings({ kind: kind.value ?? '', form, base: channel.value?.config || templateConfig.value });
 }
 async function copyChannel(row: Channel) {
   await resume(row);
@@ -779,49 +712,24 @@ onMounted(() => void load());
       ><n-button type="primary" :loading="busy" @click="activate">确认范围并启用</n-button></template
     >
   </n-modal>
-  <n-modal v-model:show="changeVisible" preset="card" title="确认采集规则变更" style="width: min(800px, 95vw)"
-    ><n-alert v-if="error" type="error">{{ error }}</n-alert>
-    <p>新规则需重新预检与启用计划，既有执行和历史交付约定继续保留。</p>
-    <AppJsonBlock
-      :value="
-        JSON.stringify(
-          {
-            previous: channel?.config,
-            proposed: settings(),
-            connectionVersion: form.connectionVersion,
-            impact: changeImpact,
-          },
-          null,
-          2,
-        )
-      "
-    />
-    <n-input v-model:value="changeReason" placeholder="范围或规则变更原因" /><n-button
-      class="gap"
-      type="primary"
-      :disabled="!changeReason.trim()"
-      :loading="busy"
-      @click="
-        changeVisible = false;
-        create();
-      "
-      >确认变更并测试</n-button
-    ></n-modal
-  >
-  <n-modal v-model:show="connectionVersionVisible" preset="card" title="连接版本与影响" style="width: min(800px, 95vw)"
-    ><n-alert v-if="error" type="error">{{ error }}</n-alert>
-    <p>
-      当前版本
-      {{
-        connection?.active_version
-      }}。发布新版本后，各通道通过“修改采集规则”显式选择，正在执行的配置不会被改写。凭证由管理员在批准资源边界内轮换。
-    </p>
-    <AppJsonBlock :value="changeImpact" />
-    <n-form-item v-if="connection?.kind !== 'MYSQL_SNAPSHOT'" label="连接说明"
-      ><n-input v-model:value="connectionDescription" /></n-form-item
-    ><n-form-item label="新版本原因"><n-input v-model:value="connectionReason" /></n-form-item
-    ><n-button type="primary" :disabled="!connectionReason.trim()" :loading="busy" @click="saveConnectionVersion"
-      >发布连接配置新版本</n-button
-    ></n-modal
-  >
+  <ConnectionChangeModals
+    v-model:change-visible="changeVisible"
+    v-model:change-reason="changeReason"
+    v-model:version-visible="connectionVersionVisible"
+    v-model:version-reason="connectionReason"
+    v-model:description="connectionDescription"
+    :error="error"
+    :impact="changeImpact"
+    :preview="{
+      previous: channel?.config,
+      proposed: settings(),
+      connectionVersion: form.connectionVersion,
+      impact: changeImpact,
+    }"
+    :active-version="connection?.active_version"
+    :connection-kind="connection?.kind"
+    :busy="busy"
+    @confirm-change="create()"
+    @save-version="saveConnectionVersion()"
+  />
 </template>

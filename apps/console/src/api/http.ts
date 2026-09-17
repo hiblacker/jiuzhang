@@ -4,13 +4,17 @@
 let csrf: { headerName: string; token: string } | null = null;
 
 export class ApiError extends Error {
-  constructor(
-    public status: number,
-    public code: string,
-    message: string,
-    public requestId = '',
-  ) {
+  // Explicit fields instead of parameter properties: plain Node can type-strip this file, which
+  // keeps api/http.ts usable from the unit tests without a build step.
+  status: number;
+  code: string;
+  requestId: string;
+
+  constructor(status: number, code: string, message: string, requestId = '') {
     super(message === code ? message : `${message} (${code})`);
+    this.status = status;
+    this.code = code;
+    this.requestId = requestId;
   }
 }
 

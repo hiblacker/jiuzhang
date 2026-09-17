@@ -33,9 +33,7 @@ export default defineConfig(
     },
     rules: {
       // Size and density: the values are the agreed limits (800 lines per file, 80 per function).
-      // The single existing violation is IngestionManager.vue at 824 lines, which P4 splits into
-      // the ingestion page parts; it flips to error as soon as that lands.
-      'max-lines': ['warn', { max: 800 }],
+      'max-lines': ['error', { max: 800 }],
       'max-lines-per-function': ['warn', { max: 80, skipBlankLines: true, skipComments: true }],
       complexity: ['warn', 12],
       'max-depth': ['warn', 4],

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { h, ref, watch } from 'vue';
+import { h, watch } from 'vue';
 import { NAlert, NButton, NDataTable, NInput, NSpace } from 'naive-ui';
-import { api, type Page } from '@/api';
 import AppPager from '@/components/AppPager.vue';
+import { usePagedQuery } from '@/composables/usePagedQuery';
 export interface PickedAsset {
   id: string;
   source_code: string;
@@ -14,12 +14,18 @@ export interface PickedAsset {
 }
 const props = defineProps<{ project: number; source?: string; object?: string }>();
 const emit = defineEmits<{ select: [PickedAsset] }>();
-const q = ref(props.object || ''),
-  page = ref(1),
-  rows = ref<PickedAsset[]>([]),
-  total = ref(0),
-  error = ref(''),
-  busy = ref(false);
+const { rows, query, page, total, loading, listError, search } = usePagedQuery<PickedAsset>({
+  route: ({ page: current, query: text, limit }) =>
+    `/warehouse/catalog/projects/${props.project}/assets?q=${encodeURIComponent(text)}&limit=${limit}&offset=${(current - 1) * limit}`,
+  resetKey: () => [props.project, props.source, props.object],
+});
+watch(
+  () => [props.project, props.source, props.object],
+  () => {
+    query.value = props.object || '';
+    search();
+  },
+);
 const columns = [
   { title: '来源', key: 'source_code' },
   { title: '对象', key: 'name' },
@@ -29,70 +35,28 @@ const columns = [
   {
     title: '选择版本',
     key: 'action',
-    render: (r: PickedAsset) =>
+    render: (row: PickedAsset) =>
       h(
         NButton,
         {
           size: 'small',
           disabled:
-            !r.available ||
-            (!!props.source && r.source_code !== props.source) ||
-            (!!props.object && r.name !== props.object),
-          onClick: () => emit('select', r),
+            !row.available ||
+            (!!props.source && row.source_code !== props.source) ||
+            (!!props.object && row.name !== props.object),
+          onClick: () => emit('select', row),
         },
-        () => (r.available ? '选择' : '未完成'),
+        () => (row.available ? '选择' : '未完成'),
       ),
   },
 ];
-let generation = 0;
-async function load() {
-  const current = ++generation;
-  busy.value = true;
-  error.value = '';
-  try {
-    const result = await api<Page<PickedAsset>>(
-      `/warehouse/catalog/projects/${props.project}/assets?q=${encodeURIComponent(q.value)}&limit=25&offset=${(page.value - 1) * 25}`,
-    );
-    if (current === generation) {
-      rows.value = result.items;
-      total.value = result.total;
-    }
-  } catch (e) {
-    if (current === generation) error.value = (e as Error).message;
-  } finally {
-    if (current === generation) busy.value = false;
-  }
-}
-watch(
-  () => [props.project, props.source, props.object],
-  () => {
-    page.value = 1;
-    q.value = props.object || '';
-    void load();
-  },
-  { immediate: true },
-);
-watch(page, () => void load());
 </script>
 <template>
-  <n-space class="gap"
-    ><n-input
-      v-model:value="q"
-      placeholder="按对象或来源搜索"
-      @keyup.enter="
-        page = 1;
-        load();
-      "
-    /><n-button
-      @click="
-        page = 1;
-        load();
-      "
-      >搜索</n-button
-    ></n-space
-  ><n-alert v-if="error" type="error">{{ error }}</n-alert
-  ><n-data-table :columns="columns" :data="rows" :loading="busy" :row-key="(r) => r.id" /><AppPager
-    v-model:page="page"
-    :item-count="total"
-  />
+  <n-space class="gap">
+    <n-input v-model:value="query" placeholder="按对象或来源搜索" @keyup.enter="search()" />
+    <n-button @click="search()">搜索</n-button>
+  </n-space>
+  <n-alert v-if="listError" type="error">{{ listError }}</n-alert>
+  <n-data-table :columns="columns" :data="rows" :loading="loading" :row-key="(row: PickedAsset) => row.id" />
+  <AppPager v-model:page="page" :item-count="total" />
 </template>
