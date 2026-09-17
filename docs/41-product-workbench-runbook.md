@@ -1,6 +1,6 @@
 # 产品工作台运行与操作手册
 
-配套 [实施进度](40-product-workbench-progress.md)、[验收契约](39-next-product-acceptance-contract.md)。本手册对应新版 Vue 工作台与 Worker v2；一期历史证据保留在 [37 号记录](37-phase-one-acceptance.md)。
+配套 [实施进度](40-product-workbench-progress.md)、[验收契约](39-next-product-acceptance-contract.md)；需要照着界面逐步操作时看 [首次上手逐步操作](42-first-run-walkthrough.md)。本手册对应新版 Vue 工作台与 Worker v2；一期历史证据保留在 [37 号记录](37-phase-one-acceptance.md)。
 
 ## 1. 新安装与登录
 
