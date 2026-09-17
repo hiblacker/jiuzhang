@@ -56,6 +56,8 @@
 | [产品范围与最终目标](docs/01-product-scope.md) | 产品边界、角色、一期取舍、最终目标 |
 | [新版工作台安装与操作](docs/41-product-workbench-runbook.md) | 邀请登录、统一接入、模型发布、数据消费、升级及合成 CI |
 | [首次上手逐步操作](docs/42-first-run-walkthrough.md) | 照着点的三条主流程：投文件入湖、建模发布、授权查询，含常见错误与排查命令 |
+| [MySQL 接入与数据查看方案](docs/43-mysql-ingestion-design.md) | 待评审：按表/增量/受限 SQL 接入、字段重命名与映射、已入湖数据预览页面 |
+| [控制台界面重构方案](docs/44-console-redesign-plan.md) | 待评审：现状证据、同类产品调研、设计令牌与组件规范、分阶段重构 |
 | [总体架构与详细设计](docs/02-architecture.md) | 部署边界、模块、元数据、接口、安全与发布 |
 | [数据加工与指标规范](docs/03-data-processing.md) | 增量、历史、周期统计、幂等和补数 |
 | [一期开发计划](docs/04-phase-one-plan.md) | 人员假设、W1–W18、工作包、依赖和里程碑 |
