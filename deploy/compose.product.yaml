@@ -42,7 +42,7 @@ services:
       migrate: {condition: service_completed_successfully}
   control-api:
     hostname: jiuzhang-product-api
-    image: jiuzhang/control-api:0.2.0-dev.3
+    image: jiuzhang/control-api:0.2.0-dev.4
     platform: linux/amd64
     environment:
       WAREHOUSE_DB_URL: jdbc:postgresql://warehouse-db:5432/warehouse
@@ -61,7 +61,7 @@ services:
     depends_on:
       provision-roles: {condition: service_completed_successfully}
   lake-worker:
-    image: jiuzhang/product-worker:0.2.0-dev.3
+    image: jiuzhang/product-worker:0.2.0-dev.4
     platform: linux/amd64
     user: "${PRODUCT_UID:?required}:${PRODUCT_GID:?required}"
     network_mode: service:control-api
@@ -78,7 +78,7 @@ services:
       control-api: {condition: service_healthy}
     restart: unless-stopped
   model-worker:
-    image: jiuzhang/product-worker:0.2.0-dev.3
+    image: jiuzhang/product-worker:0.2.0-dev.4
     platform: linux/amd64
     user: "${PRODUCT_UID:?required}:${PRODUCT_GID:?required}"
     network_mode: service:control-api
@@ -95,7 +95,7 @@ services:
       control-api: {condition: service_healthy}
     restart: unless-stopped
   console:
-    image: jiuzhang/console:0.2.0-dev.2
+    image: jiuzhang/console:0.2.0-dev.3
     platform: linux/amd64
     network_mode: service:control-api
     environment:
