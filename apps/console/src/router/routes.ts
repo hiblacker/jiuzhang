@@ -24,7 +24,7 @@ export const appRoutes: RouteRecordRaw[] = [
   {
     path: 'systems',
     name: 'systems',
-    component: () => import('@/views/ingestion/IngestionView.vue'),
+    component: () => import('@/views/ingestion/IngestionHome.vue'),
     meta: { title: '接入管理', menu: true },
   },
   {

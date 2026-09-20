@@ -74,7 +74,7 @@ async function onSignOut() {
       <div class="brand">九章 <small>数据平台</small></div>
       <n-menu :value="route.path" :options="menuOptions" @update:value="go" />
     </n-layout-sider>
-    <n-layout content-style="padding: 28px 36px">
+    <n-layout class="workspace-main" content-style="padding: 28px 36px">
       <header>
         <div>
           <h1>{{ heading }}</h1>

@@ -28,6 +28,8 @@ const props = defineProps<{
   instances: { id: number; name: string; code: string }[];
   canManage: boolean;
   canActivate: boolean;
+  initialConnectionId?: number;
+  initialSourceId?: number;
 }>();
 const OperationBar = defineAsyncComponent(() => import('./OperationBar.vue'));
 const DeliveryPanel = defineAsyncComponent(() => import('./DeliveryPanel.vue'));
@@ -472,7 +474,14 @@ watch(modal, (v) => {
   if (!v) clearTimeout(timer);
 });
 onUnmounted(() => clearTimeout(timer));
-onMounted(() => void load());
+onMounted(async () => {
+  await load();
+  const initial = connections.value.find((item) => item.id === props.initialConnectionId);
+  if (!initial) return;
+  await select(initial);
+  const source = channels.value.find((item) => item.source_id === props.initialSourceId);
+  if (source) await resume(source);
+});
 useErrorToast(error);
 watch(
   () => probe.value?.error_code,
@@ -485,6 +494,7 @@ watch(
   <n-card title="数据源与采集数据集" class="gap">
     <n-tabs v-model:value="activeTab" type="line" animated>
       <n-tab-pane name="datasources" tab="数据源">
+        <template #tab>数据源</template>
         <p class="muted">数据源保存连接类型、访问范围、凭据引用和连接测试结果。一个数据源可以被多个采集数据集复用。</p>
         <n-space class="gap"
           ><n-select
@@ -498,6 +508,7 @@ watch(
         <n-alert v-if="!instance" type="info" class="gap">先选择环境实例，再查看该实例下已授权的数据源。</n-alert>
       </n-tab-pane>
       <n-tab-pane name="ingestion-datasets" tab="采集数据集">
+        <template #tab>采集数据集</template>
         <p class="muted">采集数据集定义表、SQL、字段和调度，预检通过后才能启用。</p>
         <n-alert v-if="!connection" type="info" class="gap">请先在“数据源”页选择一个数据源。</n-alert>
         <template v-if="connection"
