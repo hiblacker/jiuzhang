@@ -15,7 +15,7 @@ test('the login page is the only public route, and every page lives under the ap
 test('the sidebar is derived from routes that opt in with a title', () => {
   const menu = appRoutes.filter((route) => route.meta?.menu);
   assert.deepEqual(menu.map((route) => route.meta.title), [
-    '工作台', '接入管理', '资产目录', '数据开发', '数据服务', '运行中心', '项目与设置',
+    '工作台', '接入管理', '资产目录', '数据开发', '服务数据集', '运行中心', '项目与设置',
   ]);
   for (const route of menu) assert.equal(route.meta.menu, true);
 });

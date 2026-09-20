@@ -192,9 +192,11 @@ useErrorToast(error);
 useErrorToast(listError);
 </script>
 <template>
-  <n-card v-if="!selected" title="系统目录">
+  <n-card v-if="!selected" title="接入管理">
     <template #header-extra><n-button v-if="canManage" type="primary" @click="open()">登记业务系统</n-button></template>
-    <p class="muted">当前项目授权范围内的系统与实例。目录可见性与数据权限分别管理。</p>
+    <p class="muted">
+      按“业务系统 → 环境实例 → 数据源 → 采集数据集”管理数据接入。数据源负责连接，采集数据集负责定义采集范围和调度。
+    </p>
     <n-space class="gap"
       ><n-input
         v-model:value="q"
@@ -244,7 +246,7 @@ useErrorToast(listError);
       >
       <p>{{ selected.description }}</p>
     </n-card>
-    <n-card title="环境实例" class="gap"
+    <n-card title="环境实例与数据源" class="gap"
       ><template #header-extra
         ><n-button
           v-if="canManage"

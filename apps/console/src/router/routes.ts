@@ -43,7 +43,7 @@ export const appRoutes: RouteRecordRaw[] = [
     path: 'datasets',
     name: 'datasets',
     component: () => import('@/views/datasets/DatasetsView.vue'),
-    meta: { title: '数据服务', menu: true },
+    meta: { title: '服务数据集', menu: true },
   },
   {
     path: 'runs',

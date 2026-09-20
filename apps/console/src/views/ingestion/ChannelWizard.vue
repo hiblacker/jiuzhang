@@ -217,18 +217,18 @@ let timer: ReturnType<typeof setTimeout> | undefined,
   epoch = 0;
 const connectionColumns: DataTableColumns<Connection> = [
   {
-    title: '连接',
+    title: '数据源',
     key: 'name',
     render: (row) => h(NButton, { text: true, type: 'primary', onClick: () => select(row) }, () => row.name),
   },
   { title: '类型', key: 'kind', render: (row) => labels[row.kind] },
   { title: '环境', key: 'environment_code' },
-  { title: '采集通道', key: 'channel_count' },
+  { title: '采集数据集数', key: 'channel_count' },
 ];
 const channelColumns: DataTableColumns<Channel> = [
   { type: 'selection' },
-  { title: '通道', key: 'name' },
-  { title: '来源编码', key: 'code' },
+  { title: '采集数据集', key: 'name' },
+  { title: '采集数据集编码', key: 'code' },
   { title: '登记状态', key: 'lifecycle', render: (row) => stateLabels[row.lifecycle] || row.lifecycle },
   { title: '最近预检', key: 'probe_state', render: (row) => stateLabels[row.probe_state || ''] || '未检查' },
   {
@@ -237,7 +237,7 @@ const channelColumns: DataTableColumns<Channel> = [
     render: (row) =>
       h(NSpace, {}, () => [
         h(NButton, { size: 'small', onClick: () => resume(row) }, () => (row.plan_id ? '查看 / 调整' : '继续配置')),
-        h(NButton, { size: 'small', onClick: () => copyChannel(row) }, () => '复制为新通道'),
+        h(NButton, { size: 'small', onClick: () => copyChannel(row) }, () => '复制为新采集数据集'),
         ...(row.plan_id ? [h(NButton, { size: 'small', onClick: () => trigger(row) }, () => '采集今日')] : []),
       ]),
   },
@@ -478,14 +478,14 @@ watch(
 );
 </script>
 <template>
-  <n-card title="连接与采集通道" class="gap">
+  <n-card title="数据源与采集数据集" class="gap">
     <n-space class="gap"
       ><n-select
         v-model:value="instance"
         :options="instances.map((i) => ({ label: i.name, value: i.id }))"
-        placeholder="选择环境实例"
+        placeholder="先选择环境实例"
         style="width: 220px"
-      /><n-button v-if="instance && canManage" @click="open(true)">接入新来源</n-button></n-space
+      /><n-button v-if="instance && canManage" @click="open(true)">新增数据源</n-button></n-space
     >
     <n-data-table :columns="connectionColumns" :data="connections" :loading="busy" />
     <template v-if="connection"
@@ -497,9 +497,9 @@ watch(
           select(connection);
           load();
         " /><n-space class="gap"
-        ><strong>{{ connection.name }} 的采集通道</strong
-        ><n-button v-if="canManage" @click="open()">复用连接新增通道</n-button
-        ><n-button v-if="canActivate" @click="reviewConnection">连接版本与影响</n-button></n-space
+        ><strong>{{ connection.name }} 的采集数据集</strong
+        ><n-button v-if="canManage" @click="open()">基于此数据源新增采集数据集</n-button
+        ><n-button v-if="canActivate" @click="reviewConnection">数据源版本与影响</n-button></n-space
       ><n-data-table
         v-model:checked-row-keys="checkedChannels"
         :row-key="(r) => r.source_id"
@@ -512,26 +512,26 @@ watch(
     /></template>
   </n-card>
   <DeliveryPanel v-if="instance" :project="project" :instance="instance" :can-manage="canActivate" />
-  <n-modal v-model:show="modal" preset="card" title="配置数据接入" style="width: min(800px, 95vw)">
+  <n-modal v-model:show="modal" preset="card" title="配置采集数据集" style="width: min(800px, 95vw)">
     <n-steps :current="step" class="gap"
-      ><n-step title="连接与采集规则" /><n-step title="测试与发现" /><n-step title="交付计划"
+      ><n-step title="选择数据源与采集规则" /><n-step title="预检与预览" /><n-step title="调度与启用"
     /></n-steps>
 
     <template v-if="step === 1">
       <template v-if="!connection"
-        ><n-form-item label="已授权执行资源"
+        ><n-form-item label="数据源"
           ><n-select
             v-model:value="form.resourceId"
             :options="
               resources.map((r) => ({ label: `${r.name} · ${labels[r.kind]} · ${r.environment_code}`, value: r.id }))
             " /></n-form-item
         ><n-space
-          ><n-form-item label="连接编码"><n-input v-model:value="form.connectionCode" /></n-form-item
-          ><n-form-item label="连接名称"><n-input v-model:value="form.connectionName" /></n-form-item></n-space
+          ><n-form-item label="数据源编码"><n-input v-model:value="form.connectionCode" /></n-form-item
+          ><n-form-item label="数据源名称"><n-input v-model:value="form.connectionName" /></n-form-item></n-space
         ><n-form-item v-if="kind === 'MYSQL_SNAPSHOT'" label="数据库名称"
           ><n-input v-model:value="form.database" placeholder="须与已批准资源的数据库一致" /></n-form-item
       ></template>
-      <n-form-item v-if="editingChannel && connection" label="显式使用连接版本"
+      <n-form-item v-if="editingChannel && connection" label="显式使用数据源版本"
         ><n-select
           v-model:value="form.connectionVersion"
           :options="
@@ -543,12 +543,12 @@ watch(
                   (_, i) => connection!.active_version - i,
                 ),
               ]),
-            ).map((value) => ({ label: `连接版本 ${value}`, value }))
+            ).map((value) => ({ label: `数据源版本 ${value}`, value }))
           " /></n-form-item
       ><n-space
         ><n-form-item label="来源稳定编码"
           ><n-input v-model:value="form.code" placeholder="如 erp_test_orders" /></n-form-item
-        ><n-form-item label="采集通道名称"><n-input v-model:value="form.name" /></n-form-item
+        ><n-form-item label="采集数据集名称"><n-input v-model:value="form.name" /></n-form-item
       ></n-space>
       <n-alert v-if="kind === 'MYSQL_SNAPSHOT'" type="info" class="gap"
         >默认发现并接入整库基础表，共享一次数据库快照。视图和不支持的对象单独列示。</n-alert
@@ -693,7 +693,7 @@ watch(
           JSON.stringify(probe.result.inventory.unsupported_objects, null, 2)
         }}</pre>
       </template>
-      <p class="muted">测试通过表示当前连接及发现成功，完整交付仍以执行批次为准。</p>
+      <p class="muted">预检通过表示当前数据源可访问且发现成功，完整交付仍以执行批次为准。</p>
       <n-space
         ><n-button
           @click="

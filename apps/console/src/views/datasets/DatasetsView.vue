@@ -70,7 +70,7 @@ const fieldOptions = computed(() =>
 );
 const listing = [
   {
-    title: '数据集',
+    title: '服务数据集',
     key: 'name',
     render: (r: Dataset) => h(NButton, { text: true, type: 'primary', onClick: () => inspect(r) }, () => r.name),
   },

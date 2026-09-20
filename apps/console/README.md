@@ -1,6 +1,6 @@
 # 九章产品工作台
 
-Vue 3、TypeScript、Naive UI 与 Vite，固定依赖见 `package-lock.json`。工作台提供账号登录、接入管理、资产目录、数据开发、数据服务、运行中心及项目设置；使用 Spring Security 同源会话和 CSRF，不把凭证写入浏览器存储。
+Vue 3、TypeScript、Naive UI 与 Vite，固定依赖见 `package-lock.json`。工作台提供账号登录、接入管理、资产目录、数据开发、服务数据集、运行中心及项目设置；接入管理按“业务系统 → 环境实例 → 数据源 → 采集数据集”组织操作；使用 Spring Security 同源会话和 CSRF，不把凭证写入浏览器存储。
 
 在仓库根目录执行：
 
