@@ -14,6 +14,8 @@ import {
   NSpace,
   NStep,
   NSteps,
+  NTabPane,
+  NTabs,
   NTag,
   type DataTableColumns,
 } from 'naive-ui';
@@ -145,6 +147,7 @@ const operationTargets = computed(() =>
     .map((c) => ({ type: 'channel' as const, id: c.source_id, expectedVersion: c.revision })),
 );
 const instance = ref<number | null>(null),
+  activeTab = ref('datasources'),
   connections = ref<Connection[]>([]),
   connection = ref<Connection | null>(null),
   channels = ref<Channel[]>([]),
@@ -263,6 +266,7 @@ async function select(row: Connection) {
     connection.value = await api<Connection>(`/warehouse/projects/${props.project}/connections/${row.id}`);
     checkedChannels.value = [];
     channels.value = await api<Channel[]>(`/warehouse/projects/${props.project}/connections/${row.id}/channels`);
+    activeTab.value = 'ingestion-datasets';
   } catch (e) {
     error.value = (e as Error).message;
   }
@@ -479,37 +483,47 @@ watch(
 </script>
 <template>
   <n-card title="数据源与采集数据集" class="gap">
-    <n-space class="gap"
-      ><n-select
-        v-model:value="instance"
-        :options="instances.map((i) => ({ label: i.name, value: i.id }))"
-        placeholder="先选择环境实例"
-        style="width: 220px"
-      /><n-button v-if="instance && canManage" @click="open(true)">新增数据源</n-button></n-space
-    >
-    <n-data-table :columns="connectionColumns" :data="connections" :loading="busy" />
-    <template v-if="connection"
-      ><OperationBar
-        v-if="canActivate"
-        :project="project"
-        :targets="[{ type: 'connection', id: connection.id, expectedVersion: connection.revision }]"
-        @changed="
-          select(connection);
-          load();
-        " /><n-space class="gap"
-        ><strong>{{ connection.name }} 的采集数据集</strong
-        ><n-button v-if="canManage" @click="open()">基于此数据源新增采集数据集</n-button
-        ><n-button v-if="canActivate" @click="reviewConnection">数据源版本与影响</n-button></n-space
-      ><n-data-table
-        v-model:checked-row-keys="checkedChannels"
-        :row-key="(r) => r.source_id"
-        :columns="channelColumns"
-        :data="channels" /><OperationBar
-        v-if="canActivate"
-        :project="project"
-        :targets="operationTargets"
-        @changed="select(connection)"
-    /></template>
+    <n-tabs v-model:value="activeTab" type="line" animated>
+      <n-tab-pane name="datasources" tab="数据源">
+        <p class="muted">数据源保存连接类型、访问范围、凭据引用和连接测试结果。一个数据源可以被多个采集数据集复用。</p>
+        <n-space class="gap"
+          ><n-select
+            v-model:value="instance"
+            :options="instances.map((i) => ({ label: i.name, value: i.id }))"
+            placeholder="先选择环境实例"
+            style="width: 220px"
+          /><n-button v-if="instance && canManage" @click="open(true)">新增数据源</n-button>
+        </n-space>
+        <n-data-table :columns="connectionColumns" :data="connections" :loading="busy" />
+        <n-alert v-if="!instance" type="info" class="gap">先选择环境实例，再查看该实例下已授权的数据源。</n-alert>
+      </n-tab-pane>
+      <n-tab-pane name="ingestion-datasets" tab="采集数据集">
+        <p class="muted">采集数据集定义表、SQL、字段和调度，预检通过后才能启用。</p>
+        <n-alert v-if="!connection" type="info" class="gap">请先在“数据源”页选择一个数据源。</n-alert>
+        <template v-if="connection"
+          ><OperationBar
+            v-if="canActivate"
+            :project="project"
+            :targets="[{ type: 'connection', id: connection.id, expectedVersion: connection.revision }]"
+            @changed="
+              select(connection);
+              load();
+            " /><n-space class="gap"
+            ><strong>{{ connection.name }} 的采集数据集</strong
+            ><n-button v-if="canManage" @click="open()">基于此数据源新增采集数据集</n-button
+            ><n-button v-if="canActivate" @click="reviewConnection">数据源版本与影响</n-button></n-space
+          ><n-data-table
+            v-model:checked-row-keys="checkedChannels"
+            :row-key="(r) => r.source_id"
+            :columns="channelColumns"
+            :data="channels" /><OperationBar
+            v-if="canActivate"
+            :project="project"
+            :targets="operationTargets"
+            @changed="select(connection)"
+        /></template>
+      </n-tab-pane>
+    </n-tabs>
   </n-card>
   <DeliveryPanel v-if="instance" :project="project" :instance="instance" :can-manage="canActivate" />
   <n-modal v-model:show="modal" preset="card" title="配置采集数据集" style="width: min(800px, 95vw)">
