@@ -1,8 +1,0 @@
-name: commerce
-version: 1.0.0
-config-version: 2
-profile: jiuzhang
-model-paths: [models]
-models:
-  commerce:
-    +materialized: table
