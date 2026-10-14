@@ -253,7 +253,7 @@ jobs:
 
       - name: Upload Recompiled Registry Indexes
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: registry-compiled-indexes
           path: ${{ env.COMPILE_OUTPUT_DIR }}/registries/v0/*.json
@@ -261,7 +261,7 @@ jobs:
 
       - name: Upload Production Registry Snapshot
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: registry-production-snapshot
           path: ${{ env.REPORT_DIR }}/prod-snapshot/*.json
@@ -269,7 +269,7 @@ jobs:
 
       - name: Upload Registry Comparison Text Report
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: comparison-report.txt
           path: ${{ env.REPORT_DIR }}/report.txt
@@ -278,7 +278,7 @@ jobs:
 
       - name: Upload Registry Comparison HTML Report
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: comparison-report.html
           path: ${{ env.REPORT_DIR }}/report.html
