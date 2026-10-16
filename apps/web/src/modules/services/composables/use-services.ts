@@ -2,10 +2,13 @@ import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { serviceRepository as repo } from '../api/service-repository'
 import type { Model } from '@/shared/api/types'
-export function useServiceAudit(id: MaybeRefOrGetter<string>) {
+export function useServiceAudit(
+  id: MaybeRefOrGetter<string>,
+  filters: MaybeRefOrGetter<Record<string, string>> = {},
+) {
   return useQuery({
-    queryKey: computed(() => ['services', 'audit', toValue(id)]),
-    queryFn: () => repo.audit(toValue(id)),
+    queryKey: computed(() => ['services', 'audit', toValue(id), toValue(filters)]),
+    queryFn: ({ signal }) => repo.audit(toValue(id), toValue(filters), signal),
     enabled: computed(() => !!toValue(id)),
   })
 }

@@ -97,7 +97,7 @@ const routeLocales: Record<string, readonly LocaleDomain[]> = {
   tasks: ['jobs', 'sources'],
   warehouse: ['warehouse', 'sources', 'overview'],
   governance: ['governance', 'datasets', 'sources', 'jobs', 'overview'],
-  services: ['services', 'sources', 'warehouse'],
+  services: ['services', 'sources', 'warehouse', 'identity'],
   system: ['identity', 'sources', 'warehouse'],
   login: ['identity'],
 }

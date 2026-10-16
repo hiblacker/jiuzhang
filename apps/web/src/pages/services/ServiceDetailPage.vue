@@ -6,7 +6,7 @@ import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
 const canWrite = useCan('write')
-import { computed, ref, watch } from 'vue'
+import { computed, h, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   NCard,
@@ -18,6 +18,8 @@ import {
   NDescriptions,
   NDescriptionsItem,
   NDataTable,
+  NPagination,
+  type DataTableColumns,
 } from 'naive-ui'
 import { useService, useServiceActions, useServiceAudit } from '@/modules/services'
 import { PageHeader } from '@/shared/ui/page-header'
@@ -26,15 +28,48 @@ import { CopyButton } from '@/shared/ui/copy-button'
 import { useCan } from '@/shared/security/permissions'
 import { ApiError } from '@/shared/api/client'
 import { errorKey } from '@/shared/api/error-message'
+import { useListRoute } from '@/shared/composables/use-list-route'
+import { useDisplayTime } from '@/shared/composables/use-display-time'
+import type { Model } from '@/shared/api/types'
+const { filters, update, bindPagination } = useListRoute()
 const route = useRoute(),
   router = useRouter(),
   id = computed(() => String(route.params.id)),
   query = useService(id),
-  audit = useServiceAudit(id),
+  audit = useServiceAudit(id, () => ({
+    page: String(filters.value.page),
+    pageSize: String(filters.value.pageSize),
+  })),
   actions = useServiceActions(),
   input = ref('{}'),
   error = ref('')
 const tab = useRouteTab(['contract', 'caller', 'audit'], 'contract')
+bindPagination(() =>
+  audit.isSuccess.value && !audit.isFetching.value ? audit.data.value?.meta : undefined,
+)
+const displayTime = useDisplayTime()
+const auditActions: Record<string, string> = {
+  call: uiText('identity.audit.actions.call'),
+  post: uiText('identity.audit.actions.post'),
+  patch: uiText('identity.audit.actions.patch'),
+  delete: uiText('identity.audit.actions.delete'),
+}
+const auditColumns: DataTableColumns<Model<'Audit'>> = [
+  {
+    title: uiText('ui.audit_89b4aa63'),
+    key: 'at',
+    width: 190,
+    render: (row) => h('time', { datetime: row.at, title: row.at }, displayTime(row.at)),
+  },
+  { title: uiText('ui.audit_ffb50d38'), key: 'actor', width: 140 },
+  {
+    title: uiText('ui.audit_c0939594'),
+    key: 'action',
+    width: 120,
+    render: (row) => auditActions[row.action] ?? row.action,
+  },
+  { title: uiText('description'), key: 'detail', width: 380 },
+]
 watch([id, input], () => {
   error.value = ''
   actions.call.reset()
@@ -138,20 +173,32 @@ const contract = computed(() => ({
           ><AsyncState
             :loading="audit.isLoading.value"
             :error="audit.error.value"
-            :empty="audit.data.value?.length === 0"
+            :empty="audit.data.value?.data.length === 0"
             @retry="audit.refetch()"
             ><NDataTable
-              :data="audit.data.value ?? []"
-              :columns="[
-                { title: uiText('ui.audit_89b4aa63'), key: 'at' },
-                { title: uiText('ui.audit_ffb50d38'), key: 'actor' },
-                { title: uiText('ui.audit_c0939594'), key: 'action' },
-                { title: uiText('description'), key: 'detail' },
-              ]"
-              :bordered="false" /></AsyncState></NTabPane></NTabs></NCard
+              :data="audit.data.value?.data ?? []"
+              :columns="auditColumns"
+              :row-key="(row) => row.id"
+              :scroll-x="830"
+              :bordered="false"
+          /></AsyncState>
+          <div v-if="audit.data.value && !audit.isError.value" class="pagination">
+            <span>{{ uiText('total', { total: audit.data.value.meta.total ?? 0 }) }}</span>
+            <NPagination
+              :page="filters.page"
+              :page-size="filters.pageSize"
+              :item-count="audit.data.value.meta.total ?? 0"
+              :page-sizes="[20, 50, 100]"
+              show-size-picker
+              @update:page="update({ page: $event })"
+              @update:page-size="update({ pageSize: $event, page: 1 })"
+            /></div></NTabPane></NTabs></NCard
   ></AsyncState>
 </template>
 <style scoped>
+.pagination {
+  flex-wrap: wrap;
+}
 pre {
   background: var(--surface);
   padding: 24px;

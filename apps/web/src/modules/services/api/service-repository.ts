@@ -1,12 +1,13 @@
 import { api, unwrap } from '@/shared/api/client'
 import type { Model } from '@/shared/api/types'
 export const serviceRepository = {
-  async audit(id: string) {
+  async audit(id: string, query: Record<string, string> = {}, signal?: AbortSignal) {
     return unwrap(
       await api.GET('/services/{id}/audit', {
-        params: { path: { id }, query: { pageSize: '100' } },
+        params: { path: { id }, query },
+        signal,
       }),
-    ).data
+    )
   },
   async list(query: Record<string, string> = {}) {
     return unwrap(await api.GET('/services', { params: { query } }))
