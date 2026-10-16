@@ -15174,6 +15174,22 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "layers": {
+            "description": "按 ODS、DWD、DWS、ADS 顺序返回当前统计范围内全部表的分层汇总，不受列表分页限制；tableId 提供时仅统计该表。空层仍返回零值，行数以十进制字符串无损传输。",
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "layer": { "type": "string", "enum": ["ODS", "DWD", "DWS", "ADS"] },
+                "tableCount": { "type": "integer", "minimum": 0 },
+                "rowCount": { "type": "string", "pattern": "^[0-9]+$" }
+              },
+              "required": ["layer", "tableCount", "rowCount"]
+            }
+          },
           "tableCount": {
             "type": "integer",
             "minimum": 0
@@ -15239,6 +15255,7 @@
           }
         },
         "required": [
+          "layers",
           "tableCount",
           "rowCount",
           "sampleBytes",

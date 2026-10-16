@@ -10,7 +10,7 @@ export function useSubjectDomains() {
 export function useWarehouseMetrics(id: MaybeRefOrGetter<string> = '') {
   return useQuery({
     queryKey: computed(() => ['warehouse', 'metrics', toValue(id)]),
-    queryFn: () => repo.metrics(toValue(id)),
+    queryFn: ({ signal }) => repo.metrics(toValue(id), signal),
   })
 }
 export function useTables(filters: MaybeRefOrGetter<Record<string, string>> = {}) {

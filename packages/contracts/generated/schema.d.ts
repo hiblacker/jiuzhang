@@ -1849,6 +1849,13 @@ export interface components {
             rows: components["schemas"]["Row"][];
         };
         WarehouseMetrics: {
+            /** @description 按 ODS、DWD、DWS、ADS 顺序返回当前统计范围内全部表的分层汇总，不受列表分页限制；tableId 提供时仅统计该表。空层仍返回零值，行数以十进制字符串无损传输。 */
+            layers: {
+                /** @enum {string} */
+                layer: "ODS" | "DWD" | "DWS" | "ADS";
+                tableCount: number;
+                rowCount: string;
+            }[];
             tableCount: number;
             rowCount: string;
             sampleBytes: number;

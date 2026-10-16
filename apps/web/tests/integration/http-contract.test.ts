@@ -73,6 +73,50 @@ async function request(
 }
 
 describe('HTTP contract and persistence', () => {
+  it('aggregates all warehouse layers without truncating rows or counts to the first page', async () => {
+    await transact((state) => {
+      const template = structuredClone(state.tables[0]!)
+      state.tables = Array.from({ length: 104 }, (_, index) => ({
+        ...structuredClone(template),
+        id: String(90000 + index),
+        name: 'demo_metrics_' + index,
+        layer: (['ODS', 'DWD', 'DWS', 'ADS'] as const)[index % 4]!,
+        rowCount: index === 103 ? '9007199254740993' : '1',
+      }))
+    })
+    const page = await request('/warehouse/tables?pageSize=100')
+    expect(page.body.data).toHaveLength(100)
+    expect(page.body.meta.total).toBe(104)
+    const metrics = (await request('/warehouse/metrics')).body.data
+    expect(metrics.tableCount).toBe(104)
+    expect(metrics.rowCount).toBe('9007199254741096')
+    expect(metrics.layers).toEqual([
+      { layer: 'ODS', tableCount: 26, rowCount: '26' },
+      { layer: 'DWD', tableCount: 26, rowCount: '26' },
+      { layer: 'DWS', tableCount: 26, rowCount: '26' },
+      { layer: 'ADS', tableCount: 26, rowCount: '9007199254741018' },
+    ])
+    const scoped = (await request('/warehouse/metrics?tableId=90103')).body.data
+    expect(scoped.tableCount).toBe(1)
+    expect(scoped.rowCount).toBe('9007199254740993')
+    expect(scoped.layers).toEqual([
+      { layer: 'ODS', tableCount: 0, rowCount: '0' },
+      { layer: 'DWD', tableCount: 0, rowCount: '0' },
+      { layer: 'DWS', tableCount: 0, rowCount: '0' },
+      { layer: 'ADS', tableCount: 1, rowCount: '9007199254740993' },
+    ])
+    expect((await request('/warehouse/metrics?tableId=missing')).status).toBe(404)
+    await transact((state) => {
+      state.tables = []
+    })
+    const empty = (await request('/warehouse/metrics')).body.data
+    expect(empty.tableCount).toBe(0)
+    expect(empty.rowCount).toBe('0')
+    expect(empty.layers).toEqual(
+      ['ODS', 'DWD', 'DWS', 'ADS'].map((layer) => ({ layer, tableCount: 0, rowCount: '0' })),
+    )
+  })
+
   it('records mutation paths and related resources once without copying request payloads', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-16T00:00:00.000Z'))
     const before = (await readState()).audit.length

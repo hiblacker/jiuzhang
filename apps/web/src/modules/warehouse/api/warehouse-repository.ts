@@ -4,8 +4,9 @@ export const warehouseRepository = {
   async subjectDomains(signal?: AbortSignal) {
     return unwrap(await api.GET('/warehouse/subject-domains', { signal })).data
   },
-  async metrics(tableId = '') {
-    return unwrap(await api.GET('/warehouse/metrics', { params: { query: { tableId } } })).data
+  async metrics(tableId = '', signal?: AbortSignal) {
+    return unwrap(await api.GET('/warehouse/metrics', { params: { query: { tableId } }, signal }))
+      .data
   },
   async tables(query: Record<string, string> = {}, signal?: AbortSignal) {
     return unwrap(await api.GET('/warehouse/tables', { params: { query }, signal }))

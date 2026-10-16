@@ -115,6 +115,14 @@ export const warehouseHandlers = [
       new Date(mockNow(state) - (6 - i) * 86400000).toISOString().slice(0, 10),
     )
     return {
+      layers: (['ODS', 'DWD', 'DWS', 'ADS'] as const).map((layer) => {
+        const items = tables.filter((table) => table.layer === layer)
+        return {
+          layer,
+          tableCount: items.length,
+          rowCount: items.reduce((total, table) => total + BigInt(table.rowCount), 0n).toString(),
+        }
+      }),
       tableCount: tables.length,
       rowCount: tables.reduce((total, table) => total + BigInt(table.rowCount), 0n).toString(),
       sampleBytes: new TextEncoder().encode(JSON.stringify(tables.map((table) => table.sample)))
