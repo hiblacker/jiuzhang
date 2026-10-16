@@ -23,6 +23,20 @@ export default {
     confirmMove: '确认移动',
   },
   datasets: {
+    output: {
+      summary: '输出写入配置',
+      mode: '写入语义',
+      keys: '业务主键',
+      noKeys: '未配置',
+      append: '追加',
+      replace: '全量替换',
+      upsert: '按主键更新',
+      appendHelp: '保留目标表已有行，追加本次输出；业务主键相同的行也会保留。',
+      replaceHelp: '用本次全部输出替换目标表已有样本；业务日期用于分区标记，不代表只替换该分区。',
+      upsertHelp:
+        '按全部业务主键组合更新相同行，插入新键，并保留本次未出现的旧键；业务主键必须输出且不能为空。',
+      boundary: '当前仅演示合成样本写入；运行使用绑定发布版本的配置，草稿修改须重新发布后生效。',
+    },
     nullableField: '允许空值 {name}',
     removeField: '删除字段 {name}',
     graph: {

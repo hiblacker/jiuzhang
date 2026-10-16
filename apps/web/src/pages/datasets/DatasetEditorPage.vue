@@ -32,6 +32,7 @@ import {
   DatasetFields,
   DatasetGraph,
   DatasetFolderSelect,
+  DatasetOutputSummary,
 } from '@/modules/datasets'
 import { useSources, useSourceObjects } from '@/modules/sources'
 import { useQuality, useMasking } from '@/modules/governance'
@@ -323,7 +324,9 @@ useEditGuard(dirty, save.isPending)
                     draft.definition.fields
                       .filter((f) => f.output)
                       .map((f) => ({ label: f.target, value: f.target }))
-                  " /></NFormItemGi></NGrid></NTabPane
+                  " /></NFormItemGi
+            ></NGrid>
+            <DatasetOutputSummary :output="draft.definition.output" /> </NTabPane
           ><NTabPane name="preview" :tab="uiText('ui.dataset_editor_de61aa8e')"
             ><AsyncState
               :loading="preview.isPending.value"

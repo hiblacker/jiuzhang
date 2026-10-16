@@ -26,6 +26,7 @@ import {
   useDatasetPreview,
   useFolders,
   folderPath,
+  DatasetOutputSummary,
 } from '@/modules/datasets'
 import { RunHistory, RunTrigger } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
@@ -115,11 +116,13 @@ async function publish() {
               ></NDescriptionsItem
             ><NDescriptionsItem :label="uiText('ui.dataset_detail_442be9c4')">{{
               query.data.value?.definition.output.table
-            }}</NDescriptionsItem
-            ><NDescriptionsItem :label="uiText('ui.dataset_detail_dd32f296')">{{
-              query.data.value?.definition.output.writeMode
             }}</NDescriptionsItem></NDescriptions
-          ><NAlert type="info" style="margin-top: 24px">{{
+          ><DatasetOutputSummary
+            v-if="query.data.value"
+            class="mt"
+            :output="query.data.value.definition.output"
+          />
+          <NAlert type="info" style="margin-top: 24px">{{
             uiText('ui.dataset_detail_ea6f74c7')
           }}</NAlert></NTabPane
         ><NTabPane name="preview" :tab="t('datasets.preview')">

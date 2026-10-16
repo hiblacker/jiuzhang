@@ -18,6 +18,7 @@ import {
   useDataset,
   useDatasetActions,
   compareVersionFields,
+  DatasetOutputSummary,
 } from '@/modules/datasets'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
@@ -116,6 +117,11 @@ async function restore() {
           query.data.value?.definition.output.table
         }}</NDescriptionsItem>
       </NDescriptions>
+      <DatasetOutputSummary
+        v-if="query.data.value"
+        class="mt"
+        :output="query.data.value.definition.output"
+      />
     </NCard>
     <NCard :title="t('datasets.version.sourceSchemas')" :bordered="false" class="mt">
       <NAlert type="info" class="mb">{{ t('datasets.version.schemaBoundary') }}</NAlert>
