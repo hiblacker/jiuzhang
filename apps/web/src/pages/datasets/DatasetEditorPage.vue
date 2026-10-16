@@ -39,7 +39,7 @@ import {
 } from '@/modules/datasets'
 import { SourcePicker, useSourceObjects } from '@/modules/sources'
 import { useQuality, useMasking } from '@/modules/governance'
-import { ScheduleForm, useTasks } from '@/modules/jobs'
+import { ScheduleForm } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { errorKey } from '@/shared/api/error-message'
@@ -79,8 +79,7 @@ function selectUpstream(value: string | null) {
   }
 }
 const quality = useQuality({ pageSize: '100' }),
-  masking = useMasking({ pageSize: '100' }),
-  tasks = useTasks({ pageSize: '100' })
+  masking = useMasking({ pageSize: '100' })
 const form = ref<FormInst>(),
   tab = useRouteTab(['input', 'fields', 'governance', 'schedule', 'output', 'preview'], 'input')
 if (!id.value) {
@@ -297,9 +296,8 @@ useEditGuard(dirty, save.isPending)
             ><ScheduleForm
               v-model="draft.definition.schedule"
               path="definition.schedule"
-              :tasks="
-                tasks.data.value?.data.map((x) => ({ label: x.name, value: x.id }))
-              " /></NTabPane
+              :excluded-dataset-id="id"
+              :readonly="save.isPending.value" /></NTabPane
           ><NTabPane name="output" :tab="uiText('ui.dataset_editor_120a7b3d')"
             ><NFormItem :label="t('warehouse.subjectDomain')"
               ><NInput

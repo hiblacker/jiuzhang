@@ -331,9 +331,13 @@ export const jobHandlers = [
   route(
     'get',
     '/tasks',
-    ({ state }) => {
+    ({ state, url }) => {
       advanceJobs(state)
-      return state.tasks.map((task) => visibleTask(state, task))
+      const excludedId = url.searchParams.get('excludeId')
+      const excludedDatasetId = url.searchParams.get('excludeDatasetId')
+      return state.tasks
+        .filter((task) => task.id !== excludedId && task.datasetId !== excludedDatasetId)
+        .map((task) => visibleTask(state, task))
     },
     { list: true },
   ),

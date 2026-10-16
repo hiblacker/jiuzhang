@@ -13,11 +13,18 @@ import {
 } from 'naive-ui'
 import type { Model } from '@/shared/api/types'
 import { dateTime } from '@/shared/lib/datetime'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { previewSchedule } from '../model/schedule-preview'
 import { scheduleIssue } from '../model/schedule-validation'
+import TaskDependencySelect from './TaskDependencySelect.vue'
 const model = defineModel<Model<'Schedule'>>({ required: true })
 const props = withDefaults(
-  defineProps<{ readonly?: boolean; tasks?: { label: string; value: string }[]; path?: string }>(),
+  defineProps<{
+    readonly?: boolean
+    excludedTaskId?: string
+    excludedDatasetId?: string
+    path?: string
+  }>(),
   { path: 'schedule' },
 )
 const { t } = useI18n()
@@ -39,7 +46,7 @@ function rule(field: keyof Model<'Schedule'>): FormItemRule {
       <NSelect
         v-model:value="model.mode"
         :disabled="readonly"
-        :aria-label="t('ui.schedule_form_067b6d57')"
+        v-select-trigger-name="t('ui.schedule_form_067b6d57')"
         :options="[
           { label: t('ui.schedule_form_2a4a4de8'), value: 'manual' },
           { label: 'Cron', value: 'cron' },
@@ -55,7 +62,7 @@ function rule(field: keyof Model<'Schedule'>): FormItemRule {
       <NSelect
         v-model:value="model.timezone"
         :disabled="readonly"
-        :aria-label="t('ui.schedule_form_fb2a23dc')"
+        v-select-trigger-name="t('ui.schedule_form_fb2a23dc')"
         :options="['Asia/Shanghai', 'UTC'].map((value) => ({ label: value, value }))"
       />
     </NFormItemGi>
@@ -135,13 +142,11 @@ function rule(field: keyof Model<'Schedule'>): FormItemRule {
     :path="props.path + '.dependencies'"
     :rule="rule('dependencies')"
   >
-    <NSelect
+    <TaskDependencySelect
       v-model:value="model.dependencies"
       :disabled="readonly"
-      :options="tasks ?? []"
-      :aria-label="t('ui.schedule_form_8a88d05f')"
-      multiple
-      clearable
+      :excluded-task-id="excludedTaskId"
+      :excluded-dataset-id="excludedDatasetId"
     />
   </NFormItem>
   <NAlert type="info" class="mb">{{ t('jobs.dependencyPolicy') }}</NAlert>

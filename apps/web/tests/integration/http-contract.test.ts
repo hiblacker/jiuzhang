@@ -73,6 +73,45 @@ async function request(
 }
 
 describe('HTTP contract and persistence', () => {
+  it('excludes task and dataset identities before pagination while preserving disabled dependencies', async () => {
+    await transact((state) => {
+      const template = structuredClone(state.tasks[0]!)
+      state.tasks = Array.from({ length: 121 }, (_, index) => ({
+        ...structuredClone(template),
+        id: String(93000 + index),
+        datasetId: String(94000 + index),
+        name: 'Dependency_' + String(index).padStart(3, '0'),
+        enabled: index % 2 === 0,
+        schedule: { ...structuredClone(template.schedule), mode: 'manual', dependencies: [] },
+      }))
+    })
+    const pages = []
+    for (let page = 1; page <= 6; page++) {
+      const result = await request(
+        '/tasks?excludeId=93000&excludeDatasetId=94001&sort=name&pageSize=20&page=' + page,
+      )
+      expect(result.status).toBe(200)
+      expect(result.body.meta).toMatchObject({ total: 119, page, pageSize: 20 })
+      pages.push(...result.body.data)
+    }
+    expect(pages.map((task: { id: string }) => task.id)).toEqual(
+      Array.from({ length: 119 }, (_, index) => String(93002 + index)),
+    )
+    expect(pages.some((task: { enabled: boolean }) => !task.enabled)).toBe(true)
+    const last = await request('/tasks?excludeId=93000&excludeDatasetId=94001&pageSize=20&page=7')
+    expect(last.body.data).toEqual([])
+    expect(last.body.meta.total).toBe(119)
+    const search = await request('/tasks?q=Dependency_12&excludeId=93120')
+    expect(search.body.meta.total).toBe(0)
+    expect(search.body.data).toEqual([])
+    const paused = await request('/tasks?enabled=false&excludeId=93001')
+    expect(paused.body.meta.total).toBe(59)
+    expect(paused.body.data.every((task: { enabled: boolean }) => !task.enabled)).toBe(true)
+    expect((await request('/tasks?excludeId=&excludeDatasetId=')).body.meta.total).toBe(121)
+    expect((await request('/tasks')).body.meta.total).toBe(121)
+    expect((await request('/tasks/93000')).body.data.id).toBe('93000')
+  })
+
   it('filters published upstream candidates before pagination, excludes self and retains published drafts', async () => {
     await transact((state) => {
       const template = structuredClone(state.datasets[0]!)

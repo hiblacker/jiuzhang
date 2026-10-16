@@ -235,7 +235,7 @@ test('dependency cycles are rejected and queued historical runs keep their versi
   await expect(page.getByRole('button', { name: 'v1', exact: true })).toBeVisible()
 
   await page.goto('/tasks/3001/edit')
-  await page.getByLabel('上游任务依赖', { exact: true }).click()
+  await page.getByRole('button', { name: '打开任务依赖选择', exact: true }).press('Enter')
   await page.locator('.n-base-select-option').getByText('客户价值分层调度', { exact: true }).click()
   await page.getByRole('heading', { name: '订单明细宽表调度', exact: true }).click()
   await page.getByRole('button', { name: '保存配置', exact: true }).click()

@@ -19,14 +19,7 @@ import {
   NSpace,
   type FormInst,
 } from 'naive-ui'
-import {
-  useTask,
-  useTasks,
-  useJobActions,
-  ScheduleForm,
-  RunTrigger,
-  RunHistory,
-} from '@/modules/jobs'
+import { useTask, useJobActions, ScheduleForm, RunTrigger, RunHistory } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import type { Model } from '@/shared/api/types'
@@ -39,7 +32,6 @@ const route = useRoute(),
   id = computed(() => String(route.params.id)),
   editing = computed(() => route.path.endsWith('/edit')),
   query = useTask(id),
-  tasks = useTasks({ pageSize: '100' }),
   actions = useJobActions(),
   draft = ref<Model<'TaskInput'> | null>(null),
   baseline = ref(''),
@@ -159,11 +151,7 @@ async function backfill() {
         ><ScheduleForm
           v-model="draft.schedule"
           :readonly="actions.save.isPending.value"
-          :tasks="
-            tasks.data.value?.data
-              .filter((t) => t.id !== id)
-              .map((t) => ({ label: t.name, value: t.id }))
-          " /></NForm
+          :excluded-task-id="id" /></NForm
       ><template v-else
         ><NDescriptions :column="2" bordered
           ><NDescriptionsItem :label="uiText('ui.task_fc2b4735')">{{

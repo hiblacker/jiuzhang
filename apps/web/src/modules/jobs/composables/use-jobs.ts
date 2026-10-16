@@ -1,17 +1,67 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import {
+  useQuery,
+  useQueries,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/vue-query'
 import type { Model } from '@/shared/api/types'
 import { jobRepository } from '../api/job-repository'
 export function useTasks(filters: MaybeRefOrGetter<Record<string, string>> = {}) {
   return useQuery({
     queryKey: computed(() => ['tasks', toValue(filters)]),
-    queryFn: () => jobRepository.tasks(toValue(filters)),
+    queryFn: ({ signal }) => jobRepository.tasks(toValue(filters), signal),
   })
 }
 export function useTask(id: MaybeRefOrGetter<string>) {
   return useQuery({
     queryKey: computed(() => ['tasks', 'detail', toValue(id)]),
-    queryFn: () => jobRepository.task(toValue(id)),
+    queryFn: ({ signal }) => jobRepository.task(toValue(id), signal),
+    enabled: computed(() => !!toValue(id)),
+  })
+}
+export function useDependencyTaskOptions(
+  search: MaybeRefOrGetter<string>,
+  excludedId: MaybeRefOrGetter<string>,
+  excludedDatasetId: MaybeRefOrGetter<string>,
+) {
+  return useInfiniteQuery({
+    queryKey: computed(() => [
+      'tasks',
+      'dependency-options',
+      toValue(search),
+      toValue(excludedId),
+      toValue(excludedDatasetId),
+    ]),
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) =>
+      jobRepository.tasks(
+        {
+          q: toValue(search),
+          excludeId: toValue(excludedId),
+          excludeDatasetId: toValue(excludedDatasetId),
+          page: String(pageParam),
+          pageSize: '20',
+          sort: 'name',
+        },
+        signal,
+      ),
+    getNextPageParam: (lastPage) => {
+      const { page = 1, pageSize = 20, total } = lastPage.meta
+      if (total === undefined) return lastPage.data.length === pageSize ? page + 1 : undefined
+      return page * pageSize < total ? page + 1 : undefined
+    },
+  })
+}
+export function useSelectedTasks(ids: MaybeRefOrGetter<string[]>) {
+  return useQueries({
+    queries: computed(() =>
+      [...new Set(toValue(ids))].map((id) => ({
+        queryKey: ['tasks', 'detail', id],
+        queryFn: ({ signal }: { signal: AbortSignal }) => jobRepository.task(id, signal),
+      })),
+    ),
   })
 }
 export function useRuns(filters: MaybeRefOrGetter<Record<string, string>> = {}) {

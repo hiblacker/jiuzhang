@@ -6051,6 +6051,10 @@ export interface operations {
                 to?: string;
                 trigger?: string;
                 enabled?: string;
+                /** @description 排除一个任务 ID，用于编辑依赖时排除自身。与搜索及其他筛选共同生效，分页和 total 在筛选后计算；空值或省略不排除。 */
+                excludeId?: string;
+                /** @description 排除属于指定数据集的任务，用于数据集调度编辑避免依赖自身。与 excludeId 共同生效，在分页前排除；空值或省略不排除。 */
+                excludeDatasetId?: string;
             };
             header?: never;
             path?: never;

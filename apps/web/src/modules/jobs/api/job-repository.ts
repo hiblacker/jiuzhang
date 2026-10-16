@@ -1,11 +1,11 @@
 import { api, unwrap } from '@/shared/api/client'
 import type { Model } from '@/shared/api/types'
 export const jobRepository = {
-  async tasks(query: Record<string, string> = {}) {
-    return unwrap(await api.GET('/tasks', { params: { query } }))
+  async tasks(query: Record<string, string> = {}, signal?: AbortSignal) {
+    return unwrap(await api.GET('/tasks', { params: { query }, signal }))
   },
-  async task(id: string) {
-    return unwrap(await api.GET('/tasks/{id}', { params: { path: { id } } })).data
+  async task(id: string, signal?: AbortSignal) {
+    return unwrap(await api.GET('/tasks/{id}', { params: { path: { id } }, signal })).data
   },
   async save(id: string, body: Model<'TaskInput'>) {
     return unwrap(await api.PATCH('/tasks/{id}', { params: { path: { id } }, body })).data
