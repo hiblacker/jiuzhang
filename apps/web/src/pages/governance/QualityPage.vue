@@ -64,6 +64,12 @@ const draft = ref<Model<'QualityInput'>>({
   enabled: true,
 })
 const current = computed(() => detail.data.value)
+const parameterHint = computed(() => {
+  if (draft.value.kind === 'range') return uiText('quality.rangeHint')
+  if (draft.value.kind === 'enum') return uiText('quality.enumHint')
+  if (draft.value.kind === 'freshness') return uiText('quality.freshnessHint')
+  return uiText('quality.noParameter')
+})
 const form = ref<FormInst | null>(null)
 const baseline = ref('')
 const { canLeave } = useEditGuard(
@@ -225,6 +231,7 @@ const columns = [
       >
       <h3>{{ uiText('ui.quality_06b0cc31') }}</h3>
       <NAlert type="info" class="mb">{{ uiText('datasets.sampleHint') }}</NAlert>
+      <NAlert type="info" class="mb">{{ uiText('quality.sampleSeverityHint') }}</NAlert>
       <div class="query-toolbar">
         <NButton
           v-for="scenario in ['pass', 'warn', 'block'] as const"
@@ -322,11 +329,14 @@ const columns = [
           ><NInput
             v-model:value="draft.field"
             :input-props="{ 'aria-label': uiText('ui.quality_77a49f2c') }" /></NFormItem
-        ><NFormItem :label="uiText('ui.quality_749d7652')"
+        ><NFormItem
+          v-if="!['required', 'unique'].includes(draft.kind)"
+          :label="uiText('ui.quality_749d7652')"
           ><NInput
             v-model:value="draft.parameter"
             :input-props="{ 'aria-label': uiText('ui.quality_749d7652') }"
-            :placeholder="uiText('ui.quality_98b939e6')" /></NFormItem
+            :placeholder="uiText('ui.quality_749d7652')" /></NFormItem
+        ><NAlert type="info" class="mb">{{ parameterHint }}</NAlert
         ><NFormItem :label="uiText('ui.quality_e27bc7a5')"
           ><NSelect
             v-model:value="draft.severity"

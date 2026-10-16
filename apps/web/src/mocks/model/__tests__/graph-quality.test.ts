@@ -92,24 +92,33 @@ describe('configured sample transformations', () => {
     const range = { ...state.quality[2]!, parameter: '9999999999999999.90,9999999999999999.99' }
     expect(evaluateQuality(range, [{ amount: '10000000000000000.00' }], now).result).toBe('BLOCK')
   })
-  it('blocks warehouse publication when bound quality rule fails actual samples', () => {
-    const state = createSeed(),
-      start = '2026-10-15T00:00:00Z'
-    const rule = { ...state.quality[2]!, parameter: '0,1' }
-    state.versions[0]!.qualitySnapshot = [rule]
-    state.versions[0]!.definition.qualityRuleIds = [rule.id]
-    const tables = structuredClone(state.tables),
-      run = createRun(state, '2001', 'succeeded', 'manual', start)
-    advanceRuns(state, Date.parse(start) + 10000)
-    expect(run.status).toBe('blocked')
-    expect(run.qualityResults[0]).toMatchObject({
-      ruleId: rule.id,
-      result: 'BLOCK',
-      version: rule.version,
-    })
-    expect(state.tables).toEqual(tables)
-    expect(state.tasks[0]!.lastSuccessRunId).toBe('')
-  })
+  it.each(['WARN', 'BLOCK'] as const)(
+    'uses bound %s severity for actual failed samples and preserves the snapshot',
+    (severity) => {
+      const state = createSeed(),
+        start = '2026-10-15T00:00:00Z'
+      const rule = { ...state.quality[2]!, parameter: '0,1', severity }
+      state.versions[0]!.qualitySnapshot = [rule]
+      state.versions[0]!.definition.qualityRuleIds = [rule.id]
+      state.quality[2]!.severity = severity === 'WARN' ? 'BLOCK' : 'WARN'
+      const tables = structuredClone(state.tables),
+        run = createRun(state, '2001', 'succeeded', 'manual', start)
+      advanceRuns(state, Date.parse(start) + 10000)
+      expect(run.status).toBe(severity === 'BLOCK' ? 'blocked' : 'succeeded')
+      expect(run.qualityResults[0]).toMatchObject({
+        ruleId: rule.id,
+        result: severity,
+        version: rule.version,
+      })
+      if (severity === 'BLOCK') {
+        expect(state.tables).toEqual(tables)
+        expect(state.tasks[0]!.lastSuccessRunId).toBe('')
+      } else {
+        expect(state.tables).not.toEqual(tables)
+        expect(state.tasks[0]!.lastSuccessRunId).toBe(run.id)
+      }
+    },
+  )
   it('checks freshness at execution time and preserves the result across later reads', () => {
     const state = createSeed()
     const start = Date.parse('2026-10-15T00:00:00Z')

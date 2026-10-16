@@ -2,6 +2,14 @@ import ui from './ui.zh-CN.json'
 
 export default {
   ui,
+  quality: {
+    noParameter: '必填与唯一规则无需参数，已有参数不参与检查。',
+    rangeHint: '输入有序的最小值,最大值，包含边界；支持十进制文本，例如 -0.10,100.00。',
+    enumHint: '输入逗号分隔的非空枚举值，例如 杭州,上海；各项两侧空格会被忽略。',
+    freshnessHint: '输入 1 至 87600 的整数小时；未来时间或无法解析的时间不通过检查。',
+    sampleSeverityHint:
+      '下方按钮分别模拟 PASS、WARN、BLOCK 样本结果，不修改已保存的严重级别；任务运行使用发布版本绑定的规则。',
+  },
   masking: {
     sample: '合成样本类型',
     phone: '手机号样本',
