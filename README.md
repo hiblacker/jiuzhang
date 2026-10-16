@@ -1,93 +1,63 @@
-<p align="center">
-  <a href="https://airbyte.com"><img src="https://assets.website-files.com/605e01bc25f7e19a82e74788/624d9c4a375a55100be6b257_Airbyte_logo_color_dark.svg" alt="Airbyte"></a>
-</p>
-<p align="center">
-    <em>Open-source data movement for ELT pipelines and AI agents — from APIs, databases & files to warehouses, lakes, and AI applications</em>
-</p>
-<p align="center">
-<a href="https://github.com/airbytehq/airbyte/stargazers/" target="_blank">
-    <img src="https://img.shields.io/github/stars/airbytehq/airbyte?style=social&label=Star&maxAge=2592000" alt="Test">
-</a>
-<a href="https://github.com/airbytehq/airbyte/releases" target="_blank">
-    <img src="https://img.shields.io/github/v/release/airbytehq/airbyte?color=white" alt="Release">
-</a>
-<a href="https://airbytehq.slack.com/" target="_blank">
-    <img src="https://img.shields.io/badge/slack-join-white.svg?logo=slack" alt="Slack">
-</a>
-<a href="https://www.youtube.com/c/AirbyteHQ/?sub_confirmation=1" target="_blank">
-    <img alt="YouTube Channel Views" src="https://img.shields.io/youtube/channel/views/UCQ_JWEFzs1_INqdhIO3kmrw?style=social">
-</a>
-<a href="https://github.com/airbytehq/airbyte/actions/workflows/gradle.yml" target="_blank">
-    <img src="https://img.shields.io/github/actions/workflow/status/airbytehq/airbyte/gradle.yml?branch=master" alt="Build">
-</a>
-<a href="https://github.com/airbytehq/airbyte/tree/master/docs/project-overview/licenses" target="_blank">
-    <img src="https://img.shields.io/static/v1?label=license&message=MIT&color=white" alt="License">
-</a>
-<a href="https://github.com/airbytehq/airbyte/tree/master/docs/project-overview/licenses" target="_blank">
-    <img src="https://img.shields.io/static/v1?label=license&message=ELv2&color=white" alt="License">
-</a>
-</p>
+# 九章数据仓库工作台
 
-We believe that only an **open-source solution to data movement** can cover the long tail of data sources while empowering data engineers to customize existing connectors. Our ultimate vision is to help you move data from any source to any destination — whether that destination is a data warehouse, a data lake, or an AI agent. Airbyte provides a [catalog](https://docs.airbyte.com/integrations/) of 600+ connectors for APIs, databases, data warehouses, data lakes, and AI applications.
+Vue 3 + TypeScript + Pinia + Naive UI 的纯前端演示。38 个路由已建立，完整交互验收仍在进行，逐项范围见 [页面矩阵](docs/frontend-page-map.md)。
 
-![Airbyte Connections UI](https://github.com/airbytehq/airbyte/assets/38087517/35b01d0b-00bf-407b-87e6-a5cd5cd720b5)
-_Screenshot taken from [Airbyte Cloud](https://cloud.airbyte.com/signup)_.
+## 本地启动
 
-### Pick the right Airbyte Platform for the job
+使用 `.node-version` 声明的 Node 22.23.2 和 `package.json` 声明的 pnpm 12.11.2。在仓库根目录执行：
 
-- **Moving data into warehouses, lakes, or databases (ELT / ETL)** → use [Airbyte Open Source](https://docs.airbyte.com/quickstart/deploy-airbyte) (this repo) or [Airbyte Cloud](https://cloud.airbyte.com/signup). 600+ connectors for APIs, databases, data warehouses, and data lakes.
-- **Giving AI agents, LLMs, or MCP clients real-time access to business data** (CRMs, support tools, SaaS APIs, databases) → use [Airbyte Agents](https://docs.airbyte.com/ai-agents/), the managed data and context layer for AI agents, or the open-source [Agent SDK](https://github.com/airbytehq/airbyte-agent-sdk) (`uv pip install airbyte-agent-sdk`) to embed type-safe connectors as LLM tools. Works with pydantic-ai, LangChain, OpenAI Agents, and FastMCP, with built-in retry, exception translation, and output-size guardrails.
+```bash
+pnpm install --frozen-lockfile
+pnpm dev
+```
 
-### Getting Started — Data Movement (ELT)
+打开 `http://localhost:5174`，选择演示角色进入。端口固定且启用 strictPort；如被占用，先确认是否已有本项目服务，不终止其他项目进程。首次加载需要浏览器支持 Service Worker 与 IndexedDB。
 
-For moving data into warehouses, lakes, and databases:
+不需要启动 Java、API 服务、数据库或容器。业务请求由 MSW 拦截，修改保存在当前浏览器当前 origin 的 IndexedDB；刷新不会重置。清除浏览器站点数据或右下角“演示控制台 → 重置全部演示数据”会删除本地演示修改。不同端口/浏览器不共享数据。
 
-- [Deploy Airbyte Open Source](https://docs.airbyte.com/quickstart/deploy-airbyte) or set up [Airbyte Cloud](https://docs.airbyte.com/cloud/getting-started-with-airbyte-cloud) to start centralizing your data.
-- Create connectors in minutes with our [no-code Connector Builder](https://docs.airbyte.com/connector-development/connector-builder-ui/overview) or [low-code CDK](https://docs.airbyte.com/connector-development/config-based/low-code-cdk-overview).
-- Explore popular use cases in our [tutorials](https://airbyte.com/tutorials).
-- Orchestrate Airbyte syncs with [Airflow](https://docs.airbyte.com/operator-guides/using-the-airflow-airbyte-operator), [Dagster](https://docs.airbyte.com/operator-guides/using-dagster-integration), [Kestra](https://docs.airbyte.com/operator-guides/using-kestra-plugin), or the [Airbyte API](https://reference.airbyte.com/).
+## 体验流程
 
-Try it out yourself with our [demo app](https://demo.airbyte.io/), visit our [full documentation](https://docs.airbyte.com/), and learn more about [recent announcements](https://airbyte.com/blog-categories/company-updates). See our [registry](https://connectors.airbyte.com/files/generated_reports/connector_registry_report.html) for a full list of connectors already available in Airbyte or Airbyte Cloud.
+1. 数据源列表 → 新建源 → 模拟测试连接 → 保存 → 浏览可搜索的对象树；选表和字段保留在 URL。
+2. 从对象创建数据集 → 选择层级目录 → 配置输入/加工图或预设 SQL/输出字段/质量/脱敏/目标表及主题域。图编辑支持调整 Join 输入顺序、Union 模式和聚合配置。
+3. 保存草稿 → 发布不可变版本 → 运行 → 查看阶段、日志和质量结果。版本页可比较字段变化、查看发布时的源结构快照，确认后恢复历史定义为新草稿。快照只保存元数据；旧版本迁移补录会明确标识，不能视作原发布时的真实结构。
+4. 运行成功 → 仓库表 → SQL 工作台 → 示例查询 → 导出 CSV/JSON。
+5. 文件导入支持虚构 CSV 的解析与字段映射；选择成功或失败场景观察进度。
+6. 治理维护资产、资源/字段血缘、质量、脱敏；数据服务展示调用契约、参数调用器和审计。
 
-### Getting Started — AI Agents
+演示控制台另提供空列表、接口失败、慢响应与无权限场景。角色切换会清除 Query 缓存；管理员、开发者和只读角色用于展示访问差异。
 
-For building AI agents that need real-time business data:
+任务配置校验 Cron、时区、间隔、超时、重试次数和并发上限。手动运行按依赖与并发情况排队，SLA 包含排队时间；补数按所选日历日生成独立运行，重试保留原业务日期、数据集版本和调度快照。
 
-- Read the [Airbyte Agents documentation](https://docs.airbyte.com/ai-agents/) to use the managed product.
-- Or install the open-source [Agent SDK](https://github.com/airbytehq/airbyte-agent-sdk): `uv pip install airbyte-agent-sdk`. Works with pydantic-ai, LangChain, OpenAI Agents, and FastMCP — see the SDK README for examples of turning a connector call into an LLM tool.
+查询、导出和资产收藏属于创建者；即使角色相同，其他演示用户也不能读取这些私有结果。源与数据集预览、表、查询、服务输出和导出应用敏感列可见性规则；改名、Join 和上游版本引用保留敏感来源标记。“查看敏感列”仍展示已脱敏的合成样本，不代表还原原始值。结构元数据与数据预览是不同的展示范围。
 
-### Join the Airbyte Community
+服务编辑遇到隐藏字段时只能更新可见元信息，不能通过保存局部定义移除原字段。调用器支持参数校验、失败恢复和分页；停用服务不能继续调用。
 
-The Airbyte community can be found in the [Airbyte Community Slack](https://airbyte.com/community), where you can ask questions and voice ideas. You can also ask for help in our [Airbyte Forum](https://github.com/airbytehq/airbyte/discussions). Airbyte's roadmap is publicly viewable on [GitHub](https://github.com/orgs/airbytehq/projects/37/views/1?pane=issue&itemId=26937554).
+## 检查命令
 
-For videos and blogs on data engineering and building your data stack, check out Airbyte's [Content Hub](https://airbyte.com/content-hub), [YouTube](https://www.youtube.com/c/AirbyteHQ), and sign up for our [newsletter](https://airbyte.com/newsletter).
+```bash
+pnpm generate:api     # 修改 OpenAPI 后生成 DTO
+pnpm check            # 契约、边界、UI、文案、lint、格式、类型、单元/HTTP 集成、两种构建
+pnpm --filter @jiuzhang/web exec playwright install chromium
+pnpm test:e2e         # 需先启动 5174 开发服务
+pnpm build
+pnpm preview         # 生产演示包预览，http://localhost:4173
+```
 
-### Contributing
+独立契约校验：`pnpm --filter @jiuzhang/contracts check`。检查通过只证明其覆盖的行为；全部验收要求仍以页面矩阵为准。
 
-If you've found a problem with Airbyte, please open a [GitHub issue](https://github.com/airbytehq/airbyte/issues/new/choose). To contribute to Airbyte and see our Code of Conduct, please see the [contributing guide](https://docs.airbyte.com/contributing-to-airbyte/). We have a list of [good first issues](https://github.com/airbytehq/airbyte/labels/contributor-program) that contain bugs that have a relatively limited scope. This is a great place to get started, gain experience, and get familiar with our contribution process.
+已添加 `.github/workflows/frontend.yml`：冻结安装依赖、运行 `pnpm check`、安装 Chromium 并执行 E2E；CI 中由 Playwright 启动本项目开发服务，失败时保存报告。工作流尚未在远端执行，本地通过不代表远端 CI 或分支保护已生效。
 
-#### PR Permission Requirements
+## Mock 边界
 
-When submitting a pull request, please ensure that Airbyte maintainers have write access to your branch. This allows us to apply formatting fixes and dependency updates directly, significantly speeding up the review and approval process.
+- 连接测试不会访问填写的数据库或 API；仅使用虚构连接值，勿输入真实密钥。
+- API 的 headers/query/body 必须是 JSON 对象；普通配置保留，已知凭证键替换为 `[REDACTED]`，主机/基础 URL 使用 `.invalid`。按键名替换不能检测任意敏感内容。
+- SQL 仅支持页面声明的预设查询；未知 SQL 明确报错。
+- 加工图基于合成样本，按连线计算过滤、字段选择、Join、Union 和金额聚合；它不是 SQL 引擎。配置说明随节点显示。
+- 质量检查计算样本结果；BLOCK 阻断入仓。取消、失败不推进成功游标，重试新建运行。
+- 浏览器前台会推进持久化的演示时钟，按五字段数字 Cron（列表/范围/步长）、固定间隔和时区派发任务；页面关闭时不执行，恢复后每个任务最多补派一个已过期计划，其余错过时刻跳过。失败运行按固定 5 秒延迟自动重试；任务暂停时重试等待，BLOCK 与取消不自动重试。演示控制台可推进 10/60 秒验证行为。以上均为浏览器 Mock，不构成后台调度或真实仓库能力。
+- 仓库统计由样本和操作记录汇总，不表示真实数据库容量、延迟或吞吐。
+- 真实模式 `pnpm build:real` 排除 Mock 数据与 Worker。接真实 API 前还需后端认证、鉴权与服务端校验，当前不提供真实后端。
 
-To enable write access on your PR from Airbyte maintainers, please check the "Allow edits from maintainers" box when submitting from your PR. You must also create your PR from a fork in your **personal GitHub account** rather than an organization account, or else you will not see this option. The requirement to create from your personal fork is based on GitHub's additional security restrictions for PRs created from organization forks. For more information about the GitHub security model, please see the [GitHub documentation page regarding PRs from forks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork).
+## 工程边界
 
-For more details on contribution requirements, please see our [contribution workflow documentation](https://docs.airbyte.com/platform/contributing-to-airbyte#standard-contribution-workflow).
-
-### Security
-
-Airbyte takes security issues very seriously. **Please do not file GitHub issues or post on our public forum for security vulnerabilities**. Email `security@airbyte.io` if you believe you have uncovered a vulnerability. In the message, try to provide a description of the issue and ideally a way of reproducing it. The security team will get back to you as soon as possible.
-
-[Airbyte Enterprise](https://airbyte.com/airbyte-enterprise) also offers additional security features (among others) on top of Airbyte open-source.
-
-### License
-
-See the [LICENSE](docs/LICENSE) file for licensing information, and our [FAQ](https://docs.airbyte.com/platform/developer-guides/licenses/license-faq) for any questions you may have on that topic.
-
-### Thank You
-
-Airbyte would not be possible without the support and assistance of other open-source tools and companies! Visit our [thank you page](THANK-YOU.md) to learn more about how we build Airbyte.
-
-<a href="https://github.com/airbytehq/airbyte/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=airbytehq/airbyte"/>
-</a>
+前端：`apps/web/src/app → pages → modules → shared`。协议：`packages/contracts/openapi.yaml`。未来 API/Worker 与 Java 模块布局见 [总体架构](docs/architecture.md)。开发规则入口：[AGENTS.md](AGENTS.md)。

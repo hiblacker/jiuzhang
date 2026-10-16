@@ -1,0 +1,62 @@
+{
+  "name": "@jiuzhang/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --mode development",
+    "dev:real": "vite --host 127.0.0.1 --mode real",
+    "build": "vue-tsc -p tsconfig.app.json --noEmit && vite build --mode demo",
+    "build:real": "vue-tsc -p tsconfig.app.json --noEmit && vite build --mode real && node ../../tools/check-real.mjs",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "typecheck": "vue-tsc -p tsconfig.app.json --noEmit",
+    "lint": "eslint src tests",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@jiuzhang/contracts": "workspace:*",
+    "@tanstack/vue-query": "5.104.3",
+    "idb": "8.0.4",
+    "msw": "3.0.3",
+    "naive-ui": "2.45.3",
+    "openapi-fetch": "0.17.0",
+    "pinia": "4.1.0",
+    "vue": "3.5.44",
+    "vue-i18n": "11.4.14",
+    "vue-router": "5.4.0",
+    "@vue-flow/core": "1.47.0",
+    "@vue-flow/background": "1.3.2",
+    "codemirror": "6.0.2",
+    "@codemirror/lang-sql": "6.10.0",
+    "echarts": "6.0.0",
+    "lucide-vue-next": "1.0.0",
+    "@codemirror/state": "6.7.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "6.0.10",
+    "@vue/compiler-sfc": "3.5.44",
+    "@vue/test-utils": "2.5.1",
+    "eslint": "10.12.0",
+    "eslint-plugin-vue": "10.11.1",
+    "vue-eslint-parser": "10.3.0",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.4",
+    "vue-tsc": "3.3.13",
+    "typescript-eslint": "8.71.2",
+    "@types/node": "22.19.0",
+    "@playwright/test": "1.64.1",
+    "fake-indexeddb": "6.2.4",
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1",
+    "@eslint/js": "10.0.1",
+    "eslint-config-prettier": "10.1.8"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}

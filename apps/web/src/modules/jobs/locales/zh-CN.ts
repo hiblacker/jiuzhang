@@ -1,0 +1,43 @@
+import ui from './ui.zh-CN.json'
+
+export default {
+  ui,
+  jobs: {
+    cancelRun: '取消运行 {id}',
+    retryRun: '重试运行 {id}',
+    retryOutcome: '运行 {id} 的演示重试结果',
+    runTimeRange: '运行开始日期范围',
+    runActions: '运行操作',
+    scheduleHelp:
+      '当前为浏览器 Mock：页面前台会推进演示时钟并派发到期任务，关闭页面后不会执行。手动触发会检查依赖和并发，超时包含排队时间；失败会按固定 5 秒延迟自动重试。补数按任务时区的业务日期分别记录，样本仍为合成数据。',
+    invalidCron: '请输入合法的五字段数字 Cron（分 时 日 月 周），不支持 Quartz 扩展。',
+    invalidTimezone: '请选择有效的 IANA 时区。',
+    invalidNumber: '请填写允许范围内的整数。',
+    invalidDependencies: '依赖任务不能重复。',
+    waitingDependencies: '等待上游成功；补数要求相同业务日期的上游运行成功。',
+    waitingConcurrency: '等待当前任务的并发名额。',
+    businessDate: '补数业务日期',
+    executionStarted: '开始执行时间',
+    qualityPending: '质量检查尚未执行，暂无检查结果。',
+    duration: '总耗时（含排队）',
+    backfillFrom: '补数开始日期',
+    backfillTo: '补数结束日期',
+    nextRun: '下次计划（演示）',
+    paused: '已暂停',
+    manual: '手动触发',
+    unsupported: '八年内无匹配时刻',
+    nextRuns: '未来三次计划（演示预览）',
+    unsupportedCron:
+      '请输入五字段数字 Cron（分 时 日 月 周），支持列表、范围和步长；页面前台会模拟调度，不连接真实服务。',
+    noCronMatch: '配置有效，但从当前时间起八年内没有匹配时刻，请检查日期和星期限制。',
+    automaticRetryPending: '自动重试等待中：{time}',
+    automaticRetryPaused: '自动重试已暂停：请恢复任务后继续',
+    retryAttempt: '重试次数',
+    retryMode: '重试方式',
+    retryParent: '原始运行',
+    retryChild: '关联重试',
+    retryAt: '计划重试时间',
+    lastSuccess: '最近成功运行',
+    sla: '模拟 SLA：超时阈值',
+  },
+}

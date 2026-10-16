@@ -1,0 +1,88 @@
+import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { sourceRepository, type SourceFilters } from '../api/source-repository'
+import { newSource, toSourceInput } from '../model/connectors'
+export function useSources(filters: MaybeRefOrGetter<SourceFilters>) {
+  return useQuery({
+    queryKey: computed(() => ['sources', toValue(filters)]),
+    queryFn: ({ signal }) => sourceRepository.list(toValue(filters), signal),
+  })
+}
+export function useSource(id: MaybeRefOrGetter<string>) {
+  return useQuery({
+    queryKey: computed(() => ['sources', 'detail', toValue(id)]),
+    queryFn: ({ signal }) => sourceRepository.get(toValue(id), signal),
+    enabled: computed(() => !!toValue(id)),
+  })
+}
+export function useSourceObjects(id: MaybeRefOrGetter<string>) {
+  return useQuery({
+    queryKey: computed(() => ['sources', 'objects', toValue(id)]),
+    queryFn: ({ signal }) => sourceRepository.objects(toValue(id), signal),
+    enabled: computed(() => !!toValue(id)),
+  })
+}
+export function useSourcePreview(id: MaybeRefOrGetter<string>, objectId: MaybeRefOrGetter<string>) {
+  return useQuery({
+    queryKey: computed(() => ['sources', 'preview', toValue(id), toValue(objectId)]),
+    queryFn: () => sourceRepository.preview(toValue(id), toValue(objectId)),
+    enabled: computed(() => !!toValue(id) && !!toValue(objectId)),
+  })
+}
+export function useDeleteSource() {
+  const cache = useQueryClient()
+  return useMutation({
+    mutationFn: sourceRepository.remove,
+    onSuccess: async () => {
+      await cache.invalidateQueries({ queryKey: ['sources'] })
+      await cache.invalidateQueries({ queryKey: ['overview'] })
+    },
+  })
+}
+export function useSourceEditor(id: MaybeRefOrGetter<string>) {
+  const query = useSource(id)
+  const draft = ref(newSource())
+  const baseline = ref(JSON.stringify(draft.value))
+  const loadedId = ref('')
+  const cache = useQueryClient()
+  watch(
+    () => query.data.value,
+    (source) => {
+      if (source && source.id !== loadedId.value) {
+        draft.value = toSourceInput(source)
+        baseline.value = JSON.stringify(draft.value)
+        loadedId.value = source.id
+      }
+    },
+    { immediate: true },
+  )
+  watch(
+    () => toValue(id),
+    (value) => {
+      if (!value) {
+        draft.value = newSource()
+        baseline.value = JSON.stringify(draft.value)
+        loadedId.value = ''
+      }
+    },
+  )
+  const dirty = computed(() => JSON.stringify(draft.value) !== baseline.value)
+  const save = useMutation({
+    mutationFn: () => sourceRepository.save(toSourceInput(draft.value), toValue(id) || undefined),
+    onSuccess: async () => {
+      baseline.value = JSON.stringify(draft.value)
+      await cache.invalidateQueries({ queryKey: ['sources'] })
+      await cache.invalidateQueries({ queryKey: ['overview'] })
+    },
+  })
+  const test = useMutation({ mutationFn: () => sourceRepository.test(toSourceInput(draft.value)) })
+  watch(
+    draft,
+    () => {
+      if (!test.isPending.value) test.reset()
+      if (!save.isPending.value) save.reset()
+    },
+    { deep: true },
+  )
+  return { query, draft, dirty, save, test }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "jiuzhang",
+  "private": true,
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @jiuzhang/web dev",
+    "dev:real": "pnpm --filter @jiuzhang/web dev:real",
+    "build": "pnpm --filter @jiuzhang/web build",
+    "build:real": "pnpm --filter @jiuzhang/web build:real",
+    "preview": "pnpm --filter @jiuzhang/web preview",
+    "typecheck": "pnpm --filter @jiuzhang/web typecheck",
+    "lint": "pnpm --filter @jiuzhang/web lint",
+    "test:unit": "pnpm --filter @jiuzhang/web test:unit",
+    "test:e2e": "pnpm --filter @jiuzhang/web test:e2e",
+    "generate:api": "pnpm --filter @jiuzhang/contracts generate",
+    "check:contracts": "pnpm --filter @jiuzhang/contracts check",
+    "check:boundaries": "node tools/check-boundaries.mjs",
+    "check:ui": "node tools/check-ui.mjs",
+    "check:i18n": "node tools/check-i18n.mjs",
+    "format": "pnpm --filter @jiuzhang/web exec prettier --write src tests *.json *.ts *.js",
+    "format:check": "pnpm --filter @jiuzhang/web exec prettier --check src tests *.json *.ts *.js",
+    "check": "pnpm check:contracts && pnpm check:boundaries && pnpm check:ui && pnpm check:i18n && pnpm check:lint && pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:unit && pnpm build && pnpm build:real",
+    "check:lint": "node tools/check-lint.mjs"
+  }
+}

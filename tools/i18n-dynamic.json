@@ -1,0 +1,548 @@
+{
+  "app/layouts/WorkspaceLayout.vue": {
+    "'nav.' + item.key": [
+      "nav.overview",
+      "nav.sources",
+      "nav.datasets",
+      "nav.tasks",
+      "nav.warehouse",
+      "nav.governance",
+      "nav.services",
+      "nav.system"
+    ],
+    "'nav.' + section": [
+      "nav.overview",
+      "nav.sources",
+      "nav.datasets",
+      "nav.tasks",
+      "nav.warehouse",
+      "nav.governance",
+      "nav.services",
+      "nav.system"
+    ],
+    "value": [
+      "admin",
+      "developer",
+      "viewer"
+    ],
+    "entry.labelKey": [
+      "routes.P01",
+      "routes.P02",
+      "routes.P03",
+      "routes.P04",
+      "routes.P05",
+      "routes.P06",
+      "routes.P07",
+      "routes.P08",
+      "routes.P09",
+      "routes.P10",
+      "routes.P11",
+      "routes.P12",
+      "routes.P13",
+      "routes.P14",
+      "routes.P15",
+      "routes.P16",
+      "routes.P17",
+      "routes.P18",
+      "routes.P19",
+      "routes.P20",
+      "routes.P21",
+      "routes.P22",
+      "routes.P23",
+      "routes.P24",
+      "routes.P25",
+      "routes.P26",
+      "routes.P27",
+      "routes.P28",
+      "routes.P29",
+      "routes.P30",
+      "routes.P31",
+      "routes.P32",
+      "routes.P33",
+      "routes.P34",
+      "routes.P35",
+      "routes.P36",
+      "routes.P37",
+      "routes.P38"
+    ]
+  },
+  "modules/jobs/components/RunTrigger.vue": {
+    "errorKey(run.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "modules/sources/components/SourceConnectionForm.vue": {
+    "'sources.' + key": [
+      "sources.headers",
+      "sources.query",
+      "sources.body"
+    ]
+  },
+  "modules/sources/components/SourceListTable.vue": {
+    "row.status": [
+      "connected",
+      "warning",
+      "offline"
+    ]
+  },
+  "pages/auth/LoginPage.vue": {
+    "value": [
+      "admin",
+      "developer",
+      "viewer"
+    ]
+  },
+  "pages/datasets/DatasetDetailPage.vue": {
+    "'states.' + run.status": [
+      "states.succeeded",
+      "states.running",
+      "states.failed",
+      "states.blocked",
+      "states.canceled",
+      "states.queued",
+      "states.validating",
+      "states.publishing"
+    ],
+    "errorKey(actions.publish.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "pages/datasets/DatasetEditorPage.vue": {
+    "errorKey(save.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "pages/datasets/DatasetListPage.vue": {
+    "errorKey(actions.copy.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ],
+    "errorKey(actions.remove.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "pages/jobs/RunDetailPage.vue": {
+    "'states.' + query.data.value?.status": [
+      "states.succeeded",
+      "states.running",
+      "states.failed",
+      "states.blocked",
+      "states.canceled",
+      "states.queued",
+      "states.validating",
+      "states.publishing"
+    ]
+  },
+  "pages/jobs/RunsPage.vue": {
+    "'states.' + r.status": [
+      "states.succeeded",
+      "states.running",
+      "states.failed",
+      "states.blocked",
+      "states.canceled",
+      "states.queued",
+      "states.validating",
+      "states.publishing"
+    ],
+    "'states.' + value": [
+      "states.succeeded",
+      "states.running",
+      "states.failed",
+      "states.blocked",
+      "states.canceled",
+      "states.queued",
+      "states.validating",
+      "states.publishing"
+    ]
+  },
+  "pages/overview/OverviewPage.vue": {
+    "'states.' + r.status": [
+      "states.succeeded",
+      "states.running",
+      "states.failed",
+      "states.blocked",
+      "states.canceled",
+      "states.queued",
+      "states.validating",
+      "states.publishing"
+    ]
+  },
+  "pages/sources/SourceDetailPage.vue": {
+    "source.data.value?.status ?? 'connected'": [
+      "connected",
+      "warning",
+      "offline"
+    ]
+  },
+  "pages/sources/SourceEditorPage.vue": {
+    "errorKey(save.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ],
+    "errorKey(test.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "pages/sources/SourceListPage.vue": {
+    "value": [
+      "connected",
+      "warning",
+      "offline"
+    ],
+    "errorKey(query.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ],
+    "errorKey(remove.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "pages/warehouse/ExportsPage.vue": {
+    "errorKey(error)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "shared/ui/async-state/AsyncState.vue": {
+    "errorKey(error)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "pages/datasets/DatasetVersionPage.vue": {
+    "'datasets.version.' + row.status": [
+      "datasets.version.added",
+      "datasets.version.removed",
+      "datasets.version.changed",
+      "datasets.version.unchanged"
+    ],
+    "'datasets.version.fields.' + key": [
+      "datasets.version.fields.name",
+      "datasets.version.fields.target",
+      "datasets.version.fields.type",
+      "datasets.version.fields.nullable",
+      "datasets.version.fields.output",
+      "datasets.version.fields.sensitive",
+      "datasets.version.fields.maskPolicyId",
+      "datasets.version.fields.description",
+      "datasets.version.fields.order"
+    ],
+    "errorKey(actions.restore.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "modules/datasets/components/DatasetGraph.vue": {
+    "'datasets.graph.errors.' + error": [
+      "datasets.graph.errors.missing",
+      "datasets.graph.errors.input",
+      "datasets.graph.errors.duplicate",
+      "datasets.graph.errors.cycle"
+    ]
+  },
+  "modules/jobs/components/ScheduleForm.vue": {
+    "issue": [
+      "jobs.invalidNumber",
+      "jobs.invalidCron",
+      "jobs.invalidTimezone",
+      "jobs.invalidDependencies"
+    ]
+  },
+  "modules/datasets/components/DatasetFolderPanel.vue": {
+    "errorKey(error)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ],
+    "errorKey(actions.save.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "modules/datasets/components/DatasetMoveDialog.vue": {
+    "errorKey(actions.move.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "pages/services/ServiceEditorPage.vue": {
+    "errorKey(saveError)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "pages/services/ServiceDetailPage.vue": {
+    "errorKey(cause)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "pages/governance/CatalogPage.vue": {
+    "errorKey(actions.favorite.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "pages/governance/QualityPage.vue": {
+    "errorKey(actions.evaluate.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ],
+    "errorKey(actions.saveQuality.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "modules/jobs/components/RunActions.vue": {
+    "errorKey(actions.cancel.error.value || actions.retry.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
+  "pages/warehouse/ImportsPage.vue": {
+    "'csv.errors.' + e.code": [
+      "csv.errors.TRAILING_CHARACTERS",
+      "csv.errors.UNEXPECTED_QUOTE",
+      "csv.errors.UNCLOSED_QUOTE",
+      "csv.errors.MISSING_DATA",
+      "csv.errors.INVALID_HEADERS",
+      "csv.errors.COLUMN_COUNT"
+    ]
+  }
+}

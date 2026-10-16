@@ -1,0 +1,140 @@
+<script setup lang="ts">
+import { useI18n as useUiI18n } from 'vue-i18n'
+const { t: uiText } = useUiI18n()
+
+import { computed, defineAsyncComponent } from 'vue'
+import { useRouter } from 'vue-router'
+import {
+  NCard,
+  NButton,
+  NStatistic,
+  NGrid,
+  NGridItem,
+  NProgress,
+  NAlert,
+  NDataTable,
+} from 'naive-ui'
+import { useTables, useWarehouseMetrics } from '@/modules/warehouse'
+import { PageHeader } from '@/shared/ui/page-header'
+import { AsyncState } from '@/shared/ui/async-state'
+const router = useRouter(),
+  query = useTables({ pageSize: '100' })
+const metrics = useWarehouseMetrics()
+const TrendChart = defineAsyncComponent(() => import('@/shared/charts/TrendChart.vue'))
+const trend = computed(
+  () =>
+    metrics.data.value?.trend.map((point) => ({
+      date: point.date,
+      succeeded: point.reads,
+      failed: point.writes,
+    })) ?? [],
+)
+const layers = computed(() =>
+  ['ODS', 'DWD', 'DWS', 'ADS'].map((layer) => ({
+    name: layer,
+    tables: query.data.value?.data.filter((t) => t.layer === layer) ?? [],
+  })),
+)
+</script>
+<template>
+  <PageHeader
+    :title="uiText('ui.warehouse_overview_ce379057')"
+    :description="uiText('ui.warehouse_overview_96d7bc79')"
+    ><NButton @click="router.push('/warehouse/imports')">{{
+      uiText('ui.warehouse_overview_5e1024da')
+    }}</NButton
+    ><NButton type="primary" @click="router.push('/warehouse/query')">{{
+      uiText('ui.warehouse_overview_5ecc0135')
+    }}</NButton></PageHeader
+  ><AsyncState :loading="query.isLoading.value" :error="query.error.value" @retry="query.refetch()"
+    ><NGrid :cols="4" :x-gap="20"
+      ><NGridItem v-for="layer in layers" :key="layer.name"
+        ><NCard :bordered="false"
+          ><NStatistic
+            :label="layer.name + uiText('ui.warehouse_overview_801b3fa1')"
+            :value="layer.tables.length"
+          />
+          <p class="muted">
+            {{ layer.tables.reduce((sum, t) => sum + BigInt(t.rowCount), 0n).toString()
+            }}{{ uiText('ui.warehouse_overview_1b7a27d9') }}
+          </p>
+          <NButton
+            text
+            type="primary"
+            @click="router.push('/warehouse/tables?layer=' + layer.name)"
+            >{{ uiText('ui.warehouse_overview_44d4c5bc') }}</NButton
+          ></NCard
+        ></NGridItem
+      ></NGrid
+    ><NCard
+      :title="uiText('ui.warehouse_overview_e24230d0')"
+      :bordered="false"
+      style="margin-top: 24px"
+      ><div v-for="layer in layers" :key="layer.name" class="layer">
+        <strong>{{ layer.name }}</strong
+        ><NProgress
+          type="line"
+          :percentage="
+            Math.round((layer.tables.length / (query.data.value?.meta.total || 1)) * 100)
+          "
+          :height="10"
+        /></div></NCard
+    ><NCard :title="uiText('warehouse.stats')" :bordered="false" style="margin-top: 24px"
+      ><AsyncState
+        :loading="metrics.isLoading.value"
+        :error="metrics.error.value"
+        @retry="metrics.refetch()"
+      >
+        <NGrid cols="1 s:2 m:4" responsive="screen" :x-gap="20" :y-gap="20">
+          <NGridItem
+            ><NStatistic
+              :label="uiText('warehouse.reads')"
+              :value="metrics.data.value?.queryCount ?? 0"
+          /></NGridItem>
+          <NGridItem
+            ><NStatistic
+              :label="uiText('warehouse.writes')"
+              :value="metrics.data.value?.writeCount ?? 0"
+          /></NGridItem>
+          <NGridItem
+            ><NStatistic
+              :label="uiText('warehouse.storage')"
+              :value="((metrics.data.value?.sampleBytes ?? 0) / 1024).toFixed(1)"
+          /></NGridItem>
+          <NGridItem
+            ><NStatistic
+              :label="uiText('warehouse.activeRuns')"
+              :value="metrics.data.value?.activeRuns ?? 0"
+          /></NGridItem>
+        </NGrid>
+        <h3>{{ uiText('warehouse.readWriteTrend') }}</h3>
+        <TrendChart
+          :points="trend"
+          :labels="[uiText('warehouse.reads'), uiText('warehouse.writes')]"
+          :label="uiText('warehouse.readWriteTrend')"
+        />
+        <h3>{{ uiText('warehouse.tableGrowth') }}</h3>
+        <NDataTable
+          :data="metrics.data.value?.trend ?? []"
+          :columns="[
+            { title: uiText('updated'), key: 'date' },
+            { title: uiText('overview.tables'), key: 'tables' },
+          ]"
+          :bordered="false"
+        />
+        <NAlert type="info">{{ uiText('warehouse.metricsHint') }}</NAlert>
+      </AsyncState></NCard
+    ><NAlert type="info" style="margin-top: 24px">{{
+      uiText('ui.warehouse_overview_b21e6749')
+    }}</NAlert></AsyncState
+  >
+</template>
+<style scoped>
+.layer {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  gap: 20px;
+  margin: 24px 0;
+}
+</style>

@@ -1,0 +1,26 @@
+export const palettes = {
+  light: {
+    surface: '#f5f7fb',
+    surfaceRaised: '#ffffff',
+    textPrimary: '#182d45',
+    textSecondary: '#6b7e94',
+    border: '#e6edf5',
+    accent: '#4369df',
+    accentSoft: '#edf2ff',
+    success: '#168468',
+    warning: '#b97b18',
+    danger: '#cc5260',
+  },
+  dark: {
+    surface: '#101a28',
+    surfaceRaised: '#182538',
+    textPrimary: '#e2eaf5',
+    textSecondary: '#92a6be',
+    border: '#2a3b52',
+    accent: '#91adff',
+    accentSoft: '#223456',
+    success: '#62d9b3',
+    warning: '#edbd70',
+    danger: '#ff8c98',
+  },
+}
