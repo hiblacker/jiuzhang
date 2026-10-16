@@ -144,6 +144,7 @@ function rule(field: keyof Model<'Schedule'>): FormItemRule {
       clearable
     />
   </NFormItem>
+  <NAlert type="info" class="mb">{{ t('jobs.dependencyPolicy') }}</NAlert>
   <NAlert v-if="!preview.supported" type="warning">{{ t('jobs.unsupportedCron') }}</NAlert>
   <NAlert v-else-if="model.mode === 'cron' && !preview.dates.length" type="warning">
     {{ t('jobs.noCronMatch') }}

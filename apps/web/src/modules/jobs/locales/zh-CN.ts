@@ -20,6 +20,13 @@ export default {
     invalidDependencies: '依赖任务不能重复。',
     waitingDependencies: '等待上游成功；补数要求相同业务日期的上游运行成功。',
     waitingConcurrency: '等待当前任务的并发名额。',
+    dependencyPolicy:
+      '依赖按每个上游任务的最新运行判断，全部成功后开始执行；补数仅匹配相同业务日期。排队、失败、阻断或取消的最新运行均不放行。运行开始后不因后续上游变化撤回，运行和重试沿用创建时的配置快照。',
+    runDependencies: '运行绑定的上游任务',
+    noDependencies: '无上游依赖',
+    dependencyTask: '任务 {id}',
+    admissionSnapshot: '运行配置快照',
+    admissionSummary: '并发 {concurrency} · 超时 {timeout}s · 重试 {retries} 次',
     businessDate: '补数业务日期',
     executionStarted: '开始执行时间',
     qualityPending: '质量检查尚未执行，暂无检查结果。',

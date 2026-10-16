@@ -93,6 +93,24 @@ const retryable = computed(() =>
         ><NDescriptionsItem :label="t('jobs.executionStarted')">{{
           query.data.value?.executionStartedAt ?? '—'
         }}</NDescriptionsItem
+        ><NDescriptionsItem :label="t('jobs.runDependencies')"
+          ><template v-if="query.data.value?.scheduleSnapshot.dependencies.length"
+            ><NButton
+              v-for="dependency in query.data.value.scheduleSnapshot.dependencies"
+              :key="dependency"
+              text
+              type="primary"
+              @click="router.push('/tasks/' + dependency)"
+              >{{ t('jobs.dependencyTask', { id: dependency }) }}</NButton
+            ></template
+          ><span v-else>{{ t('jobs.noDependencies') }}</span></NDescriptionsItem
+        ><NDescriptionsItem :label="t('jobs.admissionSnapshot')">{{
+          t('jobs.admissionSummary', {
+            concurrency: query.data.value?.scheduleSnapshot.concurrency,
+            timeout: query.data.value?.scheduleSnapshot.timeoutSeconds,
+            retries: query.data.value?.scheduleSnapshot.retries,
+          })
+        }}</NDescriptionsItem
         ><NDescriptionsItem :label="t('jobs.duration')"
           >{{ query.data.value?.durationMs ?? 0 }} ms</NDescriptionsItem
         ><NDescriptionsItem :label="uiText('ui.run_detail_3a2573f2')">{{
