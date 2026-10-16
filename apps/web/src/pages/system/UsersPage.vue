@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorKey } from '@/shared/api/error-message'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 import type { FormInst, FormRules } from 'naive-ui'
 import { useI18n as useUiI18n } from 'vue-i18n'
@@ -8,6 +9,7 @@ import { ref, h } from 'vue'
 import {
   NCard,
   NButton,
+  NSpace,
   NInput,
   NSelect,
   NDataTable,
@@ -70,6 +72,7 @@ async function save() {
   } catch {
     return
   }
+  if (actions.user.isPending.value) return
   try {
     await actions.user.mutateAsync({ body: { ...draft.value }, id: id.value || undefined })
     open.value = false
@@ -131,6 +134,7 @@ const columns = [
         @update:page-size="update({ pageSize: $event, page: 1 })"
       /></div></NCard
   ><NDrawer
+    :aria-label="uiText('ui.users_4fd1cfb1')"
     :show="open"
     :width="440"
     :mask-closable="!actions.user.isPending.value"
@@ -146,19 +150,30 @@ const columns = [
         ><NFormItem path="name" :label="uiText('ui.users_a311ed74')"
           ><NInput
             v-model:value="draft.name"
+            :input-props="{ 'aria-label': uiText('ui.users_a311ed74') }"
             :placeholder="uiText('ui.users_a0085b12')" /></NFormItem
         ><NFormItem :label="uiText('ui.users_6b26695e')"
-          ><NSelect v-model:value="draft.role" :options="roles" /></NFormItem
+          ><NSelect
+            v-model:value="draft.role"
+            :aria-label="uiText('ui.users_6b26695e')"
+            :options="roles" /></NFormItem
         ><NFormItem :label="uiText('ui.users_d4e9ca3d')"
-          ><NSwitch v-model:value="draft.enabled" /></NFormItem
+          ><NSwitch
+            v-model:value="draft.enabled"
+            :aria-label="uiText('ui.users_d4e9ca3d')" /></NFormItem
         ><NAlert type="info">{{ uiText('ui.users_d965b287') }}</NAlert
         ><NAlert v-if="actions.user.error.value" type="error">{{
-          uiText('ui.users_818eeae7')
+          uiText(errorKey(actions.user.error.value))
         }}</NAlert></NForm
       ><template #footer
-        ><NButton type="primary" :loading="actions.user.isPending.value" @click="save">{{
-          uiText('ui.users_408e75e8')
-        }}</NButton></template
+        ><NSpace justify="end"
+          ><NButton :disabled="actions.user.isPending.value" @click="close(false)">{{
+            uiText('cancel')
+          }}</NButton
+          ><NButton type="primary" :loading="actions.user.isPending.value" @click="save">{{
+            uiText('ui.users_408e75e8')
+          }}</NButton></NSpace
+        ></template
       ></NDrawerContent
     ></NDrawer
   >

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorKey } from '@/shared/api/error-message'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 import type { FormInst, FormRules } from 'naive-ui'
 import { useI18n as useUiI18n } from 'vue-i18n'
@@ -10,6 +11,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   NCard,
   NButton,
+  NSpace,
   NInput,
   NSelect,
   NDataTable,
@@ -124,6 +126,7 @@ async function save() {
   } catch {
     return
   }
+  if (actions.saveMask.isPending.value) return
   try {
     await actions.saveMask.mutateAsync({
       id: editing.value || undefined,
@@ -279,6 +282,7 @@ const columns = [
       ></AsyncState
     ></NCard
   ><NDrawer
+    :aria-label="uiText('ui.masking_0549993d')"
     :show="open"
     :width="480"
     :mask-closable="!actions.saveMask.isPending.value"
@@ -317,12 +321,17 @@ const columns = [
             v-model:value="draft.enabled"
             :aria-label="uiText('ui.masking_d4e9ca3d')" /></NFormItem
         ><NAlert v-if="actions.saveMask.error.value" type="error">{{
-          uiText('ui.masking_2599b9ba')
+          uiText(errorKey(actions.saveMask.error.value))
         }}</NAlert></NForm
       ><template #footer
-        ><NButton type="primary" :loading="actions.saveMask.isPending.value" @click="save">{{
-          uiText('ui.masking_d824c490')
-        }}</NButton></template
+        ><NSpace justify="end"
+          ><NButton :disabled="actions.saveMask.isPending.value" @click="close(false)">{{
+            uiText('cancel')
+          }}</NButton
+          ><NButton type="primary" :loading="actions.saveMask.isPending.value" @click="save">{{
+            uiText('ui.masking_d824c490')
+          }}</NButton></NSpace
+        ></template
       ></NDrawerContent
     ></NDrawer
   >

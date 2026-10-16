@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   NCard,
   NButton,
+  NSpace,
   NInput,
   NSelect,
   NDataTable,
@@ -112,6 +113,7 @@ async function save() {
   } catch {
     return
   }
+  if (actions.saveQuality.isPending.value) return
   try {
     await actions.saveQuality.mutateAsync({
       id: editing.value || undefined,
@@ -286,6 +288,7 @@ const columns = [
         ]"
         :bordered="false" /></AsyncState></NCard
   ><NDrawer
+    :aria-label="uiText('ui.quality_e974beee')"
     :show="open"
     :width="480"
     :mask-closable="!actions.saveQuality.isPending.value"
@@ -340,9 +343,14 @@ const columns = [
           uiText(errorKey(actions.saveQuality.error.value))
         }}</NAlert></NForm
       ><template #footer
-        ><NButton type="primary" :loading="actions.saveQuality.isPending.value" @click="save">{{
-          uiText('ui.quality_f5d41261')
-        }}</NButton></template
+        ><NSpace justify="end"
+          ><NButton :disabled="actions.saveQuality.isPending.value" @click="close(false)">{{
+            uiText('cancel')
+          }}</NButton
+          ><NButton type="primary" :loading="actions.saveQuality.isPending.value" @click="save">{{
+            uiText('ui.quality_f5d41261')
+          }}</NButton></NSpace
+        ></template
       ></NDrawerContent
     ></NDrawer
   >
