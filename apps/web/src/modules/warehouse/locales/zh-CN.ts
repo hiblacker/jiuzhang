@@ -3,6 +3,9 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   warehouse: {
+    loadMoreTables: '加载更多仓库表',
+    tableOptionsCount: '已加载 {loaded} 张表',
+    tableOptionsTotal: '已加载 {loaded} / {total} 张表',
     ready: '可下载',
     expired: '已过期',
     searchTransfers: '搜索任务、文件或目标表',

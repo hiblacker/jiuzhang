@@ -7,7 +7,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 import { NCard, NButton, NAlert } from 'naive-ui'
 import { useService, useServiceActions, ServiceForm } from '@/modules/services'
-import { useTables } from '@/modules/warehouse'
+import { useTable, WarehouseTableSelect } from '@/modules/warehouse'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { errorKey } from '@/shared/api/error-message'
@@ -17,7 +17,6 @@ const route = useRoute(),
   router = useRouter(),
   id = computed(() => String(route.params.id ?? '')),
   query = useService(id),
-  tables = useTables({ pageSize: '100' }),
   actions = useServiceActions()
 const form = ref<InstanceType<typeof ServiceForm> | null>(null)
 const canWrite = useCan('write')
@@ -39,6 +38,10 @@ const draft = ref<Model<'ServiceInput'>>({
     allowedRoles: ['admin', 'developer', 'viewer'],
   }),
   baseline = ref(JSON.stringify(draft.value))
+const table = useTable(() => draft.value.tableId)
+const tableUnavailable = computed(
+  () => !!draft.value.tableId && (table.isPending.value || table.isError.value),
+)
 watch(
   () => query.data.value,
   (data) => {
@@ -62,10 +65,11 @@ watch(
 )
 useEditGuard(() => baseline.value !== JSON.stringify(draft.value), pending)
 async function refresh() {
-  await Promise.all([query.refetch(), tables.refetch()])
+  await query.refetch()
 }
 async function save() {
-  if (pending.value || !canWrite.value || (id.value && !query.data.value)) return
+  if (pending.value || !canWrite.value || tableUnavailable.value || (id.value && !query.data.value))
+    return
   actions.save.reset()
   actions.updateMetadata.reset()
   try {
@@ -105,16 +109,11 @@ async function save() {
     ><NButton
       type="primary"
       :loading="pending"
-      :disabled="
-        !canWrite || (!!id && !query.data.value) || tables.isLoading.value || !!tables.error.value
-      "
+      :disabled="!canWrite || (!!id && !query.data.value) || tableUnavailable"
       @click="save"
       >{{ uiText('ui.service_editor_2d85ec15') }}</NButton
     ></PageHeader
-  ><AsyncState
-    :loading="(!!id && query.isLoading.value) || tables.isLoading.value"
-    :error="query.error.value || tables.error.value"
-    @retry="refresh"
+  ><AsyncState :loading="!!id && query.isLoading.value" :error="query.error.value" @retry="refresh"
     ><NCard class="form-card" :bordered="false"
       ><NAlert v-if="id" type="warning" class="mb">{{
         uiText('ui.service_editor_148c0f65')
@@ -126,8 +125,17 @@ async function save() {
       ><ServiceForm
         ref="form"
         v-model="draft"
-        :tables="tables.data.value?.data ?? []"
+        :table="table.data.value"
         :definition-readonly="restricted"
-        :disabled="pending || !canWrite" /></NCard
+        :disabled="pending || !canWrite"
+      >
+        <template #table="{ select, disabled }">
+          <WarehouseTableSelect
+            :value="draft.tableId"
+            :label="uiText('ui.service_form_f4959de3')"
+            :disabled="disabled"
+            @update:value="select"
+          />
+        </template> </ServiceForm></NCard
   ></AsyncState>
 </template>

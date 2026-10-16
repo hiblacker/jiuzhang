@@ -425,6 +425,23 @@
       "errors.UNKNOWN"
     ]
   },
+  "modules/warehouse/components/WarehouseTableSelect.vue": {
+    "errorKey(error)": [
+      "errors.NETWORK_ERROR",
+      "errors.DEMO_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.DEPENDENCY_CONFLICT",
+      "errors.DUPLICATE_NAME",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.STORAGE_FULL",
+      "errors.STORAGE_UNAVAILABLE",
+      "errors.IDEMPOTENCY_CONFLICT",
+      "errors.NOT_IMPLEMENTED",
+      "errors.UNKNOWN"
+    ]
+  },
   "pages/services/ServiceEditorPage.vue": {
     "errorKey(saveError)": [
       "errors.NETWORK_ERROR",

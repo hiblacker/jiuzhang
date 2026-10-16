@@ -1,5 +1,5 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { warehouseRepository as repo } from '../api/warehouse-repository'
 export function useSubjectDomains() {
   return useQuery({
@@ -16,13 +16,27 @@ export function useWarehouseMetrics(id: MaybeRefOrGetter<string> = '') {
 export function useTables(filters: MaybeRefOrGetter<Record<string, string>> = {}) {
   return useQuery({
     queryKey: computed(() => ['warehouse', 'tables', toValue(filters)]),
-    queryFn: () => repo.tables(toValue(filters)),
+    queryFn: ({ signal }) => repo.tables(toValue(filters), signal),
+  })
+}
+export function useTableOptions(search: MaybeRefOrGetter<string>) {
+  return useInfiniteQuery({
+    queryKey: computed(() => ['warehouse', 'table-options', toValue(search)]),
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) =>
+      repo.tables({ q: toValue(search), page: String(pageParam), pageSize: '20' }, signal),
+    getNextPageParam: (lastPage) => {
+      const { page = 1, pageSize = 20, total } = lastPage.meta
+      if (total === undefined) return lastPage.data.length === pageSize ? page + 1 : undefined
+      return page * pageSize < total ? page + 1 : undefined
+    },
   })
 }
 export function useTable(id: MaybeRefOrGetter<string>) {
   return useQuery({
     queryKey: computed(() => ['warehouse', 'table', toValue(id)]),
-    queryFn: () => repo.table(toValue(id)),
+    queryFn: ({ signal }) => repo.table(toValue(id), signal),
+    enabled: computed(() => !!toValue(id)),
   })
 }
 export function useQueries(filters: MaybeRefOrGetter<Record<string, string>> = {}) {

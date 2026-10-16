@@ -7,11 +7,12 @@ export const warehouseRepository = {
   async metrics(tableId = '') {
     return unwrap(await api.GET('/warehouse/metrics', { params: { query: { tableId } } })).data
   },
-  async tables(query: Record<string, string> = {}) {
-    return unwrap(await api.GET('/warehouse/tables', { params: { query } }))
+  async tables(query: Record<string, string> = {}, signal?: AbortSignal) {
+    return unwrap(await api.GET('/warehouse/tables', { params: { query }, signal }))
   },
-  async table(id: string) {
-    return unwrap(await api.GET('/warehouse/tables/{id}', { params: { path: { id } } })).data
+  async table(id: string, signal?: AbortSignal) {
+    return unwrap(await api.GET('/warehouse/tables/{id}', { params: { path: { id } }, signal }))
+      .data
   },
   async query(body: Model<'QueryInput'>) {
     return unwrap(await api.POST('/queries', { body })).data

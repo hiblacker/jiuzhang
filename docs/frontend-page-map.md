@@ -185,6 +185,8 @@ B0 建立与本矩阵 ID 对应的 route-manifest 和测试清单。运行时以
 
 ## 9. 尚未完成的原始验收项
 
+仓库表选择（2026-10-17）：通过 HTTP 导入 110 张虚构表，先复现旧服务引用的表落在前 100 张之外时无法显示名称与字段，SQL 工作台也会回退到错误表。检索 useTables/useTable、ServiceForm、QueryPage 和 DatasetFolderSelect 后，新增 warehouse 领域 WarehouseTableSelect，复用既有 HTTP repository、Vue Query 无限分页及 Naive NSelect/NButton/NAlert；按 20 条加载、服务端搜索、独立查询已选 ID、错误重试和 AbortSignal 由该领域拥有，两处页面经公开入口组合，ServiceForm 的插槽保留跨域装配边界，不建立万能选择器。SQL 选表由 URL 拥有，不存在 ID 明确报错且禁止运行。完整 pnpm check 通过（84 项、demo/real 双构建），11 项服务/权限/入仓/导入导出消费者通过；最终专项通过（24.8 秒），覆盖超 100 条、40 条分页加载、搜索、旧服务字段、保存调用、刷新、键盘选择、失败保留/重试、取消不写入与无效 ID。768px 明暗截图已实际复核，页面无横向溢出；暗色 SQL 编辑器语法色的可读性留为下一块修复。初期测试修正为 HTTP 返回的真实总数及取消后的明确导航等待，未放宽数据和行为断言。整体仍为 implementing，后续继续原矩阵验收。
+
 服务审计分页（2026-10-17）：通过 HTTP 生成 110 次调用，先复现 page=2 仍显示首页 100 条、后续记录无入口。复用 useListRoute/bindPagination、useDisplayTime、AsyncState 和 Naive NDataTable/NPagination；repository 保留既有分页 meta，Query key 纳入资源/页码/页大小并传递 AbortSignal，不新增接口或日志存储。直接深链接同时暴露原有审计列文案未加载，服务路由由 app 装配 identity 词典，复用审计动作翻译。最终专项通过（12.7 秒），覆盖超过 100 条、20/100 页大小、前进后退/刷新、失败重试、资源隔离、越界页归一和 768px 明暗主题；两项服务消费者与一项系统审计分别通过。完整 pnpm check 通过（84 项、demo/real 双构建），明暗截图已实际复核。早期测试错误为使用不存在的分页尺寸 CSS 类，已改用既有消费者的实际选择器；没有放宽分页和文案断言。整体仍按原矩阵继续验收。
 
 长负责人/标签（2026-10-17）：用 HTTP 创建 240 字负责人和 200 字标签，源/数据集列表行高约 711px，资产行高约 576px；扩展现有三类长内容用例后先全部复现失败。检索 SourceListTable、DatasetListPage、CatalogPage 与既有省略样式后，直接组合 Naive NEllipsis/NTag，不建基础控件空包装；负责人固定列宽，标签约束 content 的最小宽度/溢出，保持完整 DOM 文本和原有名称导航。聚焦显示完整值、移开关闭，提示正文有 tooltip 语义并限制宽度，数据/过滤值没有截断。三项最终专项通过（32.6 秒），新增键盘查看、提示宽度与明暗截图；目录/权限消费者和长数据共 7 项最终通过（1.6 分钟）。完整 pnpm check 通过（84 项、demo/real 构建），全部最终列表截图及负责人/标签提示截图已实际复核。初期修正为 Naive 类型支持的 contentStyle 与 tooltip slot，未用类型逃逸；标签内 flex 内容没有收缩导致无法触发提示的问题已按实际 DOM 修复，测试嵌套三元也按 lint 改为映射。其余列表/任意数量标签/全部视口仍按原矩阵继续验收。

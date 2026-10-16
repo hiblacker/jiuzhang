@@ -18,7 +18,13 @@ import {
   NInput,
   NPagination,
 } from 'naive-ui'
-import { useTables, useQueries, useQueryResult, useWarehouseActions } from '@/modules/warehouse'
+import {
+  useTable,
+  WarehouseTableSelect,
+  useQueries,
+  useQueryResult,
+  useWarehouseActions,
+} from '@/modules/warehouse'
 import { useI18n } from 'vue-i18n'
 import { useListRoute } from '@/shared/composables/use-list-route'
 import { QueryToolbar } from '@/shared/ui/query-toolbar'
@@ -27,14 +33,19 @@ import { PageHeader } from '@/shared/ui/page-header'
 const SqlEditor = defineAsyncComponent(() => import('@/shared/editors/SqlEditor.vue'))
 const route = useRoute(),
   router = useRouter(),
-  tables = useTables({ pageSize: '100' }),
   { filters, update, bindPagination } = useListRoute(),
   history = useQueries(() =>
     Object.fromEntries(Object.entries(filters.value).map(([key, value]) => [key, String(value)])),
   ),
   actions = useWarehouseActions(),
-  sql = ref(''),
-  tableId = ref(String(route.query.tableId ?? ''))
+  sql = ref('')
+const tableId = computed({
+  get: () => (typeof route.query.tableId === 'string' ? route.query.tableId : ''),
+  set: (value: string) => {
+    void router.replace({ query: { ...route.query, tableId: value } })
+  },
+})
+const table = useTable(tableId)
 bindPagination(() =>
   history.isSuccess.value && !history.isFetching.value ? history.data.value?.meta : undefined,
 )
@@ -47,22 +58,17 @@ const resultData = computed(() => result.data.value)
 const running = computed(
   () => actions.query.isPending.value || resultData.value?.status === 'running',
 )
+let loadedTableId = ''
 watch(
-  () => tables.data.value,
+  () => table.data.value,
   (data) => {
-    if (data?.data.length && !sql.value) {
-      const table = data.data.find((t) => t.id === tableId.value) ?? data.data[0]!
-      tableId.value = table.id
-      sql.value = 'SELECT * FROM ' + table.name + ' LIMIT 100'
+    if (data && data.id === tableId.value && data.id !== loadedTableId) {
+      loadedTableId = data.id
+      sql.value = 'SELECT * FROM ' + data.name + ' LIMIT 100'
     }
   },
   { immediate: true },
 )
-function selectTable(id: string) {
-  tableId.value = id
-  const table = tables.data.value?.data.find((t) => t.id === id)
-  if (table) sql.value = 'SELECT * FROM ' + table.name + ' LIMIT 100'
-}
 async function run() {
   if (running.value || !sql.value.trim()) return
   try {
@@ -100,19 +106,18 @@ async function exportResult(format: 'csv' | 'json') {
     ><NButton
       type="primary"
       :loading="running"
-      :disabled="!sql.trim() || tables.isLoading.value"
+      :disabled="!sql.trim() || table.isLoading.value || table.isError.value"
       @click="run"
       >{{ uiText('ui.query_31e15446') }}</NButton
     ></PageHeader
   ><NCard :bordered="false" class="mb"
     ><NAlert type="info" class="mb">{{ t('warehouse.privateResults') }}</NAlert
     ><NAlert type="info" class="mb">{{ t('warehouse.queryHint') }}</NAlert
-    ><NSelect
-      :value="tableId || null"
-      :options="tables.data.value?.data.map((t) => ({ label: t.name, value: t.id }))"
-      :placeholder="uiText('ui.query_074ab09a')"
+    ><WarehouseTableSelect
+      v-model:value="tableId"
+      :label="uiText('ui.query_074ab09a')"
+      select-first
       class="mb"
-      @update:value="selectTable"
     /><SqlEditor v-model="sql" /><NAlert
       v-if="actions.query.error.value"
       type="error"

@@ -17,7 +17,7 @@ import {
 import type { Model } from '@/shared/api/types'
 const model = defineModel<Model<'ServiceInput'>>({ required: true })
 const props = defineProps<{
-  tables: Model<'Table'>[]
+  table?: Model<'Table'>
   disabled?: boolean
   definitionReadonly?: boolean
 }>()
@@ -42,6 +42,7 @@ const rules = computed<FormRules>(() => ({
 }))
 defineExpose({ validate: () => form.value?.validate() })
 function selectTable(id: string) {
+  if (id === model.value.tableId) return
   model.value.tableId = id
   model.value.fields = []
   model.value.parameters = []
@@ -56,12 +57,10 @@ function selectTable(id: string) {
         :input-props="{ 'aria-label': uiText('ui.service_form_d82acb1b') }"
         :placeholder="uiText('ui.service_form_d82acb1b')" /></NFormItem
     ><NFormItem path="tableId" :label="uiText('ui.service_form_f4959de3')" required
-      ><NSelect
-        :value="model.tableId || null"
-        :aria-label="uiText('ui.service_form_f4959de3')"
-        :disabled="disabled || definitionReadonly"
-        :options="tables.map((t) => ({ value: t.id, label: t.name }))"
-        @update:value="selectTable" /></NFormItem
+      ><slot
+        name="table"
+        :select="selectTable"
+        :disabled="disabled || definitionReadonly" /></NFormItem
     ><NFormItem path="fields" :label="uiText('ui.service_form_adf908d5')" required
       ><NSelect
         v-model:value="model.fields"
@@ -69,10 +68,7 @@ function selectTable(id: string) {
         :disabled="disabled || definitionReadonly"
         multiple
         :options="
-          tables
-            .find((t) => t.id === model.tableId)
-            ?.fields.filter((f) => f.output)
-            .map((f) => ({ value: f.target, label: f.target }))
+          table?.fields.filter((f) => f.output).map((f) => ({ value: f.target, label: f.target }))
         " /></NFormItem
     ><NFormItem :label="uiText('ui.service_form_5b478c47')"
       ><div class="parameters">
