@@ -10,6 +10,10 @@ export const palettes = {
     success: '#168468',
     warning: '#b97b18',
     danger: '#cc5260',
+    editorKeyword: '#3455b7',
+    editorString: '#12674f',
+    editorNumber: '#825015',
+    editorComment: '#52667e',
   },
   dark: {
     surface: '#101a28',
@@ -22,5 +26,9 @@ export const palettes = {
     success: '#62d9b3',
     warning: '#edbd70',
     danger: '#ff8c98',
+    editorKeyword: '#abc0ff',
+    editorString: '#7fe0be',
+    editorNumber: '#f0c788',
+    editorComment: '#92a6be',
   },
 }

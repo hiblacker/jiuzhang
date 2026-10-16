@@ -171,12 +171,18 @@ importers:
       '@codemirror/lang-sql':
         specifier: 6.10.0
         version: 6.10.0
+      '@codemirror/language':
+        specifier: 6.13.1
+        version: 6.13.1
       '@codemirror/state':
         specifier: 6.7.6
         version: 6.7.6
       '@jiuzhang/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@lezer/highlight':
+        specifier: 1.2.5
+        version: 1.2.5
       '@tanstack/vue-query':
         specifier: 5.104.3
         version: 5.104.3(vue@3.5.44(typescript@5.9.3))
