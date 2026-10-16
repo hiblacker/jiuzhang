@@ -8,4 +8,4 @@ export {
   useMaskPreview,
   useGovernanceActions,
 } from './composables/use-governance'
-export { lineageScope } from './model/lineage'
+export { lineageScope, layoutLineage } from './model/lineage'

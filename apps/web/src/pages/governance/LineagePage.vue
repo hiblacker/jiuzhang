@@ -4,10 +4,10 @@ const { t: uiText } = useUiI18n()
 
 import { computed, ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { VueFlow, useVueFlow } from '@vue-flow/core'
+import { VueFlow, useVueFlow, type NodeChange } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { NCard, NButton, NSelect, NAlert, NDescriptions, NDescriptionsItem } from 'naive-ui'
-import { useLineage, lineageScope } from '@/modules/governance'
+import { useLineage, lineageScope, layoutLineage } from '@/modules/governance'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import '@vue-flow/core/dist/style.css'
@@ -55,24 +55,20 @@ const visibleIds = computed(() => {
   if (!selected.value) return null
   return lineageScope(query.data.value?.edges ?? [], roots.value, direction.value)
 })
-const nodes = computed(() => {
-  const count: Record<string, number> = {}
-  return (query.data.value?.nodes ?? [])
-    .filter((n) => !visibleIds.value || visibleIds.value.has(n.id))
-    .map((n) => {
-      const row = count[n.kind] ?? 0
-      count[n.kind] = row + 1
-      return {
-        id: n.id,
-        position: { x: { source: 0, dataset: 320, table: 640 }[n.kind] ?? 0, y: row * 90 },
-        data: { label: n.label },
-        type:
-          ({ source: 'input', table: 'output', dataset: 'default' } as Record<string, string>)[
-            n.kind
-          ] ?? 'default',
-      }
-    })
-})
+const visibleNodes = computed(() =>
+  (query.data.value?.nodes ?? []).filter(
+    (node) => !visibleIds.value || visibleIds.value.has(node.id),
+  ),
+)
+const nodes = computed(() =>
+  layoutLineage(visibleNodes.value, query.data.value?.edges ?? []).map((node) => ({
+    id: node.id,
+    position: node.position,
+    data: { label: node.label },
+    ariaLabel: node.label,
+    type: ({ source: 'input', dataset: 'default', table: 'output' } as const)[node.kind],
+  })),
+)
 const edges = computed(
   () =>
     query.data.value?.edges.filter(
@@ -80,15 +76,37 @@ const edges = computed(
         nodes.value.some((n) => n.id === e.source) && nodes.value.some((n) => n.id === e.target),
     ) ?? [],
 )
-const detail = computed(() => query.data.value?.nodes.find((n) => n.id === focused.value))
-watch(nodes, async () => {
+const detail = computed(() => visibleNodes.value.find((node) => node.id === focused.value))
+function selectionChanged(changes: NodeChange[]) {
+  const selected = changes.find((change) => change.type === 'select' && change.selected)
+  if (selected?.type === 'select') focused.value = selected.id
+  else if (
+    changes.some(
+      (change) => change.type === 'select' && change.id === focused.value && !change.selected,
+    )
+  )
+    focused.value = ''
+}
+async function locate(id: string | null) {
+  focused.value = id ?? ''
+  if (id) await flow.fitView({ nodes: [id], maxZoom: 1, padding: 0.6 })
+}
+function fitGraph() {
+  return flow.fitView({ minZoom: 0.05, maxZoom: 1, padding: 0.15 })
+}
+watch(nodes, async (_, __, onCleanup) => {
+  let active = true
+  onCleanup(() => {
+    active = false
+  })
+  if (!visibleNodes.value.some((node) => node.id === focused.value)) focused.value = ''
   await nextTick()
-  await flow.fitView()
+  if (active) await fitGraph()
 })
 </script>
 <template>
   <PageHeader :title="uiText('ui.lineage_daa9947a')" :description="uiText('ui.lineage_21ea5894')"
-    ><NButton @click="flow.fitView()">{{ uiText('ui.lineage_3bc70c8d') }}</NButton
+    ><NButton @click="fitGraph()">{{ uiText('ui.lineage_3bc70c8d') }}</NButton
     ><NButton @click="flow.zoomIn()">{{ uiText('lineage.zoomIn') }}</NButton
     ><NButton @click="flow.zoomOut()">{{ uiText('lineage.zoomOut') }}</NButton
     ><NButton @click="router.push('/governance/catalog')">{{
@@ -137,19 +155,33 @@ watch(nodes, async () => {
         @update:value="filter({ field: $event })"
       />
     </div>
+    <NSelect
+      :value="focused || null"
+      :options="visibleNodes.map((node) => ({ value: node.id, label: node.label }))"
+      :aria-label="uiText('lineage.nodePicker')"
+      :placeholder="uiText('lineage.nodePicker')"
+      clearable
+      filterable
+      class="mb"
+      @update:value="locate"
+    />
+    <NAlert type="info" class="mb">{{ uiText('lineage.nodeHint') }}</NAlert>
     <AsyncState
       :loading="query.isLoading.value"
       :error="query.error.value"
       :empty="query.data.value && !nodes.length"
       @retry="query.refetch()"
-      ><div class="lineage">
+      ><div class="lineage" role="region" :aria-label="uiText('lineage.canvas')">
         <VueFlow
           :nodes="nodes"
           :edges="edges"
           :nodes-draggable="false"
           :nodes-connectable="false"
           :delete-key-code="null"
+          :min-zoom="0.05"
           fit-view-on-init
+          @nodes-initialized="fitGraph()"
+          @nodes-change="selectionChanged"
           @node-click="focused = $event.node.id"
           ><Background
         /></VueFlow>
@@ -192,5 +224,12 @@ watch(nodes, async () => {
   color: var(--textPrimary);
   border-color: var(--accent);
   border-radius: 9px;
+  width: 240px;
+  min-height: 54px;
+  overflow-wrap: anywhere;
+}
+.lineage :deep(.vue-flow__node:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
 }
 </style>

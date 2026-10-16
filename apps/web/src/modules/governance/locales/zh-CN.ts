@@ -21,6 +21,9 @@ export default {
     disabled: '策略已停用，显示未处理的合成样本。',
   },
   lineage: {
+    canvas: '数据血缘图',
+    nodePicker: '定位血缘节点',
+    nodeHint: '可搜索节点定位并查看详情，或使用 Tab 聚焦节点、Enter/空格选中、Escape 取消。',
     scope: '血缘范围',
     resource: '资源级',
     field: '字段级',
