@@ -105,7 +105,7 @@ test('SQL workbench and dataset editor preserve editing while switching accessib
   await page.getByRole('button', { name: '运行查询', exact: true }).click()
   await expect(page.getByRole('cell', { name: '杭州', exact: true }).first()).toBeVisible()
   await page.goto('/datasets/2001/edit?tab=input')
-  await page.locator('.n-form-item').filter({ hasText: '建模模式' }).locator('.n-select').click()
+  await page.getByLabel('建模模式', { exact: true }).click()
   await page.locator('.n-base-select-menu:visible').getByText('SQL 示例', { exact: true }).click()
   await expect(editor).toBeVisible()
   const datasetSql = "SELECT '杭州', 42, TRUE, NULL FROM orders LIMIT 12 -- 订单备注"

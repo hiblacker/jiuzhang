@@ -23,6 +23,8 @@ export default {
     confirmMove: '确认移动',
   },
   datasets: {
+    sqlEditor: '数据集 SQL 编辑器',
+    sqlPreset: '数据集预设 SQL',
     output: {
       summary: '输出写入配置',
       mode: '写入语义',

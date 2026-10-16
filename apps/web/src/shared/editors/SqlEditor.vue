@@ -4,7 +4,7 @@ import { EditorView, basicSetup } from 'codemirror'
 import { EditorState, Compartment } from '@codemirror/state'
 import { sql } from '@codemirror/lang-sql'
 import { sqlEditorTheme, sqlHighlighting } from '@/shared/theme/sql-editor'
-const props = defineProps<{ modelValue: string; readonly?: boolean }>()
+const props = defineProps<{ modelValue: string; label: string; readonly?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const el = ref<HTMLElement>()
 let view: EditorView | undefined
@@ -22,6 +22,10 @@ onMounted(() => {
         sql(),
         sqlHighlighting,
         theme.of(sqlEditorTheme(dark)),
+        EditorView.contentAttributes.of(() => ({
+          'aria-label': props.label,
+          'aria-multiline': 'true',
+        })),
         editable.of(EditorView.editable.of(!props.readonly)),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) emit('update:modelValue', update.state.doc.toString())
@@ -47,6 +51,10 @@ watch(
 watch(
   () => props.readonly,
   (value) => view?.dispatch({ effects: editable.reconfigure(EditorView.editable.of(!value)) }),
+)
+watch(
+  () => props.label,
+  () => view?.dispatch({}),
 )
 onBeforeUnmount(() => {
   themeObserver?.disconnect()

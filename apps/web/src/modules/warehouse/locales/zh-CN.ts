@@ -3,6 +3,7 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   warehouse: {
+    sqlEditor: '仓库 SQL 编辑器',
     loadMoreTables: '加载更多仓库表',
     tableOptionsCount: '已加载 {loaded} 张表',
     tableOptionsTotal: '已加载 {loaded} / {total} 张表',

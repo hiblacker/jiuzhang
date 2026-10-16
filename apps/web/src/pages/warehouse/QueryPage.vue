@@ -118,7 +118,7 @@ async function exportResult(format: 'csv' | 'json') {
       :label="uiText('ui.query_074ab09a')"
       select-first
       class="mb"
-    /><SqlEditor v-model="sql" /><NAlert
+    /><SqlEditor v-model="sql" :label="t('warehouse.sqlEditor')" /><NAlert
       v-if="actions.query.error.value"
       type="error"
       style="margin-top: 20px"
