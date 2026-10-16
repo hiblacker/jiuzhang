@@ -154,7 +154,7 @@ SFC 或 composable 超过约 300 行时做职责检查；复杂度高、嵌套�
 | CODE-01 | 类型 import、无嵌套三元、无浮动 Promise | ESLint TS/Vue 规则，明确受控的 void 用途 | 不处理 mutation Promise 或嵌套三元必须失败 |
 | UI-01 | 已覆盖基础控件/主题边界 | check:ui 用 Vue/TS AST 检测业务文件的重复原生控件与原始样式色值；小范围例外 | 已有 Naive 替代的业务原生 button、无 token 的界面色值失败；语义布局元素允许 |
 | UI-02 | 行为复用、pending/焦点/错误一致 | 候选/消费者审查 + 组件/E2E；此项不是静态自动证明 | 重复确认、双击双写、错误双提示、取消污染草稿应在对应审查/测试失败 |
-| I18N-01 | zh-CN key 与领域 labelKey 可解析 | check:i18n 校验词典及字面量/显式枚举 key，禁止不可追溯动态拼接 | 缺失 key、重复 key 或未登记动态 key 失败；用户数据及技术术语不误报 |
+| I18N-01 | zh-CN key 与领域 labelKey 可解析 | check:i18n 校验词典、脚本中文、labelKey/titleKey/messageKey 字面量与显式动态 key，并检查 shared/领域词典归属 | 缺失 key、重复 key 或未登记动态 key 失败；用户数据及技术术语不误报 |
 
 不要声称 no-restricted-imports 单独就能防止所有相对路径绕过；它限制的是 import 字面量。依赖图必须解析 alias、.vue 和 re-export；运行时动态拼接 import 不允许用于绕过模块入口。
 
@@ -166,7 +166,7 @@ SFC 或 composable 超过约 300 行时做职责检查；复杂度高、嵌套�
 
 check:ui 需覆盖 .vue template、script setup、TS render 与相关样式的解析能力；不能用正则扫描代替 AST 后宣称全面覆盖。语义化 div/form/nav、合法 Naive 控件、图表调色板等允许例也要通过。行为重复属于语义判断，UI-02 由审查和消费者测试执行；静态规则只能识别已明确的禁用路径。
 
-check:i18n 对当前唯一 zh-CN 进行 key 存在性校验，动态 key 来自显式枚举；不得把用户输入当字典。增加第二种语言后才要求跨语言 key 对齐。工具未实现前，报告为待建，不将文件存在当作门禁启用。
+check:i18n 对当前唯一 zh-CN 校验 key、脚本/模板中文及 labelKey/titleKey/messageKey 字面量。shared 仅引用公共词典，领域模块仅引用自身及公共词典，pages/app 负责跨域装配。可编辑数据中文默认值在 tools/i18n-literals.json 按精确文件和值记录理由，过期例外失败；禁止通配路径豁免 UI 文案。动态 key 仍须显式登记，不把用户输入当字典。AST 检查不证明任意运行时表达式或翻译函数别名均可静态推导。增加第二种语言后才要求跨语言 key 对齐。工具未实现前，报告为待建，不将文件存在当作门禁启用。
 
 ### 7.2 CI 顺序
 

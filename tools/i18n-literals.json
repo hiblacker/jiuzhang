@@ -1,0 +1,24 @@
+{
+  "modules/datasets/components/DatasetGraph.vue": [
+    {
+      "value": "city=杭州",
+      "reason": "Editable synthetic filter expression stored in a dataset definition; a data value."
+    }
+  ],
+  "modules/datasets/model/definition.ts": [
+    {
+      "value": "数据平台组",
+      "reason": "Editable default owner metadata of a new demo resource."
+    },
+    {
+      "value": "读取源表",
+      "reason": "Editable initial node name persisted in a dataset definition."
+    }
+  ],
+  "modules/sources/model/connectors.ts": [
+    {
+      "value": "数据平台组",
+      "reason": "Editable default owner metadata of a new demo resource."
+    }
+  ]
+}
