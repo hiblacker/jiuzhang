@@ -2,7 +2,7 @@
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
-import { computed, h } from 'vue'
+import { computed, h, nextTick, toRaw } from 'vue'
 import {
   NDataTable,
   NInput,
@@ -15,8 +15,20 @@ import {
 import type { Model } from '@/shared/api/types'
 const model = defineModel<Model<'Field'>[]>({ required: true })
 const props = defineProps<{ readonly?: boolean; policies?: { label: string; value: string }[] }>()
+const keys = new WeakMap<Model<'Field'>, number>()
+let nextKey = 0
+function rowKey(field: Model<'Field'>) {
+  const raw = toRaw(field)
+  if (!keys.has(raw)) keys.set(raw, ++nextKey)
+  return keys.get(raw)!
+}
 function change(index: number, patch: Partial<Model<'Field'>>) {
-  model.value = model.value.map((f, i) => (i === index ? { ...f, ...patch } : f))
+  model.value = model.value.map((field, i) => {
+    if (i !== index) return field
+    const changed = { ...field, ...patch }
+    keys.set(changed, rowKey(field))
+    return changed
+  })
 }
 function addField() {
   model.value = [
@@ -33,13 +45,24 @@ function addField() {
     },
   ]
 }
-function move(index: number, offset: number) {
+async function move(index: number, offset: number, event: MouseEvent) {
   const destination = index + offset
   if (destination < 0 || destination >= model.value.length) return
   const fields = [...model.value]
   const [field] = fields.splice(index, 1)
   fields.splice(destination, 0, field!)
   model.value = fields
+  const trigger = event.currentTarget as HTMLButtonElement
+  await nextTick()
+  if (!trigger.isConnected) return
+  if (!trigger.disabled) {
+    trigger.focus()
+    return
+  }
+  trigger
+    .closest('tr')
+    ?.querySelector<HTMLButtonElement>('[data-field-move]:not(:disabled)')
+    ?.focus()
 }
 const columns = computed<DataTableColumns<Model<'Field'>>>(() => [
   {
@@ -77,11 +100,17 @@ const columns = computed<DataTableColumns<Model<'Field'>>>(() => [
     title: uiText('datasets.fieldOrder'),
     key: 'order',
     width: 130,
-    render: (_row, index) =>
+    render: (row, index) =>
       h(NSpace, {}, () => [
         h(
           NButton,
-          { size: 'tiny', disabled: props.readonly || index === 0, onClick: () => move(index, -1) },
+          {
+            size: 'tiny',
+            disabled: props.readonly || index === 0,
+            'aria-label': uiText('datasets.moveFieldUp', { name: row.name }),
+            'data-field-move': 'up',
+            onClick: (event: MouseEvent) => move(index, -1, event),
+          },
           () => uiText('datasets.moveUp'),
         ),
         h(
@@ -89,7 +118,9 @@ const columns = computed<DataTableColumns<Model<'Field'>>>(() => [
           {
             size: 'tiny',
             disabled: props.readonly || index === model.value.length - 1,
-            onClick: () => move(index, 1),
+            'aria-label': uiText('datasets.moveFieldDown', { name: row.name }),
+            'data-field-move': 'down',
+            onClick: (event: MouseEvent) => move(index, 1, event),
           },
           () => uiText('datasets.moveDown'),
         ),
@@ -117,6 +148,8 @@ const columns = computed<DataTableColumns<Model<'Field'>>>(() => [
         value: row.type,
         disabled: props.readonly,
         size: 'small',
+        filterable: true,
+        inputProps: { 'aria-label': uiText('datasets.fieldType', { name: row.name }) },
         options: ['string', 'integer', 'decimal(18,2)', 'boolean', 'date'].map((value) => ({
           label: value,
           value,
@@ -183,6 +216,8 @@ const columns = computed<DataTableColumns<Model<'Field'>>>(() => [
         disabled: props.readonly,
         clearable: true,
         size: 'small',
+        filterable: true,
+        inputProps: { 'aria-label': uiText('datasets.fieldPolicy', { name: row.name }) },
         options: props.policies ?? [],
         'onUpdate:value': (value) => change(index, { maskPolicyId: value ?? '' }),
       }),
@@ -191,5 +226,11 @@ const columns = computed<DataTableColumns<Model<'Field'>>>(() => [
 </script>
 <template>
   <NButton v-if="!readonly" class="mb" @click="addField">{{ uiText('datasets.addField') }}</NButton>
-  <NDataTable :data="model" :columns="columns" :bordered="false" :scroll-x="1270" />
+  <NDataTable
+    :data="model"
+    :columns="columns"
+    :row-key="rowKey"
+    :bordered="false"
+    :scroll-x="1270"
+  />
 </template>
