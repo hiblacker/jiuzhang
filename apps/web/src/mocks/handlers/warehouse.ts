@@ -28,6 +28,8 @@ export function advanceTransfers(state: MockState, now = mockNow(state)) {
       elapsed = Math.max(0, now - Date.parse(task.createdAt))
     task.progress = Math.min(95, Math.floor(elapsed / 25))
     task.status = 'running'
+    if (previousStatus !== task.status)
+      audit(state, 'worker-demo', 'running', 'imports', task.id, '模拟导入开始')
     changed ||= task.status !== previousStatus || task.progress !== previousProgress
     if (elapsed < 2500) continue
     changed = true
@@ -80,6 +82,7 @@ export function advanceQueries(state: MockState, now = mockNow(state)) {
     const table = state.tables.find((table) => table.id === query.tableId)
     if (!table) {
       query.status = 'failed'
+      audit(state, 'worker-demo', 'failed', 'queries', query.id, '模拟查询失败，来源表不存在')
       continue
     }
     query.rows = selectColumns(table.sample.slice(0, 100), query.columns)

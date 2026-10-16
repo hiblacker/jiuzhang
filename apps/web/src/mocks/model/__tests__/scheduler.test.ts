@@ -37,6 +37,13 @@ it('dispatches one due occurrence and advances its persistent cursor exactly onc
 
   expect(advanceJobs(state, due)).toMatchObject({ scheduledRuns: 0, retryRuns: 0, changed: false })
   expect(state.runs).toHaveLength(1)
+  expect(state.audit.filter((entry) => entry.action === 'schedule')).toEqual([
+    expect.objectContaining({
+      actor: 'scheduler-demo',
+      resource: 'runs',
+      resourceId: state.runs[0]!.id,
+    }),
+  ])
 })
 
 it('holds a due automatic retry while paused and respects the retry budget after resume', () => {
@@ -69,6 +76,14 @@ it('holds a due automatic retry while paused and respects the retry budget after
   expect(retry.retryAt).toBeNull()
   expect(advanceJobs(state, start + 30000).retryRuns).toBe(0)
   expect(state.runs.filter((run) => run.retryOf)).toHaveLength(1)
+  expect(state.audit.filter((entry) => entry.action === 'retry')).toEqual([
+    expect.objectContaining({
+      actor: 'scheduler-demo',
+      resource: 'runs',
+      resourceId: retry.id,
+      detail: '重试运行 ' + original.id,
+    }),
+  ])
 })
 
 it('does not automatically retry quality-blocked or canceled runs', () => {

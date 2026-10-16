@@ -21,6 +21,7 @@ import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { QueryToolbar } from '@/shared/ui/query-toolbar'
 import { useListRoute } from '@/shared/composables/use-list-route'
+import { useDisplayTime } from '@/shared/composables/use-display-time'
 import { downloadText } from '@/shared/lib/download'
 import { toCsv } from '@/shared/lib/csv'
 import type { Model } from '@/shared/api/types'
@@ -40,10 +41,40 @@ const { filters, update, queryValue, bindPagination } = useListRoute(),
 bindPagination(() =>
   query.isSuccess.value && !query.isFetching.value ? query.data.value?.meta : undefined,
 )
+const displayTime = useDisplayTime()
+const actionLabels: Record<string, string> = {
+  post: uiText('identity.audit.actions.post'),
+  patch: uiText('identity.audit.actions.patch'),
+  delete: uiText('identity.audit.actions.delete'),
+  call: uiText('identity.audit.actions.call'),
+  publish: uiText('identity.audit.actions.publish'),
+  failed: uiText('identity.audit.actions.failed'),
+  blocked: uiText('identity.audit.actions.blocked'),
+  succeeded: uiText('identity.audit.actions.succeeded'),
+  ready: uiText('identity.audit.actions.ready'),
+  expired: uiText('identity.audit.actions.expired'),
+  retry: uiText('identity.audit.actions.retry'),
+  schedule: uiText('identity.audit.actions.schedule'),
+  queued: uiText('identity.audit.actions.queued'),
+  running: uiText('identity.audit.actions.running'),
+  validating: uiText('identity.audit.actions.validating'),
+  publishing: uiText('identity.audit.actions.publishing'),
+  seed: uiText('identity.audit.actions.seed'),
+}
+const actionOptions = Object.entries(actionLabels).map(([value, label]) => ({ value, label }))
 const columns = [
-  { title: uiText('ui.audit_89b4aa63'), key: 'at' },
+  {
+    title: uiText('ui.audit_89b4aa63'),
+    key: 'at',
+    render: (row: Model<'Audit'>) =>
+      h('time', { datetime: row.at, title: row.at }, displayTime(row.at)),
+  },
   { title: uiText('ui.audit_ffb50d38'), key: 'actor' },
-  { title: uiText('ui.audit_c0939594'), key: 'action' },
+  {
+    title: uiText('ui.audit_c0939594'),
+    key: 'action',
+    render: (row: Model<'Audit'>) => actionLabels[row.action] ?? row.action,
+  },
   { title: uiText('ui.audit_c6464f4f'), key: 'resource' },
   {
     title: uiText('ui.audit_24f28fbd'),
@@ -81,29 +112,30 @@ function exportRows() {
   ><NCard :bordered="false"
     ><QueryToolbar
       ><NInput
+        :aria-label="uiText('ui.audit_1f4989c3')"
         :value="filters.q"
         clearable
         :placeholder="uiText('ui.audit_1f4989c3')"
         @update:value="update({ q: $event, page: 1 })"
       />
       <NInput
+        :aria-label="uiText('ui.audit_ffb50d38')"
         :value="queryValue('actor')"
         clearable
         :placeholder="uiText('ui.audit_ffb50d38')"
         @update:value="update({ actor: $event, page: 1 })"
       />
       <NSelect
+        :aria-label="uiText('ui.audit_c0939594')"
+        :virtual-scroll="false"
         :value="queryValue('action') || null"
         clearable
         :placeholder="uiText('ui.audit_c0939594')"
-        :options="
-          ['post', 'patch', 'delete', 'call', 'publish', 'failed', 'blocked', 'succeeded'].map(
-            (value) => ({ value, label: value }),
-          )
-        "
+        :options="actionOptions"
         @update:value="update({ action: $event, page: 1 })"
       />
       <NSelect
+        :aria-label="uiText('ui.audit_c6464f4f')"
         :value="queryValue('resource') || null"
         clearable
         :placeholder="uiText('ui.audit_c6464f4f')"
@@ -111,6 +143,7 @@ function exportRows() {
           [
             'sources',
             'datasets',
+            'dataset-folders',
             'tasks',
             'runs',
             'warehouse',
@@ -120,6 +153,7 @@ function exportRows() {
             'governance',
             'services',
             'system',
+            'demo',
           ].map((value) => ({ value, label: value }))
         "
         @update:value="update({ resource: $event, page: 1 })"
@@ -158,13 +192,26 @@ function exportRows() {
         :item-count="query.data.value?.meta.total ?? 0"
         @update:page="update({ page: $event })"
       /></div></NCard
-  ><NDrawer :show="!!selected" width="min(440px, 100vw)" @update:show="!$event && (selected = null)"
+  ><NDrawer
+    :aria-label="uiText('ui.audit_18c5e1d4')"
+    :show="!!selected"
+    width="min(440px, 100vw)"
+    @update:show="!$event && (selected = null)"
     ><NDrawerContent :title="uiText('ui.audit_18c5e1d4')" closable
       ><NDescriptions :column="1" bordered
-        ><NDescriptionsItem v-for="column in columns" :key="column.key" :label="column.title">{{
-          selected?.[column.key as keyof Model<'Audit'>]
-        }}</NDescriptionsItem></NDescriptions
+        ><NDescriptionsItem v-for="column in columns" :key="column.key" :label="column.title"
+          ><span class="audit-value">{{
+            selected && column.key === 'at'
+              ? displayTime(selected.at) + ' · ' + selected.at
+              : selected?.[column.key as keyof Model<'Audit'>]
+          }}</span></NDescriptionsItem
+        ></NDescriptions
       ></NDrawerContent
     ></NDrawer
   >
 </template>
+<style scoped>
+.audit-value {
+  overflow-wrap: anywhere;
+}
+</style>

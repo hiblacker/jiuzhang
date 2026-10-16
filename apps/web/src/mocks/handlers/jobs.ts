@@ -28,6 +28,15 @@ function finishRun(
   audit(state, 'worker-demo', status, 'runs', run.id, run.logs.at(-1))
 }
 
+function setRunStage(
+  state: MockState,
+  run: Model<'Run'>,
+  status: 'queued' | 'running' | 'validating' | 'publishing',
+) {
+  if (run.status === status) return
+  audit(state, 'worker-demo', status, 'runs', run.id, run.status + ' → ' + status)
+  run.status = status
+}
 export function advanceRuns(state: MockState, now = mockNow(state)) {
   const ordered = [...state.runs].sort(
     (a, b) =>
@@ -53,15 +62,15 @@ export function advanceRuns(state: MockState, now = mockNow(state)) {
     }
     const elapsed = now - Date.parse(run.executionStartedAt)
     if (elapsed < 1500) {
-      run.status = 'queued'
+      setRunStage(state, run, 'queued')
       continue
     }
     if (elapsed < 3500) {
-      run.status = 'running'
+      setRunStage(state, run, 'running')
       continue
     }
     if (elapsed < 5500) {
-      run.status = 'validating'
+      setRunStage(state, run, 'validating')
       continue
     }
     if (run.outcome !== 'succeeded') {
@@ -117,7 +126,7 @@ export function advanceRuns(state: MockState, now = mockNow(state)) {
         continue
       }
       if (elapsed < 7500) {
-        run.status = 'publishing'
+        setRunStage(state, run, 'publishing')
         continue
       }
 

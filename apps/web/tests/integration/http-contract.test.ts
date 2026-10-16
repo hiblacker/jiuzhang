@@ -73,6 +73,217 @@ async function request(
 }
 
 describe('HTTP contract and persistence', () => {
+  it('records mutation paths and related resources once without copying request payloads', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-16T00:00:00.000Z'))
+    const before = (await readState()).audit.length
+    const pause = '/tasks/3001/pause'
+    expect(
+      (await request(pause, 'POST', undefined, 'developer', 'audit-pause', '8005')).status,
+    ).toBe(200)
+    expect(
+      (await request(pause, 'POST', undefined, 'developer', 'audit-pause', '8005')).status,
+    ).toBe(200)
+    expect(
+      (await request('/tasks/3001/resume', 'POST', undefined, 'developer', undefined, '8005'))
+        .status,
+    ).toBe(200)
+    const copy = await request(
+      '/datasets/2001/copy',
+      'POST',
+      undefined,
+      'developer',
+      undefined,
+      '8005',
+    )
+    expect(copy.status).toBe(201)
+    expect((await request('/datasets/2001/versions/1/restore', 'POST')).status).toBe(200)
+    expect((await request('/system/settings', 'PATCH', { timezone: 'UTC' })).status).toBe(200)
+    expect(
+      (await request('/sources/1001', 'PATCH', { description: 'private-payload-marker' })).status,
+    ).toBe(200)
+    const entries = (await readState()).audit.slice(0, -before)
+    expect(entries).toHaveLength(6)
+    expect(entries.filter((entry) => entry.detail.startsWith('POST /api/v1' + pause))).toEqual([
+      expect.objectContaining({
+        actor: '8005',
+        action: 'post',
+        resource: 'tasks',
+        resourceId: '3001',
+      }),
+    ])
+    expect(entries).toContainEqual(
+      expect.objectContaining({
+        actor: '8005',
+        resourceId: '3001',
+        detail: 'POST /api/v1/tasks/3001/resume → 3001',
+      }),
+    )
+    expect(entries).toContainEqual(
+      expect.objectContaining({
+        actor: '8005',
+        resourceId: '2001',
+        detail: 'POST /api/v1/datasets/2001/copy → ' + copy.body.data.id,
+      }),
+    )
+    expect(entries).toContainEqual(
+      expect.objectContaining({
+        resourceId: '2001',
+        detail: 'POST /api/v1/datasets/2001/versions/1/restore → 2001',
+      }),
+    )
+    expect(entries).toContainEqual(
+      expect.objectContaining({
+        actor: '8001',
+        action: 'patch',
+        resource: 'system',
+        resourceId: 'settings',
+        detail: 'PATCH /api/v1/system/settings',
+      }),
+    )
+    expect(JSON.stringify(entries)).not.toContain('private-payload-marker')
+    const auditCount = (await readState()).audit.length
+    expect((await request('/sources/1001', 'DELETE')).status).toBe(409)
+    expect((await request('/system/settings', 'PATCH', { timezone: 'invalid-zone' })).status).toBe(
+      422,
+    )
+    expect((await request(pause, 'POST', undefined, 'viewer')).status).toBe(403)
+    expect((await readState()).audit).toHaveLength(auditCount)
+  }, 15000)
+
+  it('audits a missing-table query as failed exactly once without a false success', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-16T00:00:00.000Z'))
+    const table = (await readState()).tables[0]!
+    const created = await request(
+      '/queries',
+      'POST',
+      { sql: 'SELECT * FROM ' + table.name + ' LIMIT 100' },
+      'viewer',
+      undefined,
+      '8003',
+    )
+    expect(created.status).toBe(201)
+    const queryId = created.body.data.id
+    await transact((state) => {
+      state.tables = state.tables.filter((item) => item.id !== table.id)
+    })
+    expect((await request('/demo/tick', 'POST', { advanceSeconds: 3 })).status).toBe(200)
+    expect(
+      (await request('/queries/' + queryId, 'GET', undefined, 'viewer', undefined, '8003')).body
+        .data.status,
+    ).toBe('failed')
+    await request('/demo/tick', 'POST', { advanceSeconds: 3 })
+    const entries = (await readState()).audit.filter(
+      (entry) => entry.resource === 'queries' && entry.resourceId === queryId,
+    )
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ actor: '8003', action: 'post' }),
+        expect.objectContaining({ actor: 'worker-demo', action: 'failed' }),
+      ]),
+    )
+    expect(entries).toHaveLength(2)
+    expect(entries.some((entry) => entry.action === 'succeeded')).toBe(false)
+  })
+
+  it('audits observed run stages once and keeps terminal failures separate from publication', async () => {
+    const start = Date.parse('2026-10-16T00:00:00.000Z')
+    vi.spyOn(Date, 'now').mockReturnValue(start)
+    const created = await request('/datasets/2001/runs', 'POST', { outcome: 'succeeded' })
+    expect(created.status).toBe(201)
+    const id = created.body.data.id
+    for (const seconds of [2, 4, 6, 8])
+      await transact((state) => {
+        advanceRuns(state, start + seconds * 1000)
+        advanceRuns(state, start + seconds * 1000)
+      })
+    const entries = (await readState()).audit.filter(
+      (entry) => entry.resource === 'runs' && entry.resourceId === id,
+    )
+    expect(entries.map((entry) => entry.action)).toEqual([
+      'succeeded',
+      'publishing',
+      'validating',
+      'running',
+    ])
+    expect(entries.every((entry) => entry.actor === 'worker-demo')).toBe(true)
+    const failed = await request('/datasets/2002/runs', 'POST', { outcome: 'failed' })
+    expect(failed.status).toBe(201)
+    await transact((state) => {
+      advanceRuns(state, start + 6000)
+      advanceRuns(state, start + 8000)
+    })
+    const after = await readState()
+    expect(after.audit.filter((entry) => entry.resourceId === failed.body.data.id)).toEqual([
+      expect.objectContaining({ actor: 'worker-demo', action: 'failed', resource: 'runs' }),
+    ])
+    expect(
+      after.audit.some(
+        (entry) => entry.action === 'publish' && entry.detail.includes(failed.body.data.id),
+      ),
+    ).toBe(false)
+  })
+
+  it('audits import and export completion and expiry only once per transition', async () => {
+    const start = Date.parse('2026-10-16T00:00:00.000Z')
+    vi.spyOn(Date, 'now').mockReturnValue(start)
+    for (const outcome of ['succeeded', 'failed'] as const) {
+      const created = await request('/imports', 'POST', {
+        name: 'audit-' + outcome,
+        tableName: 'audit_' + outcome,
+        layer: 'ODS',
+        csv: 'id,value\n1,synthetic',
+        mapping: [
+          { source: 'id', target: 'id' },
+          { source: 'value', target: 'value' },
+        ],
+        outcome,
+      })
+      expect(created.status).toBe(201)
+      await transact((state) => {
+        advanceTransfers(state, start + 1000)
+        advanceTransfers(state, start + 1000)
+        advanceTransfers(state, start + 3000)
+        advanceTransfers(state, start + 4000)
+      })
+      const entries = (await readState()).audit.filter(
+        (entry) => entry.resource === 'imports' && entry.resourceId === created.body.data.id,
+      )
+      expect(entries.map((entry) => entry.action)).toEqual([outcome, 'running', 'post'])
+      expect(entries.map((entry) => entry.actor)).toEqual(['worker-demo', 'worker-demo', '8001'])
+    }
+    const table = (await readState()).tables[0]!
+    const query = await request('/queries', 'POST', {
+      sql: 'SELECT * FROM ' + table.name + ' LIMIT 100',
+    })
+    expect(query.status).toBe(201)
+    await transact((state) => advanceQueries(state, start + 3000))
+    for (const outcome of ['ready', 'failed'] as const) {
+      const created = await request('/exports', 'POST', {
+        queryId: query.body.data.id,
+        format: 'csv',
+        outcome,
+      })
+      expect(created.status).toBe(201)
+      await transact((state) => {
+        advanceTransfers(state, start + 2000)
+        advanceTransfers(state, start + 2000)
+        advanceTransfers(state, start + 86400001)
+        advanceTransfers(state, start + 86400002)
+      })
+      const entries = (await readState()).audit.filter(
+        (entry) => entry.resource === 'exports' && entry.resourceId === created.body.data.id,
+      )
+      expect(entries.map((entry) => entry.action)).toEqual(
+        outcome === 'ready' ? ['expired', 'ready', 'post'] : ['failed', 'post'],
+      )
+      expect(
+        entries
+          .filter((entry) => entry.action !== 'post')
+          .every((entry) => entry.actor === 'worker-demo'),
+      ).toBe(true)
+    }
+  }, 10000)
+
   it.each(['append', 'replace', 'upsert'] as const)(
     'publishes %s output through HTTP and audits the human and worker separately',
     async (writeMode) => {
@@ -302,14 +513,13 @@ describe('HTTP contract and persistence', () => {
   })
 
   it('advances the browser demo clock without accumulating idempotency entries', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-16T00:00:00.000Z'))
     const first = await request('/demo/tick', 'POST', { advanceSeconds: 10 })
     const second = await request('/demo/tick', 'POST', { advanceSeconds: 10 })
     expect(first.status).toBe(200)
     expect(second.status).toBe(200)
     expect(second.body.data.changed).toBeTypeOf('boolean')
-    expect(
-      Date.parse(second.body.data.now) - Date.parse(first.body.data.now),
-    ).toBeGreaterThanOrEqual(10000)
+    expect(Date.parse(second.body.data.now) - Date.parse(first.body.data.now)).toBe(10000)
     expect((await readState()).idempotency).toEqual({})
     expect((await request('/demo/tick', 'POST', { advanceSeconds: 86401 })).status).toBe(422)
   })
@@ -772,6 +982,13 @@ describe('HTTP contract and persistence', () => {
       'dated-backfill',
     )
     expect(again.body.data).toEqual(result.body.data)
+    const audits = (await readState()).audit.filter((entry) =>
+      entry.detail.startsWith('POST /api/v1/tasks/3001/backfills'),
+    )
+    expect(audits).toEqual([
+      expect.objectContaining({ actor: '8002', resource: 'tasks', resourceId: '3001' }),
+    ])
+    for (const run of result.body.data) expect(audits[0]!.detail).toContain(run.id)
     expect((await request('/runs?trigger=backfill&taskId=3001')).body.meta.total).toBe(3)
     const queued = result.body.data[1]
     await request('/runs/' + queued.id + '/cancel', 'POST')

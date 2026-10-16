@@ -197,14 +197,22 @@ export function route(
           })
           synchronizeSchedules(state, mockNow(state))
           if (key) state.idempotency[scopedKey] = { fingerprint, data: structuredClone(data) }
-          if (method !== 'get' && domain !== 'demo' && (!options.readAction || options.mutates))
+          if (method !== 'get' && domain !== 'demo' && (!options.readAction || options.mutates)) {
+            const resultIds = (Array.isArray(data) ? data : [data]).flatMap((item) =>
+              item && typeof item === 'object' && 'id' in item ? [String(item.id)] : [],
+            )
             audit(
               state,
               user?.id ?? role,
               method,
               domain,
-              String(params.id ?? (data as { id?: string })?.id ?? ''),
+              String(params.id ?? (data as { id?: string })?.id ?? path.split('/').at(-1)),
+              method.toUpperCase() +
+                ' ' +
+                url.pathname +
+                (resultIds.length ? ' → ' + resultIds.join(', ') : ''),
             )
+          }
           return { data, scenario }
         })
         await delay(result.scenario === 'slow' ? 1800 : 180)
