@@ -69,16 +69,22 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
   {
     title: uiText('ui.dataset_list_fc2b4735'),
     key: 'name',
-    minWidth: 220,
+    width: 260,
     render: (d) =>
-      h(NSpace, { align: 'center' }, () => [
-        h(Layers, { size: 18 }),
-        h(
-          NButton,
-          { text: true, type: 'primary', onClick: () => router.push('/datasets/' + d.id) },
-          () => d.name,
-        ),
-      ]),
+      h(
+        NButton,
+        {
+          text: true,
+          type: 'primary',
+          class: 'resource-name',
+          title: d.name,
+          onClick: () => router.push('/datasets/' + d.id),
+        },
+        {
+          icon: () => h(Layers, { size: 18 }),
+          default: () => h('span', { class: 'resource-name__text' }, d.name),
+        },
+      ),
   },
   {
     title: uiText('ui.dataset_list_62e951a6'),
@@ -227,6 +233,7 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
           :row-key="(d) => d.id"
           :scroll-x="1190"
           :bordered="false"
+          table-layout="fixed"
       /></AsyncState>
       <div class="pagination">
         <span>{{ t('total', { total: query.data.value?.meta.total ?? 0 }) }}</span

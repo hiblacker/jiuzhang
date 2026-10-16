@@ -71,6 +71,20 @@ p {
   padding-bottom: 19px;
 }
 
+.resource-name {
+  max-width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+.resource-name .n-button__content {
+  overflow: hidden;
+}
+.resource-name__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .n-tabs-tab:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;

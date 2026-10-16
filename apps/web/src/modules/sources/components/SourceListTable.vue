@@ -11,20 +11,20 @@ const columns = computed<DataTableColumns<Source>>(() => [
   {
     title: t('name'),
     key: 'name',
-    minWidth: 220,
+    width: 260,
     render: (row) =>
       h(
-        NSpace,
-        { align: 'center' },
+        NButton,
         {
-          default: () => [
-            h(Database, { size: 18, class: 'source-icon' }),
-            h(
-              NButton,
-              { text: true, type: 'primary', onClick: () => emit('open', row.id) },
-              { default: () => row.name },
-            ),
-          ],
+          text: true,
+          type: 'primary',
+          class: 'resource-name',
+          title: row.name,
+          onClick: () => emit('open', row.id),
+        },
+        {
+          icon: () => h(Database, { size: 18 }),
+          default: () => h('span', { class: 'resource-name__text' }, row.name),
         },
       ),
   },
@@ -90,6 +90,7 @@ const columns = computed<DataTableColumns<Source>>(() => [
     :data="rows"
     :row-key="(row) => row.id"
     :bordered="false"
+    table-layout="fixed"
     :scroll-x="900"
   />
 </template>

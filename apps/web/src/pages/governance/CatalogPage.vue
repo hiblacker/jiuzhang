@@ -51,9 +51,19 @@ const columns = computed<DataTableColumns<Model<'CatalogItem'>>>(() => [
   {
     title: uiText('ui.catalog_f016adbb'),
     key: 'name',
-    minWidth: 220,
+    width: 260,
     render: (a) =>
-      h(NButton, { text: true, type: 'primary', onClick: () => router.push(a.path) }, () => a.name),
+      h(
+        NButton,
+        {
+          text: true,
+          type: 'primary',
+          class: 'resource-name',
+          title: a.name,
+          onClick: () => router.push(a.path),
+        },
+        () => h('span', { class: 'resource-name__text' }, a.name),
+      ),
   },
   {
     title: uiText('ui.catalog_c6464f4f'),
@@ -176,6 +186,7 @@ const columns = computed<DataTableColumns<Model<'CatalogItem'>>>(() => [
         :row-key="(row) => row.id"
         :bordered="false"
         :scroll-x="850"
+        table-layout="fixed"
     /></AsyncState>
     <div class="pagination">
       <span
