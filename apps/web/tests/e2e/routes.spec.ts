@@ -35,6 +35,7 @@ test('all planned routes load directly and survive refresh', async ({ page }) =>
       const path = route.path
         .replace(':id', resourceIds[domain ?? ''] ?? '0')
         .replace(':version', '1')
+      const expectedPath = path === '/warehouse/query' ? path + '?tableId=4001' : path
       await page.goto(path)
       if (path === '/403' || path === '/404') {
         await expect(page.getByRole('button', { name: '回到工作台' })).toBeVisible()
@@ -42,13 +43,16 @@ test('all planned routes load directly and survive refresh', async ({ page }) =>
         await expect(page.getByRole('button', { name: '进入演示工作区' })).toBeVisible()
       } else {
         await expect(page.locator('h1').first()).toBeVisible()
-        await expect(page).toHaveURL(new RegExp(`${path}$`))
+        await expect(page).toHaveURL('http://localhost:5174' + expectedPath)
       }
       await expect(page.getByText('本地演示数据处理失败', { exact: true })).toHaveCount(0)
       await page.reload()
       if (path === '/403' || path === '/404') {
         await expect(page.getByRole('button', { name: '回到工作台' })).toBeVisible()
-      } else await expect(page.locator('h1').first()).toBeVisible()
+      } else {
+        await expect(page.locator('h1').first()).toBeVisible()
+        if (path !== '/login') await expect(page).toHaveURL('http://localhost:5174' + expectedPath)
+      }
       expect(errors, route.path).toEqual([])
     })
   }
