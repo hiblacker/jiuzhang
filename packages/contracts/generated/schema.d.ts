@@ -2477,6 +2477,10 @@ export interface operations {
                 trigger?: string;
                 /** @description 目录 ID；none 表示未分类。默认包括所选目录的后代。 */
                 folderId?: string;
+                /** @description true 仅返回 publishedVersion 大于 0 的数据集，含已有发布版的草稿；false 或省略不限制。分页与 total 均在筛选后计算。 */
+                publishedOnly?: "true" | "false";
+                /** @description 排除一个数据集 ID，用于上游选择避免引用自身；与搜索、目录及已发布筛选共同生效，分页前排除。空值或省略不排除。 */
+                excludeId?: string;
             };
             header?: never;
             path?: never;

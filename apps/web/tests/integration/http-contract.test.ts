@@ -73,6 +73,67 @@ async function request(
 }
 
 describe('HTTP contract and persistence', () => {
+  it('filters published upstream candidates before pagination, excludes self and retains published drafts', async () => {
+    await transact((state) => {
+      const template = structuredClone(state.datasets[0]!)
+      state.datasets = Array.from({ length: 121 }, (_, index) => ({
+        ...structuredClone(template),
+        id: String(91000 + index),
+        name: 'Upstream_' + String(index).padStart(3, '0'),
+        status: 'draft',
+        publishedVersion: index % 3 === 0 ? 2 : 0,
+        folderId: index % 2 === 0 ? null : template.folderId,
+      }))
+    })
+    const expected = Array.from({ length: 40 }, (_, index) => String(91003 + index * 3))
+    const first = await request(
+      '/datasets?publishedOnly=true&excludeId=91000&pageSize=20&sort=name',
+    )
+    expect(first.status).toBe(200)
+    expect(first.body.meta).toMatchObject({ total: 40, page: 1, pageSize: 20 })
+    expect(first.body.data.map((dataset: { id: string }) => dataset.id)).toEqual(
+      expected.slice(0, 20),
+    )
+    expect(
+      first.body.data.every(
+        (dataset: { status: string; publishedVersion: number }) =>
+          dataset.status === 'draft' && dataset.publishedVersion === 2,
+      ),
+    ).toBe(true)
+    const second = await request(
+      '/datasets?publishedOnly=true&excludeId=91000&pageSize=20&page=2&sort=name',
+    )
+    expect(second.body.data.map((dataset: { id: string }) => dataset.id)).toEqual(
+      expected.slice(20),
+    )
+    expect(second.body.meta.total).toBe(40)
+    const last = await request('/datasets?publishedOnly=true&excludeId=91000&pageSize=20&page=3')
+    expect(last.body.data).toEqual([])
+    expect(last.body.meta.total).toBe(40)
+    const search = await request(
+      '/datasets?publishedOnly=true&excludeId=91120&q=Upstream_1&sort=name',
+    )
+    expect(search.body.data.map((dataset: { id: string }) => dataset.id)).toEqual([
+      '91102',
+      '91105',
+      '91108',
+      '91111',
+      '91114',
+      '91117',
+    ])
+    expect(search.body.meta.total).toBe(6)
+    const unfiled = await request(
+      '/datasets?publishedOnly=true&excludeId=91000&folderId=none&pageSize=100',
+    )
+    expect(unfiled.body.meta.total).toBe(20)
+    expect(
+      unfiled.body.data.every((dataset: { folderId: string | null }) => dataset.folderId === null),
+    ).toBe(true)
+    expect((await request('/datasets?publishedOnly=false')).body.meta.total).toBe(121)
+    expect((await request('/datasets')).body.meta.total).toBe(121)
+    expect((await request('/datasets?publishedOnly=invalid')).status).toBe(422)
+  })
+
   it('aggregates all warehouse layers without truncating rows or counts to the first page', async () => {
     await transact((state) => {
       const template = structuredClone(state.tables[0]!)

@@ -29,12 +29,13 @@ import {
 } from 'naive-ui'
 import {
   useDatasetEditor,
-  useDatasets,
+  useDataset,
   useDatasetVersion,
   DatasetFields,
   DatasetGraph,
   DatasetFolderSelect,
   DatasetOutputSummary,
+  UpstreamDatasetSelect,
 } from '@/modules/datasets'
 import { SourcePicker, useSourceObjects } from '@/modules/sources'
 import { useQuality, useMasking } from '@/modules/governance'
@@ -50,36 +51,31 @@ const route = useRoute(),
 const id = computed(() => String(route.params.id ?? ''))
 const { query, draft, dirty, save, preview } = useDatasetEditor(id)
 const objects = useSourceObjects(() => draft.value.definition.sourceId)
-const upstreamList = useDatasets({ pageSize: '100' })
+const upstream = useDataset(() => draft.value.definition.upstreamDatasetId)
 const upstreamVersion = useDatasetVersion(
   () => draft.value.definition.upstreamDatasetId,
-  () =>
-    String(
-      upstreamList.data.value?.data.find(
-        (dataset) => dataset.id === draft.value.definition.upstreamDatasetId,
-      )?.publishedVersion ?? '',
-    ),
+  () => (upstream.data.value?.publishedVersion ? String(upstream.data.value.publishedVersion) : ''),
 )
 const selectedUpstream = ref('')
-watch(
-  () => upstreamVersion.data.value,
-  (version) => {
-    if (version && selectedUpstream.value === version.datasetId) {
-      draft.value.definition.fields = version.definition.fields
-        .filter((field) => field.output)
-        .map((field) => ({ ...field, name: field.target }))
-      selectedUpstream.value = ''
-    }
-  },
-)
+watch([selectedUpstream, () => upstreamVersion.data.value], ([selected, version]) => {
+  if (
+    version &&
+    selected === version.datasetId &&
+    selected === draft.value.definition.upstreamDatasetId
+  ) {
+    draft.value.definition.fields = version.definition.fields
+      .filter((field) => field.output)
+      .map((field) => ({ ...field, name: field.target }))
+    selectedUpstream.value = ''
+  }
+})
 function selectUpstream(value: string | null) {
   draft.value.definition.upstreamDatasetId = value ?? ''
+  selectedUpstream.value = value ?? ''
   if (value) {
     draft.value.definition.sourceId = ''
     draft.value.definition.objectId = ''
     draft.value.definition.fields = []
-    selectedUpstream.value = value
-    void upstreamVersion.refetch()
   }
 }
 const quality = useQuality({ pageSize: '100' }),
@@ -108,6 +104,7 @@ watch(
   { immediate: true },
 )
 function selectSource(value: string) {
+  selectedUpstream.value = ''
   draft.value.definition.upstreamDatasetId = ''
   draft.value.definition.sourceId = value
   draft.value.definition.objectId = ''
@@ -119,7 +116,7 @@ function selectObject(value: string) {
   if (object) draft.value.definition.fields = object.fields.map((field) => ({ ...field }))
 }
 async function submit() {
-  if (save.isPending.value) return
+  if (save.isPending.value || selectedUpstream.value) return
   try {
     await form.value?.validate()
   } catch {
@@ -151,9 +148,13 @@ useEditGuard(dirty, save.isPending)
     ><NButton :loading="preview.isPending.value" @click="showPreview">{{
       uiText('ui.dataset_editor_350d00d1')
     }}</NButton
-    ><NButton type="primary" :loading="save.isPending.value" @click="submit">{{
-      uiText('ui.dataset_editor_4cd30ef9')
-    }}</NButton></PageHeader
+    ><NButton
+      type="primary"
+      :loading="save.isPending.value"
+      :disabled="!!selectedUpstream"
+      @click="submit"
+      >{{ uiText('ui.dataset_editor_4cd30ef9') }}</NButton
+    ></PageHeader
   ><AsyncState
     :loading="!!id && query.isLoading.value"
     :error="query.error.value"
@@ -196,25 +197,31 @@ useEditGuard(dirty, save.isPending)
           animated
           ><NTabPane name="input" :tab="uiText('ui.dataset_editor_f0f6fbb8')">
             <NFormItem :label="t('datasets.upstream')">
-              <NSelect
-                :value="draft.definition.upstreamDatasetId || null"
-                v-select-trigger-name="t('datasets.upstream')"
-                clearable
-                :placeholder="t('datasets.selectUpstream')"
-                :options="
-                  upstreamList.data.value?.data
-                    .filter((dataset) => dataset.id !== id && dataset.publishedVersion > 0)
-                    .map((dataset) => ({
-                      label: dataset.name + ' · v' + dataset.publishedVersion,
-                      value: dataset.id,
-                    }))
-                "
+              <UpstreamDatasetSelect
+                :value="draft.definition.upstreamDatasetId"
+                :excluded-id="id"
+                :disabled="save.isPending.value"
                 @update:value="selectUpstream"
               />
             </NFormItem>
             <NAlert v-if="draft.definition.upstreamDatasetId" type="info" class="mb">{{
               t('datasets.upstreamHint')
             }}</NAlert>
+            <NAlert
+              v-if="selectedUpstream"
+              :type="upstreamVersion.error.value ? 'error' : 'info'"
+              class="mb"
+            >
+              <p>{{ t('datasets.upstreamSchemaPending') }}</p>
+              <template v-if="upstreamVersion.error.value">
+                <p>{{ t(errorKey(upstreamVersion.error.value)) }}</p>
+                <NButton
+                  :loading="upstreamVersion.isFetching.value"
+                  @click="upstreamVersion.refetch()"
+                  >{{ t('retry') }}</NButton
+                >
+              </template>
+            </NAlert>
             <NGrid :cols="3" :x-gap="24"
               ><NFormItemGi :label="uiText('ui.dataset_editor_a3ccf702')"
                 ><SourcePicker

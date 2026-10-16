@@ -31,9 +31,12 @@ export const datasetRepository = {
   async versions(id: string) {
     return unwrap(await api.GET('/datasets/{id}/versions', { params: { path: { id } } })).data
   },
-  async version(id: string, version: string) {
+  async version(id: string, version: string, signal?: AbortSignal) {
     return unwrap(
-      await api.GET('/datasets/{id}/versions/{version}', { params: { path: { id, version } } }),
+      await api.GET('/datasets/{id}/versions/{version}', {
+        params: { path: { id, version } },
+        signal,
+      }),
     ).data
   },
   async restore(id: string, version: string) {

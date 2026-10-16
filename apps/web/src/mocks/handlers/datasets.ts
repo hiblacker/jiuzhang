@@ -229,14 +229,24 @@ export const datasetHandlers = [
     'get',
     '/datasets',
     ({ state, url }) => {
+      const publishedOnly = url.searchParams.get('publishedOnly')
+      ensure(
+        publishedOnly === null || publishedOnly === 'true' || publishedOnly === 'false',
+        422,
+        'VALIDATION_ERROR',
+        'publishedOnly 仅支持 true 或 false',
+      )
+      const excludedId = url.searchParams.get('excludeId')
+      const datasets = state.datasets.filter(
+        (dataset) =>
+          dataset.id !== excludedId && (publishedOnly !== 'true' || dataset.publishedVersion > 0),
+      )
       const folderId = url.searchParams.get('folderId')
-      if (!folderId) return state.datasets
-      if (folderId === 'none') return state.datasets.filter((dataset) => dataset.folderId === null)
+      if (!folderId) return datasets
+      if (folderId === 'none') return datasets.filter((dataset) => dataset.folderId === null)
       find(state.folders, folderId)
       const ids = folderScope(state.folders, folderId)
-      return state.datasets.filter(
-        (dataset) => dataset.folderId !== null && ids.has(dataset.folderId),
-      )
+      return datasets.filter((dataset) => dataset.folderId !== null && ids.has(dataset.folderId))
     },
     { list: true },
   ),

@@ -1,11 +1,42 @@
 import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { datasetRepository } from '../api/dataset-repository'
 import { newDataset, toInput } from '../model/definition'
 export function useDatasets(filters: MaybeRefOrGetter<Record<string, string>>) {
   return useQuery({
     queryKey: computed(() => ['datasets', toValue(filters)]),
     queryFn: ({ signal }) => datasetRepository.list(toValue(filters), signal),
+  })
+}
+export function useUpstreamDatasetOptions(
+  search: MaybeRefOrGetter<string>,
+  excludedId: MaybeRefOrGetter<string>,
+) {
+  return useInfiniteQuery({
+    queryKey: computed(() => [
+      'datasets',
+      'upstream-options',
+      toValue(search),
+      toValue(excludedId),
+    ]),
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) =>
+      datasetRepository.list(
+        {
+          q: toValue(search),
+          excludeId: toValue(excludedId),
+          publishedOnly: 'true',
+          page: String(pageParam),
+          pageSize: '20',
+          sort: 'name',
+        },
+        signal,
+      ),
+    getNextPageParam: (lastPage) => {
+      const { page = 1, pageSize = 20, total } = lastPage.meta
+      if (total === undefined) return lastPage.data.length === pageSize ? page + 1 : undefined
+      return page * pageSize < total ? page + 1 : undefined
+    },
   })
 }
 export function useDataset(id: MaybeRefOrGetter<string>) {
@@ -35,7 +66,7 @@ export function useDatasetPreview(
 export function useDatasetVersion(id: MaybeRefOrGetter<string>, version: MaybeRefOrGetter<string>) {
   return useQuery({
     queryKey: computed(() => ['datasets', 'version', toValue(id), toValue(version)]),
-    queryFn: () => datasetRepository.version(toValue(id), toValue(version)),
+    queryFn: ({ signal }) => datasetRepository.version(toValue(id), toValue(version), signal),
     enabled: computed(() => !!toValue(id) && !!toValue(version)),
   })
 }
