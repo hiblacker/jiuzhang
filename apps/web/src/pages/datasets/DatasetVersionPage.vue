@@ -5,7 +5,6 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   NCard,
   NButton,
-  NDataTable,
   NDescriptions,
   NDescriptionsItem,
   NAlert,
@@ -23,6 +22,7 @@ import {
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
+import { DataPreview } from '@/shared/ui/data-preview'
 import { useCan } from '@/shared/security/permissions'
 import { errorKey } from '@/shared/api/error-message'
 
@@ -46,14 +46,10 @@ const snapshotColumns = computed(() => [
   {
     title: t('datasets.version.fields.nullable'),
     key: 'nullable',
-    render: (field: { nullable: boolean }) =>
-      field.nullable ? t('datasets.version.yes') : t('datasets.version.no'),
   },
   {
     title: t('datasets.version.fields.sensitive'),
     key: 'sensitive',
-    render: (field: { sensitive: boolean }) =>
-      field.sensitive ? t('datasets.version.yes') : t('datasets.version.no'),
   },
   { title: t('description'), key: 'description' },
 ])
@@ -203,16 +199,18 @@ async function restore() {
               >{{ t('sources.allFields') }}</NButton
             >
           </NAlert>
-          <NDataTable
+          <DataPreview
             :columns="snapshotColumns"
-            :data="
-              sourceObjectId === snapshot.object.id && sourceField
+            :rows="
+              (sourceObjectId === snapshot.object.id && sourceField
                 ? snapshot.object.fields.filter((field) => field.name === sourceField)
                 : snapshot.object.fields
+              ).map((field) => ({
+                ...field,
+                nullable: field.nullable ? t('datasets.version.yes') : t('datasets.version.no'),
+                sensitive: field.sensitive ? t('datasets.version.yes') : t('datasets.version.no'),
+              }))
             "
-            :row-key="(field) => field.name"
-            :scroll-x="650"
-            :bordered="false"
           />
         </NCollapseItem>
       </NCollapse>
@@ -223,9 +221,16 @@ async function restore() {
     </NCard>
     <NCard :bordered="false" class="mt">
       <NAlert type="info" class="mb">{{ t('datasets.version.direction') }}</NAlert>
-      <NDataTable
-        :data="diff"
-        :row-key="(row) => row.key"
+      <DataPreview
+        :rows="
+          diff.map(({ name, historical, draft, change, details }) => ({
+            name,
+            historical,
+            draft,
+            change,
+            details,
+          }))
+        "
         :columns="[
           { title: t('datasets.version.fields.name'), key: 'name' },
           { title: t('datasets.version.historical'), key: 'historical' },
@@ -233,7 +238,6 @@ async function restore() {
           { title: t('ui.dataset_version_9318a258'), key: 'change' },
           { title: t('datasets.version.changedProperties'), key: 'details' },
         ]"
-        :bordered="false"
       />
       <NCollapse class="mt">
         <NCollapseItem name="definition" :title="t('datasets.version.definition')">

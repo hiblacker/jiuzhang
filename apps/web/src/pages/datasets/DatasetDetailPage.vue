@@ -152,15 +152,14 @@ async function publish() {
             />
           </AsyncState> </NTabPane
         ><NTabPane name="fields" :tab="uiText('ui.dataset_detail_77a49f2c')"
-          ><NDataTable
-            :data="query.data.value?.definition.fields ?? []"
+          ><DataPreview
+            :rows="query.data.value?.definition.fields.map((field) => ({ ...field })) ?? []"
             :columns="[
               { title: uiText('ui.dataset_detail_8e321432'), key: 'name' },
               { title: uiText('ui.dataset_detail_adf908d5'), key: 'target' },
               { title: uiText('ui.dataset_detail_e4e46c72'), key: 'type' },
               { title: uiText('ui.dataset_detail_26670dda'), key: 'description' },
-            ]"
-            :bordered="false" /></NTabPane
+            ]" /></NTabPane
         ><NTabPane name="rules" :tab="uiText('ui.dataset_detail_9b99d4d0')"
           ><NDescriptions :column="1" bordered
             ><NDescriptionsItem :label="uiText('ui.dataset_detail_cd56476f')">{{

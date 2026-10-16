@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { CopyButton } from '@/shared/ui/copy-button'
 import type { Model } from '@/shared/api/types'
 type Row = Model<'Row'>
-const props = defineProps<{ columns: string[]; rows: Row[] }>()
+const props = defineProps<{ columns: (string | { key: string; title: string })[]; rows: Row[] }>()
 const { t } = useI18n()
 const page = ref(1)
 const pageSize = ref(50)
@@ -16,13 +16,15 @@ watch([() => props.rows, () => JSON.stringify(props.columns)], () => {
 })
 const columns = computed<DataTableColumns<Row>>(() =>
   props.columns.map((column) => ({
-    title: column,
-    key: column,
+    title: typeof column === 'string' ? column : column.title,
+    key: typeof column === 'string' ? column : column.key,
     width: 180,
     ellipsis: { tooltip: true },
     render: (row, index) => {
+      const key = typeof column === 'string' ? column : column.key
+      const title = typeof column === 'string' ? column : column.title
       let value = '—'
-      if (Object.hasOwn(row, column)) value = row[column] === null ? 'NULL' : String(row[column])
+      if (Object.hasOwn(row, key)) value = row[key] === null ? 'NULL' : String(row[key])
       if (value.length <= 80 && !value.includes('\n')) return value
       return h(
         NButton,
@@ -30,9 +32,9 @@ const columns = computed<DataTableColumns<Row>>(() =>
           text: true,
           type: 'primary',
           class: 'preview-value',
-          'aria-label': t('dataPreview.inspect', { column, row: index + 1 }),
+          'aria-label': t('dataPreview.inspect', { column: title, row: index + 1 }),
           onClick: () => {
-            selected.value = { column, value }
+            selected.value = { column: title, value }
           },
         },
         () => h('span', { class: 'preview-value__text' }, value),

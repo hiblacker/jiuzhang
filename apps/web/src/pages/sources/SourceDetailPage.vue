@@ -14,7 +14,6 @@ import {
   NTabPane,
   NDescriptions,
   NDescriptionsItem,
-  NDataTable,
   NAlert,
 } from 'naive-ui'
 import { useSource, useSourceObjects, useSourcePreview, SourceObjectTree } from '@/modules/sources'
@@ -127,12 +126,14 @@ const readonly = computed(() => !canWrite.value)
                   }}</NButton></NAlert
                 >
                 <h3>{{ t('sources.fields') }}</h3>
-                <NDataTable
+                <DataPreview
                   :columns="columns"
-                  :data="
-                    selectedField ? fields.filter((field) => field.name === selectedField) : fields
+                  :rows="
+                    (selectedField
+                      ? fields.filter((field) => field.name === selectedField)
+                      : fields
+                    ).map((field) => ({ ...field }))
                   "
-                  :bordered="false"
                 />
               </section></div></AsyncState></NTabPane
         ><NTabPane name="preview" :tab="t('sources.preview')"

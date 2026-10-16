@@ -16,7 +16,6 @@ import {
   NTabPane,
   NDescriptions,
   NDescriptionsItem,
-  NDataTable,
   NTag,
   NAlert,
 } from 'naive-ui'
@@ -66,15 +65,14 @@ const route = useRoute(),
         :value="tab"
         @update:value="tab = $event"
         ><NTabPane name="schema" :tab="uiText('ui.table_detail_c6e4459c')"
-          ><NDataTable
-            :data="query.data.value?.fields ?? []"
+          ><DataPreview
+            :rows="query.data.value?.fields.map((field) => ({ ...field })) ?? []"
             :columns="[
               { title: uiText('ui.table_detail_8e321432'), key: 'name' },
               { title: uiText('ui.table_detail_adf908d5'), key: 'target' },
               { title: uiText('ui.table_detail_e4e46c72'), key: 'type' },
               { title: uiText('ui.table_detail_26670dda'), key: 'description' },
-            ]"
-            :bordered="false" /></NTabPane
+            ]" /></NTabPane
         ><NTabPane name="sample" :tab="uiText('ui.table_detail_cb9dec6e')"
           ><NAlert type="info" class="mb">{{ uiText('ui.table_detail_58436a15') }}</NAlert
           ><DataPreview
