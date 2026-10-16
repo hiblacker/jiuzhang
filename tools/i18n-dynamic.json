@@ -105,16 +105,6 @@
     ]
   },
   "pages/datasets/DatasetDetailPage.vue": {
-    "'states.' + run.status": [
-      "states.succeeded",
-      "states.running",
-      "states.failed",
-      "states.blocked",
-      "states.canceled",
-      "states.queued",
-      "states.validating",
-      "states.publishing"
-    ],
     "errorKey(actions.publish.error.value)": [
       "errors.NETWORK_ERROR",
       "errors.DEMO_ERROR",
@@ -543,6 +533,18 @@
       "csv.errors.MISSING_DATA",
       "csv.errors.INVALID_HEADERS",
       "csv.errors.COLUMN_COUNT"
+    ]
+  },
+  "modules/jobs/components/RunHistory.vue": {
+    "'states.' + run.status": [
+      "states.succeeded",
+      "states.running",
+      "states.failed",
+      "states.blocked",
+      "states.canceled",
+      "states.queued",
+      "states.validating",
+      "states.publishing"
     ]
   }
 }

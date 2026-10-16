@@ -18,7 +18,14 @@ import {
   NDatePicker,
   type FormInst,
 } from 'naive-ui'
-import { useTask, useTasks, useRuns, useJobActions, ScheduleForm, RunTrigger } from '@/modules/jobs'
+import {
+  useTask,
+  useTasks,
+  useJobActions,
+  ScheduleForm,
+  RunTrigger,
+  RunHistory,
+} from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import type { Model } from '@/shared/api/types'
@@ -32,7 +39,6 @@ const route = useRoute(),
   editing = computed(() => route.path.endsWith('/edit')),
   query = useTask(id),
   tasks = useTasks({ pageSize: '100' }),
-  runs = useRuns(() => ({ taskId: id.value, pageSize: '100' })),
   actions = useJobActions(),
   draft = ref<Model<'TaskInput'> | null>(null),
   baseline = ref(''),
@@ -194,16 +200,9 @@ async function backfill() {
           ></NDescriptions
         >
         <h3>{{ uiText('ui.task_a961a1c4') }}</h3>
-        <div
-          v-for="run in runs.data.value?.data.filter((r) => r.taskId === id)"
-          :key="run.id"
-          class="task-run"
-        >
-          <NButton text type="primary" @click="router.push('/runs/' + run.id)">{{ run.id }}</NButton
-          ><span>{{ run.status }} · {{ run.startedAt }}</span>
-        </div></template
-      ></NCard
-    ></AsyncState
+        <RunHistory
+          :scope="{ taskId: id }"
+          @select="router.push('/runs/' + $event)" /></template></NCard></AsyncState
   ><NModal
     :show="backfillOpen"
     preset="card"
@@ -235,12 +234,3 @@ async function backfill() {
     ></NModal
   >
 </template>
-<style scoped>
-.task-run {
-  display: flex;
-  justify-content: space-between;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
-}
-</style>

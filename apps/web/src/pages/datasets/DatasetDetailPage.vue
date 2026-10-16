@@ -18,7 +18,6 @@ import {
   NDescriptions,
   NDescriptionsItem,
   NDataTable,
-  NEmpty,
 } from 'naive-ui'
 import {
   useDataset,
@@ -28,7 +27,7 @@ import {
   useFolders,
   folderPath,
 } from '@/modules/datasets'
-import { useRuns, RunTrigger } from '@/modules/jobs'
+import { RunHistory, RunTrigger } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { CopyButton } from '@/shared/ui/copy-button'
@@ -42,7 +41,6 @@ const route = useRoute(),
 const query = useDataset(id),
   folders = useFolders(),
   versions = useDatasetVersions(id),
-  runs = useRuns({ pageSize: '100' }),
   actions = useDatasetActions(),
   confirm = ref(false),
   readonly = computed(() => !canWrite.value)
@@ -51,9 +49,6 @@ const tab = useRouteTab(
   'overview',
 )
 const preview = useDatasetPreview(id, () => tab.value === 'preview')
-const relatedRuns = computed(
-  () => runs.data.value?.data.filter((r) => r.datasetId === id.value) ?? [],
-)
 function requestPublish() {
   if (readonly.value || !query.data.value || actions.publish.isPending.value) return
   actions.publish.reset()
@@ -227,13 +222,9 @@ async function publish() {
             </div></AsyncState
           ></NTabPane
         ><NTabPane name="runs" :tab="uiText('ui.dataset_detail_0c3acd44')"
-          ><NEmpty v-if="!relatedRuns.length" :description="uiText('ui.dataset_detail_cdff1346')" />
-          <div v-for="run in relatedRuns" :key="run.id" class="version-row">
-            <NButton text type="primary" @click="router.push('/runs/' + run.id)">{{
-              run.id
-            }}</NButton
-            ><span>{{ t('states.' + run.status) }} · v{{ run.datasetVersion }}</span>
-          </div></NTabPane
+          ><RunHistory
+            :scope="{ datasetId: id }"
+            @select="router.push('/runs/' + $event)" /></NTabPane
         ><NTabPane name="lineage" :tab="uiText('ui.dataset_detail_34c5a283')"
           ><NButton
             type="primary"

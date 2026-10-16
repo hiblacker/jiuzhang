@@ -2,7 +2,7 @@
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
 import { useRouteTab } from '@/shared/composables/use-route-tab'
 const canWrite = useCan('write')
-import { computed, h } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
@@ -17,7 +17,7 @@ import {
   NAlert,
 } from 'naive-ui'
 import { useSource, useSourceObjects, useSourcePreview, SourceObjectTree } from '@/modules/sources'
-import { useRuns } from '@/modules/jobs'
+import { RunHistory } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { CopyButton } from '@/shared/ui/copy-button'
@@ -26,22 +26,6 @@ const { t } = useI18n(),
   route = useRoute(),
   router = useRouter()
 const id = computed(() => String(route.params.id))
-const runs = useRuns(() => ({ sourceId: id.value, pageSize: '100' }))
-const runColumns = computed(() => [
-  {
-    title: 'Run ID',
-    key: 'id',
-    render: (run: { id: string }) =>
-      h(
-        NButton,
-        { text: true, type: 'primary', onClick: () => router.push('/runs/' + run.id) },
-        () => run.id,
-      ),
-  },
-  { title: t('status'), key: 'status' },
-  { title: t('datasets.upstream'), key: 'datasetId' },
-  { title: t('updated'), key: 'startedAt' },
-])
 const source = useSource(id),
   objects = useSourceObjects(id)
 const selected = computed(() =>
@@ -163,15 +147,9 @@ const readonly = computed(() => !canWrite.value)
               :data="preview.data.value?.rows ?? []"
               :bordered="false" /></AsyncState></NTabPane
         ><NTabPane name="sync" :tab="t('sources.sync')"
-          ><AsyncState
-            :loading="runs.isLoading.value"
-            :error="runs.error.value"
-            :empty="runs.data.value?.data.length === 0"
-            @retry="runs.refetch()"
-            ><NDataTable
-              :data="runs.data.value?.data ?? []"
-              :columns="runColumns"
-              :bordered="false" /></AsyncState></NTabPane></NTabs></NCard
+          ><RunHistory
+            :scope="{ sourceId: id }"
+            @select="router.push('/runs/' + $event)" /></NTabPane></NTabs></NCard
   ></AsyncState>
 </template>
 <style scoped>

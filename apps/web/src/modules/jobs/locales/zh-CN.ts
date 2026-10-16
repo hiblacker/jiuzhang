@@ -3,6 +3,10 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   jobs: {
+    history: '运行历史',
+    dataset: '数据集 ID',
+    runVersion: '运行绑定版本',
+    startedAt: '开始时间',
     cancelRun: '取消运行 {id}',
     retryRun: '重试运行 {id}',
     retryOutcome: '运行 {id} 的演示重试结果',
