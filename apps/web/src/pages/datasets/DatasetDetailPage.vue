@@ -16,8 +16,6 @@ import {
   NDescriptions,
   NDescriptionsItem,
   NDataTable,
-  NModal,
-  NSpace,
   NEmpty,
 } from 'naive-ui'
 import {
@@ -32,6 +30,7 @@ import { useRuns, RunTrigger } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { CopyButton } from '@/shared/ui/copy-button'
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
 import { errorKey } from '@/shared/api/error-message'
 import { useCan } from '@/shared/security/permissions'
 const route = useRoute(),
@@ -50,7 +49,13 @@ const preview = useDatasetPreview(id, () => tab.value === 'preview')
 const relatedRuns = computed(
   () => runs.data.value?.data.filter((r) => r.datasetId === id.value) ?? [],
 )
+function requestPublish() {
+  if (readonly.value || !query.data.value || actions.publish.isPending.value) return
+  actions.publish.reset()
+  confirm.value = true
+}
 async function publish() {
+  if (readonly.value || !query.data.value || actions.publish.isPending.value) return
   try {
     await actions.publish.mutateAsync(id.value)
     confirm.value = false
@@ -64,7 +69,7 @@ async function publish() {
     ><NButton :disabled="readonly" @click="router.push('/datasets/' + id + '/edit')">{{
       uiText('ui.dataset_detail_13bd30e1')
     }}</NButton
-    ><NButton :disabled="readonly" type="primary" @click="confirm = true">{{
+    ><NButton :disabled="readonly || !query.data.value" type="primary" @click="requestPublish">{{
       uiText('ui.dataset_detail_c789c17a')
     }}</NButton
     ><RunTrigger
@@ -233,32 +238,22 @@ async function publish() {
         ></NTabs
       ></NCard
     ></AsyncState
-  ><NModal
+  ><ConfirmDialog
     :show="confirm"
-    preset="card"
     :title="uiText('ui.dataset_detail_bbbe36d4')"
-    style="width: 480px"
-    :closable="!actions.publish.isPending.value"
-    :mask-closable="false"
-    @close="confirm = false"
-    ><p>
-      {{ uiText('ui.dataset_detail_ef13ebf7') }}{{ (query.data.value?.publishedVersion ?? 0) + 1
-      }}{{ uiText('ui.dataset_detail_ef711d29') }}
-    </p>
-    <NAlert v-if="actions.publish.error.value" type="error">{{
-      t(errorKey(actions.publish.error.value))
-    }}</NAlert
-    ><template #footer
-      ><NSpace justify="end"
-        ><NButton :disabled="actions.publish.isPending.value" @click="confirm = false">{{
-          uiText('ui.dataset_detail_4d0b4688')
-        }}</NButton
-        ><NButton type="primary" :loading="actions.publish.isPending.value" @click="publish">{{
-          uiText('ui.dataset_detail_221f71a4')
-        }}</NButton></NSpace
-      ></template
-    ></NModal
-  >
+    :description="
+      uiText('ui.dataset_detail_ef13ebf7') +
+      ((query.data.value?.publishedVersion ?? 0) + 1) +
+      uiText('ui.dataset_detail_ef711d29')
+    "
+    :pending="actions.publish.isPending.value"
+    :error="actions.publish.error.value ? t(errorKey(actions.publish.error.value)) : undefined"
+    :confirm-text="uiText('ui.dataset_detail_221f71a4')"
+    :destructive="false"
+    :disabled="readonly || !query.data.value"
+    @confirm="publish"
+    @cancel="confirm = false"
+  />
 </template>
 <style scoped>
 .version-row {

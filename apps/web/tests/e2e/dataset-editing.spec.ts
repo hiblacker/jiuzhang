@@ -78,7 +78,7 @@ test('historical source schemas stay inspectable through field deep links and sh
     fullPage: true,
   })
 })
-async function scenario(page: Page, value: 'normal' | 'error') {
+async function scenario(page: Page, value: 'normal' | 'error' | 'slow') {
   await page.evaluate(async (scenario) => {
     const response = await fetch('/api/v1/demo/control', {
       method: 'PATCH',
@@ -284,4 +284,69 @@ test('Union all and distinct change row counts and aggregate edits produce group
   await page.goto('/datasets/2001/edit')
   await page.getByRole('button', { name: '预览样本', exact: true }).click()
   await expect(page.getByRole('cell', { name: '1112.00', exact: true })).toBeVisible()
+})
+
+test('publication confirmation keeps focus, retains failures and blocks closing or duplicate writes while pending', async ({
+  page,
+}) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.goto('/datasets/2001')
+  const trigger = page.getByRole('button', { name: '发布版本', exact: true })
+  await expect(trigger).toBeEnabled()
+  const historical = await page.evaluate(
+    async () => (await (await fetch('/api/v1/datasets/2001/versions/1')).json()).data,
+  )
+  const requests: string[] = []
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && request.url().endsWith('/datasets/2001/publish'))
+      requests.push(request.url())
+  })
+  await trigger.focus()
+  await page.keyboard.press('Enter')
+  const modal = page.locator('.n-modal')
+  const cancel = modal.getByRole('button', { name: '取消', exact: true })
+  const submit = modal.getByRole('button', { name: /确认发布/ })
+  await expect(cancel).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(modal).toHaveCount(0)
+  await expect(trigger).toBeFocused()
+  expect(requests).toHaveLength(0)
+
+  await trigger.click()
+  await scenario(page, 'error')
+  await submit.click()
+  await expect(
+    modal.getByText('当前已启用接口失败演示，可从演示控制台恢复', { exact: true }),
+  ).toBeVisible()
+  await expect(cancel).toBeEnabled()
+  await page.keyboard.press('Escape')
+  await trigger.click()
+  await expect(
+    modal.getByText('当前已启用接口失败演示，可从演示控制台恢复', { exact: true }),
+  ).toHaveCount(0)
+  await scenario(page, 'slow')
+  const started = page.waitForRequest(
+    (request) => request.method() === 'POST' && request.url().endsWith('/datasets/2001/publish'),
+  )
+  await submit.click()
+  await started
+  await expect(cancel).toBeDisabled()
+  await expect(submit).toBeDisabled()
+  await page.keyboard.press('Escape')
+  await expect(modal).toBeVisible()
+  await page.keyboard.press('Enter')
+  await expect(modal).toHaveCount(0)
+  expect(requests).toHaveLength(2)
+  await expect(trigger).toBeFocused()
+  await scenario(page, 'normal')
+  const after = await page.evaluate(async () => ({
+    history: (await (await fetch('/api/v1/datasets/2001/versions/1')).json()).data,
+    versions: (await (await fetch('/api/v1/datasets/2001/versions')).json()).data,
+  }))
+  expect(after.history).toEqual(historical)
+  expect(after.versions.map((version: { version: number }) => version.version).sort()).toEqual([
+    1, 2,
+  ])
+  expect(errors).toEqual([])
 })
