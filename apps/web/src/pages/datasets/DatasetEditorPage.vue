@@ -38,7 +38,7 @@ import {
   UpstreamDatasetSelect,
 } from '@/modules/datasets'
 import { SourcePicker, useSourceObjects } from '@/modules/sources'
-import { useQuality, useMasking } from '@/modules/governance'
+import { GovernanceBindingSelect } from '@/modules/governance'
 import { ScheduleForm } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
@@ -78,8 +78,6 @@ function selectUpstream(value: string | null) {
     draft.value.definition.fields = []
   }
 }
-const quality = useQuality({ pageSize: '100' }),
-  masking = useMasking({ pageSize: '100' })
 const form = ref<FormInst>(),
   tab = useRouteTab(['input', 'fields', 'governance', 'schedule', 'output', 'preview'], 'input')
 if (!id.value) {
@@ -260,10 +258,18 @@ useEditGuard(dirty, save.isPending)
                 v-model="draft.definition.sql"
                 :label="t('datasets.sqlEditor')" /></template></NTabPane
           ><NTabPane name="fields" :tab="uiText('ui.dataset_editor_e08a3aa8')"
-            ><DatasetFields
-              v-model="draft.definition.fields"
-              :policies="masking.data.value?.data.map((p) => ({ label: p.name, value: p.id }))"
-            /><NFormItem :label="uiText('ui.dataset_editor_16fda324')" style="margin-top: 24px"
+            ><DatasetFields v-model="draft.definition.fields" :readonly="save.isPending.value"
+              ><template #mask-policy="{ field, disabled, update }">
+                <GovernanceBindingSelect
+                  kind="masking"
+                  single
+                  size="small"
+                  :value="field.maskPolicyId ? [field.maskPolicyId] : []"
+                  :label="t('datasets.fieldPolicy', { name: field.name })"
+                  :disabled="disabled"
+                  @update:value="update($event[0] ?? '')"
+                /> </template></DatasetFields
+            ><NFormItem :label="uiText('ui.dataset_editor_16fda324')" style="margin-top: 24px"
               ><NCheckboxGroup
                 v-model:value="draft.definition.cleaning"
                 :aria-label="uiText('ui.dataset_editor_16fda324')"
@@ -276,21 +282,17 @@ useEditGuard(dirty, save.isPending)
             ></NTabPane
           ><NTabPane name="governance" :tab="uiText('ui.dataset_editor_9b99d4d0')"
             ><NFormItem :label="uiText('ui.dataset_editor_e974beee')"
-              ><NSelect
+              ><GovernanceBindingSelect
+                kind="quality"
                 v-model:value="draft.definition.qualityRuleIds"
-                v-select-trigger-name="uiText('ui.dataset_editor_e974beee')"
-                multiple
-                :options="
-                  quality.data.value?.data.map((p) => ({ label: p.name, value: p.id }))
-                " /></NFormItem
+                :label="uiText('ui.dataset_editor_e974beee')"
+                :disabled="save.isPending.value" /></NFormItem
             ><NFormItem :label="uiText('ui.dataset_editor_3792a310')"
-              ><NSelect
+              ><GovernanceBindingSelect
+                kind="masking"
                 v-model:value="draft.definition.maskPolicyIds"
-                v-select-trigger-name="uiText('ui.dataset_editor_3792a310')"
-                multiple
-                :options="
-                  masking.data.value?.data.map((p) => ({ label: p.name, value: p.id }))
-                " /></NFormItem
+                :label="uiText('ui.dataset_editor_3792a310')"
+                :disabled="save.isPending.value" /></NFormItem
             ><NAlert type="info">{{ uiText('ui.dataset_editor_0f9ea115') }}</NAlert></NTabPane
           ><NTabPane name="schedule" :tab="uiText('ui.dataset_editor_36019dc2')"
             ><ScheduleForm

@@ -2,7 +2,7 @@
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
-import { computed, h, nextTick, toRaw } from 'vue'
+import { computed, h, nextTick, toRaw, type VNodeChild } from 'vue'
 import {
   NDataTable,
   NInput,
@@ -14,7 +14,14 @@ import {
 } from 'naive-ui'
 import type { Model } from '@/shared/api/types'
 const model = defineModel<Model<'Field'>[]>({ required: true })
-const props = defineProps<{ readonly?: boolean; policies?: { label: string; value: string }[] }>()
+const props = defineProps<{ readonly?: boolean }>()
+const slots = defineSlots<{
+  'mask-policy'(props: {
+    field: Model<'Field'>
+    disabled: boolean
+    update: (value: string) => void
+  }): VNodeChild
+}>()
 const keys = new WeakMap<Model<'Field'>, number>()
 let nextKey = 0
 function rowKey(field: Model<'Field'>) {
@@ -211,15 +218,10 @@ const columns = computed<DataTableColumns<Model<'Field'>>>(() => [
     key: 'maskPolicyId',
     width: 170,
     render: (row, index) =>
-      h(NSelect, {
-        value: row.maskPolicyId || null,
-        disabled: props.readonly,
-        clearable: true,
-        size: 'small',
-        filterable: true,
-        inputProps: { 'aria-label': uiText('datasets.fieldPolicy', { name: row.name }) },
-        options: props.policies ?? [],
-        'onUpdate:value': (value) => change(index, { maskPolicyId: value ?? '' }),
+      slots['mask-policy']({
+        field: row,
+        disabled: !!props.readonly,
+        update: (value) => change(index, { maskPolicyId: value }),
       }),
   },
 ])

@@ -16,30 +16,30 @@
 
 基础层直接使用 Naive UI。具有多步交互、焦点管理、错误恢复、统一布局语义的封装才有独立价值；不建立只透传 NButton/NInput 属性的 AppButton/AppInput。
 
-| 类别 | 位置 | 负责 | 不负责 |
-|---|---|---|---|
-| 基础控件 | naive-ui 包 | 按钮、输入、菜单、原生组件能力 | 每个业务操作的请求与成功语义 |
+| 类别     | 位置                          | 负责                               | 不负责                           |
+| -------- | ----------------------------- | ---------------------------------- | -------------------------------- |
+| 基础控件 | naive-ui 包                   | 按钮、输入、菜单、原生组件能力     | 每个业务操作的请求与成功语义     |
 | 通用行为 | shared/ui、shared/composables | 确认、复制、异步状态、通用列表布局 | 数据源/数据集/任务规则、领域请求 |
-| 技术集成 | shared/editors、shared/graph | 第三方实例、resize、销毁、只读接口 | 数据集发布、SQL 执行与权限决策 |
-| 业务组件 | modules/<domain>/components | 本域表单、列定义、状态解释和操作 | 跨域内部实现、全局主题配置 |
-| 页面容器 | pages | 路由、跨域组合、页面布局与导航 | 重新实现复制/确认/错误恢复 |
+| 技术集成 | shared/editors、shared/graph  | 第三方实例、resize、销毁、只读接口 | 数据集发布、SQL 执行与权限决策   |
+| 业务组件 | modules/<domain>/components   | 本域表单、列定义、状态解释和操作   | 跨域内部实现、全局主题配置       |
+| 页面容器 | pages                         | 路由、跨域组合、页面布局与导航     | 重新实现复制/确认/错误恢复       |
 
-复杂公共组件以独立目录组织，index.ts 是公开入口；README 记录契约与真实消费者，__tests__ 保存行为测试。简单纯工具可以单文件，不为统一形式增加空目录。不得建立聚合全部 shared 或全部 modules 的总出口。
+复杂公共组件以独立目录组织，index.ts 是公开入口；README 记录契约与真实消费者，**tests** 保存行为测试。简单纯工具可以单文件，不为统一形式增加空目录。不得建立聚合全部 shared 或全部 modules 的总出口。
 
 ## 2. 公共能力建设清单
 
 以下是计划和首批消费者，不是已有组件索引。B0 只建立实际使用的能力；B1/B2 遇到稳定共同契约时补齐，其余不提前生成空文件。
 
-| 候选公开入口（相对 apps/web/src） | 契约和职责 | 首批真实场景 | 批次 |
-|---|---|---|---|
-| shared/ui/page-header | 标题、说明、面包屑、actions slot；不读路由或领域 Store | 工作台、数据源列表 | B0/B1 |
-| shared/ui/async-state | 无缓存首屏的 loading/error/empty/success；retry emit 与成功内容 slot | 概览、源列表/详情 | B0/B1 |
-| shared/ui/confirm-dialog | 受控开关、pending、错误、确认/取消及焦点；不发请求 | 删除数据源、删除数据集 | B1/B2 |
-| shared/ui/copy-button | 复制值、可访问名称、成功/失败反馈与复位 | 源 ID、任务 runId | B1/B3 |
-| shared/ui/query-toolbar | 搜索/筛选/操作 slots 与响应式排列；不定义业务筛选 | 源列表、数据集列表 | B1/B2 |
-| shared/ui/data-preview | 只读二维数据、固定列宽/内部滚动、快照内分页、完整值弹窗；标题可由调用方翻译，复用 CopyButton，不拥有请求/权限/字段规则 | 六处结果预览以及源/数据集/仓库/版本的五处只读字段表 | 已实现，契约见组件 README |
-| shared/ui/list-page | 工具栏、表格区、批量区、分页区的组合布局；不接管数据 | 源列表、数据集列表 | B1/B2，经第二个场景再确认 |
-| shared/composables/use-clipboard | 浏览器复制、结果和清理；供 CopyButton 复用 | ID、错误 requestId | 随 CopyButton |
+| 候选公开入口（相对 apps/web/src） | 契约和职责                                                                                                             | 首批真实场景                                        | 批次                      |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------- |
+| shared/ui/page-header             | 标题、说明、面包屑、actions slot；不读路由或领域 Store                                                                 | 工作台、数据源列表                                  | B0/B1                     |
+| shared/ui/async-state             | 无缓存首屏的 loading/error/empty/success；retry emit 与成功内容 slot                                                   | 概览、源列表/详情                                   | B0/B1                     |
+| shared/ui/confirm-dialog          | 受控开关、pending、错误、确认/取消及焦点；不发请求                                                                     | 删除数据源、删除数据集                              | B1/B2                     |
+| shared/ui/copy-button             | 复制值、可访问名称、成功/失败反馈与复位                                                                                | 源 ID、任务 runId                                   | B1/B3                     |
+| shared/ui/query-toolbar           | 搜索/筛选/操作 slots 与响应式排列；不定义业务筛选                                                                      | 源列表、数据集列表                                  | B1/B2                     |
+| shared/ui/data-preview            | 只读二维数据、固定列宽/内部滚动、快照内分页、完整值弹窗；标题可由调用方翻译，复用 CopyButton，不拥有请求/权限/字段规则 | 六处结果预览以及源/数据集/仓库/版本的五处只读字段表 | 已实现，契约见组件 README |
+| shared/ui/list-page               | 工具栏、表格区、批量区、分页区的组合布局；不接管数据                                                                   | 源列表、数据集列表                                  | B1/B2，经第二个场景再确认 |
+| shared/composables/use-clipboard  | 浏览器复制、结果和清理；供 CopyButton 复用                                                                             | ID、错误 requestId                                  | 随 CopyButton             |
 
 SourceConnectionForm、DatasetFieldTable、ScheduleForm、RunTimeline、MaskRuleEditor 等仍归各自领域。StatusBadge 的通用外观可以复用 NTag；把业务状态映射为文字和严重程度的规则仍归领域。全局提供者和主题装配只在 app 中定义一次。
 
@@ -47,16 +47,16 @@ SourceConnectionForm、DatasetFieldTable、ScheduleForm、RunTimeline、MaskRule
 
 ### 3.1 控件选择
 
-| 场景 | Naive UI 基础能力 | 业务约定 |
-|---|---|---|
-| 简短提示、操作结果 | NMessageProvider / useMessage | 一次操作只产生一次提示；失败不能伪装成功 |
-| 就地警告、说明 | NAlert | 可行动错误留在当前上下文 |
-| 危险操作确认 | NModal 的 dialog preset，组合 ConfirmDialog | 显示对象及影响，确认后等待实际 mutation 结果 |
-| 用户输入/编辑 | NModal + NForm，或领域表单页 | 明确标题、验证、dirty 和失败恢复 |
-| 详情/筛选侧栏 | NDrawer + NDrawerContent | 标题、关闭路径、焦点恢复与未保存保护 |
-| 短上下文操作 | NPopover / NDropdown | 键盘入口与关闭行为一致 |
-| 列表空态/首屏占位 | NEmpty / NSkeleton，经 AsyncState 协调 | 未加载不展示空态，有旧数据时不整页闪白 |
-| 状态和轻量进度 | NTag、NProgress、NSpin | 状态同时有文字；演示指标标明 Mock |
+| 场景               | Naive UI 基础能力                           | 业务约定                                     |
+| ------------------ | ------------------------------------------- | -------------------------------------------- |
+| 简短提示、操作结果 | NMessageProvider / useMessage               | 一次操作只产生一次提示；失败不能伪装成功     |
+| 就地警告、说明     | NAlert                                      | 可行动错误留在当前上下文                     |
+| 危险操作确认       | NModal 的 dialog preset，组合 ConfirmDialog | 显示对象及影响，确认后等待实际 mutation 结果 |
+| 用户输入/编辑      | NModal + NForm，或领域表单页                | 明确标题、验证、dirty 和失败恢复             |
+| 详情/筛选侧栏      | NDrawer + NDrawerContent                    | 标题、关闭路径、焦点恢复与未保存保护         |
+| 短上下文操作       | NPopover / NDropdown                        | 键盘入口与关闭行为一致                       |
+| 列表空态/首屏占位  | NEmpty / NSkeleton，经 AsyncState 协调      | 未加载不展示空态，有旧数据时不整页闪白       |
+| 状态和轻量进度     | NTag、NProgress、NSpin                      | 状态同时有文字；演示指标标明 Mock            |
 
 不得套用 shadcn 的 asChild/render、组件 Group 层级、Spinner 写法或 class API。以实际安装版本的 Naive UI 类型、文档和本地封装为准；普通按钮可直接使用其 loading/disabled 能力。
 
@@ -97,18 +97,18 @@ SourceConnectionForm、DatasetFieldTable、ScheduleForm、RunTimeline、MaskRule
 
 ## 5. Vue 响应式与数据所有权
 
-| 原则 | 九章实现 |
-|---|---|
-| 派生状态 | computed；不把计算结果复制进 Pinia 或 watch 链 |
-| 输入契约 | defineProps/defineEmits 明确类型与语义；受控组件由父级写状态 |
-| Pinia 订阅 | 状态/getter 需要解构时使用 storeToRefs；action 可单独解构 |
-| props 读取 | 默认 props.xxx；不机械照搬 React 的“禁止解构”。依赖响应性时明确 refs/getter，按已锁 Vue 版本验证 |
-| 领域 composable | 组合 Query/mutation、编辑会话与生命周期，不把所有页面逻辑堆到 useEverything |
-| 查询 | 保留响应式 ID/筛选，传递 AbortSignal；不要把 props.id 的初始快照永久用作 query key |
-| 副作用 | watch 用于外部状态同步；事件处理用户动作；computed 处理纯派生。无正当理由不 deep watch 整份表单或全局 Store |
-| 清理 | onScopeDispose/onUnmounted 释放事件、timer、editor/chart 实例；watch 清理处理过期异步任务 |
-| 昂贵实例 | 经实际需要使用 shallowRef/markRaw，不对编辑器/图实例做无意义深响应转换 |
-| 性能优先级 | 先消除独立请求串行、按路由加载与减少重型依赖；再基于实测处理局部计算/渲染 |
+| 原则            | 九章实现                                                                                                    |
+| --------------- | ----------------------------------------------------------------------------------------------------------- |
+| 派生状态        | computed；不把计算结果复制进 Pinia 或 watch 链                                                              |
+| 输入契约        | defineProps/defineEmits 明确类型与语义；受控组件由父级写状态                                                |
+| Pinia 订阅      | 状态/getter 需要解构时使用 storeToRefs；action 可单独解构                                                   |
+| props 读取      | 默认 props.xxx；不机械照搬 React 的“禁止解构”。依赖响应性时明确 refs/getter，按已锁 Vue 版本验证            |
+| 领域 composable | 组合 Query/mutation、编辑会话与生命周期，不把所有页面逻辑堆到 useEverything                                 |
+| 查询            | 保留响应式 ID/筛选，传递 AbortSignal；不要把 props.id 的初始快照永久用作 query key                          |
+| 副作用          | watch 用于外部状态同步；事件处理用户动作；computed 处理纯派生。无正当理由不 deep watch 整份表单或全局 Store |
+| 清理            | onScopeDispose/onUnmounted 释放事件、timer、editor/chart 实例；watch 清理处理过期异步任务                   |
+| 昂贵实例        | 经实际需要使用 shallowRef/markRaw，不对编辑器/图实例做无意义深响应转换                                      |
+| 性能优先级      | 先消除独立请求串行、按路由加载与减少重型依赖；再基于实测处理局部计算/渲染                                   |
 
 使用 Vue 3.5+ 的 onWatcherCleanup 时在同步回调阶段注册，不能等 await 后才注册；采用 watch 提供的 onCleanup 也需在任务失效前建立取消路径。API 请求优先走现有 Query/repository，不因为提供此规则在组件中另写请求 watcher。[V1][V2]
 
@@ -140,19 +140,19 @@ B0 接入 Vue I18n，首期只交付完整 zh-CN 文案，不新增英文翻译�
 
 - 当前安装的 Naive UI Tabs 未提供完整键盘与 ARIA 语义，六处消费者统一复用 shared/ui/accessible-tabs 指令；NTabs 须绑定翻译后的区域名称，check:ui 验证入口。它补充水平 Tab 的单一 Tab 停靠点、左右/Home/End 移动焦点、Enter/Space 激活、tablist/tab/tabpanel 关联、焦点轮廓、激活/聚焦/尺寸变化时的视口内滚动和卸载清理，不拥有领域状态或请求。
 - 可分享 Tab 统一使用 shared/composables/use-route-tab：白名单解析、默认项回退、保留其他 query 参数、push 支持前进后退。编辑器仅切 Tab 不丢草稿，离开资源仍由 useEditGuard 决定；页面传入自身合法 Tab，不新增业务万能 Tabs 组件。
-- 安装版本的 Naive NSelect 将普通 aria-label 留在非焦点外层。数据集编辑页的非搜索选择器复用 shared/ui/select-trigger-name，将翻译后的名称、button 角色与展开状态关联实际触发点，不替换 Naive 的选项、方向键、Enter/Escape 或请求逻辑；指令卸载断开观察器，升级库须回归真实键盘消费者。此适配只覆盖已验证的非搜索模式，搜索型选择器另按实际输入契约处理。SqlEditor 必须由页面传入 label，通过 CodeMirror contentAttributes 命名可编辑 textbox。
+- 安装版本的 Naive NSelect 将普通 aria-label 留在非焦点外层。数据集编辑页复用 shared/ui/select-trigger-name，将翻译后的名称、button 角色与展开状态关联实际触发点，不替换 Naive 的选项、方向键、Enter/Escape 或请求逻辑。已验证非搜索选择器和治理绑定的可搜索单选/多选；可搜索模式另用 input-props 命名实际 textbox，多选触发点与搜索输入分别命名，避免外层 group 与输入名称混淆。指令卸载断开观察器，升级库须回归真实键盘消费者；其他模式按实际输入契约验证后再扩展。SqlEditor 必须由页面传入 label，通过 CodeMirror contentAttributes 命名可编辑 textbox。
 
 表单 label 正确关联输入；纯图标操作有可访问名称；装饰图标隐藏；状态不能仅靠颜色。弹层标题、焦点约束与恢复、Escape 行为、错误定位、键盘操作必须在浏览器检查。避免 Tooltip 作为唯一解释，不能以组件库已实现底层能力为理由跳过组合后的验证。
 
 ## 7. 请求与错误展示只设一个所有者
 
-| 层 | 责任 | 不做 |
-|---|---|---|
-| shared/api | 标准化 ApiError，含 code/status/requestId/fieldErrors；传递取消信号 | toast、路由跳转、自动把失败改为空列表 |
-| repository | 端点请求和 DTO/FormDraft/ViewModel 映射 | 调用 useMessage/useRouter、读写 Mock DB |
-| 领域 query/mutation | query key、重试策略、状态、缓存失效、编辑会话 | 建第二套 Pinia 服务端缓存 |
-| page/领域交互组件 | 字段/弹层/页面错误位置；保存成功后提示/导航 | 再次对同一错误重复 toast |
-| app 会话协调 | 会话失效统一处理与跳转去重 | 对每个 401 独立弹窗/导航 |
+| 层                  | 责任                                                                | 不做                                    |
+| ------------------- | ------------------------------------------------------------------- | --------------------------------------- |
+| shared/api          | 标准化 ApiError，含 code/status/requestId/fieldErrors；传递取消信号 | toast、路由跳转、自动把失败改为空列表   |
+| repository          | 端点请求和 DTO/FormDraft/ViewModel 映射                             | 调用 useMessage/useRouter、读写 Mock DB |
+| 领域 query/mutation | query key、重试策略、状态、缓存失效、编辑会话                       | 建第二套 Pinia 服务端缓存               |
+| page/领域交互组件   | 字段/弹层/页面错误位置；保存成功后提示/导航                         | 再次对同一错误重复 toast                |
+| app 会话协调        | 会话失效统一处理与跳转去重                                          | 对每个 401 独立弹窗/导航                |
 
 列表读取失败优先就地重试；表单错误先字段或表单顶部；危险操作错误保留确认弹层。全局 Query handler 只处理明确委托的错误，局部消费与全局兜底互斥。查询取消不展示失败；写入失败默认不自动重试，除非契约明确幂等。
 
@@ -160,17 +160,17 @@ CopyButton 同样只选一种结果提示所有者：composable 返回结果，�
 
 ## 8. 行为验证与落地顺序
 
-| 改动 | 最小有意义的验证 |
-|---|---|
-| 确认交互 | 双击只触发一次；失败仍打开；成功关闭；pending 的关闭限制；焦点恢复 |
-| 表单 | 无效输入；服务端字段错误；失败保留草稿；取消不改缓存；后台刷新不覆盖编辑 |
-| 表格 | 过滤重置页码；前进后退恢复；删除最后一行；空态与刷新失败；稳定选择范围 |
-| 复制 | 成功/拒绝；正确反馈；timer 清理，不用固定 sleep |
-| 共享组件 | 搜索并列出受影响消费者；验证不同 slot、只读、pending 等真实使用方式 |
-| 布局/可访问性 | 浏览器验证滚动、焦点、键盘和视口行为；jsdom 不能证明真实布局 |
-| 低风险文案/颜色 | 按影响范围视觉复核与已有检查，不新增仅镜像实现的测试 |
+| 改动            | 最小有意义的验证                                                         |
+| --------------- | ------------------------------------------------------------------------ |
+| 确认交互        | 双击只触发一次；失败仍打开；成功关闭；pending 的关闭限制；焦点恢复       |
+| 表单            | 无效输入；服务端字段错误；失败保留草稿；取消不改缓存；后台刷新不覆盖编辑 |
+| 表格            | 过滤重置页码；前进后退恢复；删除最后一行；空态与刷新失败；稳定选择范围   |
+| 复制            | 成功/拒绝；正确反馈；timer 清理，不用固定 sleep                          |
+| 共享组件        | 搜索并列出受影响消费者；验证不同 slot、只读、pending 等真实使用方式      |
+| 布局/可访问性   | 浏览器验证滚动、焦点、键盘和视口行为；jsdom 不能证明真实布局             |
+| 低风险文案/颜色 | 按影响范围视觉复核与已有检查，不新增仅镜像实现的测试                     |
 
-组件测试位于所属目录 __tests__，按 validation/selection/confirmation 等职责命名；集成与 E2E 放 apps/web/tests。优先标准测试 API，断言用户可见结果和公共回调，不测私有 state、不做整页 DOM/class 快照。异步等待可观察状态，Mock 外部网络/时钟/存储，不 Mock 被测模块本身。
+组件测试位于所属目录 **tests**，按 validation/selection/confirmation 等职责命名；集成与 E2E 放 apps/web/tests。优先标准测试 API，断言用户可见结果和公共回调，不测私有 state、不做整页 DOM/class 快照。异步等待可观察状态，Mock 外部网络/时钟/存储，不 Mock 被测模块本身。
 
 B0：确定主题/文案装配，建立实际使用的 PageHeader/AsyncState，验证提供者、导航和 Mock 错误路径。B1：源列表和编辑/删除/复制形成首个完整样板。B2：第二领域验证哪些契约确实可复用，更新公共 API 和消费者清单。门禁与测试命令状态以 [AI 规范](ai-development.md) 为准。
 
@@ -186,6 +186,5 @@ B0：确定主题/文案装配，建立实际使用的 PageHeader/AsyncState，�
 ## 当前复用记录
 
 2026-10-15：用户、质量和脱敏编辑抽屉原本各自缺少统一退出判断。已有 ConfirmDialog 专用于删除，不能直接承担编辑会话；新增 shared/composables/use-edit-guard 仅拥有 dirty/pending 离开决策与 beforeunload 生命周期，领域请求和草稿仍归各页面。服务编辑页复用该能力，后台 Query 更新不得覆盖 dirty 草稿。仓库统计扩展既有 TrendChart 可选系列名称，未复制图表生命周期。
-
 
 2026-10-15 追加：ConfirmDialog 支持确认文案、非删除主操作与禁用状态，版本恢复复用同一失败保持/重试生命周期。useEditGuard 同时处理离开路由、同组件切资源和 beforeunload；任务与导入也复用。Naive NInput 的可访问名称通过 inputProps 放到实际输入节点，而非只标注外层 div；数据集字段及节点配置已按此修正并用浏览器按名称定位输入。来源对象树与字段血缘分别归 sources/governance，不向 shared 搬运业务规则。

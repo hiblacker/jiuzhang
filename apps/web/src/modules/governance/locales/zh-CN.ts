@@ -2,6 +2,13 @@ import ui from './ui.zh-CN.json'
 
 export default {
   ui,
+  governance: {
+    openBinding: '打开{label}选择',
+    searchBinding: '搜索{label}',
+    bindingOptionsCount: '已加载 {loaded} 项',
+    bindingOptionsTotal: '已加载 {loaded} / {total} 项',
+    loadMoreBindings: '加载更多选项',
+  },
   quality: {
     noParameter: '必填与唯一规则无需参数，已有参数不参与检查。',
     rangeHint: '输入有序的最小值,最大值，包含边界；支持十进制文本，例如 -0.10,100.00。',

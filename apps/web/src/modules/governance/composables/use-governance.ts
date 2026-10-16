@@ -5,13 +5,13 @@ import type { Model } from '@/shared/api/types'
 export function useQuality(filters: MaybeRefOrGetter<Record<string, string>> = {}) {
   return useQuery({
     queryKey: computed(() => ['governance', 'quality', toValue(filters)]),
-    queryFn: () => repo.quality(toValue(filters)),
+    queryFn: ({ signal }) => repo.quality(toValue(filters), signal),
   })
 }
 export function useMasking(filters: MaybeRefOrGetter<Record<string, string>> = {}) {
   return useQuery({
     queryKey: computed(() => ['governance', 'masking', toValue(filters)]),
-    queryFn: () => repo.masking(toValue(filters)),
+    queryFn: ({ signal }) => repo.masking(toValue(filters), signal),
   })
 }
 export function useCatalog(filters: MaybeRefOrGetter<Record<string, string>> = {}) {
@@ -29,14 +29,14 @@ export function useLineage(scope: MaybeRefOrGetter<'resource' | 'field'> = 'reso
 export function useQualityDetail(id: MaybeRefOrGetter<string>) {
   return useQuery({
     queryKey: computed(() => ['governance', 'quality', toValue(id)]),
-    queryFn: () => repo.qualityDetail(toValue(id)),
+    queryFn: ({ signal }) => repo.qualityDetail(toValue(id), signal),
     enabled: computed(() => !!toValue(id)),
   })
 }
 export function useMaskDetail(id: MaybeRefOrGetter<string>) {
   return useQuery({
     queryKey: computed(() => ['governance', 'masking', toValue(id)]),
-    queryFn: () => repo.maskDetail(toValue(id)),
+    queryFn: ({ signal }) => repo.maskDetail(toValue(id), signal),
     enabled: computed(() => !!toValue(id)),
   })
 }

@@ -1,11 +1,11 @@
 import { api, unwrap } from '@/shared/api/client'
 import type { Model } from '@/shared/api/types'
 export const governanceRepository = {
-  async quality(query: Record<string, string> = {}) {
-    return unwrap(await api.GET('/governance/quality', { params: { query } }))
+  async quality(query: Record<string, string> = {}, signal?: AbortSignal) {
+    return unwrap(await api.GET('/governance/quality', { params: { query }, signal }))
   },
-  async masking(query: Record<string, string> = {}) {
-    return unwrap(await api.GET('/governance/masking', { params: { query } }))
+  async masking(query: Record<string, string> = {}, signal?: AbortSignal) {
+    return unwrap(await api.GET('/governance/masking', { params: { query }, signal }))
   },
   async catalog(query: Record<string, string> = {}) {
     return unwrap(await api.GET('/governance/catalog', { params: { query } }))
@@ -13,11 +13,13 @@ export const governanceRepository = {
   async lineage(scope: 'resource' | 'field' = 'resource') {
     return unwrap(await api.GET('/governance/lineage', { params: { query: { scope } } })).data
   },
-  async qualityDetail(id: string) {
-    return unwrap(await api.GET('/governance/quality/{id}', { params: { path: { id } } })).data
+  async qualityDetail(id: string, signal?: AbortSignal) {
+    return unwrap(await api.GET('/governance/quality/{id}', { params: { path: { id } }, signal }))
+      .data
   },
-  async maskDetail(id: string) {
-    return unwrap(await api.GET('/governance/masking/{id}', { params: { path: { id } } })).data
+  async maskDetail(id: string, signal?: AbortSignal) {
+    return unwrap(await api.GET('/governance/masking/{id}', { params: { path: { id } }, signal }))
+      .data
   },
   async maskPreview(id: string, sample: 'phone' | 'email' | 'text' | 'amount') {
     return unwrap(

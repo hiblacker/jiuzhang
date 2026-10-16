@@ -35,7 +35,7 @@ test('field reordering keeps focus on the same field and typed masking controls 
   await expect(down).toBeFocused()
   expect(await row.evaluate((element) => (element as HTMLTableRowElement).rowIndex)).toBe(1)
 
-  const policy = page.getByLabel('脱敏策略 phone', { exact: true })
+  const policy = page.getByRole('textbox', { name: '脱敏策略 phone', exact: true })
   await policy.fill('手机号')
   await page.keyboard.press('ArrowDown')
   await page.keyboard.press('Enter')

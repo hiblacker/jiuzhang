@@ -40,11 +40,12 @@ test('dataset selectors and both SQL editors have names and support keyboard sel
   )
   await page.getByRole('tab', { name: '质量与脱敏', exact: true }).click()
   for (const label of ['质量规则', '脱敏策略引用']) {
-    await page.getByLabel(label, { exact: true }).focus()
+    const trigger = page.getByRole('button', { name: label, exact: true })
+    await trigger.focus()
     await page.keyboard.press('Enter')
     await expect(page.locator('.n-base-select-menu:visible')).toBeVisible()
     await page.keyboard.press('Escape')
-    await expect(page.getByLabel(label, { exact: true })).toHaveAttribute('aria-expanded', 'false')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
     await expect(page.locator('.n-base-select-menu:visible')).toHaveCount(0)
   }
   await page.getByRole('tab', { name: '输出与入仓', exact: true }).click()
