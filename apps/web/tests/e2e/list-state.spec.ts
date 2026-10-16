@@ -214,6 +214,7 @@ for (const resource of ['imports', 'exports', 'queries'] as const) {
       })
       const path =
         resource === 'queries' ? '/warehouse/query?tab=history' : '/warehouse/' + resource
+      const list = resource === 'queries' ? page.getByRole('tabpanel', { name: '查询历史' }) : page
       await page.goto(path)
       await expect(page.locator('h1')).toBeVisible()
       await page.evaluate(async (resource) => {
@@ -281,7 +282,7 @@ for (const resource of ['imports', 'exports', 'queries'] as const) {
       }, 'warehouse')
       await page.reload()
       await expect(
-        page.getByText('当前已启用接口失败演示，可从演示控制台恢复', { exact: true }),
+        list.getByText('当前已启用接口失败演示，可从演示控制台恢复', { exact: true }),
       ).toBeVisible()
       await page.evaluate(async (domain) => {
         await fetch('/api/v1/demo/control', {
@@ -290,7 +291,7 @@ for (const resource of ['imports', 'exports', 'queries'] as const) {
           body: JSON.stringify({ domain, scenario: 'normal' }),
         })
       }, 'warehouse')
-      await page.getByRole('button', { name: '重试', exact: true }).click()
+      await list.getByRole('button', { name: '重试', exact: true }).click()
       await expect(rows).toHaveCount(1)
       await page.goto(path + (resource === 'queries' ? '&' : '?') + 'page=999')
       await expect(page).toHaveURL(/page=2/)
@@ -325,6 +326,10 @@ for (const entry of [
       })
       await page.goto(entry.path)
       await expect(page.locator('h1')).toBeVisible()
+      const queryHistory = entry.path.startsWith('/warehouse/query')
+      const expectedPath = queryHistory ? entry.path + '&tableId=4001' : entry.path
+      const list = queryHistory ? page.getByRole('tabpanel', { name: '查询历史' }) : page
+      await expect(page).toHaveURL('http://localhost:5174' + expectedPath)
       const errors: string[] = []
       page.on('pageerror', (error) => errors.push(error.message))
       for (const scenario of ['empty', 'error', 'forbidden'] as const) {
@@ -346,8 +351,12 @@ for (const entry of [
           error: '当前已启用接口失败演示，可从演示控制台恢复',
           forbidden: '当前角色没有操作权限',
         }[scenario]
-        await expect(page.getByText(label, { exact: true }).first()).toBeVisible()
-        await expect(page).toHaveURL('http://localhost:5174' + entry.path)
+        await expect(list.getByText(label, { exact: true }).first()).toBeVisible()
+        if (queryHistory && scenario !== 'empty')
+          await expect(
+            page.locator('.warehouse-table-select').getByText(label, { exact: true }),
+          ).toBeVisible()
+        await expect(page).toHaveURL('http://localhost:5174' + expectedPath)
         await page.evaluate(async (domain) => {
           const response = await fetch('/api/v1/demo/control', {
             method: 'PATCH',
@@ -357,10 +366,19 @@ for (const entry of [
           if (!response.ok) throw new Error('Cannot restore mock scenario')
         }, entry.domain)
         if (scenario === 'empty') await page.reload()
-        else await page.getByRole('button', { name: '重试', exact: true }).last().click()
+        else {
+          await list.getByRole('button', { name: '重试', exact: true }).last().click()
+          if (queryHistory) {
+            await page
+              .locator('.warehouse-table-select')
+              .getByRole('button', { name: '重试', exact: true })
+              .click()
+            await expect(page.getByRole('button', { name: '运行查询', exact: true })).toBeEnabled()
+          }
+        }
         await expect(page.getByText(label, { exact: true })).toHaveCount(0)
         await expect(page.locator('.main-content .loading')).toHaveCount(0)
-        await expect(page).toHaveURL('http://localhost:5174' + entry.path)
+        await expect(page).toHaveURL('http://localhost:5174' + expectedPath)
       }
       expect(errors).toEqual([])
     },

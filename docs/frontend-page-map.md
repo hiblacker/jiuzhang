@@ -218,6 +218,8 @@ SQL 编辑器主题（2026-10-17）：明暗截图暴露默认 CodeMirror 语法
 
 2026-10-16 提交节奏：按根 Git 规范完成一个可验证功能块即本地提交；当前先补录已有成果的可运行基线，后续修复独立提交。不包含远端推送。
 
+查询历史回归维护（2026-10-17）：全量回归发现两处旧测试与仓库表选择器的实际行为不一致：失败演示同时影响选表和历史两个独立 HTTP 区域，全页精确文案产生定位歧义；首次自动选表会把 tableId 写入 URL，旧断言漏掉该参数。测试按具名“查询历史”面板定位其错误和重试，状态用例显式验证 tableId=4001 在刷新与恢复后保留，并分别恢复历史与选表、断言两处错误消失及运行按钮重新可用。未修改产品行为或删除恢复断言。两项原失败用例定向复测通过（22.1 秒），lint、typecheck 与目标文件格式检查通过；全量其余结果仍待本次运行结束，不能报告全量通过。
+
 发布确认复用（2026-10-16）：DatasetDetailPage 复用 shared/ui/confirm-dialog，移除重复 Modal/Footer/Error 状态；发布前重置旧错误，提交中阻止 Escape/取消及重复写入。dataset-editing 的发布确认、版本恢复和 pipeline 的发布入仓/查询/导出共 3 项浏览器回归通过；lint、typecheck、format:check、check:boundaries、check:ui、check:i18n 通过。键盘 Enter 打开、取消初始焦点、关闭回触发点、失败保留/重开清错、慢请求只生成一个新版本且历史不变已验证。
 
 Tab 复用（2026-10-16）：核查当前 Naive UI Tabs 实现与六处调用方后，使用 shared/ui/accessible-tabs 指令补充现有组件缺少的键盘/ARIA 行为，使用 shared/composables/use-route-tab 统一 URL 所有权；不新建万能 Tabs。指令监听与观察器在卸载时清理，当前仅承诺已验证的水平模式；升级 Naive UI 须回归六处消费者。新增 check:ui 允许/拒绝样例约束 NTabs 复用指令。本块最终完整 pnpm check 通过，75 项单元/HTTP 集成及 demo/real 构建通过。51 项消费者首轮 50 通过、1 项对象树定位歧义，修正为精确 complementary 定位后 18 项源与 Tab 回归全通过；随后修复窄屏刷新选中 Tab 被裁切，六处 Tab 定向 6 项通过并复核截图。主题 fixture 不再在刷新时覆盖用户选择，刷新后校验实际主题；旧亮色截图实际为暗色，已替换，不使用旧截图作为亮色证据。激活/聚焦及容器尺寸变化均在水平视口内揭示选中项，ResizeObserver、MutationObserver、事件与 animation frame 均在卸载时清理。
