@@ -37,6 +37,7 @@
 | shared/ui/confirm-dialog | 受控开关、pending、错误、确认/取消及焦点；不发请求 | 删除数据源、删除数据集 | B1/B2 |
 | shared/ui/copy-button | 复制值、可访问名称、成功/失败反馈与复位 | 源 ID、任务 runId | B1/B3 |
 | shared/ui/query-toolbar | 搜索/筛选/操作 slots 与响应式排列；不定义业务筛选 | 源列表、数据集列表 | B1/B2 |
+| shared/ui/data-preview | 只读结果、固定列宽/内部滚动、快照内分页、完整值弹窗；复用 CopyButton，不拥有请求/权限 | 源与数据集预览、仓库样本、查询和服务结果六处 | 已实现，契约见组件 README |
 | shared/ui/list-page | 工具栏、表格区、批量区、分页区的组合布局；不接管数据 | 源列表、数据集列表 | B1/B2，经第二个场景再确认 |
 | shared/composables/use-clipboard | 浏览器复制、结果和清理；供 CopyButton 复用 | ID、错误 requestId | 随 CopyButton |
 

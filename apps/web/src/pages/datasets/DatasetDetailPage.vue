@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
 import { useRouteTab } from '@/shared/composables/use-route-tab'
+import { DataPreview } from '@/shared/ui/data-preview'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -145,15 +146,9 @@ async function publish() {
               class="mb"
               :bordered="false"
             />
-            <NDataTable
-              :data="preview.data.value?.rows ?? []"
-              :columns="
-                preview.data.value?.fields.map((field) => ({
-                  title: field.target,
-                  key: field.target,
-                })) ?? []
-              "
-              :bordered="false"
+            <DataPreview
+              :rows="preview.data.value?.rows ?? []"
+              :columns="preview.data.value?.fields.map((field) => field.target) ?? []"
             />
           </AsyncState> </NTabPane
         ><NTabPane name="fields" :tab="uiText('ui.dataset_detail_77a49f2c')"

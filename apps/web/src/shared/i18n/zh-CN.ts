@@ -91,6 +91,11 @@ export default {
   description: '说明',
   tags: '标签',
   detail: '详情',
+  dataPreview: {
+    region: '数据结果',
+    inspect: '查看第 {row} 行 {column} 的完整值',
+    valueTitle: '{column} · 完整值',
+  },
   connected: '已连接',
   warning: '需关注',
   offline: '离线',

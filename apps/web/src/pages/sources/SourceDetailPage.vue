@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
 import { useRouteTab } from '@/shared/composables/use-route-tab'
+import { DataPreview } from '@/shared/ui/data-preview'
 const canWrite = useCan('write')
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -140,12 +141,9 @@ const readonly = computed(() => !canWrite.value)
             :error="preview.error.value"
             @retry="preview.refetch()"
             ><NAlert type="info" class="mb">{{ preview.data.value?.notes.join('；') }}</NAlert
-            ><NDataTable
-              :columns="
-                preview.data.value?.fields.map((f) => ({ title: f.name, key: f.name })) ?? []
-              "
-              :data="preview.data.value?.rows ?? []"
-              :bordered="false" /></AsyncState></NTabPane
+            ><DataPreview
+              :columns="preview.data.value?.fields.map((field) => field.name) ?? []"
+              :rows="preview.data.value?.rows ?? []" /></AsyncState></NTabPane
         ><NTabPane name="sync" :tab="t('sources.sync')"
           ><RunHistory
             :scope="{ sourceId: id }"

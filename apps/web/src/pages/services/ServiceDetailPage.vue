@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
 import { useRouteTab } from '@/shared/composables/use-route-tab'
+import { DataPreview } from '@/shared/ui/data-preview'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -130,10 +131,9 @@ const contract = computed(() => ({
             @click="call"
             >{{ uiText('ui.service_detail_d946b646') }}</NButton
           ><NAlert v-if="error" type="error" class="mb">{{ error }}</NAlert
-          ><NDataTable
-            :data="actions.call.data.value ?? []"
-            :columns="query.data.value?.fields.map((key) => ({ title: key, key })) ?? []"
-            :bordered="false" /></NTabPane
+          ><DataPreview
+            :rows="actions.call.data.value ?? []"
+            :columns="query.data.value?.fields ?? []" /></NTabPane
         ><NTabPane name="audit" :tab="uiText('auditLog')"
           ><AsyncState
             :loading="audit.isLoading.value"

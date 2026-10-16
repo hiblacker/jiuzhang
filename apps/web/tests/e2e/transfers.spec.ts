@@ -119,7 +119,15 @@ test('CSV imports preserve failed drafts, discard canceled changes and parse loc
   await imported.getByRole('button').click()
   await page.getByText('样本数据', { exact: true }).click()
   await expect(page.getByRole('cell', { name: '虚构,商品', exact: true })).toBeVisible()
-  await expect(page.getByRole('cell', { name: 'line 1 line "2"', exact: true })).toBeVisible()
+  const fullValue = page.getByRole('button', {
+    name: '查看第 1 行 note 的完整值',
+    exact: true,
+  })
+  await fullValue.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('dialog').locator('pre')).toHaveText('line 1\nline "2"')
+  await page.keyboard.press('Escape')
+  await expect(fullValue).toBeFocused()
   await page.reload()
   await page.getByText('样本数据', { exact: true }).click()
   await expect(page.getByRole('cell', { name: '虚构,商品', exact: true })).toBeVisible()

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
 import { useRouteTab } from '@/shared/composables/use-route-tab'
+import { DataPreview } from '@/shared/ui/data-preview'
 import { useI18n as useUiI18n } from 'vue-i18n'
 import { useCan } from '@/shared/security/permissions'
 const canReadSensitive = useCan('readSensitive')
@@ -76,12 +77,9 @@ const route = useRoute(),
             :bordered="false" /></NTabPane
         ><NTabPane name="sample" :tab="uiText('ui.table_detail_cb9dec6e')"
           ><NAlert type="info" class="mb">{{ uiText('ui.table_detail_58436a15') }}</NAlert
-          ><NDataTable
-            :data="query.data.value?.sample ?? []"
-            :columns="
-              query.data.value?.fields.map((f) => ({ title: f.target, key: f.target })) ?? []
-            "
-            :bordered="false" /></NTabPane
+          ><DataPreview
+            :rows="query.data.value?.sample ?? []"
+            :columns="query.data.value?.fields.map((field) => field.target) ?? []" /></NTabPane
         ><NTabPane name="partitions" :tab="uiText('ui.table_detail_223f9140')"
           ><NTag v-for="partition in query.data.value?.partitions" :key="partition">{{
             partition

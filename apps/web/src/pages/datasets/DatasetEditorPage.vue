@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
 import { useRouteTab } from '@/shared/composables/use-route-tab'
+import { DataPreview } from '@/shared/ui/data-preview'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -345,11 +346,10 @@ useEditGuard(dirty, save.isPending)
                 ]"
                 class="mb"
                 :bordered="false" />
-              <NDataTable
-                :data="preview.data.value?.rows ?? []"
+              <DataPreview
+                :rows="preview.data.value?.rows ?? []"
                 :columns="
-                  preview.data.value?.fields.map((f) => ({ title: f.target, key: f.target })) ?? []
-                "
-                :bordered="false" /></AsyncState></NTabPane></NTabs></NForm></NCard
+                  preview.data.value?.fields.map((field) => field.target) ?? []
+                " /></AsyncState></NTabPane></NTabs></NForm></NCard
   ></AsyncState>
 </template>

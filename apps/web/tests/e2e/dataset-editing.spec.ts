@@ -236,7 +236,7 @@ test('Join editing preserves left-right order, nullable lookup fields and saved 
     .getByRole('row')
     .filter({ has: page.getByRole('cell', { name: '101', exact: true }) })
   await expect(row).toBeVisible()
-  await expect(row.getByRole('cell').last()).toHaveText('')
+  await expect(row.getByRole('cell').last()).toHaveText('NULL')
   const matched = page
     .getByRole('row')
     .filter({ has: page.getByRole('cell', { name: '100', exact: true }) })

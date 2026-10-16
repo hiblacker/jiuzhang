@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
 import { useRouteTab } from '@/shared/composables/use-route-tab'
+import { DataPreview } from '@/shared/ui/data-preview'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -11,7 +12,6 @@ import {
   NButton,
   NSelect,
   NAlert,
-  NDataTable,
   NTabs,
   NTabPane,
   NSpace,
@@ -160,10 +160,9 @@ async function exportResult(format: 'csv' | 'json') {
           :error="result.error.value || actions.cancelQuery.error.value"
           @retry="result.refetch()"
         >
-          <NDataTable
-            :data="resultData?.rows ?? []"
-            :columns="resultData?.columns.map((key) => ({ title: key, key })) ?? []"
-            :bordered="false" /></AsyncState></NTabPane
+          <DataPreview
+            :rows="resultData?.rows ?? []"
+            :columns="resultData?.columns ?? []" /></AsyncState></NTabPane
       ><NTabPane name="history" :tab="uiText('ui.query_6079f66a')"
         ><QueryToolbar
           ><NInput
