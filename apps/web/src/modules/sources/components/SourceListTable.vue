@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, h } from 'vue'
-import { NDataTable, NButton, NTag, NSpace, type DataTableColumns } from 'naive-ui'
+import { NDataTable, NButton, NTag, NSpace, NEllipsis, type DataTableColumns } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { Database } from 'lucide-vue-next'
 import type { Source } from '../api/source-repository'
@@ -52,7 +52,23 @@ const columns = computed<DataTableColumns<Source>>(() => [
       ),
   },
   { title: t('objects'), key: 'objectCount', width: 90 },
-  { title: t('owner'), key: 'owner', width: 140 },
+  {
+    title: t('owner'),
+    key: 'owner',
+    width: 140,
+    render: (row) =>
+      h(
+        NEllipsis,
+        {
+          tabindex: 0,
+          tooltip: {
+            trigger: 'focus',
+            contentStyle: { maxWidth: 'min(480px, calc(100vw - 32px))', overflowWrap: 'anywhere' },
+          },
+        },
+        { default: () => row.owner, tooltip: () => h('span', { role: 'tooltip' }, row.owner) },
+      ),
+  },
   {
     title: t('actions'),
     key: 'actions',

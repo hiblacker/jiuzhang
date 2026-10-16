@@ -11,6 +11,7 @@ import {
   NButton,
   NDataTable,
   NTag,
+  NEllipsis,
   NSpace,
   NPagination,
   NAlert,
@@ -76,14 +77,47 @@ const columns = computed<DataTableColumns<Model<'CatalogItem'>>>(() => [
         table: uiText('ui.catalog_25d85ef7'),
       })[a.kind],
   },
-  { title: uiText('ui.catalog_974d383f'), key: 'owner', minWidth: 120 },
+  {
+    title: uiText('ui.catalog_974d383f'),
+    key: 'owner',
+    width: 140,
+    render: (asset) =>
+      h(
+        NEllipsis,
+        {
+          tabindex: 0,
+          tooltip: {
+            trigger: 'focus',
+            contentStyle: { maxWidth: 'min(480px, calc(100vw - 32px))', overflowWrap: 'anywhere' },
+          },
+        },
+        { default: () => asset.owner, tooltip: () => h('span', { role: 'tooltip' }, asset.owner) },
+      ),
+  },
   {
     title: uiText('ui.catalog_ae0a7afe'),
     key: 'tags',
-    minWidth: 220,
+    width: 220,
     render: (a) =>
       h(NSpace, {}, () =>
-        a.tags.map((tag) => h(NTag, { size: 'small', bordered: false }, () => tag)),
+        a.tags.map((tag) =>
+          h(NTag, { size: 'small', bordered: false, class: 'catalog-tag' }, () =>
+            h(
+              NEllipsis,
+              {
+                tabindex: 0,
+                tooltip: {
+                  trigger: 'focus',
+                  contentStyle: {
+                    maxWidth: 'min(480px, calc(100vw - 32px))',
+                    overflowWrap: 'anywhere',
+                  },
+                },
+              },
+              { default: () => tag, tooltip: () => h('span', { role: 'tooltip' }, tag) },
+            ),
+          ),
+        ),
       ),
   },
   {
@@ -200,3 +234,12 @@ const columns = computed<DataTableColumns<Model<'CatalogItem'>>>(() => [
       /></div
   ></NCard>
 </template>
+<style scoped>
+:deep(.catalog-tag) {
+  max-width: 190px;
+}
+:deep(.catalog-tag .n-tag__content) {
+  min-width: 0;
+  overflow: hidden;
+}
+</style>

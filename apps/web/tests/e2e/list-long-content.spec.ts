@@ -20,14 +20,16 @@ for (const kind of ['source', 'dataset', 'catalog'] as const) {
       await page.goto('/sources')
       await expect(page.getByRole('heading', { name: '数据源', exact: true })).toBeVisible()
       const name = 'LongResource_' + 'x'.repeat(180)
+      const owner = '负责人'.repeat(80)
+      const tag = '标签'.repeat(100)
       const id = await page.evaluate(
-        async ({ kind, name }) => {
+        async ({ kind, name, owner, tag }) => {
           const headers = { 'Content-Type': 'application/json', 'x-demo-role': 'admin' }
           if (kind === 'dataset') {
             const response = await fetch('/api/v1/datasets/2001', {
               method: 'PATCH',
               headers,
-              body: JSON.stringify({ name }),
+              body: JSON.stringify({ name, owner, tags: [tag, '零售'] }),
             })
             if (!response.ok) throw new Error(await response.text())
             return (await response.json()).data.id as string
@@ -42,12 +44,12 @@ for (const kind of ['source', 'dataset', 'catalog'] as const) {
           const response = await fetch('/api/v1/sources', {
             method: 'POST',
             headers,
-            body: JSON.stringify({ ...input, name }),
+            body: JSON.stringify({ ...input, name, owner, tags: [tag, '零售'] }),
           })
           if (!response.ok) throw new Error(await response.text())
           return (await response.json()).data.id as string
         },
-        { kind, name },
+        { kind, name, owner, tag },
       )
       const path = {
         source: '/sources',
@@ -57,7 +59,7 @@ for (const kind of ['source', 'dataset', 'catalog'] as const) {
       const filters = {
         source: '?q=LongResource&type=MySQL&status=connected&sort=name&pageSize=50',
         dataset: '?q=LongResource&status=published&sort=name&folderId=12001',
-        catalog: '?q=LongResource&kind=source&owner=数据平台组&sort=name',
+        catalog: '?q=LongResource&kind=source&owner=' + encodeURIComponent(owner) + '&sort=name',
       }[kind]
       await page.goto(path + filters)
       const button = page.getByRole('button', { name, exact: true })
@@ -80,6 +82,35 @@ for (const kind of ['source', 'dataset', 'catalog'] as const) {
         expect(bounds.button).toBeLessThan(bounds.cell)
         expect(bounds.text).toBe(name)
         await expect(button).toHaveAttribute('title', name)
+        const row = page.getByRole('row').filter({ has: button })
+        expect((await row.boundingBox())!.height).toBeLessThan(130)
+        const ownerCell = row.getByRole('cell').nth({ source: 4, dataset: 3, catalog: 2 }[kind])
+        const ownerText = ownerCell.locator('.n-ellipsis')
+        await expect(ownerText).toHaveText(owner)
+        await ownerText.focus()
+        await expect(page.getByRole('tooltip')).toHaveText(owner)
+        await expect(page.getByRole('tooltip')).toBeVisible()
+        expect((await page.getByRole('tooltip').boundingBox())!.width).toBeLessThanOrEqual(480)
+        await page.screenshot({
+          path: 'test-results/long-owner-' + kind + '-' + theme + '.png',
+          animations: 'disabled',
+        })
+        await button.focus()
+        await expect(page.getByRole('tooltip')).toBeHidden()
+        if (kind === 'catalog') {
+          const tagText = row.getByRole('cell').nth(3).locator('.n-ellipsis').first()
+          await expect(tagText).toHaveText(tag)
+          await tagText.focus()
+          await expect(page.getByRole('tooltip')).toHaveText(tag)
+          await expect(page.getByRole('tooltip')).toBeVisible()
+          expect((await page.getByRole('tooltip').boundingBox())!.width).toBeLessThanOrEqual(480)
+          await page.screenshot({
+            path: 'test-results/long-tag-' + theme + '.png',
+            animations: 'disabled',
+          })
+          await button.focus()
+          await expect(page.getByRole('tooltip')).toBeHidden()
+        }
         await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
         await page.screenshot({
           path: 'test-results/long-list-' + kind + '-' + theme + '.png',

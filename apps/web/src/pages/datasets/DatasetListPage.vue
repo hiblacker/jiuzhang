@@ -13,6 +13,7 @@ import {
   NSelect,
   NDataTable,
   NTag,
+  NEllipsis,
   NSpace,
   NPagination,
   NAlert,
@@ -106,7 +107,26 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
     width: 100,
     render: (d) => (d.publishedVersion ? 'v' + d.publishedVersion : '—'),
   },
-  { title: uiText('ui.dataset_list_974d383f'), key: 'owner', width: 140 },
+  {
+    title: uiText('ui.dataset_list_974d383f'),
+    key: 'owner',
+    width: 140,
+    render: (dataset) =>
+      h(
+        NEllipsis,
+        {
+          tabindex: 0,
+          tooltip: {
+            trigger: 'focus',
+            contentStyle: { maxWidth: 'min(480px, calc(100vw - 32px))', overflowWrap: 'anywhere' },
+          },
+        },
+        {
+          default: () => dataset.owner,
+          tooltip: () => h('span', { role: 'tooltip' }, dataset.owner),
+        },
+      ),
+  },
   {
     title: t('folders.folder'),
     key: 'folderId',
