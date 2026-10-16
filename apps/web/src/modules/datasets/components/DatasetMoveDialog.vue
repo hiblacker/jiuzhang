@@ -44,6 +44,7 @@ async function save() {
 </script>
 <template>
   <NModal
+    :aria-label="t('folders.move')"
     :show="!!dataset"
     preset="card"
     :title="t('folders.move')"

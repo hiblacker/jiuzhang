@@ -152,6 +152,7 @@ async function remove() {
     </NSpace>
   </NCard>
   <NModal
+    :aria-label="editId ? t('folders.edit') : t('folders.create')"
     :show="editing"
     preset="card"
     :title="editId ? t('folders.edit') : t('folders.create')"
@@ -179,6 +180,7 @@ async function remove() {
     >
       <NFormItem :label="t('folders.name')" path="name"
         ><NInput
+          autofocus
           v-model:value="draft.name"
           :input-props="{ 'aria-label': t('folders.name') }"
           :maxlength="80"

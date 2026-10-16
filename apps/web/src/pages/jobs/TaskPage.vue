@@ -16,6 +16,7 @@ import {
   NAlert,
   NModal,
   NDatePicker,
+  NSpace,
   type FormInst,
 } from 'naive-ui'
 import {
@@ -47,7 +48,11 @@ const route = useRoute(),
   readonly = computed(() => !canWrite.value)
 const dateTime = useDisplayTime()
 const form = ref<FormInst | null>(null)
-const dirty = computed(() => editing.value && JSON.stringify(draft.value) !== baseline.value)
+const dirty = computed(
+  () =>
+    (editing.value && JSON.stringify(draft.value) !== baseline.value) ||
+    (backfillOpen.value && range.value !== null),
+)
 let loadedId = ''
 watch(
   [() => query.data.value, editing],
@@ -66,7 +71,18 @@ watch(
   },
   { immediate: true },
 )
-useEditGuard(dirty, () => actions.save.isPending.value || actions.backfill.isPending.value)
+const { canLeave } = useEditGuard(
+  dirty,
+  () => actions.save.isPending.value || actions.backfill.isPending.value,
+)
+function openBackfill() {
+  range.value = null
+  actions.backfill.reset()
+  backfillOpen.value = true
+}
+function closeBackfill(show = false) {
+  if (!show && canLeave()) backfillOpen.value = false
+}
 async function save() {
   if (!draft.value || actions.save.isPending.value) return
   try {
@@ -109,9 +125,7 @@ async function backfill() {
       ><NButton :disabled="readonly" @click="router.push('/tasks/' + id + '/edit')">{{
         uiText('ui.task_bb810789')
       }}</NButton
-      ><NButton :disabled="readonly" @click="backfillOpen = true">{{
-        uiText('ui.task_fe838448')
-      }}</NButton
+      ><NButton :disabled="readonly" @click="openBackfill">{{ uiText('ui.task_fe838448') }}</NButton
       ><RunTrigger
         v-if="query.data.value"
         :dataset-id="query.data.value.datasetId"
@@ -204,6 +218,7 @@ async function backfill() {
           :scope="{ taskId: id }"
           @select="router.push('/runs/' + $event)" /></template></NCard></AsyncState
   ><NModal
+    :aria-label="uiText('ui.task_22ed2e4e')"
     :show="backfillOpen"
     preset="card"
     :title="uiText('ui.task_22ed2e4e')"
@@ -211,11 +226,12 @@ async function backfill() {
     :mask-closable="!actions.backfill.isPending.value"
     :close-on-esc="!actions.backfill.isPending.value"
     :closable="!actions.backfill.isPending.value"
-    @close="!actions.backfill.isPending.value && (backfillOpen = false)"
-    @update:show="!actions.backfill.isPending.value && (backfillOpen = $event)"
+    @close="closeBackfill()"
+    @update:show="closeBackfill"
     ><NAlert type="info" class="mb">{{ uiText('ui.task_2f297c08') }}</NAlert
     ><NDatePicker
       v-model:formatted-value="range"
+      :disabled="actions.backfill.isPending.value"
       value-format="yyyy-MM-dd"
       type="daterange"
       :start-placeholder="uiText('jobs.backfillFrom')"
@@ -224,12 +240,17 @@ async function backfill() {
       uiText('ui.task_f1fb8585')
     }}</NAlert
     ><template #footer
-      ><NButton
-        type="primary"
-        :disabled="!range"
-        :loading="actions.backfill.isPending.value"
-        @click="backfill"
-        >{{ uiText('ui.task_22eaf72b') }}</NButton
+      ><NSpace justify="end"
+        ><NButton :disabled="actions.backfill.isPending.value" @click="closeBackfill()">{{
+          uiText('cancel')
+        }}</NButton
+        ><NButton
+          type="primary"
+          :disabled="!range || actions.backfill.isPending.value"
+          :loading="actions.backfill.isPending.value"
+          @click="backfill"
+          >{{ uiText('ui.task_22eaf72b') }}</NButton
+        ></NSpace
       ></template
     ></NModal
   >

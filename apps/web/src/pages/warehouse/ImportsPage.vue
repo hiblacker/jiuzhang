@@ -20,6 +20,7 @@ import {
   NCheckbox,
   NUpload,
   NProgress,
+  NSpace,
   type DataTableColumns,
   type FormInst,
   type UploadFileInfo,
@@ -246,6 +247,7 @@ function start() {
         @update:page-size="update({ pageSize: $event, page: 1 })"
       /></div></NCard
   ><NDrawer
+    :aria-label="uiText('ui.imports_6c968a3f')"
     :show="open"
     width="min(620px, calc(100vw - 32px))"
     :mask-closable="!actions.import.isPending.value"
@@ -282,6 +284,7 @@ function start() {
             :input-props="{ 'aria-label': uiText('warehouse.subjectDomain') }"
             :placeholder="uiText('warehouse.domainHint')" /></NFormItem
         ><NUpload
+          :disabled="actions.import.isPending.value"
           :default-upload="false"
           :show-file-list="false"
           accept=".csv"
@@ -293,7 +296,9 @@ function start() {
             :input-props="{ 'aria-label': uiText('ui.imports_29125a75') }"
             type="textarea"
             :rows="7" /></NFormItem
-        ><NButton @click="mapFields">{{ uiText('ui.imports_e89453b5') }}</NButton>
+        ><NButton :disabled="actions.import.isPending.value" @click="mapFields">{{
+          uiText('ui.imports_e89453b5')
+        }}</NButton>
         <div v-for="mapping in input.mapping" :key="mapping.source" class="mapping">
           <span>{{ mapping.source }} →</span
           ><NInput
@@ -314,9 +319,18 @@ function start() {
         <NCheckbox v-model:checked="consent">{{ uiText('ui.imports_cd455dcd') }}</NCheckbox
         ><NAlert v-if="error" type="error" style="margin-top: 16px">{{ error }}</NAlert></NForm
       ><template #footer
-        ><NButton type="primary" :loading="actions.import.isPending.value" @click="submit">{{
-          uiText('ui.imports_f2a31c17')
-        }}</NButton></template
+        ><NSpace justify="end"
+          ><NButton :disabled="actions.import.isPending.value" @click="close(false)">{{
+            uiText('cancel')
+          }}</NButton
+          ><NButton
+            type="primary"
+            :disabled="actions.import.isPending.value"
+            :loading="actions.import.isPending.value"
+            @click="submit"
+            >{{ uiText('ui.imports_f2a31c17') }}</NButton
+          ></NSpace
+        ></template
       ></NDrawerContent
     ></NDrawer
   >
