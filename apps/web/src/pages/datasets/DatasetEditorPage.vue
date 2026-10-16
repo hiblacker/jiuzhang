@@ -36,7 +36,7 @@ import {
   DatasetFolderSelect,
   DatasetOutputSummary,
 } from '@/modules/datasets'
-import { useSources, useSourceObjects } from '@/modules/sources'
+import { SourcePicker, useSourceObjects } from '@/modules/sources'
 import { useQuality, useMasking } from '@/modules/governance'
 import { ScheduleForm, useTasks } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
@@ -49,14 +49,6 @@ const route = useRoute(),
   { t } = useI18n()
 const id = computed(() => String(route.params.id ?? ''))
 const { query, draft, dirty, save, preview } = useDatasetEditor(id)
-const sourceQuery = useSources({
-  q: '',
-  type: '',
-  status: '',
-  page: 1,
-  pageSize: 100,
-  sort: 'name',
-})
 const objects = useSourceObjects(() => draft.value.definition.sourceId)
 const upstreamList = useDatasets({ pageSize: '100' })
 const upstreamVersion = useDatasetVersion(
@@ -225,13 +217,9 @@ useEditGuard(dirty, save.isPending)
             }}</NAlert>
             <NGrid :cols="3" :x-gap="24"
               ><NFormItemGi :label="uiText('ui.dataset_editor_a3ccf702')"
-                ><NSelect
-                  :value="draft.definition.sourceId || null"
-                  v-select-trigger-name="uiText('ui.dataset_editor_a3ccf702')"
-                  :loading="sourceQuery.isLoading.value"
-                  :options="
-                    sourceQuery.data.value?.data.map((s) => ({ label: s.name, value: s.id }))
-                  "
+                ><SourcePicker
+                  :value="draft.definition.sourceId"
+                  :label="uiText('ui.dataset_editor_a3ccf702')"
                   @update:value="selectSource" /></NFormItemGi
               ><NFormItemGi :label="uiText('ui.dataset_editor_30801f39')"
                 ><NSelect

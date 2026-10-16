@@ -3,6 +3,10 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   sources: {
+    picker: '数据源选择',
+    optionsCount: '已加载 {loaded} 个数据源',
+    optionsTotal: '已加载 {loaded} / {total} 个数据源',
+    loadMore: '加载更多数据源',
     searchObjects: '搜索表或字段',
     selectedField: '当前字段：{field}',
     allFields: '查看全部字段',

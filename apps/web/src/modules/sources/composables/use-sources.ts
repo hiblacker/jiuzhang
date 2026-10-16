@@ -1,11 +1,27 @@
 import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { sourceRepository, type SourceFilters } from '../api/source-repository'
 import { newSource, toSourceInput } from '../model/connectors'
 export function useSources(filters: MaybeRefOrGetter<SourceFilters>) {
   return useQuery({
     queryKey: computed(() => ['sources', toValue(filters)]),
     queryFn: ({ signal }) => sourceRepository.list(toValue(filters), signal),
+  })
+}
+export function useSourceOptions(search: MaybeRefOrGetter<string>) {
+  return useInfiniteQuery({
+    queryKey: computed(() => ['sources', 'options', toValue(search)]),
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) =>
+      sourceRepository.list(
+        { q: toValue(search), type: '', status: '', page: pageParam, pageSize: 20, sort: 'name' },
+        signal,
+      ),
+    getNextPageParam: (lastPage) => {
+      const { page = 1, pageSize = 20, total } = lastPage.meta
+      if (total === undefined) return lastPage.data.length === pageSize ? page + 1 : undefined
+      return page * pageSize < total ? page + 1 : undefined
+    },
   })
 }
 export function useSource(id: MaybeRefOrGetter<string>) {
