@@ -137,6 +137,9 @@ B0 接入 Vue I18n，首期只交付完整 zh-CN 文案，不新增英文翻译�
 
 ### 6.3 可访问性
 
+- 当前安装的 Naive UI Tabs 未提供完整键盘与 ARIA 语义，六处消费者统一复用 shared/ui/accessible-tabs 指令；NTabs 须绑定翻译后的区域名称，check:ui 验证入口。它补充水平 Tab 的单一 Tab 停靠点、左右/Home/End 移动焦点、Enter/Space 激活、tablist/tab/tabpanel 关联、焦点轮廓、激活/聚焦/尺寸变化时的视口内滚动和卸载清理，不拥有领域状态或请求。
+- 可分享 Tab 统一使用 shared/composables/use-route-tab：白名单解析、默认项回退、保留其他 query 参数、push 支持前进后退。编辑器仅切 Tab 不丢草稿，离开资源仍由 useEditGuard 决定；页面传入自身合法 Tab，不新增业务万能 Tabs 组件。
+
 表单 label 正确关联输入；纯图标操作有可访问名称；装饰图标隐藏；状态不能仅靠颜色。弹层标题、焦点约束与恢复、Escape 行为、错误定位、键盘操作必须在浏览器检查。避免 Tooltip 作为唯一解释，不能以组件库已实现底层能力为理由跳过组合后的验证。
 
 ## 7. 请求与错误展示只设一个所有者

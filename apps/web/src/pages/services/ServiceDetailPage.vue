@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
+import { useRouteTab } from '@/shared/composables/use-route-tab'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -31,9 +33,7 @@ const route = useRoute(),
   actions = useServiceActions(),
   input = ref('{}'),
   error = ref('')
-const tab = computed(() =>
-  ['caller', 'audit'].includes(String(route.query.tab)) ? String(route.query.tab) : 'contract',
-)
+const tab = useRouteTab(['contract', 'caller', 'audit'], 'contract')
 watch([id, input], () => {
   error.value = ''
   actions.call.reset()
@@ -108,9 +108,10 @@ const contract = computed(() => ({
       ></NCard
     ><NCard :bordered="false"
       ><NTabs
+        v-accessible-tabs="uiText('ui.service_detail_02638059')"
         type="line"
         :value="tab"
-        @update:value="router.push({ query: { ...route.query, tab: $event } })"
+        @update:value="tab = $event"
         ><NTabPane name="contract" :tab="uiText('ui.service_detail_a7ac85f2')"
           ><CopyButton :value="JSON.stringify(contract, null, 2)" />
           <pre>{{ JSON.stringify(contract, null, 2) }}</pre></NTabPane

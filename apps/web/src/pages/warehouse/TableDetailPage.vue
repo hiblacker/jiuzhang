@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
+import { useRouteTab } from '@/shared/composables/use-route-tab'
 import { useI18n as useUiI18n } from 'vue-i18n'
 import { useCan } from '@/shared/security/permissions'
 const canReadSensitive = useCan('readSensitive')
@@ -25,7 +27,7 @@ const route = useRoute(),
   id = computed(() => String(route.params.id)),
   query = useTable(id),
   metrics = useWarehouseMetrics(id),
-  tab = computed(() => String(route.query.tab ?? 'schema'))
+  tab = useRouteTab(['schema', 'sample', 'partitions', 'source', 'lineage', 'stats'], 'schema')
 </script>
 <template>
   <PageHeader
@@ -58,7 +60,10 @@ const route = useRoute(),
         ></NDescriptions
       ></NCard
     ><NCard :bordered="false"
-      ><NTabs :value="tab" @update:value="router.replace({ query: { tab: $event } })"
+      ><NTabs
+        v-accessible-tabs="uiText('ui.table_detail_0eae963f')"
+        :value="tab"
+        @update:value="tab = $event"
         ><NTabPane name="schema" :tab="uiText('ui.table_detail_c6e4459c')"
           ><NDataTable
             :data="query.data.value?.fields ?? []"

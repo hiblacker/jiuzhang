@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
+import { useRouteTab } from '@/shared/composables/use-route-tab'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -44,7 +46,10 @@ const query = useDataset(id),
   actions = useDatasetActions(),
   confirm = ref(false),
   readonly = computed(() => !canWrite.value)
-const tab = computed(() => String(route.query.tab ?? 'overview'))
+const tab = useRouteTab(
+  ['overview', 'preview', 'fields', 'rules', 'schedule', 'versions', 'runs', 'lineage'],
+  'overview',
+)
 const preview = useDatasetPreview(id, () => tab.value === 'preview')
 const relatedRuns = computed(
   () => runs.data.value?.data.filter((r) => r.datasetId === id.value) ?? [],
@@ -78,7 +83,10 @@ async function publish() {
       @started="router.push('/runs/' + $event)" /></PageHeader
   ><AsyncState :loading="query.isLoading.value" :error="query.error.value" @retry="query.refetch()"
     ><NCard :bordered="false"
-      ><NTabs :value="tab" @update:value="router.replace({ query: { tab: $event } })"
+      ><NTabs
+        v-accessible-tabs="uiText('ui.dataset_detail_e5d9dcd7')"
+        :value="tab"
+        @update:value="tab = $event"
         ><NTabPane name="overview" :tab="uiText('ui.dataset_detail_5060421d')"
           ><NDescriptions :column="2" label-placement="left" bordered
             ><NDescriptionsItem :label="t('folders.folder')">{{

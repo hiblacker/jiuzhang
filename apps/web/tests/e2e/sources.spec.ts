@@ -124,7 +124,7 @@ test('source object tree preserves table and field selection in shareable URLs',
     localStorage.setItem('jiuzhang.preference.role', 'developer')
   })
   await page.goto('/sources/1001')
-  const tree = page.getByLabel('对象目录', { exact: true })
+  const tree = page.getByRole('complementary', { name: '对象目录', exact: true })
   await expect(tree.getByText('orders', { exact: true })).toBeVisible()
   await tree.getByText('customers', { exact: true }).click()
   await expect(page).toHaveURL(/objectId=11002/)

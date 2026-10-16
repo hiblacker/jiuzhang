@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
+import { useRouteTab } from '@/shared/composables/use-route-tab'
 const canWrite = useCan('write')
 import { computed, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -57,7 +59,7 @@ function select(objectId: string, field: string) {
   void router.push({ query: { ...route.query, objectId, field: field || undefined } })
 }
 const preview = useSourcePreview(id, selected)
-const tab = computed(() => (typeof route.query.tab === 'string' ? route.query.tab : 'catalog'))
+const tab = useRouteTab(['catalog', 'preview', 'sync'], 'catalog')
 const fields = computed(
   () => objects.data.value?.find((x) => x.id === selected.value)?.fields ?? [],
 )
@@ -96,7 +98,7 @@ const readonly = computed(() => !canWrite.value)
         }}</NDescriptionsItem></NDescriptions
       ></NCard
     ><NCard :bordered="false"
-      ><NTabs :value="tab" @update:value="router.push({ query: { ...route.query, tab: $event } })"
+      ><NTabs v-accessible-tabs="t('sources.details')" :value="tab" @update:value="tab = $event"
         ><NTabPane name="catalog" :tab="t('sources.catalog')"
           ><AsyncState
             :loading="objects.isLoading.value"

@@ -31,6 +31,7 @@ function inspect(text,file) {
     function template(node) {
       if(node.type===1){
         if(controls.has(node.tag))errors.push('native control: '+node.tag)
+        if(node.tag==='NTabs'&&!node.props.some(prop=>prop.type===7&&prop.name==='accessible-tabs'))errors.push('NTabs must reuse accessible-tabs keyboard behavior')
         for(const prop of node.props){
           if(prop.type===6&&prop.name==='style'&&prop.value)scanStyle('x{'+prop.value.content+'}')
           if(prop.type===7&&prop.exp)scanScript(prop.exp.content)
@@ -46,6 +47,8 @@ function inspect(text,file) {
   return errors
 }
 assert.deepEqual(inspect('<template><nav><NButton>OK</NButton></nav></template>','allow.vue'),[])
+assert.deepEqual(inspect('<template><NTabs v-accessible-tabs="title" /></template>','allow.vue'),[])
+assert(inspect('<template><NTabs /></template>','deny.vue').some(error=>error.includes('accessible-tabs')))
 assert(inspect('<template><button>Bad</button></template>','deny.vue').length)
 assert(inspect('const v=h("input")','deny.ts').length)
 assert(inspect('<template><div style="color:#fff" /></template>','deny.vue').length)

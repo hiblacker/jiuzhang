@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
+import { useRouteTab } from '@/shared/composables/use-route-tab'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -89,7 +91,7 @@ const quality = useQuality({ pageSize: '100' }),
   masking = useMasking({ pageSize: '100' }),
   tasks = useTasks({ pageSize: '100' })
 const form = ref<FormInst>(),
-  tab = ref('input')
+  tab = useRouteTab(['input', 'fields', 'governance', 'schedule', 'output', 'preview'], 'input')
 if (!id.value) {
   draft.value.folderId = typeof route.query.folderId === 'string' ? route.query.folderId : null
   draft.value.definition.sourceId = String(route.query.sourceId ?? '')
@@ -187,7 +189,11 @@ useEditGuard(dirty, save.isPending)
             :empty-label="t('folders.unfiled')" /></NFormItem
         ><NFormItem :label="uiText('ui.dataset_editor_26670dda')"
           ><NInput v-model:value="draft.description" /></NFormItem
-        ><NTabs v-model:value="tab" type="line" animated
+        ><NTabs
+          v-accessible-tabs="uiText('ui.dataset_editor_3dabd36c')"
+          v-model:value="tab"
+          type="line"
+          animated
           ><NTabPane name="input" :tab="uiText('ui.dataset_editor_f0f6fbb8')">
             <NFormItem :label="t('datasets.upstream')">
               <NSelect

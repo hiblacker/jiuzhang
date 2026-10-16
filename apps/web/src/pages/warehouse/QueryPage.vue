@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
+import { useRouteTab } from '@/shared/composables/use-route-tab'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -26,7 +28,7 @@ const SqlEditor = defineAsyncComponent(() => import('@/shared/editors/SqlEditor.
 const route = useRoute(),
   router = useRouter(),
   tables = useTables({ pageSize: '100' }),
-  { filters, update, queryValue, bindPagination } = useListRoute(),
+  { filters, update, bindPagination } = useListRoute(),
   history = useQueries(() =>
     Object.fromEntries(Object.entries(filters.value).map(([key, value]) => [key, String(value)])),
   ),
@@ -37,6 +39,7 @@ bindPagination(() =>
   history.isSuccess.value && !history.isFetching.value ? history.data.value?.meta : undefined,
 )
 const { t } = useI18n()
+const tab = useRouteTab(['result', 'history'], 'result')
 const exportOutcome = ref<'ready' | 'failed'>('ready')
 const queryId = computed(() => String(route.query.queryId ?? ''))
 const result = useQueryResult(queryId)
@@ -118,9 +121,10 @@ async function exportResult(format: 'csv' | 'json') {
     ></NCard
   ><NCard :bordered="false"
     ><NTabs
-      :value="queryValue('tab') === 'history' ? 'history' : 'result'"
+      v-accessible-tabs="uiText('ui.query_5ecc0135')"
+      :value="tab"
       type="line"
-      @update:value="update({ tab: $event === 'result' ? null : $event })"
+      @update:value="tab = $event"
       ><NTabPane name="result" :tab="uiText('ui.query_afeb896e')"
         ><NSpace justify="end" class="mb"
           ><NSelect

@@ -172,6 +172,7 @@ B0 建立与本矩阵 ID 对应的 route-manifest 和测试清单。运行时以
 | 调度、依赖与版本 | tasks.spec.ts 覆盖前台计划派发、Cron/时区校验、暂停后自动重试、SLA、不改数据集草稿、逐日补数、并发等待、取消/重试保留业务日期；新增依赖环拒绝、上游失败等待/恢复、新发布不改排队运行 v1 与历史定义用例，定向 1 项通过；scheduler/schedule-time/run-admission 单元测试覆盖游标、重试上限、DST/闰日等 | 不实现关闭浏览器后的调度服务；更广的多层依赖与跨版本组合尚未全覆盖 |
 | 脱敏预览 | management.spec.ts 覆盖参数、样本、保存刷新与停用，预览经 HTTP 使用同一 Mock 算法 | Token/HMAC 等示例不宣称真实安全算法能力 |
 | 文案归属与按需加载 | 公共消息留在 shared/i18n，八个领域拥有 locales/zh-CN.ts 与 UI 词典；app 只动态加载 locale-only 公开入口，beforeResolve 等待后渲染；跨域页面显式声明词典；shared 图表由消费者提供业务标签 | check:i18n 检查所有词典的 key、动态键、同文件重复与跨所有者重复负例；边界负例禁止词典入口加载领域组件；登录按需加载与上一轮 38 路由文案复核通过；本轮新增 RunActions 已随 77 项全量 E2E 复核；菜单 labelKey 与 CSV 错误文案归属修复后 18 项受影响页面回归通过；脚本中文、labelKey 字面量及 shared/领域词典引用门禁允许/拒绝样例通过 |
+| 六处 Tab 与 URL | tabs.spec.ts 覆盖数据源详情、数据集详情/编辑、仓库表详情、查询与服务详情的所有 Tab；左右/Home/End 移动焦点、Enter/Space 激活、ARIA 关联、非法链接回退、query 保留、前进后退及刷新；六项定向浏览器用例通过 | 768px 暗/亮主题、选中 Tab 完整可见和文档宽度检查通过；51 项消费者首轮 50 通过、1 项对象树定位歧义，改为 complementary 精确语义定位后源与 Tab 18 项复测全通过；其他抽屉及页面整体仍未标为 verified |
 | 本地质量检查 | 最新完整 pnpm check 通过：契约、边界、UI、文案、lint 规则负例、ESLint、格式、类型、75 项单元/HTTP 集成、demo/real 构建；real 产物排除 Mock 检查通过 | 本轮存储与运行列表变更后完整 pnpm check 通过，13 文件 75 项单元/HTTP 集成；新增定向浏览器用例通过，完整 E2E 77 项通过；随后菜单与 CSV 文案变更的 18 项受影响页面回归通过（3.8 分钟）；demo Mock chunk 仍有 >500 kB 警告，未放宽阈值 |
 | 前端 CI 配置 | .github/workflows/frontend.yml 已配置冻结安装、完整检查、Chromium 和 E2E、失败证据保留 | 未推送或执行远端 CI，分支保护未实查；不属于当前本地目标的已验证项 |
 
@@ -197,3 +198,5 @@ B0 建立与本矩阵 ID 对应的 route-manifest 和测试清单。运行时以
 2026-10-16 提交节奏：按根 Git 规范完成一个可验证功能块即本地提交；当前先补录已有成果的可运行基线，后续修复独立提交。不包含远端推送。
 
 发布确认复用（2026-10-16）：DatasetDetailPage 复用 shared/ui/confirm-dialog，移除重复 Modal/Footer/Error 状态；发布前重置旧错误，提交中阻止 Escape/取消及重复写入。dataset-editing 的发布确认、版本恢复和 pipeline 的发布入仓/查询/导出共 3 项浏览器回归通过；lint、typecheck、format:check、check:boundaries、check:ui、check:i18n 通过。键盘 Enter 打开、取消初始焦点、关闭回触发点、失败保留/重开清错、慢请求只生成一个新版本且历史不变已验证。
+
+Tab 复用（2026-10-16）：核查当前 Naive UI Tabs 实现与六处调用方后，使用 shared/ui/accessible-tabs 指令补充现有组件缺少的键盘/ARIA 行为，使用 shared/composables/use-route-tab 统一 URL 所有权；不新建万能 Tabs。指令监听与观察器在卸载时清理，当前仅承诺已验证的水平模式；升级 Naive UI 须回归六处消费者。新增 check:ui 允许/拒绝样例约束 NTabs 复用指令。本块最终完整 pnpm check 通过，75 项单元/HTTP 集成及 demo/real 构建通过。51 项消费者首轮 50 通过、1 项对象树定位歧义，修正为精确 complementary 定位后 18 项源与 Tab 回归全通过；随后修复窄屏刷新选中 Tab 被裁切，六处 Tab 定向 6 项通过并复核截图。主题 fixture 不再在刷新时覆盖用户选择，刷新后校验实际主题；旧亮色截图实际为暗色，已替换，不使用旧截图作为亮色证据。激活/聚焦及容器尺寸变化均在水平视口内揭示选中项，ResizeObserver、MutationObserver、事件与 animation frame 均在卸载时清理。
