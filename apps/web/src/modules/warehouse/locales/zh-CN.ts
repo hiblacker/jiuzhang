@@ -18,6 +18,7 @@ export default {
     importMapping: '{field} 的输出字段',
     subjectDomain: '主题域',
     unclassified: '未分类',
+    noDatasetVersion: '不适用（CSV 导入）',
     domainHint: '例如交易、客户、库存；留空表示未分类',
     sensitivePermission: '查看敏感列（仍展示脱敏样本）',
     privateResults: '查询与导出仅创建者可见；列可见性遵循当前角色权限。',

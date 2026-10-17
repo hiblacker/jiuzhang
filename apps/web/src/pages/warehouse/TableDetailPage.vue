@@ -56,7 +56,20 @@ const route = useRoute(),
         ><NDescriptionsItem :label="uiText('ui.table_detail_02c3d613')"
           >v{{ query.data.value?.version }}</NDescriptionsItem
         ><NDescriptionsItem :label="uiText('ui.table_detail_efa08893')"
-          >v{{ query.data.value?.datasetVersion }}</NDescriptionsItem
+          ><NButton
+            v-if="query.data.value?.datasetId"
+            text
+            type="primary"
+            @click="
+              router.push(
+                '/datasets/' +
+                  query.data.value.datasetId +
+                  '/versions/' +
+                  query.data.value.datasetVersion,
+              )
+            "
+            >v{{ query.data.value.datasetVersion }}</NButton
+          ><span v-else>{{ uiText('warehouse.noDatasetVersion') }}</span></NDescriptionsItem
         ></NDescriptions
       ></NCard
     ><NCard :bordered="false"
@@ -102,9 +115,14 @@ const route = useRoute(),
                 "
                 >{{ query.data.value.datasetId }} · v{{ query.data.value.datasetVersion }}</NButton
               ><span v-else>{{ uiText('ui.table_detail_460dd9bc') }}</span></NDescriptionsItem
-            ><NDescriptionsItem :label="uiText('ui.table_detail_7a0afb42')">{{
-              query.data.value?.sourceId || '—'
-            }}</NDescriptionsItem
+            ><NDescriptionsItem :label="uiText('ui.table_detail_7a0afb42')"
+              ><NButton
+                v-if="query.data.value?.sourceId"
+                text
+                type="primary"
+                @click="router.push('/sources/' + query.data.value.sourceId)"
+                >{{ query.data.value.sourceId }}</NButton
+              ><span v-else>—</span></NDescriptionsItem
             ><NDescriptionsItem :label="uiText('ui.table_detail_b499ab6a')">{{
               query.data.value?.updatedAt
             }}</NDescriptionsItem></NDescriptions
