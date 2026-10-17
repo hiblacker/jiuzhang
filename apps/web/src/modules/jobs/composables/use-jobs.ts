@@ -67,7 +67,7 @@ export function useSelectedTasks(ids: MaybeRefOrGetter<string[]>) {
 export function useRuns(filters: MaybeRefOrGetter<Record<string, string>> = {}) {
   return useQuery({
     queryKey: computed(() => ['runs', toValue(filters)]),
-    queryFn: () => jobRepository.runs(toValue(filters)),
+    queryFn: ({ signal }) => jobRepository.runs(toValue(filters), signal),
     refetchInterval: (q) =>
       q.state.data?.data.some(
         (r) =>

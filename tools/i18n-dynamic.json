@@ -54,7 +54,11 @@
       "nav.services",
       "nav.system"
     ],
-    "value": ["admin", "developer", "viewer"],
+    "value": [
+      "admin",
+      "developer",
+      "viewer"
+    ],
     "entry.labelKey": [
       "routes.P01",
       "routes.P02",
@@ -114,7 +118,11 @@
     ]
   },
   "modules/sources/components/SourceConnectionForm.vue": {
-    "'sources.' + key": ["sources.headers", "sources.query", "sources.body"]
+    "'sources.' + key": [
+      "sources.headers",
+      "sources.query",
+      "sources.body"
+    ]
   },
   "modules/sources/components/SourcePicker.vue": {
     "errorKey(error)": [
@@ -134,10 +142,18 @@
     ]
   },
   "modules/sources/components/SourceListTable.vue": {
-    "row.status": ["connected", "warning", "offline"]
+    "row.status": [
+      "connected",
+      "warning",
+      "offline"
+    ]
   },
   "pages/auth/LoginPage.vue": {
-    "value": ["admin", "developer", "viewer"]
+    "value": [
+      "admin",
+      "developer",
+      "viewer"
+    ]
   },
   "pages/datasets/DatasetDetailPage.vue": {
     "errorKey(actions.publish.error.value)": [
@@ -306,7 +322,11 @@
     ]
   },
   "pages/sources/SourceListPage.vue": {
-    "value": ["connected", "warning", "offline"],
+    "value": [
+      "connected",
+      "warning",
+      "offline"
+    ],
     "errorKey(query.error.value)": [
       "errors.NETWORK_ERROR",
       "errors.DEMO_ERROR",
@@ -659,6 +679,13 @@
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
+    ]
+  },
+  "modules/datasets/components/RelatedDatasets.vue": {
+    "'datasets.related.states.' + dataset.status": [
+      "datasets.related.states.draft",
+      "datasets.related.states.published",
+      "datasets.related.states.blocked"
     ]
   }
 }

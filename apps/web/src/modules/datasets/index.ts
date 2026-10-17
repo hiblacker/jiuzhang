@@ -17,3 +17,4 @@ export { default as DatasetFolderPanel } from './components/DatasetFolderPanel.v
 export { default as DatasetMoveDialog } from './components/DatasetMoveDialog.vue'
 export { default as DatasetOutputSummary } from './components/DatasetOutputSummary.vue'
 export { default as UpstreamDatasetSelect } from './components/UpstreamDatasetSelect.vue'
+export { default as RelatedDatasets } from './components/RelatedDatasets.vue'

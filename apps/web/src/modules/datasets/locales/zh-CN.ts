@@ -23,6 +23,14 @@ export default {
     confirmMove: '确认移动',
   },
   datasets: {
+    related: {
+      title: '关联数据集',
+      states: { draft: '草稿', published: '已发布', blocked: '已阻断' },
+      name: '数据集名称',
+      search: '搜索关联数据集',
+      publishedVersion: '最新发布版本',
+      hint: '按当前草稿引用查询；历史发布版本与运行快照保持独立。',
+    },
     sqlEditor: '数据集 SQL 编辑器',
     sqlPreset: '数据集预设 SQL',
     output: {

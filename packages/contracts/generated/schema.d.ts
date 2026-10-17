@@ -2481,6 +2481,10 @@ export interface operations {
                 publishedOnly?: "true" | "false";
                 /** @description 排除一个数据集 ID，用于上游选择避免引用自身；与搜索、目录及已发布筛选共同生效，分页前排除。空值或省略不排除。 */
                 excludeId?: string;
+                /** @description 按当前草稿 definition.qualityRuleIds 筛选；与其余筛选条件共同生效，分页与 total 在筛选后计算。不推断历史发布版本引用。 */
+                qualityRuleId?: string;
+                /** @description 按当前草稿的策略引用或任一字段 maskPolicyId 筛选，同一数据集只计一次；与其余筛选共同生效，分页与 total 在筛选后计算。 */
+                maskPolicyId?: string;
             };
             header?: never;
             path?: never;
@@ -6707,6 +6711,8 @@ export interface operations {
                 sourceId?: string;
                 datasetId?: string;
                 taskId?: string;
+                /** @description 仅返回已记录 qualityResults 中包含该规则 ID 的运行；分页和 total 的单位为运行。保留全部原始检查结果及当次规则版本，不从当前规则或草稿重新推断。 */
+                qualityRuleId?: string;
             };
             header?: never;
             path?: never;

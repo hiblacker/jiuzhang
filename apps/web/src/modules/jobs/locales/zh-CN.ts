@@ -3,6 +3,14 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   jobs: {
+    qualityHistory: '质量历史运行',
+    qualityRuleVersion: '规则版本',
+    qualityResult: '质量结果',
+    qualityMessage: '检查说明',
+    qualityHistoryHint:
+      '按运行中已记录的质量结果分页；总数按运行计，展示当次规则及数据集版本，不随当前草稿变化。',
+    qualityRunTotal: '共 {total} 次运行',
+
     history: '运行历史',
     dataset: '数据集 ID',
     runVersion: '运行绑定版本',

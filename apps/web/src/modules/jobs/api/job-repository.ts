@@ -23,8 +23,8 @@ export const jobRepository = {
       }),
     ).data
   },
-  async runs(query: Record<string, string> = {}) {
-    return unwrap(await api.GET('/runs', { params: { query } }))
+  async runs(query: Record<string, string> = {}, signal?: AbortSignal) {
+    return unwrap(await api.GET('/runs', { params: { query }, signal }))
   },
   async detail(id: string) {
     return unwrap(await api.GET('/runs/{id}', { params: { path: { id } } })).data

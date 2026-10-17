@@ -87,7 +87,7 @@ SourceConnectionForm、DatasetFieldTable、ScheduleForm、RunTimeline、MaskRule
 
 - module 拥有 columns、领域状态文案、行级权限、行操作、Query keys 和 repository。shared 不接收 entityType 后自行请求。
 - page 拥有 URL；领域函数解析并归一化 query。关键词、筛选、排序、页码参与 query key；缺省值、非法值、允许排序字段和最大 pageSize 有明确规则。
-- URL 是可分享条件的权威来源。搜索框可有尚未提交的局部文本；提交或 debounce 后统一写 URL，筛选变更重置 page=1；不使用两个 watch 互相同步并触发两次请求。
+- URL 是可分享条件的权威来源。搜索框可有尚未提交的局部文本；提交或 debounce 后统一写 URL，筛选变更重置 page=1；不使用两个 watch 互相同步并触发两次请求。 同页多个独立列表复用 useListRoute(scope) 分别拥有查询参数，例如 datasetsPage 与 qualityRunsPage；不覆盖其他列表、外层页面和未知参数，越界页仅校正当前 scope。
 - 处理前进/后退、直接链接、刷新；去掉空参数和默认参数。不能盲信 route.query 的类型。
 - rows/total 是 Query 数据，selection 是当前交互状态。行 key 使用稳定业务 ID，不使用数组下标；筛选、资源/工作区变化时清理不再有效的选择。
 - 默认“已选”仅作用于当前可见页；如业务需要跨页选择，必须明确提示范围并设计独立状态，不能隐式对未见数据批量操作。

@@ -73,6 +73,92 @@ async function request(
 }
 
 describe('HTTP contract and persistence', () => {
+  it('filters draft quality and both masking reference forms before pagination and totals', async () => {
+    await transact((state) => {
+      const template = structuredClone(state.datasets[0]!)
+      const unrelated = Array.from({ length: 121 }, (_, index) => ({
+        ...structuredClone(template),
+        id: String(95000 + index),
+        name: 'Unrelated_' + index,
+        definition: {
+          ...structuredClone(template.definition),
+          qualityRuleIds: [],
+          maskPolicyIds: [],
+          fields: template.definition.fields.map((field) => ({ ...field, maskPolicyId: '' })),
+        },
+      }))
+      state.datasets = [
+        ...unrelated,
+        ...Array.from({ length: 121 }, (_, index) => ({
+          ...structuredClone(template),
+          id: String(96000 + index),
+          name: 'Referenced_' + String(index).padStart(3, '0'),
+          definition: {
+            ...structuredClone(template.definition),
+            qualityRuleIds: ['5001'],
+            maskPolicyIds: index % 2 ? ['6001'] : [],
+            fields: template.definition.fields.map((field, position) => ({
+              ...field,
+              maskPolicyId: index % 2 === 0 && position === 0 ? '6001' : '',
+            })),
+          },
+        })),
+      ]
+    })
+    for (const filter of ['qualityRuleId=5001', 'maskPolicyId=6001']) {
+      const result = await request('/datasets?' + filter + '&sort=name&page=2&pageSize=100')
+      expect(result.body.meta).toMatchObject({ page: 2, pageSize: 100, total: 121 })
+      expect(result.body.data.map((dataset: { id: string }) => dataset.id)).toEqual(
+        Array.from({ length: 21 }, (_, index) => String(96100 + index)),
+      )
+    }
+    const intersection = await request(
+      '/datasets?qualityRuleId=5001&maskPolicyId=6001&q=Referenced_12&sort=name',
+    )
+    expect(intersection.body.meta.total).toBe(1)
+    expect(intersection.body.data[0].id).toBe('96120')
+    expect((await request('/datasets?qualityRuleId=999999')).body.meta.total).toBe(0)
+    expect((await request('/datasets?maskPolicyId=999999')).body.meta.total).toBe(0)
+  })
+
+  it('pages runs by recorded quality results and retains captured rule versions', async () => {
+    await transact((state) => {
+      state.tasks.forEach((task) => {
+        task.schedule.mode = 'manual'
+      })
+      const template = structuredClone(state.runs[0]!)
+      state.runs = Array.from({ length: 242 }, (_, index) => ({
+        ...structuredClone(template),
+        id: String(97000 + index),
+        status: 'succeeded',
+        retryAt: null,
+        finishedAt: template.startedAt,
+        qualityResults: [
+          {
+            ruleId: index < 121 ? '5002' : '5001',
+            version: index < 121 ? 9 : 3,
+            result: 'PASS',
+            message: 'Captured quality result',
+          },
+        ],
+      }))
+      state.quality[0]!.version = 99
+    })
+    const result = await request('/runs?qualityRuleId=5001&page=2&pageSize=100')
+    expect(result.body.meta).toMatchObject({ page: 2, pageSize: 100, total: 121 })
+    expect(result.body.data.map((run: { id: string }) => run.id)).toEqual(
+      Array.from({ length: 21 }, (_, index) => String(97221 + index)),
+    )
+    expect(
+      result.body.data.every((run: { qualityResults: { version: number }[] }) =>
+        run.qualityResults.every((quality) => quality.version === 3),
+      ),
+    ).toBe(true)
+    const scoped = await request('/runs?qualityRuleId=5001&datasetId=999999')
+    expect(scoped.body.meta.total).toBe(0)
+    expect((await request('/runs?qualityRuleId=999999')).body.meta.total).toBe(0)
+  })
+
   it('excludes task and dataset identities before pagination while preserving disabled dependencies', async () => {
     await transact((state) => {
       const template = structuredClone(state.tasks[0]!)

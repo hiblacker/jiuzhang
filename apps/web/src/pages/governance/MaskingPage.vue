@@ -31,7 +31,7 @@ import {
   useMaskPreview,
   useGovernanceActions,
 } from '@/modules/governance'
-import { useDatasets } from '@/modules/datasets'
+import { RelatedDatasets } from '@/modules/datasets'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { useCan } from '@/shared/security/permissions'
@@ -47,7 +47,6 @@ const route = useRoute(),
     ),
   ),
   detail = useMaskDetail(id),
-  datasets = useDatasets({ pageSize: '100' }),
   actions = useGovernanceActions(),
   open = ref(false),
   editing = ref(''),
@@ -244,8 +243,7 @@ const columns = [
           { label: uiText('masking.text'), value: 'text' },
           { label: uiText('masking.amount'), value: 'amount' },
         ]"
-        class="mb"
-      />
+        class="mb" />
       <NAlert
         v-if="sampleQuery.data.value && !sampleQuery.data.value.enabled"
         type="warning"
@@ -267,20 +265,9 @@ const columns = [
         />
       </AsyncState>
       <h3>{{ uiText('ui.masking_f0225b54') }}</h3>
-      <NButton
-        v-for="d in datasets.data.value?.data.filter(
-          (d) =>
-            d.definition.maskPolicyIds.includes(id) ||
-            d.definition.fields.some((f) => f.maskPolicyId === id),
-        )"
-        :key="d.id"
-        text
-        type="primary"
-        style="margin-right: 20px"
-        @click="router.push('/datasets/' + d.id)"
-        >{{ d.name }}</NButton
-      ></AsyncState
-    ></NCard
+      <RelatedDatasets
+        :relation="{ maskPolicyId: id }"
+        @select="router.push('/datasets/' + $event)" /></AsyncState></NCard
   ><NDrawer
     :aria-label="uiText('ui.masking_0549993d')"
     :show="open"

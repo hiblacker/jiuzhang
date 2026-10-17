@@ -25,8 +25,8 @@ import {
   NPagination,
 } from 'naive-ui'
 import { useQuality, useQualityDetail, useGovernanceActions } from '@/modules/governance'
-import { useDatasets } from '@/modules/datasets'
-import { useRuns } from '@/modules/jobs'
+import { RelatedDatasets } from '@/modules/datasets'
+import { QualityRunHistory } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { useCan } from '@/shared/security/permissions'
@@ -43,8 +43,6 @@ const route = useRoute(),
     ),
   ),
   detail = useQualityDetail(id),
-  datasets = useDatasets({ pageSize: '100' }),
-  runs = useRuns({ pageSize: '100' }),
   actions = useGovernanceActions(),
   open = ref(false),
   editing = ref(''),
@@ -269,31 +267,13 @@ const columns = [
         />
       </template>
       <h3>{{ uiText('ui.quality_1d27e3e2') }}</h3>
-      <NButton
-        v-for="d in datasets.data.value?.data.filter((d) =>
-          d.definition.qualityRuleIds.includes(id),
-        )"
-        :key="d.id"
-        text
-        type="primary"
-        style="margin-right: 20px"
-        @click="router.push('/datasets/' + d.id)"
-        >{{ d.name }}</NButton
-      >
+      <RelatedDatasets
+        :relation="{ qualityRuleId: id }"
+        @select="router.push('/datasets/' + $event)" />
       <h3>{{ uiText('ui.quality_40ab203b') }}</h3>
-      <NDataTable
-        :data="
-          runs.data.value?.data.flatMap((r) =>
-            r.qualityResults.filter((q) => q.ruleId === id).map((q) => ({ ...q, runId: r.id })),
-          ) ?? []
-        "
-        :columns="[
-          { title: uiText('ui.quality_0c3acd44'), key: 'runId' },
-          { title: uiText('ui.quality_0700f94d'), key: 'version' },
-          { title: uiText('ui.quality_0a2c91ce'), key: 'result' },
-          { title: uiText('ui.quality_26670dda'), key: 'message' },
-        ]"
-        :bordered="false" /></AsyncState></NCard
+      <QualityRunHistory
+        :rule-id="id"
+        @select="router.push('/runs/' + $event)" /></AsyncState></NCard
   ><NDrawer
     :aria-label="uiText('ui.quality_e974beee')"
     :show="open"

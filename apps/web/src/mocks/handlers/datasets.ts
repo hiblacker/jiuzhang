@@ -237,9 +237,16 @@ export const datasetHandlers = [
         'publishedOnly 仅支持 true 或 false',
       )
       const excludedId = url.searchParams.get('excludeId')
+      const qualityRuleId = url.searchParams.get('qualityRuleId')
+      const maskPolicyId = url.searchParams.get('maskPolicyId')
       const datasets = state.datasets.filter(
         (dataset) =>
-          dataset.id !== excludedId && (publishedOnly !== 'true' || dataset.publishedVersion > 0),
+          dataset.id !== excludedId &&
+          (publishedOnly !== 'true' || dataset.publishedVersion > 0) &&
+          (!qualityRuleId || dataset.definition.qualityRuleIds.includes(qualityRuleId)) &&
+          (!maskPolicyId ||
+            dataset.definition.maskPolicyIds.includes(maskPolicyId) ||
+            dataset.definition.fields.some((field) => field.maskPolicyId === maskPolicyId)),
       )
       const folderId = url.searchParams.get('folderId')
       if (!folderId) return datasets

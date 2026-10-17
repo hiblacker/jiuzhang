@@ -420,16 +420,22 @@ export const jobHandlers = [
     ({ state, url }) => {
       advanceJobs(state)
       const sourceId = url.searchParams.get('sourceId')
-      if (!sourceId) return state.runs.map((run) => visibleRun(state, run))
+      const qualityRuleId = url.searchParams.get('qualityRuleId')
       return state.runs
-        .filter((run) =>
-          state.versions.some(
-            (version) =>
-              version.datasetId === run.datasetId &&
-              version.version === run.datasetVersion &&
-              (version.definition.sourceId === sourceId ||
-                version.sourceSnapshots.some((snapshot) => snapshot.object.sourceId === sourceId)),
-          ),
+        .filter(
+          (run) =>
+            (!qualityRuleId ||
+              run.qualityResults.some((result) => result.ruleId === qualityRuleId)) &&
+            (!sourceId ||
+              state.versions.some(
+                (version) =>
+                  version.datasetId === run.datasetId &&
+                  version.version === run.datasetVersion &&
+                  (version.definition.sourceId === sourceId ||
+                    version.sourceSnapshots.some(
+                      (snapshot) => snapshot.object.sourceId === sourceId,
+                    )),
+              )),
         )
         .map((run) => visibleRun(state, run))
     },
