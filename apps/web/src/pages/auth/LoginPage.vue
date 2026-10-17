@@ -5,6 +5,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { NCard, NButton, NSelect, NAlert } from 'naive-ui'
 import { useUiStore, useDemoUsers } from '@/modules/identity'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
+import { AsyncState } from '@/shared/ui/async-state'
 const { t } = useI18n(),
   route = useRoute(),
   router = useRouter(),
@@ -31,8 +33,14 @@ watch(
   },
   { immediate: true },
 )
+const canLogin = computed(
+  () =>
+    !users.isFetching.value &&
+    !users.error.value &&
+    options.value.some((user) => user.value === userId.value && !user.disabled),
+)
 async function login() {
-  if (!userId.value) return
+  if (!canLogin.value) return
   ui.setRole(role.value)
   ui.setUser(userId.value)
   await cache.cancelQueries()
@@ -58,18 +66,25 @@ async function login() {
       ><label class="role-label">{{ t('role') }}</label
       ><NSelect
         v-model:value="role"
-        :aria-label="t('role')"
+        v-select-trigger-name="t('role')"
         :options="['developer', 'admin', 'viewer'].map((value) => ({ value, label: t(value) }))"
       /><label class="role-label">{{ t('identity.user') }}</label
       ><NSelect
         v-model:value="userId"
         :options="options"
-        :aria-label="t('identity.user')"
-        :loading="users.isLoading.value"
-      /><NAlert v-if="users.error.value" type="error">{{ t('errors.NETWORK_ERROR') }}</NAlert
+        v-select-trigger-name="t('identity.user')"
+        :loading="users.isFetching.value"
+        :disabled="users.isFetching.value || !!users.error.value"
+      /><AsyncState :error="users.error.value" @retry="users.refetch()" /><NAlert
+        v-if="
+          !users.isFetching.value && !users.error.value && options.every((user) => user.disabled)
+        "
+        type="warning"
+        class="mt"
+        >{{ t('identity.noEnabledUsers') }}</NAlert
       ><NButton
         type="primary"
-        :disabled="!userId || users.isLoading.value"
+        :disabled="!canLogin"
         block
         size="large"
         class="login-button"

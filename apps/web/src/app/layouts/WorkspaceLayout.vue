@@ -36,6 +36,7 @@ import { useUiStore } from '../stores'
 import { useSession, useSettings } from '@/modules/identity'
 import { displayTimeZoneKey } from '@/shared/composables/use-display-time'
 import { permissionsKey } from '@/shared/security/permissions'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 const { t } = useI18n(),
   ui = useUiStore(),
   route = useRoute(),
@@ -145,7 +146,7 @@ async function logout() {
           ><NSelect
             :value="ui.role"
             :options="['admin', 'developer', 'viewer'].map((value) => ({ value, label: t(value) }))"
-            :aria-label="t('role')"
+            v-select-trigger-name="t('role')"
             style="width: 140px"
             size="small"
             @update:value="changeRole"

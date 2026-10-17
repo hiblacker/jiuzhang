@@ -27,6 +27,7 @@ export default {
     },
     user: '演示用户',
     disabled: '已停用',
+    noEnabledUsers: '当前角色没有可用演示用户，请选择其他角色',
   },
   settings: {
     saved: '设置已保存',
