@@ -1,6 +1,6 @@
 # 九章前端先行方案
 
-> 2026-10-15 · 设计基线与实施约定；应用已建立，交互验收持续中。
+> 2026-10-17 · 设计基线与实施约定；38 路由纯 Mock 前端已完成 1280×1000 本地桌面验收，证据和范围见页面矩阵。
 > 用户确定：Vue 3 + TypeScript + Pinia + Naive UI；业务数据全部 Mock；无后端服务。
 > 配套：[页面矩阵](frontend-page-map.md) · [UI 与 Vue 约定](ui-conventions.md) · [AI 开发规范](ai-development.md) · [调研依据](research/ai-engineering-research.md) · [总体数仓方案](architecture.md)。
 > 2026-10-15 补充：[new-api 聊天与本地规范对照](research/new-api-adaptation.md)，采用组件行为复用、主题与测试方法，保持既定 Vue 技术栈。
@@ -435,7 +435,7 @@ pnpm dev
 
 选页面矩阵项 -> 核对 scoped AGENTS -> 写/修改契约 -> 更新 Mock -> 实现领域逻辑/组件 -> 浏览器操作 -> 运行受影响测试及门禁 -> 更新完成状态。
 
-B0 结束时必须实际给出 localhost 地址、截图/浏览器验证结论和启动命令，而不是只交文件路径。本轮是方案与规范制定，尚不报告这一验收已完成。
+B0 结束时必须实际给出 localhost 地址、截图/浏览器验证结论和启动命令，而不是只交文件路径。当前已完成 B0–B5 的本地桌面 Mock 验收；启动命令与访问地址见根 README，逐项行为、实际执行结果及演示边界见页面矩阵 §10。
 
 ## 11. 分批实施与验收
 
@@ -462,11 +462,11 @@ B0 结束时必须实际给出 localhost 地址、截图/浏览器验证结论�
 
 以数据源保存为例，前端始终是 SourceConnectionForm → useSourceEditor → sourceRepository → HTTP client。Mock 模式由 MSW handler 更新 IndexedDB；真实模式由 API controller → sources.application → domain/port → PostgreSQL/连接器适配器执行。Worker 在任务提交后异步消费运行，不要求浏览器持有源数据库或仓库凭证。
 
-## 13. 实施前仍需在 B0 确认的细项
+## 13. 基建确认结果与后续边界
 
-已可采用的默认：中文、单工作区演示、明暗主题、桌面优先、38 路由、虚构零售 seed、无需 Docker。无需因这些常规选择阻塞推进。
+已采用：中文、单工作区演示、明暗主题、38 路由、虚构零售 seed、无需 Docker。当前按用户确认以 1280×1000 为默认桌面验收尺寸，后续不执行小屏幕专项，执行规则见前端 AGENTS。
 
-未验证项：最终依赖组合、浏览器二进制/系统依赖、localhost 可达性、真实 UI 效果和静态检查器的 .vue 覆盖。这些均由 B0 的执行结果确认，不以调研代替。
+本地已验证：锁文件依赖组合、Chromium 运行环境、localhost 可达性、桌面实际 UI、静态门禁允许/拒绝样例及 demo/real 双构建，具体命令和证据以页面矩阵为准。远端 CI、分支保护与真实后端/连接器/仓库兼容性仍未验证；后端联调按 §12 单独实施，当前不启动相关基础设施。
 
 ## 一手资料
 

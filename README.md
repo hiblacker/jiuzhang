@@ -1,6 +1,6 @@
 # 九章数据仓库工作台
 
-Vue 3 + TypeScript + Pinia + Naive UI 的纯前端演示。38 个路由已建立，完整交互验收仍在进行，逐项范围见 [页面矩阵](docs/frontend-page-map.md)。
+Vue 3 + TypeScript + Pinia + Naive UI 的纯前端演示。38 个路由及矩阵约定的主要交互已完成本地桌面验收，默认 1280×1000；逐项范围与证据见 [页面矩阵](docs/frontend-page-map.md#10-桌面验收收尾)。
 
 ## 本地启动
 
@@ -43,7 +43,7 @@ pnpm build
 pnpm preview         # 生产演示包预览，http://localhost:4173
 ```
 
-独立契约校验：`pnpm --filter @jiuzhang/contracts check`。检查通过只证明其覆盖的行为；全部验收要求仍以页面矩阵为准。
+独立契约校验：`pnpm --filter @jiuzhang/contracts check`。2026-10-17 在 e43b1530 应用与测试基线上，完整桌面 E2E 52 文件 190 项通过，排序键盘 32 次重复验证另行通过；完整 pnpm check 通过，含 14 文件 93 项单元/HTTP 集成、demo/real 双构建和 real 排除 Mock 检查。38 路由及主要 Tab 明暗首屏、长页底部、成功结果和专项弹层已实际复核；后续不执行小屏幕验收。demo Mock chunk 仍有 >500 kB 构建警告；检查通过只证明其覆盖的行为，不代表真实后端、安全或性能能力。
 
 已添加 `.github/workflows/frontend.yml`：冻结安装依赖、运行 `pnpm check`、安装 Chromium 并执行 E2E；CI 中由 Playwright 启动本项目开发服务，失败时保存报告。工作流尚未在远端执行，本地通过不代表远端 CI 或分支保护已生效。
 

@@ -1,6 +1,6 @@
 # 九章 AI 开发规范
 
-> 2026-10-15 · 规则与本地检查已实现；前端 CI 配置已建立，远端执行和完整行为验收仍待完成。
+> 2026-10-17 · 规则与本地检查已实现；38 路由纯 Mock 前端已完成本地桌面行为与视觉验收。前端 CI 配置已建立，远端执行与保护规则仍未验证。
 > [根入口](../AGENTS.md) · [前端规则](../apps/web/AGENTS.md) · [后端规则](../apps/api/AGENTS.md) · [契约规则](../packages/contracts/AGENTS.md)
 > [前端设计](frontend-design.md) · [UI 与 Vue 约定](ui-conventions.md) · [页面验收](frontend-page-map.md) · [调研来源](research/ai-engineering-research.md) · [new-api 对照](research/new-api-adaptation.md)
 
