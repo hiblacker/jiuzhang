@@ -144,8 +144,8 @@ test('service and SQL table pickers reach later pages and restore a selected tab
   await page.keyboard.press('Escape')
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: '取消', exact: true }).click()
-  await expect(page).toHaveURL(new RegExp('/warehouse/query[?]'))
-  await expect(page.getByRole('heading', { name: 'SQL 工作台', exact: true })).toBeVisible()
+  await expect(page).toHaveURL('/services')
+  await expect(page.getByRole('heading', { name: '数据服务', exact: true })).toBeVisible()
   const services = await page.evaluate(async () => {
     const response = await fetch('/api/v1/services?q=' + encodeURIComponent('选表失败保留草稿'), {
       headers: { 'x-demo-role': 'admin' },

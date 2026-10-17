@@ -251,6 +251,8 @@ test('a failed upstream version read blocks saving and retries without applying 
   await expect(page).toHaveURL('/datasets/2002')
   await expect(page.getByRole('heading', { name: '客户价值分层', exact: true })).toBeVisible()
   await page.goto('/datasets/new')
+  await expect(page.getByRole('heading', { name: '新建数据集', exact: true })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: '数据集名称', exact: true })).toHaveValue('')
   const missing = await page.evaluate(async () => {
     const response = await fetch('/api/v1/datasets/2001')
     if (!response.ok) throw new Error(await response.text())
