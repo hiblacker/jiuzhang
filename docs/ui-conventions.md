@@ -39,6 +39,7 @@
 | shared/ui/tag-editor | 字符串标签草稿、具名增删、Enter/Tab/Escape、组合输入保护和焦点恢复；不拥有 HTTP/业务校验 | SourceConnectionForm、DatasetEditorPage | 已实现，契约见组件 README |
 | shared/ui/query-toolbar           | 搜索/筛选/操作 slots 与响应式排列；不定义业务筛选                                                                      | 源列表、数据集列表                                  | B1/B2                     |
 | shared/ui/data-preview            | 只读二维数据、固定列宽/内部滚动、快照内分页、完整值弹窗；标题可由调用方翻译，复用 CopyButton，不拥有请求/权限/字段规则 | 六处结果预览以及源/数据集/仓库/版本的五处只读字段表 | 已实现，契约见组件 README |
+| shared/ui/responsive-descriptions | 容器测量、响应列数、长值完整换行与观察器清理；透传 Naive 描述项，不拥有请求或业务状态 | 来源详情、运行详情摘要 | 已实现，契约见组件 README |
 | shared/ui/list-page               | 工具栏、表格区、批量区、分页区的组合布局；不接管数据                                                                   | 源列表、数据集列表                                  | B1/B2，经第二个场景再确认 |
 | shared/composables/use-clipboard  | 浏览器复制、结果和清理；供 CopyButton 复用                                                                             | ID、错误 requestId                                  | 随 CopyButton             |
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ResponsiveDescriptions } from '@/shared/ui/responsive-descriptions'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -9,7 +10,6 @@ import {
   NCard,
   NButton,
   NTag,
-  NDescriptions,
   NDescriptionsItem,
   NSteps,
   NStep,
@@ -59,7 +59,7 @@ const retryable = computed(() =>
   <NAlert v-if="retryPaused" type="warning" class="mb">{{ t('jobs.automaticRetryPaused') }}</NAlert
   ><AsyncState :loading="query.isLoading.value" :error="query.error.value" @retry="query.refetch()"
     ><NCard :bordered="false" class="mb"
-      ><NDescriptions :column="3" bordered
+      ><ResponsiveDescriptions :max-columns="3" bordered
         ><NDescriptionsItem :label="uiText('ui.run_detail_62e951a6')"
           ><NTag
             :bordered="false"
@@ -150,7 +150,7 @@ const retryable = computed(() =>
           ><span v-else>{{ uiText('ui.run_detail_ff233aab') }}</span></NDescriptionsItem
         ><NDescriptionsItem :label="uiText('ui.run_detail_05799576')">{{
           query.data.value?.rowCount
-        }}</NDescriptionsItem></NDescriptions
+        }}</NDescriptionsItem></ResponsiveDescriptions
       ><NSteps :current="step" :status="retryable ? 'error' : 'process'" style="margin-top: 32px"
         ><NStep :title="uiText('ui.run_detail_cfb281f6')" /><NStep
           :title="uiText('ui.run_detail_b6b97ac6')" /><NStep

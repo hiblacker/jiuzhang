@@ -2,20 +2,12 @@
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
 import { useRouteTab } from '@/shared/composables/use-route-tab'
 import { DataPreview } from '@/shared/ui/data-preview'
+import { ResponsiveDescriptions } from '@/shared/ui/responsive-descriptions'
 const canWrite = useCan('write')
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import {
-  NButton,
-  NCard,
-  NTag,
-  NTabs,
-  NTabPane,
-  NDescriptions,
-  NDescriptionsItem,
-  NAlert,
-} from 'naive-ui'
+import { NButton, NCard, NTag, NTabs, NTabPane, NDescriptionsItem, NAlert } from 'naive-ui'
 import { useSource, useSourceObjects, useSourcePreview, SourceObjectTree } from '@/modules/sources'
 import { RunHistory } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
@@ -70,7 +62,7 @@ const readonly = computed(() => !canWrite.value)
     :error="source.error.value"
     @retry="source.refetch()"
     ><NCard :bordered="false" class="mb"
-      ><NDescriptions :column="4"
+      ><ResponsiveDescriptions :max-columns="4"
         ><NDescriptionsItem label="ID">{{ id }} <CopyButton :value="id" /></NDescriptionsItem
         ><NDescriptionsItem :label="t('type')">{{ source.data.value?.type }}</NDescriptionsItem
         ><NDescriptionsItem :label="t('status')"
@@ -79,7 +71,7 @@ const readonly = computed(() => !canWrite.value)
           }}</NTag></NDescriptionsItem
         ><NDescriptionsItem :label="t('owner')">{{
           source.data.value?.owner
-        }}</NDescriptionsItem></NDescriptions
+        }}</NDescriptionsItem></ResponsiveDescriptions
       ></NCard
     ><NCard :bordered="false"
       ><NTabs v-accessible-tabs="t('sources.details')" :value="tab" @update:value="tab = $event"
