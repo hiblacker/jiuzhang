@@ -119,6 +119,7 @@ async function submit() {
   } catch {
     return
   }
+  if (save.isPending.value || selectedUpstream.value) return
   try {
     const d = await save.mutateAsync()
     await router.push('/datasets/' + d.id)

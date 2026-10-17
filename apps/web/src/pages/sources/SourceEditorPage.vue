@@ -22,6 +22,7 @@ async function submit() {
   } catch {
     return
   }
+  if (save.isPending.value || test.isPending.value) return
   try {
     const result = await save.mutateAsync()
     message.success(t('saveSuccess'))
@@ -35,6 +36,7 @@ async function testConnection() {
   } catch {
     return
   }
+  if (test.isPending.value || save.isPending.value) return
   try {
     await test.mutateAsync()
   } catch {}

@@ -77,6 +77,8 @@ async function save() {
   } catch {
     return
   }
+  if (pending.value || !canWrite.value || tableUnavailable.value || (id.value && !query.data.value))
+    return
   try {
     const service = restricted.value
       ? await actions.updateMetadata.mutateAsync({

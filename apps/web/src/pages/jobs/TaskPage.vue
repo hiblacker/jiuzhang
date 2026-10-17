@@ -82,6 +82,7 @@ async function save() {
   } catch {
     return
   }
+  if (!draft.value || actions.save.isPending.value) return
   try {
     await actions.save.mutateAsync({ id: id.value, input: JSON.parse(JSON.stringify(draft.value)) })
     baseline.value = JSON.stringify(draft.value)
