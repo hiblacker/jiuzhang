@@ -2,6 +2,7 @@ import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { sourceRepository, type SourceFilters } from '../api/source-repository'
 import { newSource, toSourceInput } from '../model/connectors'
+import { compareSourceConfiguration } from '../model/configuration-diff'
 export function useSources(filters: MaybeRefOrGetter<SourceFilters>) {
   return useQuery({
     queryKey: computed(() => ['sources', toValue(filters)]),
@@ -58,7 +59,7 @@ export function useDeleteSource() {
 export function useSourceEditor(id: MaybeRefOrGetter<string>) {
   const query = useSource(id)
   const draft = ref(newSource())
-  const baseline = ref(JSON.stringify(draft.value))
+  const baseline = ref(toSourceInput(draft.value))
   const loadedId = ref('')
   const cache = useQueryClient()
   watch(
@@ -66,7 +67,7 @@ export function useSourceEditor(id: MaybeRefOrGetter<string>) {
     (source) => {
       if (source && source.id !== loadedId.value) {
         draft.value = toSourceInput(source)
-        baseline.value = JSON.stringify(draft.value)
+        baseline.value = toSourceInput(source)
         loadedId.value = source.id
       }
     },
@@ -77,16 +78,22 @@ export function useSourceEditor(id: MaybeRefOrGetter<string>) {
     (value) => {
       if (!value) {
         draft.value = newSource()
-        baseline.value = JSON.stringify(draft.value)
+        baseline.value = toSourceInput(draft.value)
         loadedId.value = ''
       }
     },
   )
-  const dirty = computed(() => JSON.stringify(draft.value) !== baseline.value)
+  const dirty = computed(() => JSON.stringify(draft.value) !== JSON.stringify(baseline.value))
+  const changes = computed(() =>
+    toValue(id) && loadedId.value === toValue(id)
+      ? compareSourceConfiguration(baseline.value, draft.value)
+      : [],
+  )
   const save = useMutation({
     mutationFn: () => sourceRepository.save(toSourceInput(draft.value), toValue(id) || undefined),
-    onSuccess: async () => {
-      baseline.value = JSON.stringify(draft.value)
+    onSuccess: async (source) => {
+      draft.value = toSourceInput(source)
+      baseline.value = toSourceInput(source)
       await cache.invalidateQueries({ queryKey: ['sources'] })
       await cache.invalidateQueries({ queryKey: ['overview'] })
     },
@@ -100,5 +107,5 @@ export function useSourceEditor(id: MaybeRefOrGetter<string>) {
     },
     { deep: true },
   )
-  return { query, draft, dirty, save, test }
+  return { query, draft, dirty, changes, save, test }
 }

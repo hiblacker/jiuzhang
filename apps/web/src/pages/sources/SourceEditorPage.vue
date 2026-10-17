@@ -6,6 +6,7 @@ import { NButton, NCard, NAlert, NSpace, useMessage } from 'naive-ui'
 import { useSourceEditor, SourceConnectionForm } from '@/modules/sources'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
+import { DataPreview } from '@/shared/ui/data-preview'
 import { errorKey } from '@/shared/api/error-message'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 const { t } = useI18n(),
@@ -13,7 +14,14 @@ const { t } = useI18n(),
   router = useRouter(),
   message = useMessage()
 const id = computed(() => String(route.params.id ?? ''))
-const { query, draft, dirty, save, test } = useSourceEditor(id)
+const { query, draft, dirty, changes, save, test } = useSourceEditor(id)
+const differenceRows = computed(() =>
+  changes.value.map((change) => ({
+    field: t(change.labelKey),
+    before: change.before,
+    after: change.after,
+  })),
+)
 const form = ref<InstanceType<typeof SourceConnectionForm>>()
 async function submit() {
   if (save.isPending.value || test.isPending.value) return
@@ -84,7 +92,34 @@ useEditGuard(dirty, () => save.isPending.value || test.isPending.value)
         ><NAlert v-if="test.error.value" type="error">{{
           t(errorKey(test.error.value))
         }}</NAlert></NSpace
-      ></NCard
+      >
+      <section v-if="id" :aria-label="t('sources.configurationDiff')" class="configuration-diff">
+        <h2>{{ t('sources.configurationDiff') }}</h2>
+        <p>{{ t('sources.diffDescription') }}</p>
+        <DataPreview
+          v-if="differenceRows.length"
+          :columns="[
+            { key: 'field', title: t('sources.diffField') },
+            { key: 'before', title: t('sources.diffBefore') },
+            { key: 'after', title: t('sources.diffAfter') },
+          ]"
+          :rows="differenceRows"
+        />
+        <NAlert v-else type="info">{{ t('sources.diffUnchanged') }}</NAlert>
+      </section></NCard
     ></AsyncState
   >
 </template>
+<style scoped>
+.configuration-diff {
+  margin-top: 24px;
+  min-width: 0;
+}
+.configuration-diff h2 {
+  font-size: 16px;
+}
+.configuration-diff p {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+</style>

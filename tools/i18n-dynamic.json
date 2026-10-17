@@ -290,6 +290,29 @@
     ]
   },
   "pages/sources/SourceEditorPage.vue": {
+    "change.labelKey": [
+      "name",
+      "description",
+      "owner",
+      "tags",
+      "type",
+      "sources.host",
+      "sources.port",
+      "sources.database",
+      "sources.schema",
+      "sources.tls",
+      "sources.method",
+      "sources.baseUrl",
+      "sources.path",
+      "sources.headers",
+      "sources.query",
+      "sources.body",
+      "sources.auth",
+      "sources.pagination",
+      "sources.dataPath",
+      "sources.incremental",
+      "sources.rateLimit"
+    ],
     "errorKey(save.error.value)": [
       "errors.NETWORK_ERROR",
       "errors.DEMO_ERROR",

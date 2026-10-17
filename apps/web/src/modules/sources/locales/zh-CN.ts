@@ -14,6 +14,13 @@ export default {
     description: '管理数据库、API 与文件接入，统一浏览源端对象',
     new: '新建数据源',
     edit: '编辑数据源',
+    configurationDiff: '配置差异',
+    diffField: '配置字段',
+    diffBefore: '已保存值',
+    diffAfter: '当前草稿值',
+    diffDescription:
+      '对比打开编辑页时的已保存配置与当前草稿，以 JSON 记法保留空字符串、数字、布尔值及数组。Mock 保存仍会归一化示例地址并替换凭证类字段。',
+    diffUnchanged: '配置未变更',
     details: '数据源详情',
     basic: '基本信息',
     connection: '连接参数',
