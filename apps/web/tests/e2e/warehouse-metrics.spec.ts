@@ -10,9 +10,10 @@ test('warehouse overview aggregates every table across pages and restores failur
   })
   await page.goto('/warehouse/tables')
   await expect(page.locator('h1')).toBeVisible()
-  const expected = await page.evaluate(async () => {
+  const importIds = await page.evaluate(async () => {
     const layers = ['ODS', 'DWD', 'DWS', 'ADS'] as const
     const headers = { 'Content-Type': 'application/json', 'x-demo-role': 'admin' }
+    const ids: string[] = []
     for (let batch = 0; batch < 13; batch++) {
       const responses = await Promise.all(
         Array.from({ length: 8 }, (_, offset) => {
@@ -33,7 +34,10 @@ test('warehouse overview aggregates every table across pages and restores failur
           })
         }),
       )
-      for (const response of responses) if (!response.ok) throw new Error(await response.text())
+      for (const response of responses) {
+        if (!response.ok) throw new Error(await response.text())
+        ids.push(((await response.json()) as { data: { id: string } }).data.id)
+      }
     }
     const tick = await fetch('/api/v1/demo/tick', {
       method: 'POST',
@@ -41,26 +45,60 @@ test('warehouse overview aggregates every table across pages and restores failur
       body: JSON.stringify({ advanceSeconds: 3 }),
     })
     if (!tick.ok) throw new Error(await tick.text())
+    return ids
+  })
+  expect(importIds).toHaveLength(104)
+  await expect
+    .poll(() =>
+      page.evaluate(async (ids) => {
+        const completed: string[] = []
+        for (let current = 1; ; current++) {
+          const response = await fetch('/api/v1/imports?pageSize=100&page=' + current, {
+            headers: { 'x-demo-role': 'admin' },
+          })
+          if (!response.ok) throw new Error(await response.text())
+          const result = (await response.json()) as {
+            data: { id: string; status: string }[]
+            meta: { total: number }
+          }
+          for (const task of result.data) {
+            if (!ids.includes(task.id)) continue
+            if (task.status === 'failed') throw new Error('Import failed: ' + task.id)
+            if (task.status === 'succeeded') completed.push(task.id)
+          }
+          if (current * 100 >= result.meta.total) return completed.length
+        }
+      }, importIds),
+    )
+    .toBe(importIds.length)
+  const expected = await page.evaluate(async () => {
+    const layers = ['ODS', 'DWD', 'DWS', 'ADS'] as const
+    const headers = { 'x-demo-role': 'admin' }
     const totals = layers.map((layer) => ({ layer, tableCount: 0, rowCount: '0' }))
-    let total: number
+    const ids = new Set<string>()
+    let total: number | undefined
     for (let current = 1; ; current++) {
       const response = await fetch('/api/v1/warehouse/tables?pageSize=100&page=' + current, {
         headers,
       })
       if (!response.ok) throw new Error(await response.text())
       const result = (await response.json()) as {
-        data: { layer: string; rowCount: string }[]
+        data: { id: string; layer: string; rowCount: string }[]
         meta: { total: number }
       }
-      total = result.meta.total
+      total ??= result.meta.total
+      if (result.meta.total !== total) throw new Error('Table total changed during pagination')
       for (const table of result.data) {
+        if (ids.has(table.id)) throw new Error('Duplicate table across pages: ' + table.id)
+        ids.add(table.id)
         const group = totals.find((item) => item.layer === table.layer)!
         group.tableCount++
         group.rowCount = (BigInt(group.rowCount) + BigInt(table.rowCount)).toString()
       }
       if (current * 100 >= total) break
     }
-    if (total <= 100) throw new Error('Expected multiple table pages')
+    if (total === undefined || total <= 100) throw new Error('Expected multiple table pages')
+    if (ids.size !== total) throw new Error('Paginated tables do not match their total')
     return { totals, total }
   })
   await page.goto('/warehouse/overview')
