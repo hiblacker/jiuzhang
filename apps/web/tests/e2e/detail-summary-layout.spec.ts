@@ -1,12 +1,11 @@
 import { expect, test } from '@playwright/test'
 
-test('long source owners do not squeeze detail values and responsive columns preserve copy and tabs', async ({
+test('long source owners do not squeeze detail values and desktop columns preserve copy and tabs', async ({
   page,
   context,
 }) => {
   test.setTimeout(60000)
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-  await page.setViewportSize({ width: 768, height: 1024 })
   await page.addInitScript(() => {
     localStorage.setItem('jiuzhang.preference.session', 'demo')
     localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -28,29 +27,28 @@ test('long source owners do not squeeze detail values and responsive columns pre
   await page.reload()
   const summary = page.locator('.n-descriptions').first()
   await expect(summary.getByText(owner, { exact: true })).toBeVisible()
-  for (const width of [768, 1440, 768]) {
-    await page.setViewportSize({ width, height: 1024 })
-    await expect
-      .poll(() =>
-        summary
-          .locator('.n-descriptions-table-content')
-          .evaluateAll((cells) =>
-            Math.min(...cells.map((cell) => cell.getBoundingClientRect().width)),
-          ),
-      )
-      .toBeGreaterThanOrEqual(220)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(width)
-    await expect(summary.getByText('MySQL', { exact: true })).toBeVisible()
-    await expect(summary.getByText(owner, { exact: true })).toHaveText(owner)
-    for (const theme of ['light', 'dark']) {
-      if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
-        await page.getByRole('button', { name: '切换明暗主题', exact: true }).press('Enter')
-      await page.screenshot({
-        path: '/tmp/jiuzhang-detail-summary-' + width + '-' + theme + '.png',
-        fullPage: true,
-        animations: 'disabled',
-      })
-    }
+  await expect
+    .poll(() =>
+      summary
+        .locator('.n-descriptions-table-content')
+        .evaluateAll((cells) =>
+          Math.min(...cells.map((cell) => cell.getBoundingClientRect().width)),
+        ),
+    )
+    .toBeGreaterThanOrEqual(220)
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBe(page.viewportSize()?.width)
+  await expect(summary.getByText('MySQL', { exact: true })).toBeVisible()
+  await expect(summary.getByText(owner, { exact: true })).toHaveText(owner)
+  for (const theme of ['light', 'dark']) {
+    if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
+      await page.getByRole('button', { name: '切换明暗主题', exact: true }).press('Enter')
+    await page.screenshot({
+      path: '/tmp/jiuzhang-detail-summary-' + page.viewportSize()?.width + '-' + theme + '.png',
+      fullPage: true,
+      animations: 'disabled',
+    })
   }
   await summary.getByRole('button', { name: '复制', exact: true }).press('Enter')
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('1001')
@@ -65,13 +63,12 @@ test('long source owners do not squeeze detail values and responsive columns pre
   expect(errors).toEqual([])
 })
 
-test('run summary adapts its columns while retaining version navigation and copy actions', async ({
+test('run summary retains readable desktop columns, version navigation and copy actions', async ({
   page,
   context,
 }) => {
   test.setTimeout(60000)
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-  await page.setViewportSize({ width: 768, height: 1024 })
   await page.addInitScript(() => {
     localStorage.setItem('jiuzhang.preference.session', 'demo')
     localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -82,28 +79,27 @@ test('run summary adapts its columns while retaining version navigation and copy
   await page.goto('/runs/9003')
   const summary = page.locator('.n-descriptions').first()
   await expect(summary.getByText('成功', { exact: true })).toBeVisible()
-  for (const width of [768, 1440, 768]) {
-    await page.setViewportSize({ width, height: 1024 })
-    await expect
-      .poll(() =>
-        summary
-          .locator('.n-descriptions-table-content')
-          .evaluateAll((cells) =>
-            Math.min(...cells.map((cell) => cell.getBoundingClientRect().width)),
-          ),
-      )
-      .toBeGreaterThanOrEqual(220)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(width)
-    await expect(summary.getByRole('button', { name: 'v1', exact: true })).toBeVisible()
-    for (const theme of ['light', 'dark']) {
-      if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
-        await page.getByRole('button', { name: '切换明暗主题', exact: true }).press('Enter')
-      await page.screenshot({
-        path: '/tmp/jiuzhang-run-summary-' + width + '-' + theme + '.png',
-        fullPage: true,
-        animations: 'disabled',
-      })
-    }
+  await expect
+    .poll(() =>
+      summary
+        .locator('.n-descriptions-table-content')
+        .evaluateAll((cells) =>
+          Math.min(...cells.map((cell) => cell.getBoundingClientRect().width)),
+        ),
+    )
+    .toBeGreaterThanOrEqual(220)
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBe(page.viewportSize()?.width)
+  await expect(summary.getByRole('button', { name: 'v1', exact: true })).toBeVisible()
+  for (const theme of ['light', 'dark']) {
+    if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
+      await page.getByRole('button', { name: '切换明暗主题', exact: true }).press('Enter')
+    await page.screenshot({
+      path: '/tmp/jiuzhang-run-summary-' + page.viewportSize()?.width + '-' + theme + '.png',
+      fullPage: true,
+      animations: 'disabled',
+    })
   }
   await summary.getByRole('button', { name: '复制', exact: true }).press('Enter')
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('9003')

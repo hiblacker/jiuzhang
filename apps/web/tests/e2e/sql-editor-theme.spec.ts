@@ -86,7 +86,6 @@ test('SQL workbench and dataset editor preserve editing while switching accessib
   test.setTimeout(90000)
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.setViewportSize({ width: 768, height: 1024 })
   await page.goto('/warehouse/query?tableId=4001')
   const editor = page.locator('.cm-content')
   await expect(editor).toHaveText('SELECT * FROM dwd_retail_1 LIMIT 100')

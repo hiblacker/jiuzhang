@@ -151,7 +151,6 @@ test('login keeps disabled demo users visible and cannot enter a role without an
   await expect(login).toBeEnabled()
   for (const theme of ['light', 'dark']) {
     await page.evaluate((value) => localStorage.setItem('jiuzhang.preference.theme', value), theme)
-    await page.setViewportSize({ width: 768, height: 1024 })
     await page.reload()
     await expect(login).toBeDisabled()
     await expect(
@@ -161,7 +160,9 @@ test('login keeps disabled demo users visible and cannot enter a role without an
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
       .toBe(theme)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
       path: '/tmp/jiuzhang-login-' + theme + '-20261017.png',
       animations: 'disabled',

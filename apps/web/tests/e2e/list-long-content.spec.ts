@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
-  await page.setViewportSize({ width: 768, height: 1024 })
   await page.addInitScript(() => {
     localStorage.setItem('jiuzhang.preference.session', 'demo')
     localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -92,7 +91,7 @@ for (const kind of ['source', 'dataset', 'catalog'] as const) {
         await expect(page.getByRole('tooltip')).toBeVisible()
         expect((await page.getByRole('tooltip').boundingBox())!.width).toBeLessThanOrEqual(480)
         await page.screenshot({
-          path: 'test-results/long-owner-' + kind + '-' + theme + '.png',
+          path: '/tmp/jiuzhang-desktop-1280-long-owner-' + kind + '-' + theme + '.png',
           animations: 'disabled',
         })
         await button.focus()
@@ -105,15 +104,17 @@ for (const kind of ['source', 'dataset', 'catalog'] as const) {
           await expect(page.getByRole('tooltip')).toBeVisible()
           expect((await page.getByRole('tooltip').boundingBox())!.width).toBeLessThanOrEqual(480)
           await page.screenshot({
-            path: 'test-results/long-tag-' + theme + '.png',
+            path: '/tmp/jiuzhang-desktop-1280-long-tag-' + theme + '.png',
             animations: 'disabled',
           })
           await button.focus()
           await expect(page.getByRole('tooltip')).toBeHidden()
         }
-        await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+        await expect
+          .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+          .toBe(page.viewportSize()?.width)
         await page.screenshot({
-          path: 'test-results/long-list-' + kind + '-' + theme + '.png',
+          path: '/tmp/jiuzhang-desktop-1280-long-list-' + kind + '-' + theme + '.png',
           animations: 'disabled',
         })
         const listUrl = page.url()

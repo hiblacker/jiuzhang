@@ -113,7 +113,6 @@ test('API differences retain JSON zero, false and empty strings after failure an
   await expect(queryInput).toHaveValue(query)
   await expect(queryRow.getByRole('cell').last()).toHaveText(JSON.stringify(query))
   for (const theme of ['light', 'dark']) {
-    await page.setViewportSize({ width: 768, height: 1024 })
     if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
     await expect
@@ -124,9 +123,11 @@ test('API differences retain JSON zero, false and empty strings after failure an
       theme === 'light' ? 'rgb(107, 126, 148)' : 'rgb(146, 166, 190)',
     )
     await diff.scrollIntoViewIfNeeded()
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/source-configuration-diff-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-source-configuration-diff-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })

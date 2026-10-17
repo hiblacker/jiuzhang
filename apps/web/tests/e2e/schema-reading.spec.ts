@@ -29,7 +29,6 @@ test('long schema values remain readable across dataset, warehouse and immutable
   page,
 }) => {
   test.setTimeout(90000)
-  await page.setViewportSize({ width: 768, height: 1024 })
   await page.addInitScript(() => {
     localStorage.setItem('jiuzhang.preference.session', 'demo')
     localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -79,13 +78,15 @@ test('long schema values remain readable across dataset, warehouse and immutable
       await expect(dialog.locator('pre')).toHaveText(description)
       await expect(dialog.locator('img')).toHaveCount(0)
       await page.screenshot({
-        path: 'test-results/schema-' + name + '-' + theme + '.png',
+        path: '/tmp/jiuzhang-desktop-1280-schema-' + name + '-' + theme + '.png',
         animations: 'disabled',
       })
       await page.keyboard.press('Escape')
       await expect(dialog).toHaveCount(0)
       await expect(value).toBeFocused()
-      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+        .toBe(page.viewportSize()?.width)
     }
     await page.goto('/datasets/2001/versions/1?sourceObjectId=11001&field=id')
     const snapshot = page.locator('.n-card').filter({ hasText: '输入源结构快照' })
@@ -106,12 +107,14 @@ test('long schema values remain readable across dataset, warehouse and immutable
     await expect(changed).toBeFocused()
     await expect(page.locator('.n-modal-mask')).toBeHidden()
     await page.screenshot({
-      path: 'test-results/schema-version-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-schema-version-' + theme + '.png',
       animations: 'disabled',
     })
     await page.reload()
     await expectReadable(page.locator('.n-data-table').last())
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     if (theme === 'dark') {
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
       await page.reload()

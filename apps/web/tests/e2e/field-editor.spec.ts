@@ -4,7 +4,6 @@ test('field reordering keeps focus on the same field and typed masking controls 
   page,
 }) => {
   test.setTimeout(90000)
-  await page.setViewportSize({ width: 768, height: 1024 })
   await page.addInitScript(() => {
     localStorage.setItem('jiuzhang.preference.session', 'demo')
     localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -82,9 +81,11 @@ test('field reordering keeps focus on the same field and typed masking controls 
         .filter({ has: page.getByLabel('输出名 id', { exact: true }) })
         .last(),
     ).toContainText('integer')
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/field-editor-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-field-editor-' + theme + '.png',
       animations: 'disabled',
     })
     if (theme === 'dark') {

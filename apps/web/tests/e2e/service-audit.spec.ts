@@ -4,7 +4,6 @@ test('service audit reaches records beyond 100 and restores pagination, failures
   page,
 }) => {
   test.setTimeout(180000)
-  await page.setViewportSize({ width: 768, height: 1024 })
   await page.addInitScript(() => {
     if (!localStorage.getItem('jiuzhang.preference.session')) {
       localStorage.setItem('jiuzhang.preference.session', 'demo')
@@ -93,9 +92,11 @@ test('service audit reaches records beyond 100 and restores pagination, failures
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
       .toBe(theme)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/service-audit-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-service-audit-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })

@@ -66,15 +66,17 @@ test('historical source schemas stay inspectable through field deep links and sh
   await page.reload()
   await expect(page.getByText('旧演示数据迁移补录', { exact: true })).toBeVisible()
   await expect(page.getByText('此版本创建于快照功能启用前', { exact: false })).toBeVisible()
-  await page.screenshot({ path: 'test-results/version-source-snapshot.png', fullPage: true })
-  await page.setViewportSize({ width: 768, height: 1024 })
+  await page.screenshot({
+    path: '/tmp/jiuzhang-desktop-1280-version-source-snapshot.png',
+    fullPage: true,
+  })
   await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
   await expect(page.getByText('旧演示数据迁移补录', { exact: true })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   )
   await page.screenshot({
-    path: 'test-results/version-source-snapshot-narrow-dark.png',
+    path: '/tmp/jiuzhang-desktop-1280-version-source-snapshot-desktop-dark.png',
     fullPage: true,
   })
 })

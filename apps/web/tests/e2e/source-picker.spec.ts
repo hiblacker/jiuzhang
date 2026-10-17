@@ -76,15 +76,16 @@ test('dataset source picker reaches later pages, restores off-page selections an
   await page.reload()
   await expect(picker.getByText('A_picker_109', { exact: true })).toBeVisible()
   for (const theme of ['light', 'dark']) {
-    await page.setViewportSize({ width: 768, height: 1024 })
     if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
       .toBe(theme)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/source-picker-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-source-picker-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })

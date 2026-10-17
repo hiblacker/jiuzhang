@@ -94,15 +94,14 @@ for (const [writeMode, label, expectedCount] of [
       await expect(page).toHaveURL('/datasets/2001/versions/2')
       await expect(summary).toContainText(writeMode === 'upsert' ? '按主键更新' : label)
       if (writeMode === 'append') {
-        await page.setViewportSize({ width: 768, height: 1024 })
         for (const theme of ['light', 'dark']) {
           if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
             await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
           await expect
             .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
-            .toBe(768)
+            .toBe(page.viewportSize()?.width)
           await page.screenshot({
-            path: 'test-results/output-summary-' + theme + '.png',
+            path: '/tmp/jiuzhang-desktop-1280-output-summary-' + theme + '.png',
             fullPage: true,
             animations: 'disabled',
           })

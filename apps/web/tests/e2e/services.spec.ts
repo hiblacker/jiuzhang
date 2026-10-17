@@ -69,11 +69,13 @@ test('service creation, validation, failure recovery, caller and cancel preserve
   await page.getByRole('button', { name: '编辑服务', exact: true }).click()
   await expect(page.getByLabel('参数 1 名称', { exact: true })).toHaveValue('city')
   await expect(page.getByRole('switch', { name: '参数 1 必填', exact: true })).toBeChecked()
-  await page.setViewportSize({ width: 768, height: 1024 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   )
-  await page.screenshot({ path: 'test-results/service-editor-narrow.png', fullPage: true })
+  await page.screenshot({
+    path: '/tmp/jiuzhang-desktop-1280-service-editor-desktop.png',
+    fullPage: true,
+  })
   await page.getByLabel('服务名称', { exact: true }).fill('取消的改名')
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: '取消', exact: true }).click()

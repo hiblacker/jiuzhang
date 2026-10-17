@@ -229,19 +229,27 @@ for (const filter of filters) {
       await page.keyboard.press('Escape')
       await expect(control).toHaveAttribute('aria-expanded', 'false')
       await expect(control).toBeFocused()
+      await expect(page.locator('.n-base-select-menu:visible')).toHaveCount(0)
       await control.press('Enter')
+      await expect(control).toHaveAttribute('aria-expanded', 'true')
       const options = page.locator('.n-base-select-menu:visible .n-base-select-option')
       const target = options.filter({ has: page.getByText(filter.option, { exact: true }) })
       const pending = page.locator('.n-base-select-menu:visible .n-base-select-option--pending')
       if ((await pending.count()) === 0) await page.keyboard.press('ArrowDown')
       await expect(pending).toBeVisible()
       const visited = new Set<string>()
-      while ((await pending.innerText()).trim() !== filter.option) {
+      for (;;) {
         const label = (await pending.innerText()).trim()
+        if (label === filter.option) break
         expect(visited.has(label), 'Keyboard navigation must reach ' + filter.option).toBe(false)
         visited.add(label)
         await page.keyboard.press('ArrowDown')
-        await expect(pending).not.toHaveText(label)
+        await expect
+          .poll(async () => {
+            const labels = await pending.allTextContents()
+            return labels.length === 1 && labels[0]!.trim() !== label && labels[0]!.trim() !== ''
+          })
+          .toBe(true)
       }
       await expect(target).toBeVisible()
       await expect(target).toHaveClass(/n-base-select-option--pending/)

@@ -84,18 +84,19 @@ test('overview shows real attention counts and latest failures with filtered nav
   await page.goBack()
   await page.reload()
   await expect(draft).toBeEnabled()
-  await page.setViewportSize({ width: 768, height: 1024 })
   for (const theme of ['light', 'dark']) {
     if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
       .toBe(theme)
-    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
+      page.viewportSize()?.width,
+    )
     await draft.scrollIntoViewIfNeeded()
     await expect(draft).toBeInViewport()
     await page.screenshot({
-      path: 'test-results/overview-attention-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-overview-attention-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })

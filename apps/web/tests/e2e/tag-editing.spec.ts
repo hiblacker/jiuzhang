@@ -76,8 +76,9 @@ for (const resource of [
       await input.fill(longTag)
       await input.press('Enter')
       await expect(group.getByTitle(longTag, { exact: true })).toBeVisible()
-      await page.setViewportSize({ width: 768, height: 1024 })
-      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+        .toBe(page.viewportSize()?.width)
       await group.getByRole('button', { name: '删除标签 ' + longTag, exact: true }).press('Enter')
       const expected = [...before.slice(before.length ? 1 : 0), '键盘标签']
       await page.getByRole('button', { name: resource.save, exact: true }).click()
@@ -108,16 +109,18 @@ for (const resource of [
       await page.goto(resource.path + '/edit')
       for (const tag of expected) await expect(group.getByText(tag, { exact: true })).toBeVisible()
       await expect(page.getByRole('button', { name: resource.save, exact: true })).toBeEnabled()
-      await page.setViewportSize({ width: 768, height: 1024 })
       for (const theme of ['light', 'dark']) {
         if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
           await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
         await expect
           .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
           .toBe(theme)
-        await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+        await expect
+          .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+          .toBe(page.viewportSize()?.width)
         await page.screenshot({
-          path: 'test-results/tags-' + resource.path.split('/')[1] + '-' + theme + '.png',
+          path:
+            '/tmp/jiuzhang-desktop-1280-tags-' + resource.path.split('/')[1] + '-' + theme + '.png',
           fullPage: true,
           animations: 'disabled',
         })

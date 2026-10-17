@@ -47,7 +47,6 @@ async function createWideTable(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.setViewportSize({ width: 768, height: 1024 })
   await page.addInitScript(() => {
     localStorage.setItem('jiuzhang.preference.session', 'demo')
     localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -81,7 +80,9 @@ test('wide imported samples paginate and expose long values with keyboard, copy 
       (await preview.getByRole('columnheader').first().boundingBox())!.width,
     ).toBeGreaterThanOrEqual(170)
     expect((await preview.locator('tbody tr').first().boundingBox())!.height).toBeLessThan(100)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     const value = preview.getByRole('button', { name: '查看第 1 行 field_3 的完整值', exact: true })
     await value.focus()
     await page.keyboard.press('Enter')
@@ -89,7 +90,9 @@ test('wide imported samples paginate and expose long values with keyboard, copy 
     await expect(dialog).toBeVisible()
     await expect(dialog.locator('pre')).toHaveText(longValue)
     await expect(dialog.locator('img')).toHaveCount(0)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     if (theme === 'dark') {
       await page.evaluate(() => {
         Object.defineProperty(navigator, 'clipboard', {
@@ -110,7 +113,7 @@ test('wide imported samples paginate and expose long values with keyboard, copy 
       await expect(page.getByText('已复制', { exact: true })).toBeVisible()
     }
     await page.screenshot({
-      path: 'test-results/wide-value-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-wide-value-' + theme + '.png',
       animations: 'disabled',
     })
     await page.keyboard.press('Escape')
@@ -127,7 +130,7 @@ test('wide imported samples paginate and expose long values with keyboard, copy 
       preview.getByRole('columnheader', { name: 'field_15', exact: true }),
     ).toBeInViewport()
     await page.screenshot({
-      path: 'test-results/wide-sample-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-wide-sample-' + theme + '.png',
       animations: 'disabled',
     })
     await page.reload()
@@ -182,5 +185,7 @@ test('wide query and service results reuse readable cells without changing retur
   await preview.getByRole('button', { name: '查看第 1 行 field_3 的完整值', exact: true }).click()
   await expect(page.getByRole('dialog').locator('pre')).toHaveText(longValue)
   await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click()
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBe(page.viewportSize()?.width)
 })

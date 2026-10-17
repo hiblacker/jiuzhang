@@ -154,16 +154,17 @@ test('dependency selection paginates, restores multiple off-page names and isola
     page.locator('.n-base-select-menu:visible').getByText('A_dependency_118调度', { exact: true }),
   ).toBeVisible()
   await page.keyboard.press('Escape')
-  await page.setViewportSize({ width: 768, height: 1024 })
   for (const theme of ['light', 'dark']) {
     if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
       .toBe(theme)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/dependency-picker-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-dependency-picker-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })

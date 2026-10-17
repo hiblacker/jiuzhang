@@ -64,7 +64,6 @@ test('quality and masking related datasets paginate and search all draft referen
     const url = new URL(request.url())
     if (request.method() === 'GET' && url.pathname === '/api/v1/datasets') requests.push(url.search)
   })
-  await page.setViewportSize({ width: 768, height: 1024 })
   for (const kind of ['quality', 'masking']) {
     const path = '/governance/' + kind + '/' + (kind === 'quality' ? '5001' : '6001')
     const url =
@@ -130,9 +129,11 @@ test('quality and masking related datasets paginate and search all draft referen
       await expect
         .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
         .toBe(theme)
-      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+        .toBe(page.viewportSize()?.width)
       await page.screenshot({
-        path: 'test-results/governance-relations-' + kind + '-' + theme + '.png',
+        path: '/tmp/jiuzhang-desktop-1280-governance-relations-' + kind + '-' + theme + '.png',
         fullPage: true,
         animations: 'disabled',
       })
@@ -290,16 +291,17 @@ test('quality history finds captured results beyond 100 newer unrelated runs and
   await expect(rows).toHaveCount(fixture.expected.data.length)
   expect(new URL(page.url()).searchParams.get('qualityRunsPage')).toBe('2')
   expect(new URL(page.url()).searchParams.get('trace')).toBe('keep')
-  await page.setViewportSize({ width: 768, height: 1024 })
   for (const theme of ['light', 'dark']) {
     if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
       .toBe(theme)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/governance-quality-history-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-governance-quality-history-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })

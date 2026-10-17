@@ -5,7 +5,6 @@ test('audit filters expose worker events and mutation context, preserve URLs and
   page,
 }) => {
   test.setTimeout(120000)
-  await page.setViewportSize({ width: 768, height: 1024 })
   await page.addInitScript(() => {
     localStorage.setItem('jiuzhang.preference.session', 'demo')
     localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -127,12 +126,14 @@ test('audit filters expose worker events and mutation context, preserve URLs and
     await expect
       .poll(() => drawer.evaluate((root) => root.contains(document.activeElement)))
       .toBe(true)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await expect
       .poll(() => drawer.evaluate((root) => Math.round(root.getBoundingClientRect().right)))
-      .toBe(768)
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/audit-detail-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-audit-detail-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })

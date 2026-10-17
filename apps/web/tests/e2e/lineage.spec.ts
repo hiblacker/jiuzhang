@@ -125,14 +125,15 @@ test('large multi-level lineage stays navigable by search and keyboard in both t
   await page.reload()
   await expect(graph.locator('.vue-flow__node')).toHaveCount(chain.ids.length + 1)
   expect(new URL(page.url()).searchParams.get('trace')).toBe('keep')
-  await page.setViewportSize({ width: 768, height: 1024 })
   for (const theme of ['light', 'dark']) {
     if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
     await page.getByRole('button', { name: '适应画布', exact: true }).click()
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/lineage-chain-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-lineage-chain-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })

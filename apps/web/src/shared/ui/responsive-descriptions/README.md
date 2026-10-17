@@ -7,4 +7,4 @@
 - ResizeObserver 仅在挂载时创建，卸载时断开；初始单列避免未测量时挤压。表格固定布局，长值完整换行，不截断或修改原始数据。
 - 已安装 Naive UI 的 column 仅支持数字，没有容器响应能力；现有 NGrid 的 self 断点不适用于描述表格，故在 shared/ui 建立此生命周期所有者。
 
-真实消费者：SourceDetailPage 的四项来源摘要、RunDetailPage 的运行元数据，以及数据集详情概览/调度、DatasetVersionPage 版本摘要和 DatasetOutputSummary 的输出配置；输出配置由数据集详情、编辑器与历史版本复用。浏览器测试见 tests/e2e/detail-summary-layout.spec.ts，覆盖长负责人、768→1440→768、明暗主题、复制、Tab 刷新和版本跳转；来源/任务消费者回归见 sources、task-dependencies 和 tasks。数据集长表名/主键及历史版本不变性见 tests/e2e/dataset-summary-layout.spec.ts，沿用 Playwright 默认桌面 1280×1000 验证明暗、刷新及版本。其他多列摘要按桌面实际问题接入，不批量替换；此前窄屏证据保留，不再重跑窄屏专项。
+真实消费者：SourceDetailPage 的四项来源摘要、RunDetailPage 的运行元数据，以及数据集详情概览/调度、DatasetVersionPage 版本摘要和 DatasetOutputSummary 的输出配置；输出配置由数据集详情、编辑器与历史版本复用。浏览器测试见 tests/e2e/detail-summary-layout.spec.ts，当前沿用默认 1280×1000 桌面视口，覆盖长负责人、明暗主题、复制、Tab 刷新和版本跳转；此前 768→1440→768 验收仅保留历史记录；来源/任务消费者回归见 sources、task-dependencies 和 tasks。数据集长表名/主键及历史版本不变性见 tests/e2e/dataset-summary-layout.spec.ts，沿用 Playwright 默认桌面 1280×1000 验证明暗、刷新及版本。其他多列摘要按桌面实际问题接入，不批量替换；此前窄屏证据保留，不再重跑窄屏专项。

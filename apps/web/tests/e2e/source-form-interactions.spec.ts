@@ -62,16 +62,17 @@ test('database connection controls have keyboard names and preserve TLS false af
     tls: false,
     incrementalField: 'keyboard_updated_at',
   })
-  await page.setViewportSize({ width: 768, height: 1024 })
   for (const theme of ['light', 'dark']) {
     if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
       .toBe(theme)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/source-database-form-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-source-database-form-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })
@@ -136,16 +137,17 @@ test('API selectors support keyboard changes, Escape, save and refresh', async (
     incrementalField: 'updated_at',
   })
   expect(JSON.parse(saved.settings.query)).toEqual({ page: 0 })
-  await page.setViewportSize({ width: 768, height: 1024 })
   for (const theme of ['light', 'dark']) {
     if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
       .toBe(theme)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/source-api-form-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-source-api-form-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })

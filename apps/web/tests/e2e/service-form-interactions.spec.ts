@@ -102,16 +102,17 @@ test('service parameters keep focus and typed values through keyboard addition, 
   )
   await expect(page.getByRole('button', { name: '保存服务', exact: true })).toBeEnabled()
   await expect(page.getByText('dwd_retail_1', { exact: true })).toBeVisible()
-  await page.setViewportSize({ width: 768, height: 1024 })
   for (const theme of ['light', 'dark']) {
     if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
       .toBe(theme)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/service-form-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-service-form-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })

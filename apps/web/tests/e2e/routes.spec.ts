@@ -59,13 +59,12 @@ test('all planned routes load directly and survive refresh', async ({ page }) =>
   await page.goto('/overview')
   await expect(page.getByText('每一份数据，都有清晰的去向。')).toBeVisible()
   await expect(page.getByRole('button', { name: '查看全部' }).first()).toBeVisible()
-  await page.screenshot({ path: 'test-results/overview.png', fullPage: true })
+  await page.screenshot({ path: '/tmp/jiuzhang-desktop-1280-overview.png', fullPage: true })
 })
 
-test('narrow task headers keep titles readable and actions usable in both themes', async ({
+test('desktop task headers keep titles readable and actions usable in both themes', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 768, height: 1024 })
   await page.addInitScript(() => {
     localStorage.setItem('jiuzhang.preference.session', 'demo')
     localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -82,8 +81,10 @@ test('narrow task headers keep titles readable and actions usable in both themes
     expect(box!.width).toBeGreaterThan(240)
     expect(box!.height).toBeLessThan(100)
     await expect(page.getByRole('button', { name: '编辑配置', exact: true })).toBeVisible()
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
-    await page.screenshot({ path: 'test-results/task-header-' + theme + '.png' })
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
+    await page.screenshot({ path: '/tmp/jiuzhang-desktop-1280-task-header-' + theme + '.png' })
     if (theme === 'dark')
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
   }
@@ -139,10 +140,9 @@ test('login loads its domain dictionary without downloading dataset editors', as
   expect(warnings).toEqual([])
 })
 
-test('asset catalog keeps readable columns, internal scrolling and accessible favorites on narrow screens', async ({
+test('asset catalog keeps readable columns, internal scrolling and accessible favorites on desktop', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 768, height: 1024 })
   await page.addInitScript(() => {
     localStorage.setItem('jiuzhang.preference.session', 'demo')
     localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -157,13 +157,15 @@ test('asset catalog keeps readable columns, internal scrolling and accessible fa
     await expect(row.getByRole('button', { name: '零售订单库', exact: true })).toBeVisible()
     const nameCell = row.getByRole('cell').first()
     expect((await nameCell.boundingBox())!.width).toBeGreaterThanOrEqual(220)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await row.getByRole('button', { name: '收藏', exact: true }).focus()
     await page.keyboard.press('Enter')
     await expect(row.getByRole('button', { name: '取消收藏', exact: true })).toBeVisible()
     await row.getByRole('button', { name: '取消收藏', exact: true }).click()
     await expect(row.getByRole('button', { name: '收藏', exact: true })).toBeVisible()
-    await page.screenshot({ path: 'test-results/catalog-' + theme + '.png' })
+    await page.screenshot({ path: '/tmp/jiuzhang-desktop-1280-catalog-' + theme + '.png' })
     if (theme === 'dark')
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
   }

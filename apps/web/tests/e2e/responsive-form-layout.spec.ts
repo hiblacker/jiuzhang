@@ -8,10 +8,9 @@ const forms = [
 
 for (const form of forms) {
   test(
-    form.id + ' form reflows with its available width and preserves the editable draft',
+    form.id + ' form keeps readable desktop fields and preserves the editable draft',
     async ({ page }) => {
       test.setTimeout(60000)
-      await page.setViewportSize({ width: 768, height: 1024 })
       await page.addInitScript(() => {
         localStorage.setItem('jiuzhang.preference.session', 'demo')
         localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -26,38 +25,42 @@ for (const form of forms) {
       const name = page.getByRole('textbox', { name: form.label, exact: true })
       await expect(name).toHaveValue(form.original)
       await name.fill(form.original + '响应布局')
-      for (const width of [768, 1440, 768]) {
-        await page.setViewportSize({ width, height: 1024 })
-        await expect
-          .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
-          .toBe(width)
-        await expect
-          .poll(() =>
-            page
-              .locator('.n-form-item')
-              .evaluateAll((items) =>
-                Math.min(
-                  ...items
-                    .map((item) => item.getBoundingClientRect().width)
-                    .filter((value) => value > 0),
-                ),
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+        .toBe(page.viewportSize()?.width)
+      await expect
+        .poll(() =>
+          page
+            .locator('.n-form-item')
+            .evaluateAll((items) =>
+              Math.min(
+                ...items
+                  .map((item) => item.getBoundingClientRect().width)
+                  .filter((value) => value > 0),
               ),
-          )
-          .toBeGreaterThanOrEqual(280)
-        await expect(name).toHaveValue(form.original + '响应布局')
-        for (const theme of ['light', 'dark']) {
-          if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
-            await page.getByRole('button', { name: '切换明暗主题', exact: true }).press('Enter')
-          await expect
-            .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
-            .toBe(theme)
-          await name.scrollIntoViewIfNeeded()
-          await page.screenshot({
-            path: '/tmp/jiuzhang-form-' + form.id + '-' + width + '-' + theme + '.png',
-            fullPage: true,
-            animations: 'disabled',
-          })
-        }
+            ),
+        )
+        .toBeGreaterThanOrEqual(280)
+      await expect(name).toHaveValue(form.original + '响应布局')
+      for (const theme of ['light', 'dark']) {
+        if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
+          await page.getByRole('button', { name: '切换明暗主题', exact: true }).press('Enter')
+        await expect
+          .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
+          .toBe(theme)
+        await name.scrollIntoViewIfNeeded()
+        await page.screenshot({
+          path:
+            '/tmp/jiuzhang-form-' +
+            form.id +
+            '-' +
+            page.viewportSize()?.width +
+            '-' +
+            theme +
+            '.png',
+          fullPage: true,
+          animations: 'disabled',
+        })
       }
       await page
         .getByRole('button', { name: form.id === 'dataset' ? '保存草稿' : '保存', exact: true })

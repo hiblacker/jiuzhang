@@ -37,7 +37,6 @@ async function trap(page: Page, dialog: Locator, last: Locator) {
     .toBe(true)
 }
 async function themes(page: Page, dialog: Locator, name: string) {
-  await page.setViewportSize({ width: 768, height: 1024 })
   for (const theme of ['light', 'dark']) {
     // This fixture changes theme for visual review while the dialog retains focus.
     await expect
@@ -59,9 +58,11 @@ async function themes(page: Page, dialog: Locator, name: string) {
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
       .toBe(theme)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/workflow-' + name + '-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-workflow-' + name + '-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })

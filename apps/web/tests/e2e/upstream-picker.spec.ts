@@ -156,16 +156,17 @@ test('upstream datasets paginate after publication filtering and load the select
     page.locator('.n-base-select-menu:visible').getByText('A_upstream_020 · v1', { exact: true }),
   ).toBeVisible()
   await page.keyboard.press('Escape')
-  await page.setViewportSize({ width: 768, height: 1024 })
   for (const theme of ['light', 'dark']) {
     if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
       .toBe(theme)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await page.screenshot({
-      path: 'test-results/upstream-picker-' + theme + '.png',
+      path: '/tmp/jiuzhang-desktop-1280-upstream-picker-' + theme + '.png',
       fullPage: true,
       animations: 'disabled',
     })

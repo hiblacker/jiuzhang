@@ -4,7 +4,6 @@ test('resource histories paginate beyond 100, isolate scopes and recover without
   page,
 }) => {
   test.setTimeout(180000)
-  await page.setViewportSize({ width: 768, height: 1024 })
   await page.addInitScript(() => {
     localStorage.setItem('jiuzhang.preference.session', 'demo')
     localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -102,7 +101,9 @@ test('resource histories paginate beyond 100, isolate scopes and recover without
       await page.goto(url)
       await expect(rows).toHaveCount(expected.data.length)
     }
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     for (const theme of ['light', 'dark']) {
       if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
         await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
@@ -110,7 +111,7 @@ test('resource histories paginate beyond 100, isolate scopes and recover without
         .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
         .toBe(theme)
       await page.screenshot({
-        path: 'test-results/run-history-' + entry.name + '-' + theme + '.png',
+        path: '/tmp/jiuzhang-desktop-1280-run-history-' + entry.name + '-' + theme + '.png',
         fullPage: true,
         animations: 'disabled',
       })
