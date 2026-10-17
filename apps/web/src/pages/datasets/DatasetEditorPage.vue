@@ -168,7 +168,7 @@ useEditGuard(dirty, save.isPending)
           name: { required: true, message: uiText('ui.dataset_editor_505e9598'), trigger: 'blur' },
         }"
         label-placement="top"
-        ><NGrid :cols="3" :x-gap="24"
+        ><NGrid cols="1 640:2 960:3" responsive="self" :x-gap="24"
           ><NFormItemGi :label="uiText('ui.dataset_editor_5aa625bf')" path="name"
             ><NInput
               v-model:value="draft.name"
@@ -222,7 +222,7 @@ useEditGuard(dirty, save.isPending)
                 >
               </template>
             </NAlert>
-            <NGrid :cols="3" :x-gap="24"
+            <NGrid cols="1 640:2 960:3" responsive="self" :x-gap="24"
               ><NFormItemGi :label="uiText('ui.dataset_editor_a3ccf702')"
                 ><SourcePicker
                   :value="draft.definition.sourceId"
@@ -310,7 +310,7 @@ useEditGuard(dirty, save.isPending)
                 :maxlength="60"
                 :input-props="{ 'aria-label': t('warehouse.subjectDomain') }"
                 :placeholder="t('warehouse.domainHint')" /></NFormItem
-            ><NGrid :cols="2" :x-gap="24"
+            ><NGrid cols="1 640:2" responsive="self" :x-gap="24"
               ><NFormItemGi :label="uiText('ui.dataset_editor_2bee776c')"
                 ><NSelect
                   v-model:value="draft.definition.output.layer"

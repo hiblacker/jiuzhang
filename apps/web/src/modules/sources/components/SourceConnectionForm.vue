@@ -96,7 +96,7 @@ defineExpose({ validate: () => form.value?.validate() })
 <template>
   <NForm ref="form" :model="draft" :rules="rules" :disabled="disabled" label-placement="top"
     ><h3>{{ t('sources.basic') }}</h3>
-    <NGrid :cols="2" :x-gap="24"
+    <NGrid cols="1 640:2" responsive="self" :x-gap="24"
       ><NFormItemGi :label="t('name')" path="name"
         ><NInput
           v-model:value="draft.name"
@@ -124,7 +124,7 @@ defineExpose({ validate: () => form.value?.validate() })
     <h3>{{ connector.kind === 'api' ? t('sources.api') : t('sources.connection') }}</h3>
     <NAlert type="info" class="form-note">{{ t('sources.placeholder') }}</NAlert
     ><template v-if="connector.kind === 'api'"
-      ><NGrid :cols="2" :x-gap="24"
+      ><NGrid cols="1 640:2" responsive="self" :x-gap="24"
         ><NFormItemGi :label="t('sources.baseUrl')" path="settings.baseUrl"
           ><NInput
             v-model:value="draft.settings.baseUrl"
@@ -170,7 +170,7 @@ defineExpose({ validate: () => form.value?.validate() })
           :input-props="{ 'aria-label': t('sources.' + key) }"
           type="textarea"
           :rows="2" /></NFormItem></template
-    ><NGrid v-else-if="connector.kind === 'database'" :cols="2" :x-gap="24"
+    ><NGrid v-else-if="connector.kind === 'database'" cols="1 640:2" responsive="self" :x-gap="24"
       ><NFormItemGi :label="t('sources.host')" path="settings.host"
         ><NInput
           v-model:value="draft.settings.host"
@@ -194,7 +194,7 @@ defineExpose({ validate: () => form.value?.validate() })
           v-model:value="draft.settings.tls"
           :aria-label="t('sources.tls')" /></NFormItemGi></NGrid
     ><NAlert v-else type="default">CSV · {{ t('demoNote') }}</NAlert
-    ><NGrid :cols="2" :x-gap="24"
+    ><NGrid cols="1 640:2" responsive="self" :x-gap="24"
       ><NFormItemGi v-if="connector.incremental" :label="t('sources.incremental')"
         ><NInput
           v-model:value="draft.settings.incrementalField"
