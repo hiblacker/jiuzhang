@@ -20,6 +20,74 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
+test('dataset source and upstream triggers support keyboard selection and recover focus without losing saved inputs', async ({
+  page,
+}) => {
+  test.setTimeout(60000)
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.goto('/datasets/2002/edit')
+  await expect(page.getByRole('textbox', { name: '数据集名称', exact: true })).toHaveValue(
+    '客户价值分层',
+  )
+  const source = page.getByRole('button', { name: '打开数据源选项', exact: true })
+  const sourceSearch = page.getByRole('textbox', { name: '数据源', exact: true })
+  await source.press('Enter')
+  await expect(sourceSearch).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(source).toBeFocused()
+  await expect(page.locator('.n-base-select-menu:visible')).toHaveCount(0)
+  await source.press('Enter')
+  await sourceSearch.fill('零售订单库')
+  await selectByKeyboard(page, '零售订单库')
+  await expect(source).toContainText('零售订单库')
+  const object = page.getByRole('button', { name: '源对象', exact: true })
+  await object.press('Enter')
+  await selectByKeyboard(page, 'orders')
+  await expect(page.locator('.n-base-select-menu:visible')).toHaveCount(0)
+  await page.getByRole('button', { name: '保存草稿', exact: true }).press('Enter')
+  await expect(page).toHaveURL('/datasets/2002')
+  await page.goto('/datasets/2002/edit')
+  await expect(source).toContainText('零售订单库')
+  const upstream = page.getByRole('button', { name: '打开已发布上游数据集选项', exact: true })
+  const upstreamSearch = page.getByRole('textbox', { name: '已发布上游数据集', exact: true })
+  await upstream.press('Enter')
+  await expect(upstreamSearch).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(upstream).toBeFocused()
+  await expect(page.locator('.n-base-select-menu:visible')).toHaveCount(0)
+  await upstream.press('Enter')
+  await upstreamSearch.fill('订单明细宽表')
+  await selectByKeyboard(page, '订单明细宽表 · v1')
+  const save = page.getByRole('button', { name: '保存草稿', exact: true })
+  await expect(save).toBeEnabled()
+  await save.press('Enter')
+  await expect(page).toHaveURL('/datasets/2002')
+  const definition = await page.evaluate(async () => {
+    const response = await fetch('/api/v1/datasets/2002', {
+      headers: { 'x-demo-role': 'admin' },
+    })
+    if (!response.ok) throw new Error(await response.text())
+    return (await response.json()).data.definition
+  })
+  expect(definition.upstreamDatasetId).toBe('2001')
+  expect(definition.sourceId).toBe('')
+  expect(definition.objectId).toBe('')
+  expect(definition.fields.length).toBeGreaterThan(0)
+  await page.goto('/datasets/2002/edit')
+  await page.reload()
+  await expect(upstream).toContainText('订单明细宽表 · v1')
+  await upstream.press('Enter')
+  await upstreamSearch.fill('门店库存快照')
+  await selectByKeyboard(page, '门店库存快照 · v1')
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: '取消', exact: true }).press('Enter')
+  await expect(page).toHaveURL('/datasets/2002')
+  await page.goto('/datasets/2002/edit')
+  await expect(upstream).toContainText('订单明细宽表 · v1')
+  expect(errors).toEqual([])
+})
+
 test('folder search inputs support keyboard parent selection, dataset move and saved editor selection', async ({
   page,
 }) => {

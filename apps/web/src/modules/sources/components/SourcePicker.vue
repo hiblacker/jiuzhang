@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { NAlert, NButton, NSelect } from 'naive-ui'
 import { useSource, useSourceOptions } from '../composables/use-sources'
 import { errorKey } from '@/shared/api/error-message'
@@ -28,6 +29,7 @@ async function retry() {
 <template>
   <div class="source-picker" role="group" :aria-label="t('sources.picker')">
     <NSelect
+      v-select-trigger-name="t('openSelect', { label })"
       :value="value || null"
       :input-props="{ 'aria-label': label }"
       :placeholder="label"

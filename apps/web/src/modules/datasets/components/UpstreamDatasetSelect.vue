@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { NAlert, NButton, NSelect } from 'naive-ui'
 import { useDataset, useUpstreamDatasetOptions } from '../composables/use-datasets'
 import { errorKey } from '@/shared/api/error-message'
@@ -32,6 +33,7 @@ async function retry() {
 <template>
   <div class="upstream-dataset-select" role="group" :aria-label="t('datasets.upstreamPicker')">
     <NSelect
+      v-select-trigger-name="t('openSelect', { label: t('datasets.upstream') })"
       :value="value || null"
       :input-props="{ 'aria-label': t('datasets.upstream') }"
       :placeholder="t('datasets.selectUpstream')"
