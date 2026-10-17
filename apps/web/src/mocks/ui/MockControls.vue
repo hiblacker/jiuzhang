@@ -1,14 +1,30 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { NConfigProvider, NButton, NSelect, NCard, NPopconfirm, NSpace, NText } from 'naive-ui'
+import {
+  NConfigProvider,
+  NButton,
+  NSelect,
+  NCard,
+  NPopconfirm,
+  NSpace,
+  NText,
+  darkTheme,
+  zhCN,
+} from 'naive-ui'
 
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { api, unwrap } from '@/shared/api/client'
 import { tickDemoClock } from '../demo-clock'
 import type { Model } from '@/shared/api/types'
 const props = defineProps<{ onClockChange?: (clock: Model<'DemoClock'>) => void }>()
+const darkMode = ref(false)
+let themeObserver: MutationObserver | undefined
+const syncTheme = () => {
+  darkMode.value = document.documentElement.style.colorScheme === 'dark'
+}
 const open = ref(false),
-  scenario = ref('normal'),
-  domain = ref('sources'),
+  scenario = ref<Model<'Control'>['scenario']>('normal'),
+  domain = ref<Model<'Control'>['domain']>('sources'),
   pending = ref(false),
   error = ref(''),
   clock = ref<Model<'DemoClock'> | null>(null)
@@ -20,11 +36,13 @@ const scenarios = [
   { label: '无权限', value: 'forbidden' },
 ]
 async function apply() {
+  if (pending.value) return
+  error.value = ''
   pending.value = true
   try {
     unwrap(
       await api.PATCH('/demo/control', {
-        body: { domain: domain.value as 'sources', scenario: scenario.value as 'normal' },
+        body: { domain: domain.value, scenario: scenario.value },
       }),
     )
     location.reload()
@@ -34,6 +52,8 @@ async function apply() {
   }
 }
 async function reset() {
+  if (pending.value) return
+  error.value = ''
   pending.value = true
   try {
     unwrap(await api.POST('/demo/reset'))
@@ -44,6 +64,7 @@ async function reset() {
   }
 }
 async function advance(seconds: number) {
+  if (pending.value) return
   pending.value = true
   const result = await tickDemoClock(seconds)
   if (result) {
@@ -57,16 +78,28 @@ const onDemoClockEvent = (event: Event) => {
   clock.value = (event as CustomEvent<Model<'DemoClock'>>).detail
 }
 onMounted(() => {
+  syncTheme()
+  themeObserver = new MutationObserver(syncTheme)
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] })
   window.addEventListener('demo-clock-change', onDemoClockEvent)
   void advance(0)
 })
-onBeforeUnmount(() => window.removeEventListener('demo-clock-change', onDemoClockEvent))
+onBeforeUnmount(() => {
+  themeObserver?.disconnect()
+  window.removeEventListener('demo-clock-change', onDemoClockEvent)
+})
 </script>
 <template>
-  <NConfigProvider
+  <NConfigProvider :theme="darkMode ? darkTheme : null" :locale="zhCN"
     ><aside class="demo-controls">
-      <NButton size="small" secondary @click="open = !open">演示控制台</NButton
-      ><NCard v-if="open" title="Mock 场景" class="demo-panel"
+      <NButton
+        size="small"
+        secondary
+        :aria-expanded="open"
+        aria-controls="demo-control-panel"
+        @click="open = !open"
+        >演示控制台</NButton
+      ><NCard v-if="open" id="demo-control-panel" title="Mock 场景" class="demo-panel"
         ><NText depth="3" class="clock-label">演示时间</NText>
         <div class="clock-value">{{ clock?.now ?? '读取中…' }}</div>
         <NSpace :size="8" class="clock-actions"
@@ -79,6 +112,8 @@ onBeforeUnmount(() => window.removeEventListener('demo-clock-change', onDemoCloc
           秒。</NText
         ><NSelect
           v-model:value="domain"
+          v-select-trigger-name="'场景作用域'"
+          :disabled="pending"
           :options="
             [
               'sources',
@@ -93,15 +128,18 @@ onBeforeUnmount(() => window.removeEventListener('demo-clock-change', onDemoCloc
               'all',
             ].map((value) => ({ value, label: value }))
           "
-        /><NSelect v-model:value="scenario" :options="scenarios" style="margin: 12px 0" /><NButton
-          block
-          type="primary"
-          :loading="pending"
-          @click="apply"
-          >应用场景并刷新</NButton
+        /><NSelect
+          v-model:value="scenario"
+          v-select-trigger-name="'演示场景'"
+          :disabled="pending"
+          :options="scenarios"
+          style="margin: 12px 0"
+        /><NButton block type="primary" :loading="pending" @click="apply">应用场景并刷新</NButton
         ><NPopconfirm @positive-click="reset"
           ><template #trigger
-            ><NButton block quaternary style="margin-top: 8px">重置全部演示数据</NButton></template
+            ><NButton block quaternary :disabled="pending" style="margin-top: 8px"
+              >重置全部演示数据</NButton
+            ></template
           >将清除本地新增内容并恢复合成样本，确定重置？</NPopconfirm
         >
         <p v-if="error">{{ error }}</p></NCard
