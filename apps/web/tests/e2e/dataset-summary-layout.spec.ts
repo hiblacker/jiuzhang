@@ -5,7 +5,6 @@ test('long output names and keys stay readable in drafts, editor and immutable v
   page,
 }) => {
   test.setTimeout(90000)
-  await page.setViewportSize({ width: 1440, height: 1000 })
   await page.addInitScript(() => {
     localStorage.setItem('jiuzhang.preference.session', 'demo')
     localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -63,7 +62,9 @@ test('long output names and keys stay readable in drafts, editor and immutable v
           ),
       )
       .toBeGreaterThanOrEqual(220)
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(1440)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(page.viewportSize()?.width)
     await expect(output.getByText(key, { exact: true })).toHaveText(key)
     if (name !== 'editor')
       await expect(page.locator('.n-descriptions').getByText(table, { exact: true })).toHaveText(
@@ -73,7 +74,14 @@ test('long output names and keys stay readable in drafts, editor and immutable v
       if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
         await page.getByRole('button', { name: '切换明暗主题', exact: true }).press('Enter')
       await page.screenshot({
-        path: '/tmp/jiuzhang-dataset-summary-' + name + '-' + '1440-' + theme + '.png',
+        path:
+          '/tmp/jiuzhang-dataset-summary-' +
+          name +
+          '-' +
+          page.viewportSize()?.width +
+          '-' +
+          theme +
+          '.png',
         fullPage: true,
         animations: 'disabled',
       })

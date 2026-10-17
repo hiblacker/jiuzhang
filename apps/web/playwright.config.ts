@@ -3,7 +3,7 @@ export default defineConfig({
   testDir: './tests/e2e',
   use: {
     baseURL: 'http://localhost:5174',
-    viewport: { width: 1440, height: 1000 },
+    viewport: { width: 1280, height: 1000 },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
