@@ -53,7 +53,7 @@ test('service and SQL table pickers reach later pages and restore a selected tab
     return result.meta.total
   })
   await page.goto('/services/7001/edit')
-  const source = page.getByLabel('来源仓库表', { exact: true })
+  const source = page.locator('.warehouse-table-select')
   await expect(source.getByText('dwd_retail_1', { exact: true })).toBeVisible()
   await page.getByLabel('输出字段', { exact: true }).click()
   await expect(
@@ -68,7 +68,7 @@ test('service and SQL table pickers reach later pages and restore a selected tab
   await page.getByRole('button', { name: '加载更多仓库表', exact: true }).click()
   await expect(page.getByText('已加载 40 / ' + tableTotal + ' 张表', { exact: true })).toBeVisible()
   await source.click()
-  const search = source.locator('input')
+  const search = page.getByRole('textbox', { name: '来源仓库表', exact: true })
   await search.fill('ods_picker_000')
   await page
     .locator('.n-base-select-menu:visible')
@@ -83,13 +83,13 @@ test('service and SQL table pickers reach later pages and restore a selected tab
   await page.getByRole('button', { name: '模拟调用', exact: true }).click()
   await expect(page.getByRole('cell', { name: '杭州', exact: true })).toBeVisible()
   await page.goto('/warehouse/query?tableId=4001')
-  const table = page.getByLabel('选择仓库表', { exact: true })
+  const table = page.locator('.warehouse-table-select')
   await expect(table.getByText('dwd_retail_1', { exact: true })).toBeVisible()
   await expect(page.locator('.cm-content')).toHaveText('SELECT * FROM dwd_retail_1 LIMIT 100')
   await page.reload()
   await expect(page.locator('.cm-content')).toHaveText('SELECT * FROM dwd_retail_1 LIMIT 100')
   await table.click()
-  await table.locator('input').fill('ods_picker_000')
+  await page.getByRole('textbox', { name: '选择仓库表', exact: true }).fill('ods_picker_000')
   await expect(
     page.locator('.n-base-select-menu:visible').getByText('ods_picker_000', { exact: true }),
   ).toBeVisible()
@@ -126,7 +126,7 @@ test('service and SQL table pickers reach later pages and restore a selected tab
   }
   await scenario('error')
   await source.click()
-  await source.locator('input').fill('ods_picker_001')
+  await page.getByRole('textbox', { name: '来源仓库表', exact: true }).fill('ods_picker_001')
   await page.keyboard.press('Escape')
   await expect(
     page.getByText('当前已启用接口失败演示，可从演示控制台恢复', { exact: true }),

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { NSelect, NButton, NAlert } from 'naive-ui'
 import { useTable, useTableOptions } from '../composables/use-warehouse'
 import { errorKey } from '@/shared/api/error-message'
@@ -41,8 +42,9 @@ async function retry() {
 <template>
   <div class="warehouse-table-select">
     <NSelect
+      v-select-trigger-name="t('openSelect', { label })"
       :value="value || null"
-      :aria-label="label"
+      :input-props="{ 'aria-label': label }"
       :placeholder="label"
       :options="options"
       :loading="query.isFetching.value || (!!value && selected.isFetching.value)"

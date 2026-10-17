@@ -81,6 +81,7 @@ export default {
   refresh: '刷新',
   confirm: '确认',
   close: '关闭',
+  openSelect: '打开{label}选项',
   copy: '复制',
   copied: '已复制',
   copyFailed: '复制失败，请手动选择文本',

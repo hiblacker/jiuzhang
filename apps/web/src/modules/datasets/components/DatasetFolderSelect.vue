@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { NSelect, NAlert, NButton } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useFolders } from '../composables/use-folders'
 import { folderOptions } from '../model/folders'
 
@@ -20,11 +21,12 @@ const options = computed(() => folderOptions(query.data.value ?? [], props.exclu
 <template>
   <div class="folder-select">
     <NSelect
+      v-select-trigger-name="t('openSelect', { label })"
       :value="modelValue ?? null"
       :options="options"
       :loading="query.isLoading.value"
       :disabled="disabled || query.isError.value"
-      :aria-label="label"
+      :input-props="{ 'aria-label': label }"
       :placeholder="emptyLabel"
       clearable
       filterable
