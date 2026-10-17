@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -6,6 +6,21 @@ test.beforeEach(async ({ page }) => {
     localStorage.setItem('jiuzhang.preference.role', 'admin')
   })
 })
+
+async function selectByKeyboard(page: Page, label: string) {
+  const menu = page.locator('.n-base-select-menu:visible')
+  const options = menu.locator('.n-base-select-option')
+  const target = options.filter({ has: page.getByText(label, { exact: true }) })
+  await expect(target).toBeVisible()
+  const limit = await options.count()
+  for (let step = 0; step < limit; step++) {
+    if ((await target.getAttribute('class'))?.includes('n-base-select-option--pending')) break
+    await page.keyboard.press('ArrowDown')
+  }
+  await expect(target).toHaveClass(/n-base-select-option--pending/)
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Escape')
+}
 
 test('dependency selection paginates, restores multiple off-page names and isolates dataset drafts from live tasks', async ({
   page,
@@ -101,12 +116,7 @@ test('dependency selection paginates, restores multiple off-page names and isola
   await search.fill('订单明细宽表调度')
   await expect(picker.getByText('已加载 0 / 0 个可依赖任务', { exact: true })).toBeVisible()
   await search.fill('A_dependency_119')
-  await expect(
-    page.locator('.n-base-select-menu:visible').getByText('A_dependency_119调度', { exact: true }),
-  ).toBeVisible()
-  await page.keyboard.press('ArrowDown')
-  await page.keyboard.press('Enter')
-  await page.keyboard.press('Escape')
+  await selectByKeyboard(page, 'A_dependency_119调度')
   await expect(picker.getByText('A_dependency_119调度', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '保存配置', exact: true }).click()
   await expect(page).toHaveURL('/tasks/3001')
@@ -171,12 +181,7 @@ test('dependency selection paginates, restores multiple off-page names and isola
   await search.fill('订单明细宽表调度')
   await expect(picker.getByText('已加载 0 / 0 个可依赖任务', { exact: true })).toBeVisible()
   await search.fill('A_dependency_118')
-  await expect(
-    page.locator('.n-base-select-menu:visible').getByText('A_dependency_118调度', { exact: true }),
-  ).toBeVisible()
-  await page.keyboard.press('ArrowDown')
-  await page.keyboard.press('Enter')
-  await page.keyboard.press('Escape')
+  await selectByKeyboard(page, 'A_dependency_118调度')
   await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await expect(page).toHaveURL('/datasets/2001')
   await page.goto('/datasets/2001/edit?tab=schedule')
