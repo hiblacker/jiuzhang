@@ -80,6 +80,7 @@ async function save() {
   } catch {
     return
   }
+  if (pending.value || !canWrite.value) return
   try {
     const folder = await actions.save.mutateAsync({
       id: editId.value || undefined,

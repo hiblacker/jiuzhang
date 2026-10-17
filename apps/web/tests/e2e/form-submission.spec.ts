@@ -104,3 +104,100 @@ for (const editor of editors) {
     },
   )
 }
+
+for (const entry of [
+  {
+    path: '/datasets',
+    trigger: '新建目录',
+    dialog: '新建目录',
+    field: '目录名称',
+    action: '保存',
+    endpoint: '/dataset-folders',
+  },
+  {
+    path: '/warehouse/imports',
+    trigger: '新建导入',
+    dialog: 'CSV 导入向导',
+    field: '任务名称',
+    action: '导入示例数据',
+    endpoint: '/imports',
+  },
+]) {
+  test(
+    entry.dialog + ' sends one creation request when clicks overlap validation',
+    async ({ page }) => {
+      await page.addInitScript(() => {
+        localStorage.setItem('jiuzhang.preference.session', 'demo')
+        localStorage.setItem('jiuzhang.preference.role', 'admin')
+      })
+      await page.goto(entry.path)
+      await page.getByRole('button', { name: entry.trigger, exact: true }).click()
+      const dialog = page.getByRole('dialog', { name: entry.dialog, exact: true })
+      const name = '提交重入验收 ' + entry.dialog
+      await dialog.getByRole('textbox', { name: entry.field, exact: true }).fill(name)
+      if (entry.endpoint === '/imports') {
+        await dialog
+          .getByRole('textbox', { name: '目标表名', exact: true })
+          .fill('ods_submission_once')
+        await dialog.getByRole('checkbox', { name: '我确认这是虚构演示数据', exact: true }).check()
+      }
+      await page.evaluate(async () => {
+        const response = await fetch('/api/v1/demo/control', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'x-demo-role': 'admin' },
+          body: JSON.stringify({ domain: 'all', scenario: 'slow' }),
+        })
+        if (!response.ok) throw new Error(await response.text())
+      })
+      const writes: string[] = []
+      const replies: number[] = []
+      page.on('request', (request) => {
+        if (
+          request.method() === 'POST' &&
+          new URL(request.url()).pathname === '/api/v1' + entry.endpoint
+        )
+          writes.push(request.method())
+      })
+      page.on('response', (response) => {
+        if (
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname === '/api/v1' + entry.endpoint
+        )
+          replies.push(response.status())
+      })
+      await dialog.getByRole('button', { name: entry.action, exact: true }).evaluate((element) => {
+        const button = element as HTMLButtonElement
+        button.click()
+        button.click()
+        button.click()
+      })
+      await expect(dialog).not.toBeVisible()
+      await expect.poll(() => replies.length).toBe(writes.length)
+      expect(writes).toHaveLength(1)
+      expect(replies.every((status) => status >= 200 && status < 300)).toBe(true)
+      await page.evaluate(async () => {
+        const response = await fetch('/api/v1/demo/control', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'x-demo-role': 'admin' },
+          body: JSON.stringify({ domain: 'all', scenario: 'normal' }),
+        })
+        if (!response.ok) throw new Error(await response.text())
+      })
+      await page.reload()
+      if (entry.endpoint === '/imports')
+        await expect(page.getByRole('row').filter({ hasText: name })).toHaveCount(1)
+      else {
+        const sidebar = page.locator('aside').filter({ hasText: '数据集目录' })
+        await expect(sidebar.getByText(name, { exact: true })).toBeVisible()
+        const folders = await page.evaluate(async () => {
+          const response = await fetch('/api/v1/dataset-folders', {
+            headers: { 'x-demo-role': 'admin' },
+          })
+          if (!response.ok) throw new Error(await response.text())
+          return (await response.json()).data as { name: string }[]
+        })
+        expect(folders.filter((folder) => folder.name === name)).toHaveLength(1)
+      }
+    },
+  )
+}

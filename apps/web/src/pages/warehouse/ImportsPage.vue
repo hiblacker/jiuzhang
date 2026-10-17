@@ -126,6 +126,7 @@ async function submit() {
   } catch {
     return
   }
+  if (actions.import.isPending.value) return
   if (!consent.value) {
     error.value = uiText('ui.imports_d54f219e')
     return
