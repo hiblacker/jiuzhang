@@ -47,9 +47,10 @@ useEditGuard(dirty, () => save.isPending.value || test.isPending.value)
   <PageHeader
     :title="id ? t('sources.edit') : t('sources.new')"
     :description="t('sources.description')"
-    ><NButton :disabled="save.isPending.value || test.isPending.value" @click="router.back()">{{
-      t('cancel')
-    }}</NButton
+    ><NButton
+      :disabled="save.isPending.value || test.isPending.value"
+      @click="router.push(id ? '/sources/' + id : '/sources')"
+      >{{ t('cancel') }}</NButton
     ><NButton
       type="primary"
       :disabled="test.isPending.value"

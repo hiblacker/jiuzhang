@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { TagEditor } from '@/shared/ui/tag-editor'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { computed, ref } from 'vue'
 import {
   NForm,
@@ -97,12 +98,15 @@ defineExpose({ validate: () => form.value?.validate() })
     ><h3>{{ t('sources.basic') }}</h3>
     <NGrid :cols="2" :x-gap="24"
       ><NFormItemGi :label="t('name')" path="name"
-        ><NInput v-model:value="draft.name" :placeholder="t('name')" /></NFormItemGi
+        ><NInput
+          v-model:value="draft.name"
+          :placeholder="t('name')"
+          :input-props="{ 'aria-label': t('name') }" /></NFormItemGi
       ><NFormItemGi :label="t('type')" path="type"
         ><NSelect
           :value="draft.type"
           :options="connectorOptions"
-          :aria-label="t('type')"
+          v-select-trigger-name="t('type')"
           @update:value="selectConnector" /></NFormItemGi
       ><NFormItemGi :label="t('owner')" path="owner"
         ><NInput
@@ -111,7 +115,11 @@ defineExpose({ validate: () => form.value?.validate() })
       ><NFormItemGi :label="t('tags')"
         ><TagEditor v-model="draft.tags" :disabled="disabled" /></NFormItemGi></NGrid
     ><NFormItem :label="t('description')"
-      ><NInput v-model:value="draft.description" type="textarea" :rows="2"
+      ><NInput
+        v-model:value="draft.description"
+        :input-props="{ 'aria-label': t('description') }"
+        type="textarea"
+        :rows="2"
     /></NFormItem>
     <h3>{{ connector.kind === 'api' ? t('sources.api') : t('sources.connection') }}</h3>
     <NAlert type="info" class="form-note">{{ t('sources.placeholder') }}</NAlert
@@ -122,14 +130,18 @@ defineExpose({ validate: () => form.value?.validate() })
             v-model:value="draft.settings.baseUrl"
             :input-props="{ 'aria-label': t('sources.baseUrl') }" /></NFormItemGi
         ><NFormItemGi :label="t('sources.path')"
-          ><NInput v-model:value="draft.settings.path" /></NFormItemGi
+          ><NInput
+            v-model:value="draft.settings.path"
+            :input-props="{ 'aria-label': t('sources.path') }" /></NFormItemGi
         ><NFormItemGi :label="t('sources.method')"
           ><NSelect
             v-model:value="draft.settings.method"
+            v-select-trigger-name="t('sources.method')"
             :options="['GET', 'POST'].map((value) => ({ label: value, value }))" /></NFormItemGi
         ><NFormItemGi :label="t('sources.auth')"
           ><NSelect
             v-model:value="draft.settings.authType"
+            v-select-trigger-name="t('sources.auth')"
             :options="[
               { label: t('sources.none'), value: 'none' },
               { label: 'Bearer (dummy)', value: 'bearer' },
@@ -138,13 +150,16 @@ defineExpose({ validate: () => form.value?.validate() })
         ><NFormItemGi :label="t('sources.pagination')"
           ><NSelect
             v-model:value="draft.settings.pagination"
+            v-select-trigger-name="t('sources.pagination')"
             :options="[
               { label: t('sources.none'), value: 'none' },
               { label: t('sources.page'), value: 'page' },
               { label: t('sources.cursor'), value: 'cursor' },
             ]" /></NFormItemGi
         ><NFormItemGi :label="t('sources.dataPath')"
-          ><NInput v-model:value="draft.settings.dataPath" /></NFormItemGi></NGrid
+          ><NInput
+            v-model:value="draft.settings.dataPath"
+            :input-props="{ 'aria-label': t('sources.dataPath') }" /></NFormItemGi></NGrid
       ><NFormItem
         v-for="key in ['headers', 'query', 'body'] as const"
         :key="key"
@@ -175,11 +190,15 @@ defineExpose({ validate: () => form.value?.validate() })
           v-model:value="draft.settings.schema"
           :input-props="{ 'aria-label': t('sources.schema') }" /></NFormItemGi
       ><NFormItemGi :label="t('sources.tls')"
-        ><NSwitch v-model:value="draft.settings.tls" /></NFormItemGi></NGrid
+        ><NSwitch
+          v-model:value="draft.settings.tls"
+          :aria-label="t('sources.tls')" /></NFormItemGi></NGrid
     ><NAlert v-else type="default">CSV · {{ t('demoNote') }}</NAlert
     ><NGrid :cols="2" :x-gap="24"
       ><NFormItemGi v-if="connector.incremental" :label="t('sources.incremental')"
-        ><NInput v-model:value="draft.settings.incrementalField" /></NFormItemGi
+        ><NInput
+          v-model:value="draft.settings.incrementalField"
+          :input-props="{ 'aria-label': t('sources.incremental') }" /></NFormItemGi
       ><NFormItemGi
         v-if="connector.rateLimit"
         :label="t('sources.rateLimit')"
