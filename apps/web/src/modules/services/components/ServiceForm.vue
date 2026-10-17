@@ -2,7 +2,7 @@
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick, toRaw } from 'vue'
 import {
   NForm,
   NFormItem,
@@ -15,6 +15,7 @@ import {
   type FormRules,
 } from 'naive-ui'
 import type { Model } from '@/shared/api/types'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 const model = defineModel<Model<'ServiceInput'>>({ required: true })
 const props = defineProps<{
   table?: Model<'Table'>
@@ -22,6 +23,38 @@ const props = defineProps<{
   definitionReadonly?: boolean
 }>()
 const form = ref<FormInst | null>(null)
+const parameterRoot = ref<HTMLElement | null>(null)
+const parameterKeys = new WeakMap<Model<'ServiceInput'>['parameters'][number], number>()
+let nextParameterKey = 0
+function parameterKey(parameter: Model<'ServiceInput'>['parameters'][number]) {
+  const raw = toRaw(parameter)
+  if (!parameterKeys.has(raw)) parameterKeys.set(raw, ++nextParameterKey)
+  return parameterKeys.get(raw)!
+}
+async function addParameter() {
+  if (props.disabled || props.definitionReadonly) return
+  model.value.parameters.push({ name: '', type: 'string', required: false })
+  await nextTick()
+  parameterRoot.value
+    ?.querySelector<HTMLElement>('[data-parameter-row]:last-of-type input')
+    ?.focus()
+}
+async function removeParameter(index: number) {
+  if (props.disabled || props.definitionReadonly) return
+  model.value.parameters.splice(index, 1)
+  await nextTick()
+  const root = parameterRoot.value
+  if (!root) return
+  if (model.value.parameters.length === 0) {
+    root.querySelector<HTMLElement>('[data-add-parameter]')?.focus()
+    return
+  }
+  root
+    .querySelectorAll('[data-parameter-row]')
+    [Math.min(index, model.value.parameters.length - 1)]?.querySelector<HTMLElement>('input')
+    ?.focus()
+}
+
 const rules = computed<FormRules>(() => ({
   name: { required: true, whitespace: true, message: uiText('required'), trigger: 'blur' },
   tableId: { required: true, message: uiText('required'), trigger: 'change' },
@@ -64,15 +97,20 @@ function selectTable(id: string) {
     ><NFormItem path="fields" :label="uiText('ui.service_form_adf908d5')" required
       ><NSelect
         v-model:value="model.fields"
-        :aria-label="uiText('ui.service_form_adf908d5')"
+        v-select-trigger-name="uiText('ui.service_form_adf908d5')"
         :disabled="disabled || definitionReadonly"
         multiple
         :options="
           table?.fields.filter((f) => f.output).map((f) => ({ value: f.target, label: f.target }))
         " /></NFormItem
     ><NFormItem :label="uiText('ui.service_form_5b478c47')"
-      ><div class="parameters">
-        <div v-for="(param, index) in model.parameters" :key="index" class="parameter">
+      ><div ref="parameterRoot" class="parameters">
+        <div
+          v-for="(param, index) in model.parameters"
+          :key="parameterKey(param)"
+          class="parameter"
+          data-parameter-row
+        >
           <NInput
             v-model:value="param.name"
             :input-props="{ 'aria-label': uiText('services.parameterName', { index: index + 1 }) }"
@@ -80,7 +118,7 @@ function selectTable(id: string) {
             :placeholder="uiText('ui.service_form_ecb6c72b')"
           /><NSelect
             v-model:value="param.type"
-            :aria-label="uiText('services.parameterType', { index: index + 1 })"
+            v-select-trigger-name="uiText('services.parameterType', { index: index + 1 })"
             :disabled="disabled || definitionReadonly"
             :options="[
               { label: uiText('ui.service_form_4dc9621a'), value: 'string' },
@@ -96,14 +134,15 @@ function selectTable(id: string) {
             quaternary
             :disabled="disabled || definitionReadonly"
             :aria-label="uiText('services.removeParameter', { index: index + 1 })"
-            @click="model.parameters.splice(index, 1)"
+            @click="removeParameter(index)"
             >{{ uiText('ui.service_form_2f752c00') }}</NButton
           >
         </div>
         <NButton
           dashed
           :disabled="disabled || definitionReadonly"
-          @click="model.parameters.push({ name: '', type: 'string', required: false })"
+          data-add-parameter
+          @click="addParameter"
           >{{ uiText('ui.service_form_4be7020c') }}</NButton
         >
       </div></NFormItem
@@ -116,7 +155,7 @@ function selectTable(id: string) {
     ><NFormItem :label="uiText('ui.service_form_52aff3c1')"
       ><NSelect
         :value="model.sortField || null"
-        :aria-label="uiText('ui.service_form_52aff3c1')"
+        v-select-trigger-name="uiText('ui.service_form_52aff3c1')"
         :disabled="disabled || definitionReadonly"
         @update:value="model.sortField = $event ?? ''"
         clearable
@@ -124,7 +163,7 @@ function selectTable(id: string) {
     ><NFormItem path="allowedRoles" :label="uiText('ui.service_form_7af3f79a')"
       ><NSelect
         v-model:value="model.allowedRoles"
-        :aria-label="uiText('ui.service_form_7af3f79a')"
+        v-select-trigger-name="uiText('ui.service_form_7af3f79a')"
         multiple
         :options="[
           { value: 'admin', label: uiText('ui.service_form_ef84e765') },
