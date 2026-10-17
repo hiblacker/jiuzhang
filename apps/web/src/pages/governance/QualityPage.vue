@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 import type { FormInst, FormRules } from 'naive-ui'
 import { useI18n as useUiI18n } from 'vue-i18n'
@@ -297,7 +298,7 @@ const columns = [
         ><NFormItem :label="uiText('ui.quality_e4e46c72')"
           ><NSelect
             v-model:value="draft.kind"
-            :aria-label="uiText('ui.quality_e4e46c72')"
+            v-select-trigger-name="uiText('ui.quality_e4e46c72')"
             :options="[
               { label: uiText('ui.quality_32945d3e'), value: 'required' },
               { label: uiText('ui.quality_e805014a'), value: 'unique' },
@@ -320,7 +321,7 @@ const columns = [
         ><NFormItem :label="uiText('ui.quality_e27bc7a5')"
           ><NSelect
             v-model:value="draft.severity"
-            :aria-label="uiText('ui.quality_e27bc7a5')"
+            v-select-trigger-name="uiText('ui.quality_e27bc7a5')"
             :options="[
               { label: uiText('ui.quality_d30e49d2'), value: 'WARN' },
               { label: uiText('ui.quality_40da8357'), value: 'BLOCK' },

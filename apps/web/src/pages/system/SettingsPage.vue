@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -49,7 +50,7 @@ async function save() {
         ><NFormItem :label="uiText('ui.settings_e071c541')"
           ><NSelect
             v-model:value="draft.timezone"
-            :aria-label="uiText('ui.settings_e071c541')"
+            v-select-trigger-name="uiText('ui.settings_e071c541')"
             :options="[
               { value: 'Asia/Shanghai', label: 'Asia/Shanghai (UTC+8)' },
               { value: 'UTC', label: 'UTC' },

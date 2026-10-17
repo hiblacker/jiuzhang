@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { errorKey } from '@/shared/api/error-message'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 import type { FormInst, FormRules } from 'naive-ui'
@@ -236,7 +237,7 @@ const columns = [
       <h3>{{ uiText('ui.masking_0bc9366d') }}</h3>
       <NSelect
         v-model:value="sampleType"
-        :aria-label="uiText('masking.sample')"
+        v-select-trigger-name="uiText('masking.sample')"
         :options="[
           { label: uiText('masking.phone'), value: 'phone' },
           { label: uiText('masking.email'), value: 'email' },
@@ -291,7 +292,7 @@ const columns = [
         ><NFormItem :label="uiText('ui.masking_af908096')"
           ><NSelect
             v-model:value="draft.kind"
-            :aria-label="uiText('ui.masking_af908096')"
+            v-select-trigger-name="uiText('ui.masking_af908096')"
             :options="[
               { label: uiText('ui.masking_32866382'), value: 'mask' },
               { label: uiText('ui.masking_0ccc9cb0'), value: 'remove' },

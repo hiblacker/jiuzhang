@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { errorKey } from '@/shared/api/error-message'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 import type { FormInst, FormRules } from 'naive-ui'
@@ -155,7 +156,7 @@ const columns = [
         ><NFormItem :label="uiText('ui.users_6b26695e')"
           ><NSelect
             v-model:value="draft.role"
-            :aria-label="uiText('ui.users_6b26695e')"
+            v-select-trigger-name="uiText('ui.users_6b26695e')"
             :options="roles" /></NFormItem
         ><NFormItem :label="uiText('ui.users_d4e9ca3d')"
           ><NSwitch
