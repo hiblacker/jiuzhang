@@ -83,7 +83,11 @@ test('user edits, settings and role matrix persist and drive write access', asyn
     page.locator('.main-content .n-select').getByText('UTC', { exact: true }),
   ).toBeVisible()
   await page.goto('/overview')
-  await expect(page.getByRole('row').filter({ hasText: '9001' })).toContainText('10/15 01:00')
+  const overviewRuns = page
+    .getByRole('row')
+    .filter({ has: page.getByRole('button', { name: '9001', exact: true }) })
+  await expect(overviewRuns).toHaveCount(2)
+  await expect(overviewRuns).toHaveText([/10\/15 01:00/, /10\/15 01:00/])
   await page.goto('/system/users')
   await page.getByRole('button', { name: '新建演示用户' }).click()
   await page.getByPlaceholder('虚构姓名').fill('验收演示用户')
