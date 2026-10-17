@@ -119,7 +119,7 @@ useEditGuard(dirty, () => save.isPending.value || test.isPending.value)
   font-size: 16px;
 }
 .configuration-diff p {
-  color: var(--text-secondary);
+  color: var(--textSecondary);
   overflow-wrap: anywhere;
 }
 </style>

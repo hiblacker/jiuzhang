@@ -119,6 +119,10 @@ test('API differences retain JSON zero, false and empty strings after failure an
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
       .toBe(theme)
+    await expect(diff.locator('p')).toHaveCSS(
+      'color',
+      theme === 'light' ? 'rgb(107, 126, 148)' : 'rgb(146, 166, 190)',
+    )
     await diff.scrollIntoViewIfNeeded()
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
     await page.screenshot({
