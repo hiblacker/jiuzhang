@@ -27,6 +27,7 @@ import {
 } from 'naive-ui'
 import { useImports, useWarehouseActions } from '@/modules/warehouse'
 import { PageHeader } from '@/shared/ui/page-header'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useListRoute } from '@/shared/composables/use-list-route'
 import { QueryToolbar } from '@/shared/ui/query-toolbar'
 import { AsyncState } from '@/shared/ui/async-state'
@@ -275,6 +276,7 @@ function start() {
         ><NFormItem :label="uiText('ui.imports_2bee776c')"
           ><NSelect
             v-model:value="input.layer"
+            v-select-trigger-name="uiText('ui.imports_2bee776c')"
             :options="
               ['ODS', 'DWD', 'DWS', 'ADS'].map((value) => ({ value, label: value }))
             " /></NFormItem
@@ -312,6 +314,7 @@ function start() {
         <NFormItem :label="uiText('warehouse.scenario')"
           ><NSelect
             v-model:value="input.outcome"
+            v-select-trigger-name="uiText('warehouse.scenario')"
             :options="[
               { label: uiText('warehouse.importSuccess'), value: 'succeeded' },
               { label: uiText('warehouse.importFailure'), value: 'failed' },

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useRouteTab } from '@/shared/composables/use-route-tab'
 import { DataPreview } from '@/shared/ui/data-preview'
 import { useI18n as useUiI18n } from 'vue-i18n'
@@ -134,7 +135,7 @@ async function exportResult(format: 'csv' | 'json') {
         ><NSpace justify="end" class="mb"
           ><NSelect
             v-model:value="exportOutcome"
-            :aria-label="t('warehouse.scenario')"
+            v-select-trigger-name="t('warehouse.scenario')"
             style="width: 190px"
             :options="[
               { label: t('warehouse.exportSuccess'), value: 'ready' },
