@@ -133,3 +133,41 @@ test('service select controls expose their actual keyboard triggers', async ({ p
     await expect(page.locator('.n-base-select-menu:visible')).toHaveCount(0)
   }
 })
+
+for (const resource of [
+  { editor: '/services/7001/edit', destination: '/services/7001' },
+  { editor: '/services/new', destination: '/services' },
+]) {
+  test(
+    resource.editor + ' cancel protects input and returns to its owning resource',
+    async ({ page }) => {
+      const writes: string[] = []
+      page.on('request', (request) => {
+        if (
+          ['POST', 'PATCH'].includes(request.method()) &&
+          new URL(request.url()).pathname.startsWith('/api/v1/services')
+        )
+          writes.push(request.method() + ' ' + new URL(request.url()).pathname)
+      })
+      await page.goto('/overview')
+      await expect(page.locator('h1')).toBeVisible()
+      await page.goto(resource.editor)
+      const name = page.getByRole('textbox', { name: '服务名称', exact: true })
+      if (resource.editor !== '/services/new') await expect(name).not.toHaveValue('')
+      const before = await name.inputValue()
+      await name.fill('应被放弃的虚构服务')
+      page.once('dialog', (dialog) => dialog.dismiss())
+      await page.getByRole('button', { name: '取消', exact: true }).press('Enter')
+      await expect(page).toHaveURL(resource.editor)
+      await expect(name).toHaveValue('应被放弃的虚构服务')
+      page.once('dialog', (dialog) => dialog.accept())
+      await page.getByRole('button', { name: '取消', exact: true }).press('Enter')
+      await expect(page).toHaveURL(resource.destination)
+      await page.goto(resource.editor)
+      await expect(name).toHaveValue(before)
+      await page.getByRole('button', { name: '取消', exact: true }).press('Enter')
+      await expect(page).toHaveURL(resource.destination)
+      expect(writes).toEqual([])
+    },
+  )
+}

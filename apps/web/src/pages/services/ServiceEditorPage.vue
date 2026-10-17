@@ -105,7 +105,7 @@ async function save() {
   <PageHeader
     :title="id ? uiText('ui.service_editor_7f2a3157') : uiText('ui.service_editor_6d600202')"
     :description="uiText('ui.service_editor_849b3779')"
-    ><NButton :disabled="pending" @click="router.back()">{{
+    ><NButton :disabled="pending" @click="router.push(id ? '/services/' + id : '/services')">{{
       uiText('ui.service_editor_4d0b4688')
     }}</NButton
     ><NButton

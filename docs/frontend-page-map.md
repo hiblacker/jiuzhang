@@ -158,7 +158,9 @@ B0 建立与本矩阵 ID 对应的 route-manifest 和测试清单。运行时以
 
 所有 P01–P38 保留原始验收范围，整体状态仍为 implementing；以下证据只覆盖已列明行为。下表区分当前已有用例、已执行的定向回归与最新全量结果，不能用旧测试数量证明最新实现完整。
 
-最新验证：dbd5943d 基线完整执行 142 项浏览器测试，全部通过（2 workers，13.2 分钟），包括 38 路由直达/刷新与仓库汇总终态等待。后续管理页修正的 22 项定向回归通过；本轮数据源配置差异实现后，sources、source-form-interactions、source-configuration-diff、schema-reading、wide-preview 共 21 项全部通过（2 workers，1.5 分钟）。完整 pnpm check 通过（14 文件 93 项单元/HTTP 集成、全部门禁及 demo/real 双构建）。最新代码尚未完整运行全部 148 项，不据 142 项基线宣称最新全量通过；整体仍为 implementing，下表较早批次证据保留为历史记录。
+最新验证：dbd5943d 基线完整执行 142 项浏览器测试，全部通过（2 workers，13.2 分钟），包括 38 路由直达/刷新与仓库汇总终态等待。后续管理页修正的 22 项定向回归通过；数据源配置差异实现后，sources、source-form-interactions、source-configuration-diff、schema-reading、wide-preview 共 21 项全部通过（2 workers，1.5 分钟），完整 pnpm check 通过（14 文件 93 项单元/HTTP 集成、全部门禁及 demo/real 双构建）。后续服务取消修复的九项浏览器通过（58.1 秒），静态检查通过。最新代码尚未完整运行全部 150 项，不据 142 项基线宣称最新全量通过；整体仍为 implementing，下表较早批次证据保留为历史记录。
+
+P29/P31 服务取消（2026-10-17）：先以两个浏览器用例复现从工作台直达新建/编辑页后，取消错误返回工作台。只修改页面导航，复用 useEditGuard 的统一 dirty/pending 决策，编辑返回所属服务详情、新建返回服务列表；拒绝确认保留输入、接受确认放弃草稿，clean 取消不弹确认，全部取消不发送 POST/PATCH。兼容性提示和 ServiceForm 既有复用保持原所有者，不新增导航封装。本块九项浏览器回归覆盖服务参数键盘、两种取消、创建/调用/失败、受限字段编辑、访问与审计，全部通过（2 workers，58.1 秒）；lint、format:check、typecheck、边界/UI/文案及差异空白检查通过。页面布局未变化，未新增视觉截图；完整 pnpm check 取前一配置差异提交的通过证据，本块未重新执行双构建。
 
 P05 配置差异（2026-10-17）：sources/model 拥有逐字段比较和 labelKey，useSourceEditor 拥有与 Query 缓存分离的基线/草稿，页面只协调展示；复用 shared/ui/data-preview 的列标题、内部横滚、长值弹窗和复制，没有跨域导入 datasets/version-diff 或新增万能比较表。覆盖全部可编辑字段及切换连接器后保留的参数，JSON 记法区分空字符串、0、false、数组；普通参数不丢失，Mock 地址归一化和凭证键替换仍由原 HTTP 适配层拥有。保存成功以接口返回配置更新基线，失败保留草稿及差异。新增两项单元及两项浏览器验证恢复原值、TLS false、类型/端口联动、API JSON、长值读取、失败重试、取消零污染、保存刷新清空差异；768px 明暗两张截图实际复核，无文档横向溢出。新建页不展示不存在的已保存配置。
 
