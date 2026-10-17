@@ -9,7 +9,18 @@ export const overviewHandlers = [
     blockedCount: state.runs.filter((r) => r.status === 'blocked').length,
     tableCount: state.tables.length,
     rows: state.tables.reduce((sum, t) => sum + BigInt(t.rowCount), 0n).toString(),
-    recentRuns: state.runs.slice(0, 5),
+    recentRuns: [...state.runs]
+      .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))
+      .slice(0, 5),
+    recentFailures: state.runs
+      .filter((run) => run.status === 'failed' || run.status === 'blocked')
+      .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))
+      .slice(0, 5),
+    attentionCounts: {
+      draftDatasets: state.datasets.filter((dataset) => dataset.status === 'draft').length,
+      warningSources: state.sources.filter((source) => source.status === 'warning').length,
+      offlineSources: state.sources.filter((source) => source.status === 'offline').length,
+    },
     trend: Array.from({ length: 7 }, (_, i) => {
       const date = new Date(Date.parse(now) - (6 - i) * 86400000).toISOString().slice(0, 10)
       return {

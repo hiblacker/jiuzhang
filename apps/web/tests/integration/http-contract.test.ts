@@ -73,6 +73,85 @@ async function request(
 }
 
 describe('HTTP contract and persistence', () => {
+  it('aggregates overview attention across all resources and filters failures before limiting', async () => {
+    await transact((state) => {
+      state.tasks.forEach((task) => {
+        task.schedule.mode = 'manual'
+      })
+      const source = structuredClone(state.sources[0]!)
+      state.sources = Array.from({ length: 123 }, (_, index) => ({
+        ...structuredClone(source),
+        id: String(98000 + index),
+        status: index === 122 ? 'offline' : 'warning',
+      }))
+      const dataset = structuredClone(state.datasets[0]!)
+      state.datasets = Array.from({ length: 121 }, (_, index) => ({
+        ...structuredClone(dataset),
+        id: String(99000 + index),
+        status: 'draft',
+      }))
+      const run = structuredClone(state.runs[0]!)
+      state.runs = Array.from({ length: 12 }, (_, index) => {
+        let status: 'succeeded' | 'failed' | 'blocked' = 'succeeded'
+        if (index >= 6) status = index % 2 === 0 ? 'failed' : 'blocked'
+        const startedAt = new Date(
+          Date.parse('2026-10-17T12:00:00Z') - index * 3600000,
+        ).toISOString()
+        return {
+          ...structuredClone(run),
+          id: String(97000 + index),
+          status,
+          outcome: status,
+          startedAt,
+          finishedAt: startedAt,
+        }
+      }).reverse()
+    })
+    const before = await readState()
+    const result = await request('/overview')
+    expect(result.body.data.attentionCounts).toEqual({
+      draftDatasets: 121,
+      warningSources: 122,
+      offlineSources: 1,
+    })
+    expect(result.body.data.publishedCount).toBe(121)
+    expect(result.body.data.recentRuns.map((run: { id: string }) => run.id)).toEqual([
+      '97000',
+      '97001',
+      '97002',
+      '97003',
+      '97004',
+    ])
+    expect(result.body.data.recentFailures.map((run: { id: string }) => run.id)).toEqual([
+      '97006',
+      '97007',
+      '97008',
+      '97009',
+      '97010',
+    ])
+    expect((await readState()).runs).toEqual(before.runs)
+  })
+
+  it('returns explicit empty failure and attention states for a healthy overview', async () => {
+    await transact((state) => {
+      state.sources.forEach((source) => {
+        source.status = 'connected'
+      })
+      state.datasets.forEach((dataset) => {
+        dataset.status = 'published'
+      })
+      state.runs = state.runs.filter((run) => run.status === 'succeeded')
+    })
+    const result = await request('/overview', 'GET', undefined, 'viewer')
+    expect(result.body.data.recentFailures).toEqual([])
+    expect(result.body.data.attentionCounts).toEqual({
+      draftDatasets: 0,
+      warningSources: 0,
+      offlineSources: 0,
+    })
+    expect(result.body.data.recentRuns).toHaveLength(5)
+  })
+
   it('filters draft quality and both masking reference forms before pagination and totals', async () => {
     await transact((state) => {
       const template = structuredClone(state.datasets[0]!)

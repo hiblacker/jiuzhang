@@ -1719,6 +1719,14 @@ export interface components {
             tableCount: number;
             rows: string;
             recentRuns: components["schemas"]["Run"][];
+            /** @description Latest failed or blocked runs by startedAt descending, filtered before limiting independently of recentRuns. */
+            recentFailures: components["schemas"]["Run"][];
+            /** @description Counts across the same complete resource snapshot, independent of list pagination. Drafts include unpublished edits to previously published datasets. Source states are Mock metadata, not real connectivity checks. */
+            attentionCounts: {
+                draftDatasets: number;
+                warningSources: number;
+                offlineSources: number;
+            };
             trend: {
                 date: string;
                 succeeded: number;

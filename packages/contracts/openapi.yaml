@@ -14680,6 +14680,25 @@
               "$ref": "#/components/schemas/Run"
             }
           },
+          "recentFailures": {
+            "type": "array",
+            "maxItems": 5,
+            "description": "Latest failed or blocked runs by startedAt descending, filtered before limiting independently of recentRuns.",
+            "items": {
+              "$ref": "#/components/schemas/Run"
+            }
+          },
+          "attentionCounts": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Counts across the same complete resource snapshot, independent of list pagination. Drafts include unpublished edits to previously published datasets. Source states are Mock metadata, not real connectivity checks.",
+            "properties": {
+              "draftDatasets": { "type": "integer", "minimum": 0 },
+              "warningSources": { "type": "integer", "minimum": 0 },
+              "offlineSources": { "type": "integer", "minimum": 0 }
+            },
+            "required": ["draftDatasets", "warningSources", "offlineSources"]
+          },
           "trend": {
             "type": "array",
             "items": {
@@ -14739,6 +14758,8 @@
           "tableCount",
           "rows",
           "recentRuns",
+          "recentFailures",
+          "attentionCounts",
           "trend",
           "layerCounts",
           "recentAudit"

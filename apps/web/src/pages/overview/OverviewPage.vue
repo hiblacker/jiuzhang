@@ -2,7 +2,15 @@
 import { computed, defineAsyncComponent, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { NButton, NCard, NTag, NDataTable, NProgress, type DataTableColumns } from 'naive-ui'
+import {
+  NButton,
+  NCard,
+  NEmpty,
+  NTag,
+  NDataTable,
+  NProgress,
+  type DataTableColumns,
+} from 'naive-ui'
 import {
   ArrowUpRight,
   Plus,
@@ -46,6 +54,23 @@ const metrics = computed(() => [
     value: query.data.value?.blockedCount ?? 0,
     icon: ShieldAlert,
     path: '/runs?status=blocked',
+  },
+])
+const attention = computed(() => [
+  {
+    label: t('overview.draftDatasets'),
+    count: query.data.value?.attentionCounts.draftDatasets ?? 0,
+    path: '/datasets?status=draft',
+  },
+  {
+    label: t('overview.warningSources'),
+    count: query.data.value?.attentionCounts.warningSources ?? 0,
+    path: '/sources?status=warning',
+  },
+  {
+    label: t('overview.offlineSources'),
+    count: query.data.value?.attentionCounts.offlineSources ?? 0,
+    path: '/sources?status=offline',
   },
 ])
 const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
@@ -128,7 +153,7 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
         ><template #header-extra
           ><span class="muted">{{ t('overview.trendHint') }}</span></template
         ><TrendChart
-          :labels="[t('states.succeeded'), t('overview.blocked')]"
+          :labels="[t('states.succeeded'), t('overview.failedOrBlocked')]"
           :points="query.data.value?.trend ?? []" /></NCard
       ><NCard :title="t('overview.governance')" :bordered="false"
         ><div v-for="layer in query.data.value?.layerCounts" :key="layer.layer" class="layer-row">
@@ -144,8 +169,59 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
           />
         </div>
         <NButton text type="primary" @click="router.push('/warehouse/tables')"
-          >{{ t('overview.viewAll') }} <ArrowUpRight :size="16" /></NButton></NCard
-      ><NCard :title="t('overview.recent')" :bordered="false"
+          >{{ t('overview.viewAll') }} <ArrowUpRight :size="16" /></NButton
+      ></NCard>
+      <section :aria-label="t('overview.failures')">
+        <NCard :title="t('overview.failures')" :bordered="false">
+          <template #header-extra>
+            <div class="failure-links">
+              <NButton text type="primary" @click="router.push('/runs?status=failed')">{{
+                t('overview.failedRuns')
+              }}</NButton>
+              <NButton text type="primary" @click="router.push('/runs?status=blocked')">{{
+                t('overview.blockedRuns')
+              }}</NButton>
+            </div>
+          </template>
+          <NEmpty
+            v-if="query.data.value?.recentFailures.length === 0"
+            :description="t('overview.noFailures')"
+            class="section-empty"
+          />
+          <NDataTable
+            v-else
+            :columns="columns"
+            :data="query.data.value?.recentFailures ?? []"
+            :bordered="false"
+          />
+        </NCard>
+      </section>
+      <section :aria-label="t('overview.pending')">
+        <NCard :title="t('overview.pending')" :bordered="false">
+          <p class="attention-hint">{{ t('overview.pendingHint') }}</p>
+          <NEmpty
+            v-if="attention.every((item) => item.count === 0)"
+            :description="t('overview.noPending')"
+            class="section-empty"
+          />
+          <div class="attention-list">
+            <NButton
+              v-for="item in attention"
+              :key="item.path"
+              :aria-label="t('overview.pendingAction', { label: item.label, count: item.count })"
+              :disabled="item.count === 0"
+              block
+              quaternary
+              @click="router.push(item.path)"
+            >
+              <span class="attention-label">{{ item.label }}</span>
+              <NTag size="small" :bordered="false">{{ item.count }}</NTag>
+              <ArrowUpRight :size="16" />
+            </NButton>
+          </div>
+        </NCard>
+      </section>
+      <NCard :title="t('overview.recent')" :bordered="false"
         ><template #header-extra
           ><NButton text type="primary" @click="router.push('/runs')">{{
             t('overview.viewAll')
@@ -231,6 +307,28 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 24px;
+}
+.dashboard-grid > * {
+  min-width: 0;
+}
+.failure-links {
+  display: flex;
+  gap: 14px;
+}
+.attention-hint {
+  margin: 0 0 16px;
+  color: var(--textSecondary);
+  font-size: 12px;
+}
+.attention-list {
+  display: grid;
+  gap: 10px;
+}
+.attention-label {
+  margin-right: 16px;
+}
+.section-empty {
+  padding: 24px 0;
 }
 .layer-row {
   margin: 16px 0 28px;
