@@ -90,6 +90,7 @@ export default {
   error: '数据加载失败',
   description: '说明',
   tags: '标签',
+  tagEditor: { add: '添加标签', input: '新标签', remove: '删除标签 {tag}' },
   detail: '详情',
   dataPreview: {
     region: '数据结果',

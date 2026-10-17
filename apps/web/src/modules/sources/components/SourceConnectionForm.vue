@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TagEditor } from '@/shared/ui/tag-editor'
 import { computed, ref } from 'vue'
 import {
   NForm,
@@ -7,7 +8,6 @@ import {
   NInputNumber,
   NSelect,
   NSwitch,
-  NDynamicTags,
   NGrid,
   NFormItemGi,
   NAlert,
@@ -109,7 +109,7 @@ defineExpose({ validate: () => form.value?.validate() })
           v-model:value="draft.owner"
           :input-props="{ 'aria-label': t('owner') }" /></NFormItemGi
       ><NFormItemGi :label="t('tags')"
-        ><NDynamicTags v-model:value="draft.tags" /></NFormItemGi></NGrid
+        ><TagEditor v-model="draft.tags" :disabled="disabled" /></NFormItemGi></NGrid
     ><NFormItem :label="t('description')"
       ><NInput v-model:value="draft.description" type="textarea" :rows="2"
     /></NFormItem>

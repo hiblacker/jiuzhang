@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TagEditor } from '@/shared/ui/tag-editor'
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useRouteTab } from '@/shared/composables/use-route-tab'
@@ -24,7 +25,6 @@ import {
   NAlert,
   NGrid,
   NFormItemGi,
-  NDynamicTags,
   type FormInst,
 } from 'naive-ui'
 import {
@@ -177,7 +177,9 @@ useEditGuard(dirty, save.isPending)
               v-model:value="draft.owner"
               :input-props="{ 'aria-label': uiText('ui.dataset_editor_974d383f') }" /></NFormItemGi
           ><NFormItemGi :label="uiText('ui.dataset_editor_ae0a7afe')"
-            ><NDynamicTags v-model:value="draft.tags" /></NFormItemGi></NGrid
+            ><TagEditor
+              v-model="draft.tags"
+              :disabled="save.isPending.value" /></NFormItemGi></NGrid
         ><NFormItem :label="t('folders.folder')"
           ><DatasetFolderSelect
             v-model="draft.folderId"

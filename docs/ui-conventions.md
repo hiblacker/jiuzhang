@@ -36,6 +36,7 @@
 | shared/ui/async-state             | 无缓存首屏的 loading/error/empty/success；retry emit 与成功内容 slot                                                   | 概览、源列表/详情                                   | B0/B1                     |
 | shared/ui/confirm-dialog          | 受控开关、pending、错误、确认/取消及焦点；不发请求                                                                     | 删除数据源、删除数据集                              | B1/B2                     |
 | shared/ui/copy-button             | 复制值、可访问名称、成功/失败反馈与复位                                                                                | 源 ID、任务 runId                                   | B1/B3                     |
+| shared/ui/tag-editor | 字符串标签草稿、具名增删、Enter/Tab/Escape、组合输入保护和焦点恢复；不拥有 HTTP/业务校验 | SourceConnectionForm、DatasetEditorPage | 已实现，契约见组件 README |
 | shared/ui/query-toolbar           | 搜索/筛选/操作 slots 与响应式排列；不定义业务筛选                                                                      | 源列表、数据集列表                                  | B1/B2                     |
 | shared/ui/data-preview            | 只读二维数据、固定列宽/内部滚动、快照内分页、完整值弹窗；标题可由调用方翻译，复用 CopyButton，不拥有请求/权限/字段规则 | 六处结果预览以及源/数据集/仓库/版本的五处只读字段表 | 已实现，契约见组件 README |
 | shared/ui/list-page               | 工具栏、表格区、批量区、分页区的组合布局；不接管数据                                                                   | 源列表、数据集列表                                  | B1/B2，经第二个场景再确认 |
