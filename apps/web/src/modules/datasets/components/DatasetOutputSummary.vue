@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NAlert, NDescriptions, NDescriptionsItem } from 'naive-ui'
+import { NAlert, NDescriptionsItem } from 'naive-ui'
+import { ResponsiveDescriptions } from '@/shared/ui/responsive-descriptions'
 import type { Model } from '@/shared/api/types'
 
 const props = defineProps<{ output: Model<'Output'> }>()
@@ -19,12 +20,12 @@ const mode = computed(() => {
 </script>
 <template>
   <section :aria-label="t('datasets.output.summary')">
-    <NDescriptions :column="2" bordered class="mb">
+    <ResponsiveDescriptions :max-columns="2" bordered class="mb">
       <NDescriptionsItem :label="t('datasets.output.mode')">{{ mode.label }}</NDescriptionsItem>
       <NDescriptionsItem :label="t('datasets.output.keys')">{{
         output.keys.join('、') || t('datasets.output.noKeys')
       }}</NDescriptionsItem>
-    </NDescriptions>
+    </ResponsiveDescriptions>
     <NAlert type="info">{{ mode.description }} {{ t('datasets.output.boundary') }}</NAlert>
   </section>
 </template>

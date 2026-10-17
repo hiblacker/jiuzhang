@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
 import { useRouteTab } from '@/shared/composables/use-route-tab'
+import { ResponsiveDescriptions } from '@/shared/ui/responsive-descriptions'
 import { DataPreview } from '@/shared/ui/data-preview'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
@@ -85,7 +86,7 @@ async function publish() {
         :value="tab"
         @update:value="tab = $event"
         ><NTabPane name="overview" :tab="uiText('ui.dataset_detail_5060421d')"
-          ><NDescriptions :column="2" label-placement="left" bordered
+          ><ResponsiveDescriptions :max-columns="2" bordered
             ><NDescriptionsItem :label="t('folders.folder')">{{
               folderPath(folders.data.value ?? [], query.data.value?.folderId) ||
               t('folders.unfiled')
@@ -117,7 +118,7 @@ async function publish() {
               ></NDescriptionsItem
             ><NDescriptionsItem :label="uiText('ui.dataset_detail_442be9c4')">{{
               query.data.value?.definition.output.table
-            }}</NDescriptionsItem></NDescriptions
+            }}</NDescriptionsItem></ResponsiveDescriptions
           ><DatasetOutputSummary
             v-if="query.data.value"
             class="mt"
@@ -186,7 +187,7 @@ async function publish() {
             ></NDescriptions
           ></NTabPane
         ><NTabPane name="schedule" :tab="uiText('ui.dataset_detail_36019dc2')"
-          ><NDescriptions :column="2"
+          ><ResponsiveDescriptions :max-columns="2"
             ><NDescriptionsItem :label="uiText('ui.dataset_detail_af908096')">{{
               query.data.value?.definition.schedule.mode
             }}</NDescriptionsItem
@@ -198,7 +199,7 @@ async function publish() {
             }}</NDescriptionsItem
             ><NDescriptionsItem :label="uiText('ui.dataset_detail_e2d53a6d')">{{
               query.data.value?.definition.schedule.retries
-            }}</NDescriptionsItem></NDescriptions
+            }}</NDescriptionsItem></ResponsiveDescriptions
           ><NButton @click="router.push('/tasks')">{{
             uiText('ui.dataset_detail_d1d5bfef')
           }}</NButton></NTabPane

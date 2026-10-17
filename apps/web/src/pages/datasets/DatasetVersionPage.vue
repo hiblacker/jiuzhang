@@ -22,6 +22,7 @@ import {
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
+import { ResponsiveDescriptions } from '@/shared/ui/responsive-descriptions'
 import { DataPreview } from '@/shared/ui/data-preview'
 import { useCan } from '@/shared/security/permissions'
 import { errorKey } from '@/shared/api/error-message'
@@ -105,14 +106,14 @@ async function restore() {
     @retry="refresh"
   >
     <NCard :bordered="false">
-      <NDescriptions :column="2">
+      <ResponsiveDescriptions :max-columns="2">
         <NDescriptionsItem :label="t('ui.dataset_version_b410c241')">{{
           query.data.value?.createdAt
         }}</NDescriptionsItem>
         <NDescriptionsItem :label="t('ui.dataset_version_442be9c4')">{{
           query.data.value?.definition.output.table
         }}</NDescriptionsItem>
-      </NDescriptions>
+      </ResponsiveDescriptions>
       <DatasetOutputSummary
         v-if="query.data.value"
         class="mt"
