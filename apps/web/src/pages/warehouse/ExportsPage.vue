@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -127,7 +128,7 @@ const columns: DataTableColumns<Model<'Export'>> = [
         :value="filters.status || null"
         clearable
         :placeholder="uiText('status')"
-        :aria-label="uiText('status')"
+        v-select-trigger-name="uiText('status')"
         :options="[
           { value: 'preparing', label: uiText('warehouse.preparing') },
           { value: 'ready', label: uiText('warehouse.ready') },

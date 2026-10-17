@@ -62,6 +62,7 @@ export default {
   name: '名称',
   type: '类型',
   status: '状态',
+  sort: '排序',
   owner: '负责人',
   updated: '更新时间',
   actions: '操作',

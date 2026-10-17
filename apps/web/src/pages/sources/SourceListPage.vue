@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 const canWrite = useCan('write')
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -50,11 +51,13 @@ async function confirm() {
         ><template #prefix><Search :size="16" /></template></NInput
       ><NSelect
         :value="filters.type || null"
+        v-select-trigger-name="t('type')"
         :placeholder="t('type')"
         clearable
         :options="connectorOptions"
         @update:value="update({ type: $event, page: 1 })" /><NSelect
         :value="filters.status || null"
+        v-select-trigger-name="t('status')"
         :placeholder="t('status')"
         clearable
         :options="['connected', 'warning', 'offline'].map((value) => ({ value, label: t(value) }))"

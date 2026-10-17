@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -136,6 +137,7 @@ const columns = computed<DataTableColumns<Model<'Task'>>>(() => [
         :placeholder="uiText('ui.tasks_b8c6763d')"
         @update:value="update({ q: $event, page: 1 })" /><NSelect
         :value="filters.status || null"
+        v-select-trigger-name="uiText('status')"
         clearable
         :placeholder="uiText('status')"
         :options="[

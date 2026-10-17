@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -115,6 +116,7 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
         @update:value="update({ q: $event, page: 1 })"
       /><NSelect
         :value="filters.status || null"
+        v-select-trigger-name="uiText('ui.runs_2a4080ad')"
         clearable
         :placeholder="uiText('ui.runs_2a4080ad')"
         :options="
@@ -134,7 +136,7 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
       <NSelect
         :value="queryValue('trigger') || null"
         clearable
-        :aria-label="uiText('ui.runs_f67f1852')"
+        v-select-trigger-name="uiText('ui.runs_f67f1852')"
         :placeholder="uiText('ui.runs_f67f1852')"
         :options="
           ['manual', 'schedule', 'retry', 'backfill'].map((value) => ({ label: value, value }))

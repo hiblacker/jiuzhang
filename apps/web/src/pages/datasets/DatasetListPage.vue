@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -226,6 +227,7 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
           :placeholder="t('search')"
           @update:value="update({ q: $event, page: 1 })" /><NSelect
           :value="filters.status || null"
+          v-select-trigger-name="uiText('ui.dataset_list_62e951a6')"
           clearable
           :placeholder="uiText('ui.dataset_list_62e951a6')"
           :options="[
@@ -234,6 +236,7 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
           ]"
           @update:value="update({ status: $event, page: 1 })" /><NSelect
           :value="filters.sort"
+          v-select-trigger-name="uiText('sort')"
           :options="[
             { label: uiText('ui.dataset_list_5ebd027d'), value: 'updatedAt' },
             { label: uiText('ui.dataset_list_0ea96767'), value: 'name' },

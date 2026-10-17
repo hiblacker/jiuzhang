@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -126,7 +127,7 @@ function exportRows() {
         @update:value="update({ actor: $event, page: 1 })"
       />
       <NSelect
-        :aria-label="uiText('ui.audit_c0939594')"
+        v-select-trigger-name="uiText('ui.audit_c0939594')"
         :virtual-scroll="false"
         :value="queryValue('action') || null"
         clearable
@@ -135,7 +136,7 @@ function exportRows() {
         @update:value="update({ action: $event, page: 1 })"
       />
       <NSelect
-        :aria-label="uiText('ui.audit_c6464f4f')"
+        v-select-trigger-name="uiText('ui.audit_c6464f4f')"
         :value="queryValue('resource') || null"
         clearable
         :placeholder="uiText('ui.audit_c6464f4f')"

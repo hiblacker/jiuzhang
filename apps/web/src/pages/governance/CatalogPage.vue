@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -168,6 +169,7 @@ const columns = computed<DataTableColumns<Model<'CatalogItem'>>>(() => [
       />
       <NSelect
         :value="queryValue('kind') || null"
+        v-select-trigger-name="uiText('type')"
         clearable
         :placeholder="uiText('type')"
         :options="[
@@ -191,6 +193,7 @@ const columns = computed<DataTableColumns<Model<'CatalogItem'>>>(() => [
       />
       <NSelect
         :value="queryValue('certified') || null"
+        v-select-trigger-name="uiText('ui.catalog_32c808cb')"
         clearable
         :placeholder="uiText('ui.catalog_32c808cb')"
         :options="[
@@ -201,6 +204,7 @@ const columns = computed<DataTableColumns<Model<'CatalogItem'>>>(() => [
       />
       <NSelect
         :value="queryValue('favorite') || null"
+        v-select-trigger-name="uiText('ui.catalog_d07cee78')"
         clearable
         :placeholder="uiText('ui.catalog_d07cee78')"
         :options="[{ value: 'true', label: uiText('ui.catalog_d07cee78') }]"

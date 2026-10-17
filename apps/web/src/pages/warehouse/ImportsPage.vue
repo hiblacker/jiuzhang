@@ -217,7 +217,7 @@ function start() {
         :value="filters.status || null"
         clearable
         :placeholder="uiText('status')"
-        :aria-label="uiText('status')"
+        v-select-trigger-name="uiText('status')"
         :options="[
           { value: 'queued', label: uiText('states.queued') },
           { value: 'running', label: uiText('states.running') },

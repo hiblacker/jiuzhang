@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -82,6 +83,7 @@ const columns = computed<DataTableColumns<Model<'Table'>>>(() => [
         @update:value="update({ q: $event, page: 1 })"
       /><NSelect
         :value="params.layer || null"
+        v-select-trigger-name="uiText('ui.tables_e24230d0')"
         clearable
         :placeholder="uiText('ui.tables_e24230d0')"
         :options="['ODS', 'DWD', 'DWS', 'ADS'].map((value) => ({ value, label: value }))"
@@ -89,7 +91,7 @@ const columns = computed<DataTableColumns<Model<'Table'>>>(() => [
       />
       <NSelect
         :value="params.subjectDomain || null"
-        :aria-label="uiText('warehouse.subjectDomain')"
+        v-select-trigger-name="uiText('warehouse.subjectDomain')"
         :placeholder="uiText('warehouse.subjectDomain')"
         :loading="domains.isLoading.value"
         clearable
