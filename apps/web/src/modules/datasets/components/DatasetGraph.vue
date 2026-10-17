@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -123,7 +124,7 @@ function remove() {
   <div class="graph-toolbar">
     <NSelect
       v-model:value="type"
-      :aria-label="uiText('datasets.graph.nodeType')"
+      v-select-trigger-name="uiText('datasets.graph.nodeType')"
       :disabled="readonly"
       style="width: 150px"
       :options="Object.entries(labels).map(([value, label]) => ({ value, label }))"
@@ -136,21 +137,21 @@ function remove() {
     <NSelect
       v-model:value="selected"
       :options="nodeOptions"
-      :aria-label="uiText('datasets.graph.selected')"
+      v-select-trigger-name="uiText('datasets.graph.selected')"
       :placeholder="uiText('datasets.graph.selected')"
     />
     <NSelect
       v-model:value="from"
       :disabled="readonly"
       :options="nodeOptions"
-      :aria-label="uiText('datasets.graph.from')"
+      v-select-trigger-name="uiText('datasets.graph.from')"
       :placeholder="uiText('datasets.graph.from')"
     />
     <NSelect
       v-model:value="to"
       :disabled="readonly"
       :options="nodeOptions"
-      :aria-label="uiText('datasets.graph.to')"
+      v-select-trigger-name="uiText('datasets.graph.to')"
       :placeholder="uiText('datasets.graph.to')"
     />
     <NButton

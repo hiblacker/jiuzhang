@@ -82,11 +82,7 @@ test('large multi-level lineage stays navigable by search and keyboard in both t
   const graph = page.getByRole('region', { name: '数据血缘图', exact: true })
   await expect(graph.locator('.vue-flow__node')).toHaveCount(chain.fieldCount)
   expect(chain.fieldCount).toBeGreaterThan(100)
-  await page.getByLabel('定位血缘节点', { exact: true }).click()
-  await page
-    .getByLabel('定位血缘节点', { exact: true })
-    .getByRole('textbox')
-    .fill('多级血缘-5 v1 · id')
+  await page.getByRole('textbox', { name: '定位血缘节点', exact: true }).fill('多级血缘-5 v1 · id')
   await page
     .locator('.n-base-select-option')
     .getByText('多级血缘-5 v1 · id', { exact: true })

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
@@ -118,7 +119,7 @@ watch(nodes, async (_, __, onCleanup) => {
     <div class="lineage-filters">
       <NSelect
         :value="scope"
-        :aria-label="uiText('lineage.scope')"
+        v-select-trigger-name="uiText('lineage.scope')"
         :options="[
           { label: uiText('lineage.resource'), value: 'resource' },
           { label: uiText('lineage.field'), value: 'field' },
@@ -129,14 +130,15 @@ watch(nodes, async (_, __, onCleanup) => {
         :value="selected || null"
         clearable
         filterable
-        :aria-label="uiText('lineage.selected')"
+        v-select-trigger-name="uiText('openSelect', { label: uiText('lineage.selected') })"
+        :input-props="{ 'aria-label': uiText('lineage.selected') }"
         :placeholder="uiText('ui.lineage_9b907c0c')"
         :options="resources.data.value?.nodes.map((n) => ({ value: n.id, label: n.label }))"
         @update:value="filter({ resource: $event, field: null })"
       />
       <NSelect
         :value="direction"
-        :aria-label="uiText('lineage.direction')"
+        v-select-trigger-name="uiText('lineage.direction')"
         :options="[
           { label: uiText('lineage.both'), value: 'both' },
           { label: uiText('lineage.upstream'), value: 'upstream' },
@@ -150,7 +152,7 @@ watch(nodes, async (_, __, onCleanup) => {
         :disabled="!selected"
         :options="fieldOptions"
         clearable
-        :aria-label="uiText('lineage.selectedField')"
+        v-select-trigger-name="uiText('lineage.selectedField')"
         :placeholder="uiText('lineage.selectedField')"
         @update:value="filter({ field: $event })"
       />
@@ -158,7 +160,8 @@ watch(nodes, async (_, __, onCleanup) => {
     <NSelect
       :value="focused || null"
       :options="visibleNodes.map((node) => ({ value: node.id, label: node.label }))"
-      :aria-label="uiText('lineage.nodePicker')"
+      v-select-trigger-name="uiText('openSelect', { label: uiText('lineage.nodePicker') })"
+      :input-props="{ 'aria-label': uiText('lineage.nodePicker') }"
       :placeholder="uiText('lineage.nodePicker')"
       clearable
       filterable
