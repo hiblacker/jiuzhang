@@ -18,6 +18,7 @@ export default {
     cancelRun: '取消运行 {id}',
     retryRun: '重试运行 {id}',
     retryOutcome: '运行 {id} 的演示重试结果',
+    runOutcome: '数据集 {id} 的演示运行结果',
     runTimeRange: '运行开始日期范围',
     runActions: '运行操作',
     scheduleHelp:

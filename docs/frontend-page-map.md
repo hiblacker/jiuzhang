@@ -160,6 +160,8 @@ B0 建立与本矩阵 ID 对应的 route-manifest 和测试清单。运行时以
 
 最新验证：be7e686d 基线完整执行 150 项浏览器测试，148 通过、2 失败（2 workers，13.8 分钟）；对应完整 pnpm check 通过（14 文件 93 项单元/HTTP 集成、全部门禁及 demo/real 双构建）。失败分别为服务取消改为返回服务列表后旧选表测试仍期待 SQL 工作台，以及上游测试在新建页面/MSW 初始化完成前直接 fetch 得到 Vite HTML。只更新相应测试的精确 URL/标题及页面就绪等待，保留全部原始数据正确性断言；upstream-picker 与 warehouse-table-picker 三项最终通过（25.4 秒）。修正后尚未再次完整执行全量；最近全部通过基线仍为 dbd5943d 的 142 项。整体仍为 implementing，下表较早批次证据保留为历史记录。
 
+P08/P12/P14/P15 运行场景键盘（2026-10-17）：复用 shared/ui/select-trigger-name，为 RunTrigger 和 RunActions 的结果选择命名实际入口；运行触发同时尊重 readonly、未发布及 pending，防止禁用路径调用 mutation。三项新增先复现两个场景无名称及只读入口缺失，最终经 Enter/方向键/Escape 选择失败/阻断、触发和重试，核对新 runId、原终态、retryOf/retryRunId、同一 datasetVersion 与刷新。读取已安装 Naive 实现确认禁用时移除 tabindex；共享指令改为保留禁用选择器的名称/aria-disabled/收起状态，不添加 tabindex 或重建控件，既有 Naive 键盘行为继续拥有。完整 pnpm check 通过（14 文件 93 项、全部门禁与 demo/real 双构建）；运行/任务/依赖/发布入仓及管理/服务等 24 项通过（2.2 分钟），源表单/治理绑定/字段/任务选择九项共享消费者另通过（52.9 秒）。未新增布局或视觉截图，未重新运行最新全部 153 项；全量与人工验收仍以本节明确范围为准。
+
 P29/P31 服务取消（2026-10-17）：先以两个浏览器用例复现从工作台直达新建/编辑页后，取消错误返回工作台。只修改页面导航，复用 useEditGuard 的统一 dirty/pending 决策，编辑返回所属服务详情、新建返回服务列表；拒绝确认保留输入、接受确认放弃草稿，clean 取消不弹确认，全部取消不发送 POST/PATCH。兼容性提示和 ServiceForm 既有复用保持原所有者，不新增导航封装。本块九项浏览器回归覆盖服务参数键盘、两种取消、创建/调用/失败、受限字段编辑、访问与审计，全部通过（2 workers，58.1 秒）；lint、format:check、typecheck、边界/UI/文案及差异空白检查通过。页面布局未变化，未新增视觉截图；完整 pnpm check 取前一配置差异提交的通过证据，本块未重新执行双构建。
 
 P05 配置差异（2026-10-17）：sources/model 拥有逐字段比较和 labelKey，useSourceEditor 拥有与 Query 缓存分离的基线/草稿，页面只协调展示；复用 shared/ui/data-preview 的列标题、内部横滚、长值弹窗和复制，没有跨域导入 datasets/version-diff 或新增万能比较表。覆盖全部可编辑字段及切换连接器后保留的参数，JSON 记法区分空字符串、0、false、数组；普通参数不丢失，Mock 地址归一化和凭证键替换仍由原 HTTP 适配层拥有。保存成功以接口返回配置更新基线，失败保留草稿及差异。新增两项单元及两项浏览器验证恢复原值、TLS false、类型/端口联动、API JSON、长值读取、失败重试、取消零污染、保存刷新清空差异；768px 明暗两张截图实际复核，无文档横向溢出。新建页不展示不存在的已保存配置。

@@ -9,14 +9,16 @@ export const vSelectTriggerName: ObjectDirective<HTMLElement, string> = {
     const sync = () => {
       const selection = root.querySelector('.n-base-selection')
       const trigger = root.querySelector<HTMLElement>(
-        '.n-base-selection-label[tabindex], .n-base-selection-tags[tabindex]',
+        '.n-base-selection-label, .n-base-selection-tags',
       )
       if (!trigger) return
+      const disabled = selection?.classList.contains('n-base-selection--disabled') ?? false
       trigger.setAttribute('role', 'button')
       trigger.setAttribute('aria-label', root.dataset.selectLabel ?? '')
+      trigger.setAttribute('aria-disabled', String(disabled))
       trigger.setAttribute(
         'aria-expanded',
-        String(selection?.classList.contains('n-base-selection--active') ?? false),
+        String(!disabled && (selection?.classList.contains('n-base-selection--active') ?? false)),
       )
     }
     sync()

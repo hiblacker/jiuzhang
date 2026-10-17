@@ -5,6 +5,7 @@ import { NAlert, NButton, NSelect } from 'naive-ui'
 import type { Model } from '@/shared/api/types'
 import { errorKey } from '@/shared/api/error-message'
 import { useCan } from '@/shared/security/permissions'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useJobActions } from '../composables/use-jobs'
 const props = defineProps<{ run: Model<'Run'>; size?: 'small' | 'medium' }>()
 const emit = defineEmits<{ retried: [id: string] }>()
@@ -45,7 +46,7 @@ async function retry() {
       v-if="retryable"
       v-model:value="outcome"
       :size="size"
-      :aria-label="t('jobs.retryOutcome', { id: run.id })"
+      v-select-trigger-name="t('jobs.retryOutcome', { id: run.id })"
       :disabled="!canWrite || pending"
       class="run-outcome"
       :options="[

@@ -9,6 +9,7 @@ import type { Model } from '@/shared/api/types'
 import { useJobActions } from '../composables/use-jobs'
 import { useCan } from '@/shared/security/permissions'
 import { errorKey } from '@/shared/api/error-message'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n } from 'vue-i18n'
 const props = defineProps<{ datasetId: string; disabled?: boolean }>()
 const emit = defineEmits<{ started: [id: string] }>()
@@ -16,7 +17,7 @@ const outcome = ref<Model<'RunOutcome'>>('succeeded'),
   { run } = useJobActions(),
   { t } = useI18n()
 async function start() {
-  if (run.isPending.value) return
+  if (run.isPending.value || props.disabled || !canWrite.value) return
   try {
     const result = await run.mutateAsync({ datasetId: props.datasetId, outcome: outcome.value })
     emit('started', result.id)
@@ -27,6 +28,8 @@ async function start() {
   <div class="run-trigger">
     <NSelect
       v-model:value="outcome"
+      v-select-trigger-name="t('jobs.runOutcome', { id: datasetId })"
+      :disabled="disabled || !canWrite || run.isPending.value"
       size="small"
       style="width: 130px"
       :options="[
