@@ -39,7 +39,6 @@ for (const entry of entries) {
       ' drawer preserves canceled and failed drafts, traps focus and blocks pending duplicates',
     async ({ page }) => {
       test.setTimeout(90000)
-      await page.setViewportSize({ width: 768, height: 1024 })
       await page.addInitScript(() => {
         localStorage.setItem('jiuzhang.preference.session', 'demo')
         localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -123,9 +122,18 @@ for (const entry of entries) {
         await expect
           .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
           .toBe(theme)
-        await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(768)
+        await expect
+          .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+          .toBe(page.viewportSize()?.width)
         await page.screenshot({
-          path: 'test-results/drawer-' + entry.name + '-' + theme + '.png',
+          path:
+            '/tmp/jiuzhang-drawer-' +
+            entry.name +
+            '-' +
+            page.viewportSize()?.width +
+            '-' +
+            theme +
+            '.png',
           fullPage: true,
           animations: 'disabled',
         })

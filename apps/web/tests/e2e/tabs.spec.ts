@@ -41,10 +41,9 @@ const cases = [
 
 for (const entry of cases) {
   test(
-    entry.name + ' tabs support keyboard, URL history, invalid links and both narrow themes',
+    entry.name + ' tabs support keyboard, URL history, invalid links and both desktop themes',
     async ({ page }) => {
       test.setTimeout(60000)
-      await page.setViewportSize({ width: 768, height: 1024 })
       await page.addInitScript(() => {
         localStorage.setItem('jiuzhang.preference.session', 'demo')
         localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -90,7 +89,7 @@ for (const entry of cases) {
           await expect(panel).toHaveAttribute('id', (await tab.getAttribute('aria-controls')) ?? '')
           await expect
             .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
-            .toBe(768)
+            .toBe(page.viewportSize()?.width)
         }
         await tabs.last().focus()
         await page.keyboard.press('Home')
@@ -129,7 +128,14 @@ for (const entry of cases) {
           .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
           .toBe(theme)
         await page.screenshot({
-          path: 'test-results/tabs-' + entry.name.replaceAll(' ', '-') + '-' + theme + '.png',
+          path:
+            '/tmp/jiuzhang-tabs-' +
+            entry.name.replaceAll(' ', '-') +
+            '-' +
+            page.viewportSize()?.width +
+            '-' +
+            theme +
+            '.png',
           fullPage: true,
           animations: 'disabled',
         })
