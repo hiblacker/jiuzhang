@@ -91,3 +91,7 @@ bash tools/backend.sh api
 实测：JDK 21.0.12.1、Maven 3.9.11 构建成功；四项领域/架构测试通过；PostgreSQL 空库迁移及二次无操作迁移成功；API 健康 UP。个人环境路径和网络代理不进入项目规范。
 
 真实账号已接通：启动 API 后运行 `pnpm dev:real`，访问 `http://localhost:5175/login`。初始化账号/随机密码见未跟踪的 `.env` 文件；演示站点仍为 5174。完整入仓链尚在开发，未实现端点明确报错。验证账号可运行 `set -a; source .env; set +a; python3 tools/test-identity.py`，桌面浏览器验收 `node tools/test-real-identity.mjs`（需 API 与 real 前端已启动）。
+
+MySQL 接入已实现：`python3 tools/init-source.py` 启动专用合成源并创建只读账号、提取服务器公钥；此脚本需 Docker 权限。连接 127.0.0.1:13306 / demo_retail / jiuzhang_reader，密码见 `.env` 的 SOURCE_READ_PASSWORD；本地演示关闭 TLS，使用固定公钥验证认证，禁止动态抓取公钥。外部源必须 TLS 且主机位于 JIUZHANG_SOURCE_HOSTS 白名单。编辑保留密码为空；修改账号必须重新提供密码。
+
+`set -a; source .env; set +a; python3 tools/test-sources.py` 验证真实源；`node tools/test-real-sources.mjs` 验证 1280×1000 页面。预览仅管理员可查看原始明细，限制 100 行；字段目录不运行全表 COUNT，rowCountKnown=false 表示数量未知。数值以字符串传输避免精度丢失；当前明确支持整数、Decimal、字符、日期/时间，其余类型拒绝。全量读取仅承诺 InnoDB 一致性事务；取消/大小上限等执行行为在 Worker 接通后验证。

@@ -20,6 +20,10 @@ import type { SourceInput } from '../api/source-repository'
 import { connectorOptions, connectorRegistry } from '../model/connectors'
 import { parseJsonObject } from '@/shared/lib/json'
 const draft = defineModel<SourceInput>({ required: true })
+const credentials = defineModel<{ username: string; password: string }>('credentials', {
+  default: () => ({ username: '', password: '' }),
+})
+const real = import.meta.env.VITE_API_MODE === 'real'
 defineProps<{ disabled?: boolean }>()
 const form = ref<FormInst>()
 const { t } = useI18n()
@@ -105,7 +109,9 @@ defineExpose({ validate: () => form.value?.validate() })
       ><NFormItemGi :label="t('type')" path="type"
         ><NSelect
           :value="draft.type"
-          :options="connectorOptions"
+          :options="
+            real ? connectorOptions.filter((option) => option.value === 'MySQL') : connectorOptions
+          "
           v-select-trigger-name="t('type')"
           @update:value="selectConnector" /></NFormItemGi
       ><NFormItemGi :label="t('owner')" path="owner"
@@ -122,7 +128,9 @@ defineExpose({ validate: () => form.value?.validate() })
         :rows="2"
     /></NFormItem>
     <h3>{{ connector.kind === 'api' ? t('sources.api') : t('sources.connection') }}</h3>
-    <NAlert type="info" class="form-note">{{ t('sources.placeholder') }}</NAlert
+    <NAlert type="info" class="form-note">{{
+      real ? t('sources.realCredentialHint') : t('sources.placeholder')
+    }}</NAlert
     ><template v-if="connector.kind === 'api'"
       ><NGrid cols="1 640:2" responsive="self" :x-gap="24"
         ><NFormItemGi :label="t('sources.baseUrl')" path="settings.baseUrl"
@@ -171,10 +179,12 @@ defineExpose({ validate: () => form.value?.validate() })
           type="textarea"
           :rows="2" /></NFormItem></template
     ><NGrid v-else-if="connector.kind === 'database'" cols="1 640:2" responsive="self" :x-gap="24"
-      ><NFormItemGi :label="t('sources.host')" path="settings.host"
+      ><NFormItemGi :label="real ? t('sources.realHost') : t('sources.host')" path="settings.host"
         ><NInput
           v-model:value="draft.settings.host"
-          :input-props="{ 'aria-label': t('sources.host') }" /></NFormItemGi
+          :input-props="{
+            'aria-label': real ? t('sources.realHost') : t('sources.host'),
+          }" /></NFormItemGi
       ><NFormItemGi :label="t('sources.port')" path="settings.port"
         ><NInputNumber
           v-model:value="draft.settings.port"
@@ -189,13 +199,26 @@ defineExpose({ validate: () => form.value?.validate() })
         ><NInput
           v-model:value="draft.settings.schema"
           :input-props="{ 'aria-label': t('sources.schema') }" /></NFormItemGi
+      ><template v-if="real">
+        <NFormItemGi :label="t('sources.username')"
+          ><NInput
+            v-model:value="credentials.username"
+            :input-props="{ 'aria-label': t('sources.username'), autocomplete: 'off' }"
+        /></NFormItemGi>
+        <NFormItemGi :label="t('sources.password')"
+          ><NInput
+            v-model:value="credentials.password"
+            type="password"
+            show-password-on="click"
+            :input-props="{ 'aria-label': t('sources.password'), autocomplete: 'new-password' }"
+        /></NFormItemGi> </template
       ><NFormItemGi :label="t('sources.tls')"
         ><NSwitch
           v-model:value="draft.settings.tls"
           :aria-label="t('sources.tls')" /></NFormItemGi></NGrid
     ><NAlert v-else type="default">CSV · {{ t('demoNote') }}</NAlert
     ><NGrid cols="1 640:2" responsive="self" :x-gap="24"
-      ><NFormItemGi v-if="connector.incremental" :label="t('sources.incremental')"
+      ><NFormItemGi v-if="!real && connector.incremental" :label="t('sources.incremental')"
         ><NInput
           v-model:value="draft.settings.incrementalField"
           :input-props="{ 'aria-label': t('sources.incremental') }" /></NFormItemGi

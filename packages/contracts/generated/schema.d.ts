@@ -1268,6 +1268,8 @@ export interface components {
             tags: string[];
             type: components["schemas"]["SourceType"];
             settings: components["schemas"]["SourceSettings"];
+            /** @description Real MySQL credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser. */
+            credentials?: components["schemas"]["SourceCredentials"];
         };
         Source: {
             id: string;
@@ -1282,6 +1284,8 @@ export interface components {
             /** @enum {string} */
             status: "connected" | "warning" | "offline";
             objectCount: number;
+            connectionUsername?: string;
+            credentialConfigured?: boolean;
         };
         Field: {
             name: string;
@@ -1299,6 +1303,8 @@ export interface components {
             name: string;
             rowCount: string;
             fields: components["schemas"]["Field"][];
+            /** @description False means catalog discovery did not run COUNT; rowCount is a historical compatibility placeholder and must not be presented as a measured count. */
+            rowCountKnown?: boolean;
         };
         Row: {
             [key: string]: string | number | boolean | null;
@@ -1810,6 +1816,8 @@ export interface components {
             tags?: string[];
             type?: components["schemas"]["SourceType"];
             settings?: components["schemas"]["SourceSettings"];
+            /** @description Real MySQL credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser. */
+            credentials?: components["schemas"]["SourceCredentials"];
         };
         /** @description 未提供的顶层字段保持原值；提供的对象或数组完整替换该字段。null 仅在字段类型允许时清空。 */
         DatasetInputPatch: {
@@ -1983,6 +1991,22 @@ export interface components {
         PasswordChangeInput: {
             currentPassword: string;
             newPassword: string;
+        };
+        SourceCredentials: {
+            username: string;
+            password: string;
+        };
+        SourceTestInput: {
+            name: string;
+            description: string;
+            owner: string;
+            tags: string[];
+            type: components["schemas"]["SourceType"];
+            settings: components["schemas"]["SourceSettings"];
+            /** @description Real MySQL credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser. */
+            credentials?: components["schemas"]["SourceCredentials"];
+            /** @description Test only: retain saved credentials while validating edited connection settings. */
+            credentialSourceId?: string;
         };
     };
     responses: never;
@@ -4849,7 +4873,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SourceInput"];
+                "application/json": components["schemas"]["SourceTestInput"];
             };
         };
         responses: {

@@ -4082,7 +4082,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SourceInput"
+                "$ref": "#/components/schemas/SourceTestInput"
               }
             }
           }
@@ -12940,6 +12940,11 @@
           },
           "settings": {
             "$ref": "#/components/schemas/SourceSettings"
+          },
+          "credentials": {
+            "$ref": "#/components/schemas/SourceCredentials",
+            "writeOnly": true,
+            "description": "Real MySQL credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser."
           }
         },
         "required": [
@@ -12994,6 +12999,12 @@
           },
           "objectCount": {
             "type": "integer"
+          },
+          "connectionUsername": {
+            "type": "string"
+          },
+          "credentialConfigured": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -13073,6 +13084,10 @@
             "items": {
               "$ref": "#/components/schemas/Field"
             }
+          },
+          "rowCountKnown": {
+            "type": "boolean",
+            "description": "False means catalog discovery did not run COUNT; rowCount is a historical compatibility placeholder and must not be presented as a measured count."
           }
         },
         "required": [
@@ -15227,6 +15242,11 @@
           },
           "settings": {
             "$ref": "#/components/schemas/SourceSettings"
+          },
+          "credentials": {
+            "$ref": "#/components/schemas/SourceCredentials",
+            "writeOnly": true,
+            "description": "Real MySQL credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser."
           }
         },
         "required": [],
@@ -15970,6 +15990,73 @@
         "required": [
           "currentPassword",
           "newPassword"
+        ]
+      },
+      "SourceCredentials": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "SourceTestInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "type": {
+            "$ref": "#/components/schemas/SourceType"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/SourceSettings"
+          },
+          "credentials": {
+            "$ref": "#/components/schemas/SourceCredentials",
+            "writeOnly": true,
+            "description": "Real MySQL credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser."
+          },
+          "credentialSourceId": {
+            "type": "string",
+            "pattern": "^[0-9]+$",
+            "writeOnly": true,
+            "description": "Test only: retain saved credentials while validating edited connection settings."
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "owner",
+          "tags",
+          "type",
+          "settings"
         ]
       }
     }

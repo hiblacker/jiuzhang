@@ -11,6 +11,8 @@ test-results/
 coverage/
 target/
 .local/
+__pycache__/
+*.pyc
 
 # Local assistant workspace metadata
 .workbuddy/

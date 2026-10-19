@@ -41,6 +41,7 @@ export const systemHandlers = [
     '/system/users',
     ({ state, body, now }) => {
       const input = body as Model<'UserInput'>
+      ensure(!('password' in input), 422, 'VALIDATION_ERROR', '演示环境不保存真实密码')
       ensure(input.name.trim(), 422, 'VALIDATION_ERROR', '名称必填')
       const user = { ...input, id: nextId(state), updatedAt: now }
       state.users.push(user)
@@ -53,6 +54,7 @@ export const systemHandlers = [
     '/system/users/{id}',
     ({ state, params, body, now, request }) => {
       const user = find(state.users, params.id)
+      ensure(!('password' in (body as object)), 422, 'VALIDATION_ERROR', '演示环境不保存真实密码')
       const input = { ...user, ...(body as Model<'UserInputPatch'>) }
       ensure(input.name.trim(), 422, 'VALIDATION_ERROR', '用户名称不能为空')
       const acting =

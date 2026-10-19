@@ -14,7 +14,8 @@ const { t } = useI18n(),
   router = useRouter(),
   message = useMessage()
 const id = computed(() => String(route.params.id ?? ''))
-const { query, draft, dirty, changes, save, test } = useSourceEditor(id)
+const { query, draft, credentials, dirty, changes, save, test } = useSourceEditor(id)
+const real = import.meta.env.VITE_API_MODE === 'real'
 const differenceRows = computed(() =>
   changes.value.map((change) => ({
     field: t(change.labelKey),
@@ -77,6 +78,7 @@ useEditGuard(dirty, () => save.isPending.value || test.isPending.value)
       ><SourceConnectionForm
         ref="form"
         v-model="draft"
+        v-model:credentials="credentials"
         :disabled="save.isPending.value || test.isPending.value"
       /><NSpace vertical
         ><NButton
@@ -85,9 +87,13 @@ useEditGuard(dirty, () => save.isPending.value || test.isPending.value)
           :loading="test.isPending.value"
           :disabled="save.isPending.value"
           @click="testConnection"
-          >{{ t('sources.test') }}</NButton
+          >{{ real ? t('sources.realTest') : t('sources.test') }}</NButton
         ><NAlert v-if="test.data.value" :type="test.data.value.success ? 'success' : 'warning'">{{
-          test.data.value.success ? t('sources.testPass') : t('sources.testFail')
+          test.data.value.success
+            ? real
+              ? t('sources.realTestPass')
+              : t('sources.testPass')
+            : t('sources.testFail')
         }}</NAlert
         ><NAlert v-if="test.error.value" type="error">{{
           t(errorKey(test.error.value))

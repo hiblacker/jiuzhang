@@ -3,6 +3,7 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tansta
 import { sourceRepository, type SourceFilters } from '../api/source-repository'
 import { newSource, toSourceInput } from '../model/connectors'
 import { compareSourceConfiguration } from '../model/configuration-diff'
+import { ApiError } from '@/shared/api/client'
 export function useSources(filters: MaybeRefOrGetter<SourceFilters>) {
   return useQuery({
     queryKey: computed(() => ['sources', toValue(filters)]),
@@ -62,6 +63,20 @@ export function useSourceEditor(id: MaybeRefOrGetter<string>) {
   const baseline = ref(toSourceInput(draft.value))
   const loadedId = ref('')
   const cache = useQueryClient()
+  const credentials = ref({ username: '', password: '' })
+  const savedUsername = ref('')
+  function input() {
+    const value = toSourceInput(draft.value)
+    if (
+      import.meta.env.VITE_API_MODE === 'real' &&
+      !credentials.value.password &&
+      (!toValue(id) || credentials.value.username !== savedUsername.value)
+    )
+      throw new ApiError('SOURCE_CREDENTIALS_REQUIRED', 422, '')
+    if (import.meta.env.VITE_API_MODE === 'real' && credentials.value.password)
+      value.credentials = { ...credentials.value }
+    return value
+  }
   watch(
     () => query.data.value,
     (source) => {
@@ -69,6 +84,8 @@ export function useSourceEditor(id: MaybeRefOrGetter<string>) {
         draft.value = toSourceInput(source)
         baseline.value = toSourceInput(source)
         loadedId.value = source.id
+        savedUsername.value = source.connectionUsername ?? ''
+        credentials.value = { username: savedUsername.value, password: '' }
       }
     },
     { immediate: true },
@@ -83,29 +100,39 @@ export function useSourceEditor(id: MaybeRefOrGetter<string>) {
       }
     },
   )
-  const dirty = computed(() => JSON.stringify(draft.value) !== JSON.stringify(baseline.value))
+  const dirty = computed(
+    () =>
+      JSON.stringify(draft.value) !== JSON.stringify(baseline.value) ||
+      !!credentials.value.password ||
+      credentials.value.username !== savedUsername.value,
+  )
   const changes = computed(() =>
     toValue(id) && loadedId.value === toValue(id)
       ? compareSourceConfiguration(baseline.value, draft.value)
       : [],
   )
   const save = useMutation({
-    mutationFn: () => sourceRepository.save(toSourceInput(draft.value), toValue(id) || undefined),
+    mutationFn: () => sourceRepository.save(input(), toValue(id) || undefined),
     onSuccess: async (source) => {
       draft.value = toSourceInput(source)
       baseline.value = toSourceInput(source)
+      credentials.value.password = ''
+      savedUsername.value = source.connectionUsername ?? ''
+      credentials.value.username = savedUsername.value
       await cache.invalidateQueries({ queryKey: ['sources'] })
       await cache.invalidateQueries({ queryKey: ['overview'] })
     },
   })
-  const test = useMutation({ mutationFn: () => sourceRepository.test(toSourceInput(draft.value)) })
+  const test = useMutation({
+    mutationFn: () => sourceRepository.test(input(), toValue(id) || undefined),
+  })
   watch(
-    draft,
+    [draft, credentials],
     () => {
       if (!test.isPending.value) test.reset()
       if (!save.isPending.value) save.reset()
     },
     { deep: true },
   )
-  return { query, draft, dirty, changes, save, test }
+  return { query, draft, credentials, dirty, changes, save, test }
 }

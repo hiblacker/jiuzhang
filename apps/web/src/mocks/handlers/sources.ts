@@ -52,7 +52,11 @@ function validateSource(input: Model<'SourceInput'>) {
 }
 function sanitized(input: Model<'SourceInput'>): Model<'SourceInput'> {
   return {
-    ...input,
+    name: input.name,
+    description: input.description,
+    owner: input.owner,
+    tags: input.tags,
+    type: input.type,
     settings: sanitizeSourceSettings(input.settings),
   }
 }

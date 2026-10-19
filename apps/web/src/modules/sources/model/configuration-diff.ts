@@ -6,7 +6,7 @@ const sourceLabels = {
   owner: 'owner',
   tags: 'tags',
   type: 'type',
-} satisfies Record<Exclude<keyof SourceInput, 'settings'>, string>
+} satisfies Record<Exclude<keyof SourceInput, 'settings' | 'credentials'>, string>
 
 const settingLabels = {
   host: 'sources.host',

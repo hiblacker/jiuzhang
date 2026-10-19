@@ -867,3 +867,10 @@ Vue 3 管理端
 - 每账号/IP 五次失败后限制 15 分钟；身份与密码不存在性统一错误；保留最后一名启用管理员。源码/日志/API 响应不包含密码哈希或原始会话 Cookie。
 - 实际验证：Maven verify；真实 PostgreSQL 迁移 V001→V002；`tools/test-identity.py` 覆盖 Cookie、未登录/越权、CSRF/Origin、最后管理员、停用、密码/退出撤销、限流和审计；1280×1000 真实浏览器登录失败/成功、刷新恢复、用户表单取消、密码失败、退出；Mock 用户管理定向 E2E 1 项通过。完整 pnpm check 包含 14 文件 93 项测试、两种构建通过；最后文案/Mock 小改后静态检查通过。
 - 真实 UI 使用独立端口 5175；Mock 保持 5174。真实 API 不支持的功能返回 NOT_IMPLEMENTED，不回退 Mock。当前仍未实现真实 MySQL/数据集执行/Doris；工程或账号通过不代表全版本验收。ASVS 是设计依据，不是安全认证结论。
+
+### 14.2 首版实施记录：MySQL 接入（2026-10-19）
+
+- SourceConnector 为纯 Java Port；JDBC 适配器实现只读权限检查、200 表/200 字段目录上限、100 行预览、5 秒连接/30 秒 socket 超时；非本机要求 TLS VERIFY_IDENTITY，地址白名单默认仅回环。元数据与 AES-256-GCM 源密钥引用分表保存，主密钥仅进程环境提供，AAD 绑定 source ID，API 不返回密码。
+- 保存/编辑/删除走数据源用例及短事务；浏览器凭证只保留在临时表单中，保存后清除，不写 Pinia/localStorage/IndexedDB；Mock 忽略凭证且拒绝保存账号密码。真实预览要求 readSensitive，目录不读取明细。单工作区对象权限采用固定服务端角色；后续多工作区必须另设归属。
+- JDK 21/Spring Boot 3.5.16 的实际托管 MySQL 驱动与 MySQL 8.4.6 真实连接、catalog、错误凭证/拒绝主机、只读权限、预览、字段、PATCH 空字符串/false、编辑密码保留已通过。超安全整数 BIGINT 与 Decimal(20,4) 保留精确字符串，null 不替换为 0。1280×1000 页面创建→测试→目录→预览→编辑复测通过。完整 pnpm check 再次通过，含 93 单元/HTTP 测试和两种构建。
+- 已编写一致性全量扫描：只对 InnoDB、REPEATABLE READ + consistent snapshot + read only，事务元数据锁后检查已使用字段，使用服务端游标分批；最多 100 万行/10 分钟。扫描期间更新/取消/schema变化及资源预算属于下一执行块的真实验收，不将预览成功当成扫描已验证。

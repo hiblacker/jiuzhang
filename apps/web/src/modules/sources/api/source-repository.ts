@@ -32,8 +32,10 @@ export const sourceRepository = {
   async remove(id: string) {
     return unwrap(await api.DELETE('/sources/{id}', { params: { path: { id } } })).data
   },
-  async test(input: SourceInput) {
-    return unwrap(await api.POST('/sources/test', { body: input })).data
+  async test(input: SourceInput, id?: string) {
+    const body =
+      import.meta.env.VITE_API_MODE === 'real' && id ? { ...input, credentialSourceId: id } : input
+    return unwrap(await api.POST('/sources/test', { body })).data
   },
   async objects(id: string, signal?: AbortSignal) {
     return unwrap(await api.GET('/sources/{id}/objects', { params: { path: { id } }, signal })).data

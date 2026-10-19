@@ -18,6 +18,13 @@ export function errorKey(error: unknown) {
     'LOGIN_THROTTLED',
     'CSRF_REJECTED',
     'LAST_ADMIN',
+    'SOURCE_CONNECTION_FAILED',
+    'SOURCE_ACCOUNT_NOT_READONLY',
+    'SOURCE_HOST_DENIED',
+    'SOURCE_CREDENTIALS_REQUIRED',
+    'SOURCE_TYPE_UNSUPPORTED',
+    'SOURCE_TLS_REQUIRED',
+    'SOURCE_KEY_REQUIRED',
   ]
   const code = error instanceof ApiError ? error.code : 'NETWORK_ERROR'
   return 'errors.' + (known.includes(code) ? code : 'UNKNOWN')
