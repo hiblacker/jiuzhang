@@ -874,3 +874,9 @@ Maven verify（新增 4 项领域测试）、V003→V004 实际 PostgreSQL 升�
 - `test-source-snapshot.py` 通过 Java source launcher 直接调用真实 `MySqlConnector`，用只读连接读取专用 InnoDB 表 1200 行，横跨多个 500 行 cursor 批次。读取首行后并发 UPDATE/INSERT 并发起 ALTER TABLE，现场检查 MySQL processlist 确认 DDL 等待 metadata lock。
 - 扫描仍返回事务开始时的 1200 行及旧值/null/Decimal `12345.6700`；提交后下一扫描读取 1201 行与新值。另验证消费者请求取消返回 RUN_CANCELED，已使用 Decimal 精度结构变化在消费数据前返回 SCHEMA_CHANGED。测试表在 finally 清理，正式样本不被修改。
 - 常规本地 `verify` 在创建并发现测试 MySQL 源后执行此项；不是模拟 connector，也不代表 100 万行上限的吞吐测试。
+
+### 14.10 过期导出内容清理（2026-10-19）
+
+- CSV 已有 24 小时应用层过期检查，但到期正文仍长期留在 PostgreSQL JSONB。Worker 每分钟按 100 条、单轮最多 1000 条清空到期 `content`，行及文件名、创建时间等审计元数据保留；返回与幂等重放仍显示 expired，不能再次下载。
+- `test-warehouse.py` 实际生成私有 CSV 后只把合成测试行的过期时间前移，等待 Worker 定时清理，再直接检查 PostgreSQL 正文为空，并验证 API 读取和原幂等键重放都返回 expired/空正文。未运行真实 24 小时等待。
+- 这是活动数据库记录级清理，不声称覆盖数据库 WAL、磁盘介质或备份副本的安全擦除；这些属于部署/备份生命周期控制。

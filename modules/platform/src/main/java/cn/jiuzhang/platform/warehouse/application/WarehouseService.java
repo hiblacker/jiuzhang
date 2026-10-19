@@ -191,6 +191,10 @@ public class WarehouseService {
     return queries.list("exports", u.id()).stream().map(this::exportView).toList();
   }
 
+  public int cleanupExpiredExports() {
+    return queries.cleanupExpiredExports();
+  }
+
   public Map<String, Object> export(User u, String id) {
     IdentityService.require(u, "read");
     return exportView(queries.get("exports", id, u.id()));
