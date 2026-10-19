@@ -178,6 +178,7 @@ def verify():
     run(['python3','tools/test-migrations.py'],env=env)
     for name in ['identity','sources','datasets','execution','warehouse','execution-safety','execution-rules','result-budget','overview']:
         run(['python3','tools/test-'+name+'.py'],env=env)
+        if name=='sources':run(['python3','tools/test-source-snapshot.py'],env=env)
     for name in ['contracts','identity','sources','datasets','execution','overview']:
         run(['node','tools/test-real-'+name+'.mjs'],env=env)
     print('PASS sequential real-engine/API/browser acceptance. Crash test is separate and requires exclusive Worker ownership.')

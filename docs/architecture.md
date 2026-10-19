@@ -814,8 +814,8 @@ Vue 3 管理端
 
 - SourceConnector 为纯 Java Port；JDBC 适配器实现只读权限检查、200 表/200 字段目录上限、100 行预览、5 秒连接/30 秒 socket 超时；非本机要求 TLS VERIFY_IDENTITY，地址白名单默认仅回环。元数据与 AES-256-GCM 源密钥引用分表保存，主密钥仅进程环境提供，AAD 绑定 source ID，API 不返回密码。
 - 保存/编辑/删除走数据源用例及短事务；浏览器凭证只保留在临时表单中，保存后清除，不写 Pinia/localStorage/IndexedDB；Mock 忽略凭证且拒绝保存账号密码。真实预览要求 readSensitive，目录不读取明细。单工作区对象权限采用固定服务端角色；后续多工作区必须另设归属。
-- JDK 21/Spring Boot 3.5.16 的实际托管 MySQL 驱动与 MySQL 8.4.6 真实连接、catalog、错误凭证/拒绝主机、只读权限、预览、字段、PATCH 空字符串/false、编辑密码保留已通过。超安全整数 BIGINT 与 Decimal(20,4) 保留精确字符串，null 不替换为 0。1280×1000 页面创建→测试→目录→预览→编辑复测通过。完整 pnpm check 再次通过，含 93 单元/HTTP 测试和两种构建。
-- 已编写一致性全量扫描：只对 InnoDB、REPEATABLE READ + consistent snapshot + read only，事务元数据锁后检查已使用字段，使用服务端游标分批；最多 100 万行/10 分钟。扫描期间更新/取消/schema变化及资源预算属于下一执行块的真实验收，不将预览成功当成扫描已验证。
+- JDK 21/Spring Boot 3.5.16 的实际托管 MySQL 驱动与 MySQL 8.4.6 真实连接、catalog、错误凭证/拒绝主机、只读权限、预览、字段、PATCH 空字符串/false、编辑密码保留已通过。超安全整数 BIGINT 与 Decimal(20,4) 保留精确字符串，null 不替换为 0。`test-source-snapshot.py` 真实覆盖全量读取一致性和取消/schema变化；1280×1000 页面创建→测试→目录→预览→编辑复测通过。完整 pnpm check 再次通过，含 93 单元/HTTP 测试和两种构建。
+- 一致性全量扫描仅对 InnoDB，使用 REPEATABLE READ + consistent snapshot + read only；事务元数据锁后检查已使用字段，使用服务端游标分批；最多 100 万行/10 分钟。1200 行跨批次、并发更新/插入隔离、DDL 等锁、后续扫描读取新值、取消、null/Decimal 与 schema drift 已用真实引擎验证。这个样本不是 100 万行容量/吞吐测试。
 
 
 ### 14.3 数据集与治理规则真实闭环（2026-10-19）
@@ -833,7 +833,7 @@ Maven verify（新增 4 项领域测试）、V003→V004 实际 PostgreSQL 升�
 
 仓库接口返回实际 Doris 数据，整数/Decimal 保持字符串；SQL 第一版只支持单表字段投影、LIMIT 1–1000、OFFSET ≤1,000,000，默认 100 行，15 秒超时、10MiB 结果上限，使用 JSqlParser 和封闭语法验证后重建 SQL。拒绝 DML、函数、JOIN、子查询、多语句和内部物理表。查询/CSV 导出归创建者，CSV 防公式注入、24 小时可读有效期，导出范围为已查询结果。原始批次单次最多 256MiB、源读取最多 1,000,000 行、最长 600 秒；这些是资源上限，不是吞吐承诺。
 
-本地真实环境：Doris 3.0.8、SeaweedFS 3.97 S3 兼容接口（固定镜像 digest；本地验证使用，非生产部署结论）。Maven verify、前端 pnpm check、tools/test-execution.py、tools/test-warehouse.py、tools/test-execution-safety.py 与 tools/test-real-execution.mjs（1280×1000）实际通过。覆盖成功、重复覆盖与源端删除、空阻断/批准、未使用字段增删、已使用类型变化、重试版本、活动互斥、取消、发布对账、保留上限、精度/null、SQL 拒绝、私有查询/导出；杀进程恢复/故障注入与完整交付审计仍在下一块。
+本地真实环境：Doris 3.0.8、SeaweedFS 3.97 S3 兼容接口（固定镜像 digest；本地验证使用，非生产部署结论）。Maven verify、前端 pnpm check、tools/test-execution.py、tools/test-warehouse.py、tools/test-execution-safety.py 与 tools/test-real-execution.mjs（1280×1000）实际通过。覆盖成功、重复覆盖与源端删除、空阻断/批准、未使用字段增删、已使用类型变化、重试版本、活动互斥、取消、发布对账、保留上限、精度/null、SQL 拒绝、私有查询/导出；进程恢复与本地交付验收见 §14.6–§14.9。
 
 ### 14.5 真实模式入口与工作台（2026-10-19）
 
@@ -868,3 +868,9 @@ Maven verify（新增 4 项领域测试）、V003→V004 实际 PostgreSQL 升�
 - 完成审计发现原 10 MiB 结果上限在全量读取后检查，不能限制 JDBC 缓冲和应用结果积累。Doris 读取改用 Connector/J 流式结果，逐行计算实际 UTF-8 JSON 字节（含转义、逗号和数组界限）；超限立即中止连接，不再读取或持久化后续结果。表样本与 SQL 查询共用读取预算和限制所有者。
 - 三项新增单元测试覆盖提前停止、精确边界/转义与 null/大整数/Decimal 文本。`test-result-budget.py` 实际创建 190 行、每行 60000 字节的合成源，完整入仓成功；100 行样本可读，1000 行上限查询超过 10 MiB 时返回 QUERY_RESULT_LIMIT，数据库不新增查询结果，后续两行查询成功且当前快照不变。此样本验证资源保护，不是容量或吞吐基准。
 - `local.sh verify` 已接入真实大结果验收。未改变 OpenAPI、前端或 Mock 行为；精确版本沿用已验证组合。
+
+### 14.9 MySQL 一致性读取边界（2026-10-19）
+
+- `test-source-snapshot.py` 通过 Java source launcher 直接调用真实 `MySqlConnector`，用只读连接读取专用 InnoDB 表 1200 行，横跨多个 500 行 cursor 批次。读取首行后并发 UPDATE/INSERT 并发起 ALTER TABLE，现场检查 MySQL processlist 确认 DDL 等待 metadata lock。
+- 扫描仍返回事务开始时的 1200 行及旧值/null/Decimal `12345.6700`；提交后下一扫描读取 1201 行与新值。另验证消费者请求取消返回 RUN_CANCELED，已使用 Decimal 精度结构变化在消费数据前返回 SCHEMA_CHANGED。测试表在 finally 清理，正式样本不被修改。
+- 常规本地 `verify` 在创建并发现测试 MySQL 源后执行此项；不是模拟 connector，也不代表 100 万行上限的吞吐测试。
