@@ -56,7 +56,7 @@ export default {
   },
   subtitle: '数据仓库工作台',
   mock: '演示数据',
-  workspace: '零售数据工作区',
+  workspace: '九章数据工作台',
   search: '搜索名称、标签或负责人',
   all: '全部',
   name: '名称',
