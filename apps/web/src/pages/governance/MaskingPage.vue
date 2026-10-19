@@ -185,7 +185,7 @@ const columns = [
         : uiText('ui.masking_0549993d')
     "
     :description="uiText('ui.masking_5cca49c7')"
-    ><NButton @click="router.push('/governance/catalog')">{{
+    ><NButton v-if="!real" @click="router.push('/governance/catalog')">{{
       uiText('ui.masking_3c41d918')
     }}</NButton
     ><NButton

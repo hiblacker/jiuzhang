@@ -40,11 +40,15 @@ export function useSourceObjects(id: MaybeRefOrGetter<string>) {
     enabled: computed(() => !!toValue(id)),
   })
 }
-export function useSourcePreview(id: MaybeRefOrGetter<string>, objectId: MaybeRefOrGetter<string>) {
+export function useSourcePreview(
+  id: MaybeRefOrGetter<string>,
+  objectId: MaybeRefOrGetter<string>,
+  allowed: MaybeRefOrGetter<boolean> = true,
+) {
   return useQuery({
     queryKey: computed(() => ['sources', 'preview', toValue(id), toValue(objectId)]),
     queryFn: () => sourceRepository.preview(toValue(id), toValue(objectId)),
-    enabled: computed(() => !!toValue(id) && !!toValue(objectId)),
+    enabled: computed(() => !!toValue(id) && !!toValue(objectId) && toValue(allowed)),
   })
 }
 export function useDeleteSource() {

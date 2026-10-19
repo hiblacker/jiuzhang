@@ -3,6 +3,8 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   sources: {
+    realPreviewPermission:
+      '原始明细仅管理员可预览；开发者可查看结构、配置数据集并运行。第一版没有独立数据源同步任务。',
     realHost: '数据库主机',
     username: '数据库只读账号',
     password: '数据库密码',

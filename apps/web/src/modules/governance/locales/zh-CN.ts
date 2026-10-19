@@ -10,6 +10,8 @@ export default {
     loadMoreBindings: '加载更多选项',
   },
   quality: {
+    realEvaluationHint:
+      '质量检查在数据集运行时执行，请发布绑定此规则的数据集后运行，在下方查看真实检查结果。',
     noParameter: '必填与唯一规则无需参数，已有参数不参与检查。',
     rangeHint: '输入有序的最小值,最大值，包含边界；支持十进制文本，例如 -0.10,100.00。',
     enumHint: '输入逗号分隔的非空枚举值，例如 杭州,上海；各项两侧空格会被忽略。',

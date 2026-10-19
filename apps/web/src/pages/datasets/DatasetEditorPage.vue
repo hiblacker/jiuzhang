@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useCan } from '@/shared/security/permissions'
+const canReadSensitive = useCan('readSensitive')
 import { TagEditor } from '@/shared/ui/tag-editor'
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
@@ -150,9 +152,11 @@ useEditGuard(dirty, save.isPending)
       :disabled="save.isPending.value"
       @click="router.push(id ? '/datasets/' + id : '/datasets')"
       >{{ uiText('ui.dataset_editor_4d0b4688') }}</NButton
-    ><NButton :loading="preview.isPending.value" @click="showPreview">{{
-      uiText('ui.dataset_editor_350d00d1')
-    }}</NButton
+    ><NButton
+      :disabled="real && !canReadSensitive"
+      :loading="preview.isPending.value"
+      @click="showPreview"
+      >{{ uiText('ui.dataset_editor_350d00d1') }}</NButton
     ><NButton
       type="primary"
       :loading="save.isPending.value"

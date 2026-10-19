@@ -171,7 +171,7 @@ const columns = [
   <PageHeader
     :title="id ? (current?.name ?? uiText('ui.quality_a9f00e88')) : uiText('ui.quality_e974beee')"
     :description="uiText('ui.quality_c4dfb475')"
-    ><NButton @click="router.push('/governance/catalog')">{{
+    ><NButton v-if="!real" @click="router.push('/governance/catalog')">{{
       uiText('ui.quality_3c41d918')
     }}</NButton
     ><NButton
@@ -229,44 +229,47 @@ const columns = [
           current?.enabled ? uiText('ui.quality_d4e9ca3d') : uiText('ui.quality_d989e551')
         }}</NDescriptionsItem></NDescriptions
       >
-      <h3>{{ uiText('ui.quality_06b0cc31') }}</h3>
-      <NAlert type="info" class="mb">{{ uiText('datasets.sampleHint') }}</NAlert>
-      <NAlert type="info" class="mb">{{ uiText('quality.sampleSeverityHint') }}</NAlert>
-      <div class="query-toolbar">
-        <NButton
-          v-for="scenario in ['pass', 'warn', 'block'] as const"
-          :key="scenario"
-          :loading="actions.evaluate.isPending.value"
-          @click="evaluate(scenario)"
-          >{{ scenario.toUpperCase() }}</NButton
-        >
-      </div>
-      <NAlert v-if="actions.evaluate.error.value" type="error" class="mb">{{
-        uiText(errorKey(actions.evaluate.error.value))
-      }}</NAlert>
-      <NAlert
-        v-if="actions.evaluate.data.value"
-        :type="actions.evaluate.data.value.result === 'PASS' ? 'success' : 'warning'"
-        >{{ actions.evaluate.data.value.result }} ·
-        {{ actions.evaluate.data.value.message }}</NAlert
-      >
-      <template v-if="actions.evaluate.data.value">
-        <NDescriptions :column="3" bordered class="mb">
-          <NDescriptionsItem :label="uiText('datasets.sampleCount')">{{
-            actions.evaluate.data.value.total
-          }}</NDescriptionsItem>
-          <NDescriptionsItem :label="uiText('datasets.failureCount')">{{
-            actions.evaluate.data.value.failed
-          }}</NDescriptionsItem>
-          <NDescriptionsItem :label="uiText('datasets.passRate')"
-            >{{ actions.evaluate.data.value.passRate.toFixed(1) }}%</NDescriptionsItem
+      <NAlert v-if="real" type="info" class="mb">{{ uiText('quality.realEvaluationHint') }}</NAlert>
+      <template v-else>
+        <h3>{{ uiText('ui.quality_06b0cc31') }}</h3>
+        <NAlert type="info" class="mb">{{ uiText('datasets.sampleHint') }}</NAlert>
+        <NAlert type="info" class="mb">{{ uiText('quality.sampleSeverityHint') }}</NAlert>
+        <div class="query-toolbar">
+          <NButton
+            v-for="scenario in ['pass', 'warn', 'block'] as const"
+            :key="scenario"
+            :loading="actions.evaluate.isPending.value"
+            @click="evaluate(scenario)"
+            >{{ scenario.toUpperCase() }}</NButton
           >
-        </NDescriptions>
-        <NDataTable
-          :data="actions.evaluate.data.value.rows"
-          :columns="[{ title: current?.field ?? '', key: current?.field ?? '' }]"
-          :bordered="false"
-        />
+        </div>
+        <NAlert v-if="actions.evaluate.error.value" type="error" class="mb">{{
+          uiText(errorKey(actions.evaluate.error.value))
+        }}</NAlert>
+        <NAlert
+          v-if="actions.evaluate.data.value"
+          :type="actions.evaluate.data.value.result === 'PASS' ? 'success' : 'warning'"
+          >{{ actions.evaluate.data.value.result }} ·
+          {{ actions.evaluate.data.value.message }}</NAlert
+        >
+        <template v-if="actions.evaluate.data.value">
+          <NDescriptions :column="3" bordered class="mb">
+            <NDescriptionsItem :label="uiText('datasets.sampleCount')">{{
+              actions.evaluate.data.value.total
+            }}</NDescriptionsItem>
+            <NDescriptionsItem :label="uiText('datasets.failureCount')">{{
+              actions.evaluate.data.value.failed
+            }}</NDescriptionsItem>
+            <NDescriptionsItem :label="uiText('datasets.passRate')"
+              >{{ actions.evaluate.data.value.passRate.toFixed(1) }}%</NDescriptionsItem
+            >
+          </NDescriptions>
+          <NDataTable
+            :data="actions.evaluate.data.value.rows"
+            :columns="[{ title: current?.field ?? '', key: current?.field ?? '' }]"
+            :bordered="false"
+          />
+        </template>
       </template>
       <h3>{{ uiText('ui.quality_1d27e3e2') }}</h3>
       <RelatedDatasets

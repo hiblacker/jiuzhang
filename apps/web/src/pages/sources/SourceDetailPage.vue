@@ -4,6 +4,8 @@ import { useRouteTab } from '@/shared/composables/use-route-tab'
 import { DataPreview } from '@/shared/ui/data-preview'
 import { ResponsiveDescriptions } from '@/shared/ui/responsive-descriptions'
 const canWrite = useCan('write')
+const canReadSensitive = useCan('readSensitive')
+const real = import.meta.env.VITE_API_MODE === 'real'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -34,7 +36,7 @@ const selectedField = computed(() =>
 function select(objectId: string, field: string) {
   void router.push({ query: { ...route.query, objectId, field: field || undefined } })
 }
-const preview = useSourcePreview(id, selected)
+const preview = useSourcePreview(id, selected, () => !real || canReadSensitive.value)
 const tab = useRouteTab(['catalog', 'preview', 'sync'], 'catalog')
 const fields = computed(
   () => objects.data.value?.find((x) => x.id === selected.value)?.fields ?? [],
@@ -73,6 +75,7 @@ const readonly = computed(() => !canWrite.value)
           source.data.value?.owner
         }}</NDescriptionsItem></ResponsiveDescriptions
       ></NCard
+    ><NAlert v-if="real" type="info" class="mb">{{ t('sources.realPreviewPermission') }}</NAlert
     ><NCard :bordered="false"
       ><NTabs v-accessible-tabs="t('sources.details')" :value="tab" @update:value="tab = $event"
         ><NTabPane name="catalog" :tab="t('sources.catalog')"
@@ -128,7 +131,7 @@ const readonly = computed(() => !canWrite.value)
                   "
                 />
               </section></div></AsyncState></NTabPane
-        ><NTabPane name="preview" :tab="t('sources.preview')"
+        ><NTabPane :disabled="real && !canReadSensitive" name="preview" :tab="t('sources.preview')"
           ><AsyncState
             :loading="preview.isLoading.value"
             :error="preview.error.value"
@@ -137,7 +140,7 @@ const readonly = computed(() => !canWrite.value)
             ><DataPreview
               :columns="preview.data.value?.fields.map((field) => field.name) ?? []"
               :rows="preview.data.value?.rows ?? []" /></AsyncState></NTabPane
-        ><NTabPane name="sync" :tab="t('sources.sync')"
+        ><NTabPane v-if="!real" name="sync" :tab="t('sources.sync')"
           ><RunHistory
             :scope="{ sourceId: id }"
             @select="router.push('/runs/' + $event)" /></NTabPane></NTabs></NCard
