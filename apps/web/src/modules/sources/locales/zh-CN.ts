@@ -6,12 +6,12 @@ export default {
     realPreviewPermission:
       '原始明细仅管理员可预览；开发者可查看结构、配置数据集并运行。第一版没有独立数据源同步任务。',
     realHost: '数据库主机',
-    username: '数据库只读账号',
+    username: '数据库账号',
     password: '数据库密码',
     realCredentialHint:
-      '只支持 MySQL 只读账号。凭证加密保存在服务端；编辑时密码留空保留原凭证，修改账号须同时输入密码。外部数据库必须启用 TLS。',
+      '连接器仅执行数据读取；不限制数据库账号的授权范围。凭证加密保存在服务端；编辑时密码留空保留原凭证，修改账号须同时输入密码。外部数据库必须启用 TLS。',
     realTest: '测试连接',
-    realTestPass: '真实连接与只读权限检查通过',
+    realTestPass: '数据库连接成功',
     picker: '数据源选择',
     optionsCount: '已加载 {loaded} 个数据源',
     optionsTotal: '已加载 {loaded} / {total} 个数据源',

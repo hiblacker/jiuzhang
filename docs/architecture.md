@@ -192,7 +192,7 @@ interface SourceConnector {
 
 ### 3.3 数据库接入
 
-数据库源配置包含地址、端口、数据库、schema、只读账号引用、TLS、连接池、超时、并发、批大小、时区、类型映射、默认读取策略和表列白名单。
+数据库源配置包含地址、端口、数据库、schema、账号凭证引用、TLS、连接池、超时、并发、批大小、时区、类型映射、默认读取策略和表列白名单。连接器只执行数据读取，但不检查或限制数据库账号自身的授权范围。
 
 读取方式：
 
@@ -812,7 +812,7 @@ Vue 3 管理端
 
 ### 14.2 首版实施记录：MySQL 接入（2026-10-19）
 
-- SourceConnector 为纯 Java Port；JDBC 适配器实现只读权限检查、200 表/200 字段目录上限、100 行预览、5 秒连接/30 秒 socket 超时；不限制源主机白名单，但拒绝未指定、IPv6、未分配、组播和链路本地地址，非本机连接要求 TLS 加密（Connector/J REQUIRED），但不验证证书链或主机名。元数据与 AES-256-GCM 源密钥引用分表保存，主密钥仅进程环境提供，AAD 绑定 source ID，API 不返回密码。
+- SourceConnector 为纯 Java Port；JDBC 适配器只执行数据读取，不检查或限制数据库账号授权范围；支持 200 表/200 字段目录上限、100 行预览、5 秒连接/30 秒 socket 超时。不限制源主机白名单，但拒绝未指定、IPv6、未分配、组播和链路本地地址；非本机连接要求 TLS 加密（Connector/J REQUIRED），但不验证证书链或主机名。元数据与 AES-256-GCM 源密钥引用分表保存，主密钥仅进程环境提供，AAD 绑定 source ID，API 不返回密码。
 - 保存/编辑/删除走数据源用例及短事务；浏览器凭证只保留在临时表单中，保存后清除，不写 Pinia/localStorage/IndexedDB；Mock 忽略凭证且拒绝保存账号密码。真实预览要求 readSensitive，目录不读取明细。单工作区对象权限采用固定服务端角色；后续多工作区必须另设归属。
 - JDK 21/Spring Boot 3.5.16 的实际托管 MySQL 驱动与 MySQL 8.4.6 真实连接、catalog、错误凭证/非白名单 DNS 主机继续执行解析、只读权限、预览、字段、PATCH 空字符串/false、编辑密码保留已通过。超安全整数 BIGINT 与 Decimal(20,4) 保留精确字符串，null 不替换为 0。`test-source-snapshot.py` 真实覆盖全量读取一致性和取消/schema变化；1280×1000 页面创建→测试→目录→预览→编辑复测通过。完整 pnpm check 再次通过，含 93 单元/HTTP 测试和两种构建。
 - 一致性全量扫描仅对 InnoDB，使用 REPEATABLE READ + consistent snapshot + read only；事务元数据锁后检查已使用字段，使用服务端游标分批；最多 100 万行/10 分钟。1200 行跨批次、并发更新/插入隔离、DDL 等锁、后续扫描读取新值、取消、null/Decimal 与 schema drift 已用真实引擎验证。这个样本不是 100 万行容量/吞吐测试。

@@ -19,10 +19,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class MySqlConnector implements SourceConnector {
     private static final Set<String> TYPES=Set.of("tinyint","smallint","mediumint","int","bigint","decimal","numeric","char","varchar","text","date","datetime","timestamp");
-    public void test(Connection config){try(var c=open(config)){readonlyGrants(c);try(var s=c.createStatement()){s.setQueryTimeout(10);s.execute("SELECT 1");}}catch(SQLException e){throw connectionFailure(e);}}
+    public void test(Connection config){try(var c=open(config)){try(var s=c.createStatement()){s.setQueryTimeout(10);s.execute("SELECT 1");}}catch(SQLException e){throw connectionFailure(e);}}
     public List<ObjectInfo> discover(Connection config){
         try(var c=open(config)){
-            readonlyGrants(c);var tables=new ArrayList<ObjectInfo>();
+            var tables=new ArrayList<ObjectInfo>();
             try(var s=c.prepareStatement("SELECT table_name FROM information_schema.tables WHERE table_schema=? AND table_type='BASE TABLE' ORDER BY table_name LIMIT 201")){
                 s.setString(1,config.database());s.setQueryTimeout(15);
                 try(var r=s.executeQuery()){while(r.next())tables.add(new ObjectInfo(r.getString(1),List.of()));}
@@ -34,7 +34,7 @@ public class MySqlConnector implements SourceConnector {
     public List<Map<String,Object>> preview(Connection config,String table,int limit){
         Failure.require(limit>=1&&limit<=100,"VALIDATION_ERROR");
         try(var c=open(config)){
-            readonlyGrants(c);var columns=columns(c,config.database(),table);supported(columns);
+            var columns=columns(c,config.database(),table);supported(columns);
             var rows=new ArrayList<Map<String,Object>>();
             try(var s=c.prepareStatement("SELECT "+columnSql(columns.stream().map(Column::name).toList())+" FROM "+quote(table)+" LIMIT ?")){
                 s.setInt(1,limit);s.setQueryTimeout(15);try(var r=s.executeQuery()){while(r.next())rows.add(row(r,columns));}
@@ -44,7 +44,7 @@ public class MySqlConnector implements SourceConnector {
     public void scan(Connection config,String table,List<Column> expected,List<String> selected,Consumer<Map<String,Object>> consumer,BooleanSupplier canceled){
         Failure.require(!selected.isEmpty()&&selected.size()<=200,"VALIDATION_ERROR");
         try(var c=open(config)){
-            readonlyGrants(c);c.setTransactionIsolation(java.sql.Connection.TRANSACTION_REPEATABLE_READ);c.setAutoCommit(false);
+            c.setTransactionIsolation(java.sql.Connection.TRANSACTION_REPEATABLE_READ);c.setAutoCommit(false);
             try(var s=c.createStatement()){s.execute("START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY");}
             try(var s=c.prepareStatement("SELECT engine FROM information_schema.tables WHERE table_schema=? AND table_name=?")) {
                 s.setString(1,config.database());s.setString(2,table);s.setQueryTimeout(15);
@@ -96,16 +96,6 @@ public class MySqlConnector implements SourceConnector {
             var c=DriverManager.getConnection("jdbc:mysql://"+(v.tls()?v.host():pinned)+":"+v.port()+"/"+v.database(),p);
             c.setReadOnly(true);return c;
         }catch(java.net.UnknownHostException e){throw new Failure(422,"SOURCE_CONNECTION_FAILED");}
-    }
-    private void readonlyGrants(java.sql.Connection c)throws SQLException{
-        try(var s=c.createStatement()){s.setQueryTimeout(10);try(var r=s.executeQuery("SHOW GRANTS FOR CURRENT_USER")){
-            while(r.next()){
-                String grant=r.getString(1).toUpperCase(java.util.Locale.ROOT);
-                if(!grant.startsWith("GRANT ")||!grant.contains(" ON ")||grant.contains("WITH GRANT OPTION"))throw new Failure(422,"SOURCE_ACCOUNT_NOT_READONLY");
-                String privileges=grant.substring(6,grant.indexOf(" ON "));
-                for(String p:privileges.split(","))if(!Set.of("USAGE","SELECT","SHOW VIEW").contains(p.trim()))throw new Failure(422,"SOURCE_ACCOUNT_NOT_READONLY");
-            }
-        }}
     }
     private List<Column> columns(java.sql.Connection c,String database,String table)throws SQLException{
         var columns=new ArrayList<Column>();

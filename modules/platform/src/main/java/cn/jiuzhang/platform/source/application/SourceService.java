@@ -43,7 +43,7 @@ public class SourceService {
         if(credentials==null&&credentialSourceId!=null){var saved=store.get(credentialSourceId);credentials=new Credentials(saved.username(),vault.open(saved.id(),store.secret(saved.id())));}
         if(credentials==null)throw new Failure(422,"SOURCE_CREDENTIALS_REQUIRED");
         long start=System.nanoTime();connector.test(connection(draft.settings(),credentials));
-        return Map.of("success",true,"message","READ_ONLY_CONNECTION_OK","latencyMs",(System.nanoTime()-start)/1000000);
+        return Map.of("success",true,"message","SOURCE_CONNECTION_OK","latencyMs",(System.nanoTime()-start)/1000000);
     }
     public Map<String,Object> testSaved(User user,String id,String requestId){
         IdentityService.require(user,"write");var source=store.get(id);
@@ -51,7 +51,7 @@ public class SourceService {
         try{connector.test(connection(id));store.status(id,"connected",source.objectCount());}
         catch(Failure e){store.status(id,"offline",source.objectCount());throw e;}
         identity.audit(user.id(),"test","source",id,requestId);
-        return Map.of("success",true,"message","READ_ONLY_CONNECTION_OK","latencyMs",(System.nanoTime()-start)/1000000);
+        return Map.of("success",true,"message","SOURCE_CONNECTION_OK","latencyMs",(System.nanoTime()-start)/1000000);
     }
     public List<SourceStore.SourceObject> discover(User user,String id){
         IdentityService.require(user,"read");var source=store.get(id);
