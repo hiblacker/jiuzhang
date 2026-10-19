@@ -206,7 +206,7 @@ export default {
 
     SOURCE_CONNECTION_FAILED: '数据库连接失败，请检查地址、凭证、证书与网络',
     SOURCE_ACCOUNT_NOT_READONLY: '请使用只含 SELECT、SHOW VIEW 权限的数据库账号',
-    SOURCE_HOST_DENIED: '目标地址不在服务端允许列表中',
+    SOURCE_HOST_DENIED: '服务器拒绝了该目标地址类型',
     SOURCE_CREDENTIALS_REQUIRED: '新建连接或修改账号时，请同时填写数据库账号和密码',
     SOURCE_TYPE_UNSUPPORTED: '第一版真实服务只支持约定的 MySQL 数据类型',
     SOURCE_TLS_REQUIRED: '非本机数据库连接必须启用 TLS',

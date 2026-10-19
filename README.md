@@ -41,7 +41,7 @@ bash tools/local.sh infra           # 单独准备基础服务
 
 ## 操作流程
 
-1. 新建 MySQL 源：127.0.0.1:13306 / demo_retail / jiuzhang_reader，密码为 .env 的 SOURCE_READ_PASSWORD。本地关闭 TLS 使用固定公钥；外部源必须 TLS 并加入 JIUZHANG_SOURCE_HOSTS 白名单。
+1. 新建 MySQL 源：127.0.0.1:13306 / demo_retail / jiuzhang_reader，密码为 .env 的 SOURCE_READ_PASSWORD。本地关闭 TLS 使用固定公钥；外部源须启用 TLS。服务器不限制数据库主机白名单，但会拒绝未指定、IPv6、未分配、组播及链路本地地址。
 2. 测试/保存→orders→创建数据集→配置字段/质量/脱敏→保存/发布→运行。
 3. 仓库表查看当前快照→SQL 工作台→查询→导出 CSV→导出中心下载。
 

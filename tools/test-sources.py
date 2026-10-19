@@ -31,7 +31,9 @@ def main():
     bad['credentials']['password'] = 'incorrect-password'
     c.call('POST', '/sources/test', bad, expected=422)
     bad['settings']['host'] = 'untrusted.invalid'
-    c.call('POST', '/sources/test', bad, expected=403)
+    bad['credentials'] = body['credentials']
+    outside_allowlist, _ = c.call('POST', '/sources/test', bad, expected=422)
+    assert outside_allowlist['error']['code'] == 'SOURCE_CONNECTION_FAILED'
     created, _ = c.call('POST', '/sources', body, expected=201)
     source_id = created['data']['id']
     assert 'credentials' not in created['data'] and body['credentials']['password'] not in json.dumps(created)
@@ -51,7 +53,7 @@ def main():
     c.call('POST', '/sources/test', {**body, 'credentials': {'username': 'root',
         'password': os.environ['SOURCE_ROOT_PASSWORD']}}, expected=422)
     Path('.local/source-test.json').write_text(json.dumps({'id': source_id, 'objectId': obj['id']}))
-    print('PASS real MySQL: readonly connection, wrong credential, host allowlist, catalog, preview, BIGINT/Decimal/null, edit credential retention, write-account rejection')
+    print('PASS real MySQL: readonly connection, wrong credential, unrestricted DNS host resolution, catalog, preview, BIGINT/Decimal/null, edit credential retention, write-account rejection')
 
 
 if __name__ == '__main__':

@@ -76,8 +76,6 @@ public class MySqlConnector implements SourceConnector {
         Failure.require(v.host()!=null&&v.host().matches("[a-zA-Z0-9.-]{1,253}")&&v.port()>0&&v.port()<=65535,"VALIDATION_ERROR");
         Failure.require(v.database()!=null&&v.database().matches("[a-zA-Z0-9_]{1,64}"),"VALIDATION_ERROR");
         try{
-            var allowed=List.of(System.getenv().getOrDefault("JIUZHANG_SOURCE_HOSTS","127.0.0.1,localhost").split(","));
-            if(!allowed.contains(v.host()))throw new Failure(403,"SOURCE_HOST_DENIED");
             InetAddress[] addresses=InetAddress.getAllByName(v.host());
             if(addresses.length==0)throw new Failure(422,"SOURCE_CONNECTION_FAILED");
             String pinned=addresses[0].getHostAddress();

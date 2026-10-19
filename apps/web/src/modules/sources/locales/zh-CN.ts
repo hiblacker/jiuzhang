@@ -9,7 +9,7 @@ export default {
     username: '数据库只读账号',
     password: '数据库密码',
     realCredentialHint:
-      '只支持 MySQL 只读账号。凭证加密保存在服务端；编辑时密码留空保留原凭证，修改账号须同时输入密码。目标地址须位于服务端允许列表。',
+      '只支持 MySQL 只读账号。凭证加密保存在服务端；编辑时密码留空保留原凭证，修改账号须同时输入密码。外部数据库必须启用 TLS。',
     realTest: '测试连接',
     realTestPass: '真实连接与只读权限检查通过',
     picker: '数据源选择',
