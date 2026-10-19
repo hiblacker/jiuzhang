@@ -83,7 +83,9 @@ public class MySqlConnector implements SourceConnector {
             for(var a:addresses)if(a.isAnyLocalAddress()||a.isMulticastAddress()||a.isLinkLocalAddress())throw new Failure(403,"SOURCE_HOST_DENIED");
             var p=new Properties();p.setProperty("user",v.username());p.setProperty("password",v.password());
             p.setProperty("connectTimeout","5000");p.setProperty("socketTimeout","30000");p.setProperty("useCursorFetch","true");p.setProperty("useServerPrepStmts","true");
-            p.setProperty("connectionTimeZone","UTC");p.setProperty("forceConnectionTimeZoneToSession","true");p.setProperty("sslMode",v.tls()?"VERIFY_IDENTITY":"DISABLED");
+            p.setProperty("connectionTimeZone","UTC");p.setProperty("forceConnectionTimeZoneToSession","true");
+            // Keep TLS encryption while intentionally skipping server certificate and hostname validation.
+            p.setProperty("sslMode",v.tls()?"REQUIRED":"DISABLED");
             p.setProperty("allowPublicKeyRetrieval","false");p.setProperty("allowMultiQueries","false");
             if(!v.tls()) {
                 if(!addresses[0].isLoopbackAddress())throw new Failure(422,"SOURCE_TLS_REQUIRED");
