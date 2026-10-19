@@ -7,7 +7,6 @@ import { useSourceEditor, SourceConnectionForm } from '@/modules/sources'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { DataPreview } from '@/shared/ui/data-preview'
-import { errorKey } from '@/shared/api/error-message'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 const { t } = useI18n(),
   route = useRoute(),
@@ -47,7 +46,9 @@ async function testConnection() {
   }
   if (test.isPending.value || save.isPending.value) return
   try {
-    await test.mutateAsync()
+    const result = await test.mutateAsync()
+    if (result.success) message.success(real ? t('sources.realTestPass') : t('sources.testPass'))
+    else message.error(t('sources.testFail'))
   } catch {}
 }
 useEditGuard(dirty, () => save.isPending.value || test.isPending.value)
@@ -72,9 +73,6 @@ useEditGuard(dirty, () => save.isPending.value || test.isPending.value)
     :error="query.error.value"
     @retry="query.refetch()"
     ><NCard class="form-card" :bordered="false"
-      ><NAlert v-if="save.error.value" type="error" class="mb">{{
-        t(errorKey(save.error.value))
-      }}</NAlert
       ><SourceConnectionForm
         ref="form"
         v-model="draft"
@@ -88,16 +86,7 @@ useEditGuard(dirty, () => save.isPending.value || test.isPending.value)
           :disabled="save.isPending.value"
           @click="testConnection"
           >{{ real ? t('sources.realTest') : t('sources.test') }}</NButton
-        ><NAlert v-if="test.data.value" :type="test.data.value.success ? 'success' : 'warning'">{{
-          test.data.value.success
-            ? real
-              ? t('sources.realTestPass')
-              : t('sources.testPass')
-            : t('sources.testFail')
-        }}</NAlert
-        ><NAlert v-if="test.error.value" type="error">{{
-          t(errorKey(test.error.value))
-        }}</NAlert></NSpace
+        ></NSpace
       >
       <section v-if="id" :aria-label="t('sources.configurationDiff')" class="configuration-diff">
         <h2>{{ t('sources.configurationDiff') }}</h2>

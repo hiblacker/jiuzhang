@@ -17,6 +17,7 @@ import {
   NForm,
   NFormItem,
   NAlert,
+  useMessage,
   NCheckbox,
   NUpload,
   NProgress,
@@ -35,7 +36,6 @@ import { CsvParseError, parseCsv } from '@/shared/lib/csv'
 import { useCan } from '@/shared/security/permissions'
 import type { Model } from '@/shared/api/types'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
-import { ApiError } from '@/shared/api/client'
 const router = useRouter(),
   { filters, update, bindPagination } = useListRoute(),
   query = useImports(() =>
@@ -44,7 +44,7 @@ const router = useRouter(),
   actions = useWarehouseActions(),
   open = ref(false),
   consent = ref(false),
-  error = ref('')
+  message = useMessage()
 bindPagination(() =>
   query.isSuccess.value && !query.isFetching.value ? query.data.value?.meta : undefined,
 )
@@ -94,29 +94,30 @@ function mapFields() {
       source,
       target: input.value.mapping.find((mapping) => mapping.source === source)?.target ?? source,
     }))
-    error.value = ''
     return true
   } catch (e) {
-    if (e instanceof CsvParseError) error.value = uiText('csv.errors.' + e.code)
-    else error.value = e instanceof Error ? e.message : uiText('ui.imports_f0609cc4')
+    let errorMessage = uiText('ui.imports_f0609cc4')
+    if (e instanceof CsvParseError) errorMessage = uiText('csv.errors.' + e.code)
+    else if (e instanceof Error) errorMessage = e.message
+    message.error(errorMessage)
     return false
   }
 }
 async function fileChange({ file }: { file: UploadFileInfo }) {
   if (!file.file) return false
   if (!file.name.toLowerCase().endsWith('.csv')) {
-    error.value = uiText('warehouse.importCsvOnly')
+    message.error(uiText('warehouse.importCsvOnly'))
     return false
   }
   if (file.file.size > 1000000) {
-    error.value = uiText('ui.imports_9786f411')
+    message.error(uiText('ui.imports_9786f411'))
     return false
   }
   try {
     input.value.csv = await file.file.text()
     mapFields()
   } catch {
-    error.value = uiText('warehouse.importReadFailed')
+    message.error(uiText('warehouse.importReadFailed'))
   }
   return false
 }
@@ -129,13 +130,13 @@ async function submit() {
   }
   if (actions.import.isPending.value) return
   if (!consent.value) {
-    error.value = uiText('ui.imports_d54f219e')
+    message.error(uiText('ui.imports_d54f219e'))
     return
   }
   if (!mapFields()) return
   const targets = input.value.mapping.map((mapping) => mapping.target.trim())
   if (targets.some((target) => !target) || new Set(targets).size !== targets.length) {
-    error.value = uiText('warehouse.importMappingInvalid')
+    message.error(uiText('warehouse.importMappingInvalid'))
     return
   }
   input.value.mapping.forEach((mapping) => (mapping.target = mapping.target.trim()))
@@ -143,11 +144,8 @@ async function submit() {
     await actions.import.mutateAsync(JSON.parse(JSON.stringify(input.value)))
     open.value = false
     consent.value = false
-  } catch (e) {
-    error.value =
-      e instanceof ApiError && e.code === 'DUPLICATE_NAME'
-        ? uiText('errors.DUPLICATE_NAME')
-        : uiText('ui.imports_f0609cc4')
+  } catch {
+    /* Mutation cache owns API error feedback. */
   }
 }
 const columns: DataTableColumns<Model<'Import'>> = [
@@ -193,7 +191,6 @@ const columns: DataTableColumns<Model<'Import'>> = [
 function start() {
   input.value = structuredClone(initialInput)
   consent.value = false
-  error.value = ''
   actions.import.reset()
   mapFields()
   baseline.value = JSON.stringify(input.value)
@@ -320,8 +317,7 @@ function start() {
               { label: uiText('warehouse.importFailure'), value: 'failed' },
             ]"
         /></NFormItem>
-        <NCheckbox v-model:checked="consent">{{ uiText('ui.imports_cd455dcd') }}</NCheckbox
-        ><NAlert v-if="error" type="error" style="margin-top: 16px">{{ error }}</NAlert></NForm
+        <NCheckbox v-model:checked="consent">{{ uiText('ui.imports_cd455dcd') }}</NCheckbox></NForm
       ><template #footer
         ><NSpace justify="end"
           ><NButton :disabled="actions.import.isPending.value" @click="close(false)">{{

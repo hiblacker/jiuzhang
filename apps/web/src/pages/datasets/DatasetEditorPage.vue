@@ -45,7 +45,6 @@ import { GovernanceBindingSelect } from '@/modules/governance'
 import { ScheduleForm } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
-import { errorKey } from '@/shared/api/error-message'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 const SqlEditor = defineAsyncComponent(() => import('@/shared/editors/SqlEditor.vue'))
 const route = useRoute(),
@@ -169,10 +168,7 @@ useEditGuard(dirty, save.isPending)
     :error="query.error.value"
     @retry="query.refetch()"
     ><NAlert v-if="real" type="info" class="mb">{{ t('datasets.realScope') }}</NAlert>
-    <NAlert v-if="save.error.value" type="error" class="mb">{{
-      t(errorKey(save.error.value))
-    }}</NAlert
-    ><NCard :bordered="false"
+    <NCard :bordered="false"
       ><NForm
         ref="form"
         :model="draft"
@@ -220,14 +216,9 @@ useEditGuard(dirty, save.isPending)
             <NAlert v-if="draft.definition.upstreamDatasetId" type="info" class="mb">{{
               t('datasets.upstreamHint')
             }}</NAlert>
-            <NAlert
-              v-if="selectedUpstream"
-              :type="upstreamVersion.error.value ? 'error' : 'info'"
-              class="mb"
-            >
-              <p>{{ t('datasets.upstreamSchemaPending') }}</p>
+            <NAlert v-if="selectedUpstream" type="info" class="mb">
+              <p v-if="!upstreamVersion.error.value">{{ t('datasets.upstreamSchemaPending') }}</p>
               <template v-if="upstreamVersion.error.value">
-                <p>{{ t(errorKey(upstreamVersion.error.value)) }}</p>
                 <NButton
                   :loading="upstreamVersion.isFetching.value"
                   @click="upstreamVersion.refetch()"

@@ -9,12 +9,11 @@ const allowEmpty = ref(false)
 const confirmEmpty = ref(false)
 const requestKey = ref(crypto.randomUUID())
 import { ref } from 'vue'
-import { NButton, NSelect, NAlert, NCheckbox } from 'naive-ui'
+import { NButton, NSelect, NCheckbox } from 'naive-ui'
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
 import type { Model } from '@/shared/api/types'
 import { useJobActions } from '../composables/use-jobs'
 import { useCan } from '@/shared/security/permissions'
-import { errorKey } from '@/shared/api/error-message'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n } from 'vue-i18n'
 const props = defineProps<{ datasetId: string; disabled?: boolean }>()
@@ -79,10 +78,8 @@ async function start(approved = false) {
     :title="t('jobs.allowEmpty')"
     :description="t('jobs.allowEmptyWarning')"
     :pending="run.isPending.value"
-    :error="run.error.value ? t(errorKey(run.error.value)) : undefined"
     @confirm="start(true)"
   />
-  <NAlert v-if="run.error.value" type="error">{{ t(errorKey(run.error.value)) }}</NAlert>
 </template>
 <style scoped>
 .run-trigger {

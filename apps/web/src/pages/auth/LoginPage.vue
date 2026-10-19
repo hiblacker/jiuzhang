@@ -5,7 +5,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { NCard, NButton, NSelect, NAlert, NForm, NFormItem, NInput } from 'naive-ui'
 import { useUiStore, useDemoUsers, useAuthentication } from '@/modules/identity'
-import { errorKey } from '@/shared/api/error-message'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { AsyncState } from '@/shared/ui/async-state'
 const { t } = useI18n(),
@@ -97,9 +96,6 @@ async function login() {
                 autocomplete: 'current-password',
               }"
           /></NFormItem>
-          <NAlert v-if="authentication.login.error.value" type="error">{{
-            t(errorKey(authentication.login.error.value))
-          }}</NAlert>
           <NButton
             attr-type="submit"
             type="primary"

@@ -25,7 +25,6 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
 import { ResponsiveDescriptions } from '@/shared/ui/responsive-descriptions'
 import { DataPreview } from '@/shared/ui/data-preview'
 import { useCan } from '@/shared/security/permissions'
-import { errorKey } from '@/shared/api/error-message'
 
 const { t } = useI18n()
 const canWrite = useCan('write')
@@ -254,7 +253,6 @@ async function restore() {
     :confirm-text="t('datasets.version.restoreConfirm')"
     :destructive="false"
     :pending="actions.restore.isPending.value"
-    :error="actions.restore.error.value ? t(errorKey(actions.restore.error.value)) : undefined"
     @cancel="confirming = false"
     @confirm="restore"
   />

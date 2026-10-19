@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NAlert, NButton, NSelect } from 'naive-ui'
+import { NButton, NSelect } from 'naive-ui'
 import { useBindingOptions, useSelectedBindings } from '../composables/use-binding-options'
-import { errorKey } from '@/shared/api/error-message'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import type { Model } from '@/shared/api/types'
 
@@ -87,10 +86,9 @@ async function retry() {
         >{{ t('governance.loadMoreBindings') }}</NButton
       >
     </div>
-    <NAlert v-if="error" type="error">
-      <p>{{ t(errorKey(error)) }}</p>
-      <NButton size="small" :disabled="disabled" @click="retry">{{ t('retry') }}</NButton>
-    </NAlert>
+    <NButton v-if="error" size="small" :disabled="disabled" @click="retry">{{
+      t('retry')
+    }}</NButton>
   </div>
 </template>
 <style scoped>

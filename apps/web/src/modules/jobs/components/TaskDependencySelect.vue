@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NAlert, NButton, NSelect } from 'naive-ui'
+import { NButton, NSelect } from 'naive-ui'
 import { useDependencyTaskOptions, useSelectedTasks } from '../composables/use-jobs'
-import { errorKey } from '@/shared/api/error-message'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 
 const props = withDefaults(
@@ -79,10 +78,9 @@ async function retry() {
         >{{ t('jobs.loadMoreDependencies') }}</NButton
       >
     </div>
-    <NAlert v-if="error" type="error">
-      <p>{{ t(errorKey(error)) }}</p>
-      <NButton size="small" :disabled="disabled" @click="retry">{{ t('retry') }}</NButton>
-    </NAlert>
+    <NButton v-if="error" size="small" :disabled="disabled" @click="retry">{{
+      t('retry')
+    }}</NButton>
   </div>
 </template>
 <style scoped>

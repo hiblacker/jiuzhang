@@ -145,9 +145,6 @@ const columns = computed<DataTableColumns<Model<'Task'>>>(() => [
           { label: uiText('jobs.paused'), value: 'false' },
         ]"
         @update:value="update({ status: $event ?? '', page: 1 })" /></QueryToolbar
-    ><NAlert v-if="actions.toggle.error.value" type="error">{{
-      uiText('ui.tasks_51d3cb57')
-    }}</NAlert
     ><AsyncState
       :loading="query.isLoading.value"
       :error="query.error.value"

@@ -17,7 +17,6 @@ import {
   NEllipsis,
   NSpace,
   NPagination,
-  NAlert,
   type DataTableColumns,
 } from 'naive-ui'
 import { Plus, Layers } from 'lucide-vue-next'
@@ -35,7 +34,6 @@ import { AsyncState } from '@/shared/ui/async-state'
 import { QueryToolbar } from '@/shared/ui/query-toolbar'
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
 import { useListRoute } from '@/shared/composables/use-list-route'
-import { errorKey } from '@/shared/api/error-message'
 import { useCan } from '@/shared/security/permissions'
 import type { Model } from '@/shared/api/types'
 const { t } = useI18n(),
@@ -244,9 +242,6 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
             { label: uiText('ui.dataset_list_0ea96767'), value: 'name' },
           ]"
           @update:value="update({ sort: $event, page: 1 })" /></QueryToolbar
-      ><NAlert v-if="actions.copy.error.value" type="error">{{
-        t(errorKey(actions.copy.error.value))
-      }}</NAlert
       ><AsyncState
         :loading="query.isLoading.value"
         :error="query.error.value"
@@ -280,7 +275,6 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
     :title="uiText('ui.dataset_list_87510d58')"
     :description="uiText('ui.dataset_list_bbf432ef')"
     :pending="actions.remove.isPending.value"
-    :error="actions.remove.error.value ? t(errorKey(actions.remove.error.value)) : undefined"
     @confirm="remove"
     @cancel="deleteId = ''"
   />

@@ -91,7 +91,9 @@ for (const editor of editors) {
         button.click()
       })
       if (editor.action === '模拟测试连接') {
-        await expect(page.getByText('模拟检查通过，未访问真实服务', { exact: true })).toBeVisible()
+        await expect(
+          page.locator('.n-message').getByText('模拟检查通过，未访问真实服务', { exact: true }),
+        ).toBeVisible()
         await expect(action).toBeEnabled()
         await expect(field).toHaveValue(name)
       } else {

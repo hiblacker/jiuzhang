@@ -36,7 +36,6 @@ import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { CopyButton } from '@/shared/ui/copy-button'
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
-import { errorKey } from '@/shared/api/error-message'
 import { useCan } from '@/shared/security/permissions'
 const route = useRoute(),
   router = useRouter(),
@@ -245,7 +244,6 @@ async function publish() {
       (real ? t('datasets.realOutput') : uiText('ui.dataset_detail_ef711d29'))
     "
     :pending="actions.publish.isPending.value"
-    :error="actions.publish.error.value ? t(errorKey(actions.publish.error.value)) : undefined"
     :confirm-text="uiText('ui.dataset_detail_221f71a4')"
     :destructive="false"
     :disabled="readonly || !query.data.value"

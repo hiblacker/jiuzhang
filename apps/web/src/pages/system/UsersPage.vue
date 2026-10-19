@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
-import { errorKey } from '@/shared/api/error-message'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 import type { FormInst, FormRules } from 'naive-ui'
 import { useI18n as useUiI18n } from 'vue-i18n'
@@ -190,9 +189,6 @@ const columns = [
             :aria-label="uiText('ui.users_d4e9ca3d')" /></NFormItem
         ><NAlert type="info">{{
           real ? uiText('identity.managedAccounts') : uiText('ui.users_d965b287')
-        }}</NAlert
-        ><NAlert v-if="actions.user.error.value" type="error">{{
-          uiText(errorKey(actions.user.error.value))
         }}</NAlert></NForm
       ><template #footer
         ><NSpace justify="end"

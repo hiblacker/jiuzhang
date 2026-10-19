@@ -153,10 +153,11 @@ B0 接入 Vue I18n，首期只交付完整 zh-CN 文案，不新增英文翻译�
 | shared/api          | 标准化 ApiError，含 code/status/requestId/fieldErrors；传递取消信号 | toast、路由跳转、自动把失败改为空列表   |
 | repository          | 端点请求和 DTO/FormDraft/ViewModel 映射                             | 调用 useMessage/useRouter、读写 Mock DB |
 | 领域 query/mutation | query key、重试策略、状态、缓存失效、编辑会话                       | 建第二套 Pinia 服务端缓存               |
-| page/领域交互组件   | 字段/弹层/页面错误位置；保存成功后提示/导航                         | 再次对同一错误重复 toast                |
+| app 错误消息桥       | QueryCache/MutationCache 失败及统一 `message.error` 展示             | 对同一失败重复 toast                    |
+| page/领域交互组件   | 本地校验、预期业务结果、成功提示/导航                               | 重复展示已由 Query/Mutation 处理的 API 错误 |
 | app 会话协调        | 会话失效统一处理与跳转去重                                          | 对每个 401 独立弹窗/导航                |
 
-列表读取失败优先就地重试；表单错误先字段或表单顶部；危险操作错误保留确认弹层。全局 Query handler 只处理明确委托的错误，局部消费与全局兜底互斥。查询取消不展示失败；写入失败默认不自动重试，除非契约明确幂等。
+所有瞬时操作失败使用 Naive UI `message.error`：QueryCache/MutationCache 的 API 失败由 app 错误消息桥统一展示；本地解析、校验和文件处理失败由交互组件调用 `useMessage().error`。局部校验继续使用 NForm 字段状态。不要用红色 NAlert 重复展示这些错误，也不要在 mutation catch 中再次提示。列表查询失败保留重试入口；取消不作为失败提示。运行、导入、查询等已持久化失败状态保留为记录状态，不冒充当前请求异常。
 
 CopyButton 同样只选一种结果提示所有者：composable 返回结果，由组件提示；不让 composable 与组件同时 toast。真实浏览器复制失败必须保持失败状态。
 

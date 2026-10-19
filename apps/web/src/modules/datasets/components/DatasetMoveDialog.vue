@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { NModal, NButton, NSpace, NAlert, NFormItem } from 'naive-ui'
+import { NModal, NButton, NSpace, NFormItem } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { Model } from '@/shared/api/types'
-import { errorKey } from '@/shared/api/error-message'
 import { useCan } from '@/shared/security/permissions'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 import { useFolderActions } from '../composables/use-folders'
@@ -63,9 +62,6 @@ async function save() {
         :empty-label="t('folders.unfiled')"
         :disabled="actions.move.isPending.value"
     /></NFormItem>
-    <NAlert v-if="actions.move.error.value" type="error">{{
-      t(errorKey(actions.move.error.value))
-    }}</NAlert>
     <template #footer
       ><NSpace justify="end"
         ><NButton :disabled="actions.move.isPending.value" @click="close">{{ t('cancel') }}</NButton

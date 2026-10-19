@@ -33,7 +33,6 @@ import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { useCan } from '@/shared/security/permissions'
 import { useListRoute } from '@/shared/composables/use-list-route'
-import { errorKey } from '@/shared/api/error-message'
 import type { Model } from '@/shared/api/types'
 const route = useRoute(),
   router = useRouter(),
@@ -243,9 +242,6 @@ const columns = [
             >{{ scenario.toUpperCase() }}</NButton
           >
         </div>
-        <NAlert v-if="actions.evaluate.error.value" type="error" class="mb">{{
-          uiText(errorKey(actions.evaluate.error.value))
-        }}</NAlert>
         <NAlert
           v-if="actions.evaluate.data.value"
           :type="actions.evaluate.data.value.result === 'PASS' ? 'success' : 'warning'"
@@ -333,10 +329,7 @@ const columns = [
         ><NFormItem :label="uiText('ui.quality_d4e9ca3d')"
           ><NSwitch
             v-model:value="draft.enabled"
-            :aria-label="uiText('ui.quality_d4e9ca3d')" /></NFormItem
-        ><NAlert v-if="actions.saveQuality.error.value" type="error">{{
-          uiText(errorKey(actions.saveQuality.error.value))
-        }}</NAlert></NForm
+            :aria-label="uiText('ui.quality_d4e9ca3d')" /></NFormItem></NForm
       ><template #footer
         ><NSpace justify="end"
           ><NButton :disabled="actions.saveQuality.isPending.value" @click="close(false)">{{

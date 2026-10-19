@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { NSelect, NAlert, NButton } from 'naive-ui'
+import { NSelect, NButton } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useFolders } from '../composables/use-folders'
@@ -32,9 +32,9 @@ const options = computed(() => folderOptions(query.data.value ?? [], props.exclu
       filterable
       @update:value="$emit('update:modelValue', $event)"
     />
-    <NAlert v-if="query.error.value" type="error" :title="t('folders.loadError')">
-      <NButton size="small" @click="query.refetch()">{{ t('retry') }}</NButton>
-    </NAlert>
+    <NButton v-if="query.error.value" size="small" @click="query.refetch()">{{
+      t('retry')
+    }}</NButton>
   </div>
 </template>
 <style scoped>

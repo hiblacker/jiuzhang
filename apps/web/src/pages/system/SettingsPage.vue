@@ -71,9 +71,7 @@ async function save() {
           type="success"
           style="margin-top: 20px"
           >{{ uiText('ui.settings_02fb989c') }}</NAlert
-        ><NAlert v-if="actions.settings.error.value" type="error" style="margin-top: 20px">{{
-          uiText('ui.settings_18b4e26f')
-        }}</NAlert></NForm
+        ></NForm
       ></NCard
     ></AsyncState
   >

@@ -4,7 +4,7 @@ const canWrite = useCan('write')
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { NButton, NCard, NInput, NSelect, NPagination, NAlert } from 'naive-ui'
+import { NButton, NCard, NInput, NSelect, NPagination } from 'naive-ui'
 import { Plus, Search, RefreshCw } from 'lucide-vue-next'
 import { useSources, useDeleteSource, SourceListTable, connectorOptions } from '@/modules/sources'
 import { useListRoute } from '@/shared/composables/use-list-route'
@@ -12,7 +12,6 @@ import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { QueryToolbar } from '@/shared/ui/query-toolbar'
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
-import { errorKey } from '@/shared/api/error-message'
 import { useCan } from '@/shared/security/permissions'
 const { t } = useI18n()
 const router = useRouter()
@@ -66,9 +65,6 @@ async function confirm() {
         :aria-label="t('refresh')"
         @click="query.refetch()"
         ><RefreshCw :size="16" /></NButton></QueryToolbar
-    ><NAlert v-if="query.error.value && query.data.value" type="error" class="mb">{{
-      t(errorKey(query.error.value))
-    }}</NAlert
     ><AsyncState
       :loading="query.isLoading.value"
       :error="query.data.value ? undefined : query.error.value"
@@ -97,7 +93,6 @@ async function confirm() {
     :title="t('sources.deleteTitle')"
     :description="t('sources.deleteDescription')"
     :pending="remove.isPending.value"
-    :error="remove.error.value ? t(errorKey(remove.error.value)) : undefined"
     @cancel="deleteId = ''"
     @confirm="confirm"
   />

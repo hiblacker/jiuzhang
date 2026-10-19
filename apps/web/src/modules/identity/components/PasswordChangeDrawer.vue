@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NDrawer, NDrawerContent, NForm, NFormItem, NInput, NButton, NAlert } from 'naive-ui'
+import { NDrawer, NDrawerContent, NForm, NFormItem, NInput, NButton } from 'naive-ui'
 import { useAuthentication } from '../composables/use-system'
-import { errorKey } from '@/shared/api/error-message'
 const open = defineModel<boolean>({ required: true })
 const emit = defineEmits<{ changed: [] }>()
 const { t } = useI18n()
@@ -50,9 +49,6 @@ async function save() {
               autocomplete: 'new-password',
             }"
         /></NFormItem>
-        <NAlert v-if="auth.password.error.value" type="error">{{
-          t(errorKey(auth.password.error.value))
-        }}</NAlert>
         <NButton attr-type="submit" type="primary" :loading="auth.password.isPending.value">{{
           t('save')
         }}</NButton>

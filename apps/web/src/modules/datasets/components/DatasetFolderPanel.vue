@@ -9,7 +9,6 @@ import {
   NForm,
   NFormItem,
   NInput,
-  NAlert,
   type FormInst,
   type TreeOption,
 } from 'naive-ui'
@@ -20,8 +19,6 @@ import { AsyncState } from '@/shared/ui/async-state'
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
 import { useCan } from '@/shared/security/permissions'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
-import { ApiError } from '@/shared/api/client'
-import { errorKey } from '@/shared/api/error-message'
 
 const props = defineProps<{ selected: string }>()
 const emit = defineEmits<{ select: [id: string] }>()
@@ -49,12 +46,6 @@ const tree = computed<TreeOption[]>(() => {
       .map((folder) => ({ key: folder.id, label: folder.name, children: children(folder.id) }))
   }
   return children(null)
-})
-const deleteError = computed(() => {
-  const error = actions.remove.error.value
-  if (error instanceof ApiError && error.code === 'DEPENDENCY_CONFLICT')
-    return t('folders.notEmpty')
-  return error ? t(errorKey(error)) : undefined
 })
 function open(edit = false) {
   editId.value = edit ? (current.value?.id ?? '') : ''
@@ -195,9 +186,6 @@ async function remove() {
           :disabled="pending"
       /></NFormItem>
     </NForm>
-    <NAlert v-if="actions.save.error.value" type="error">{{
-      t(errorKey(actions.save.error.value))
-    }}</NAlert>
     <template #footer
       ><NSpace justify="end"
         ><NButton :disabled="pending" @click="close">{{ t('cancel') }}</NButton
@@ -212,7 +200,6 @@ async function remove() {
     :title="t('folders.delete')"
     :description="t('folders.deleteHint', { name: current?.name ?? '' })"
     :pending="actions.remove.isPending.value"
-    :error="deleteError"
     @confirm="remove"
     @cancel="deleting = false"
   />

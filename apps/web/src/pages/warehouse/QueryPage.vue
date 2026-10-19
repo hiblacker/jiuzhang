@@ -12,12 +12,14 @@ import {
   NCard,
   NButton,
   NSelect,
+  NTag,
   NAlert,
   NTabs,
   NTabPane,
   NSpace,
   NInput,
   NPagination,
+  useMessage,
 } from 'naive-ui'
 import {
   useTable,
@@ -29,7 +31,6 @@ import {
 import { useI18n } from 'vue-i18n'
 import { useListRoute } from '@/shared/composables/use-list-route'
 import { QueryToolbar } from '@/shared/ui/query-toolbar'
-import { errorKey } from '@/shared/api/error-message'
 import { AsyncState } from '@/shared/ui/async-state'
 import { PageHeader } from '@/shared/ui/page-header'
 const SqlEditor = defineAsyncComponent(() => import('@/shared/editors/SqlEditor.vue'))
@@ -41,6 +42,7 @@ const route = useRoute(),
     Object.fromEntries(Object.entries(filters.value).map(([key, value]) => [key, String(value)])),
   ),
   actions = useWarehouseActions(),
+  message = useMessage(),
   sql = ref('')
 const tableId = computed({
   get: () => (typeof route.query.tableId === 'string' ? route.query.tableId : ''),
@@ -58,6 +60,10 @@ const exportOutcome = ref<'ready' | 'failed'>('ready')
 const queryId = computed(() => String(route.query.queryId ?? ''))
 const result = useQueryResult(queryId)
 const resultData = computed(() => result.data.value)
+watch([queryId, () => resultData.value?.status], ([id, status], previous) => {
+  if (status === 'failed' && (id !== previous[0] || previous[1] !== 'failed'))
+    message.error(uiText('errors.UNKNOWN'))
+})
 const running = computed(
   () => actions.query.isPending.value || resultData.value?.status === 'running',
 )
@@ -122,13 +128,7 @@ async function exportResult(format: 'csv' | 'json') {
       v-model:value="tableId"
       :label="uiText('ui.query_074ab09a')"
       select-first
-      class="mb"
-    /><SqlEditor v-model="sql" :label="t('warehouse.sqlEditor')" /><NAlert
-      v-if="actions.query.error.value"
-      type="error"
-      style="margin-top: 20px"
-      >{{ uiText(errorKey(actions.query.error.value)) }}</NAlert
-    ></NCard
+      class="mb" /><SqlEditor v-model="sql" :label="t('warehouse.sqlEditor')" /></NCard
   ><NCard :bordered="false"
     ><NTabs
       v-accessible-tabs="uiText('ui.query_5ecc0135')"
@@ -157,12 +157,9 @@ async function exportResult(format: 'csv' | 'json') {
             @click="exportResult('json')"
             >{{ uiText('ui.query_3b9ec1c4') }}</NButton
           ></NSpace
-        ><NAlert v-if="actions.export.error.value" type="error">{{
-          uiText('ui.query_df658bd3')
-        }}</NAlert
-        ><NAlert v-if="resultData?.status === 'failed'" type="error">{{
-          uiText(errorKey(actions.query.error.value))
-        }}</NAlert
+        ><NTag v-if="resultData?.status === 'failed'" type="error" size="small">{{
+          uiText('states.failed')
+        }}</NTag
         ><NAlert v-if="resultData?.status === 'canceled'" type="warning">{{
           t('states.canceled')
         }}</NAlert>

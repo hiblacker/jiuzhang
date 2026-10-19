@@ -76,7 +76,9 @@ test('CSV imports preserve failed drafts, discard canceled changes and parse loc
   await drawer.getByRole('textbox', { name: '任务名称', exact: true }).fill('导入取消草稿')
   await csv.fill('id,name\n1,"unfinished')
   await drawer.getByRole('button', { name: '解析字段映射', exact: true }).click()
-  await expect(drawer.getByText('CSV 引号未闭合', { exact: true })).toBeVisible()
+  await expect(
+    page.locator('.n-message').getByText('CSV 引号未闭合', { exact: true }),
+  ).toBeVisible()
 
   page.once('dialog', (dialog) => dialog.dismiss())
   await page.keyboard.press('Escape')
@@ -96,7 +98,9 @@ test('CSV imports preserve failed drafts, discard canceled changes and parse loc
     mimeType: 'text/csv',
     buffer: Buffer.alloc(1000001, 97),
   })
-  await expect(drawer.getByText('文件不能超过 1 MB', { exact: true })).toBeVisible()
+  await expect(
+    page.locator('.n-message').getByText('文件不能超过 1 MB', { exact: true }),
+  ).toBeVisible()
   await page.locator('input[type=file]').setInputFiles({
     name: 'synthetic.csv',
     mimeType: 'text/csv',
@@ -108,7 +112,9 @@ test('CSV imports preserve failed drafts, discard canceled changes and parse loc
   await drawer.getByRole('textbox', { name: 'name 的输出字段', exact: true }).fill('id')
   await drawer.getByRole('checkbox').check()
   await drawer.getByRole('button', { name: '导入示例数据', exact: true }).click()
-  await expect(drawer.getByText('请为每列提供唯一且非空的输出名', { exact: true })).toBeVisible()
+  await expect(
+    page.locator('.n-message').getByText('请为每列提供唯一且非空的输出名', { exact: true }),
+  ).toBeVisible()
   await expect(drawer.getByRole('textbox', { name: '任务名称', exact: true })).toHaveValue(
     '带引号的虚构文件',
   )
@@ -163,7 +169,7 @@ for (const scenario of ['expired', 'restricted'] as const) {
     await expect(download).toBeDisabled()
     await expect(
       page
-        .locator('.n-alert')
+        .locator('.n-message')
         .getByText(
           scenario === 'expired' ? '已过期' : '导出失败或列权限已变化，请重新查询后导出。',
           { exact: true },

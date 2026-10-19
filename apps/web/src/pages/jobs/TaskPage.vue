@@ -25,7 +25,6 @@ import { AsyncState } from '@/shared/ui/async-state'
 import type { Model } from '@/shared/api/types'
 import { useCan } from '@/shared/security/permissions'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
-import { ApiError } from '@/shared/api/client'
 import { useDisplayTime } from '@/shared/composables/use-display-time'
 const route = useRoute(),
   router = useRouter(),
@@ -125,11 +124,6 @@ async function backfill() {
         @started="router.push('/runs/' + $event)" /></template></PageHeader
   ><AsyncState :loading="query.isLoading.value" :error="query.error.value" @retry="query.refetch()"
     ><NCard :bordered="false"
-      ><NAlert v-if="actions.save.error.value" type="error" class="mb">{{
-        actions.save.error.value instanceof ApiError && actions.save.error.value.details.length
-          ? actions.save.error.value.details.join('；')
-          : uiText('ui.task_71670358')
-      }}</NAlert
       ><NAlert v-if="!editing" type="info" class="mb">{{ uiText('ui.task_scheduleNote') }}</NAlert
       ><NForm
         v-if="editing && draft"
@@ -225,10 +219,7 @@ async function backfill() {
       type="daterange"
       :start-placeholder="uiText('jobs.backfillFrom')"
       :end-placeholder="uiText('jobs.backfillTo')"
-    /><NAlert v-if="actions.backfill.error.value" type="error">{{
-      uiText('ui.task_f1fb8585')
-    }}</NAlert
-    ><template #footer
+    /><template #footer
       ><NSpace justify="end"
         ><NButton :disabled="actions.backfill.isPending.value" @click="closeBackfill()">{{
           uiText('cancel')

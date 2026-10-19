@@ -3,7 +3,7 @@ import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
-import { h, ref } from 'vue'
+import { h } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   NInput,
@@ -14,7 +14,7 @@ import {
   NDataTable,
   NTag,
   NProgress,
-  NAlert,
+  useMessage,
   type DataTableColumns,
 } from 'naive-ui'
 import { useExports, useWarehouseActions } from '@/modules/warehouse'
@@ -24,28 +24,27 @@ import { QueryToolbar } from '@/shared/ui/query-toolbar'
 import { AsyncState } from '@/shared/ui/async-state'
 import { downloadText } from '@/shared/lib/download'
 import type { Model } from '@/shared/api/types'
-import { errorKey } from '@/shared/api/error-message'
 const real = import.meta.env.VITE_API_MODE === 'real'
 const router = useRouter(),
+  message = useMessage(),
   { filters, update, bindPagination } = useListRoute(),
   query = useExports(() =>
     Object.fromEntries(Object.entries(filters.value).map(([key, value]) => [key, String(value)])),
   ),
-  actions = useWarehouseActions(),
-  downloadError = ref('')
+  actions = useWarehouseActions()
 bindPagination(() =>
   query.isSuccess.value && !query.isFetching.value ? query.data.value?.meta : undefined,
 )
 async function download(id: string) {
   if (actions.download.isPending.value) return
-  downloadError.value = ''
   try {
     const record = await actions.download.mutateAsync(id)
     if (record.status !== 'ready') {
-      downloadError.value =
+      message.error(
         record.status === 'expired'
           ? uiText('ui.exports_1354374f')
-          : uiText('warehouse.exportFailedAccess')
+          : uiText('warehouse.exportFailedAccess'),
+      )
       return
     }
     downloadText(
@@ -53,8 +52,8 @@ async function download(id: string) {
       record.content,
       record.format === 'csv' ? 'text/csv' : 'application/json',
     )
-  } catch (error) {
-    downloadError.value = uiText(errorKey(error))
+  } catch {
+    /* Mutation cache owns API error feedback. */
   }
 }
 function progressStatus(status: Model<'Export'>['status']) {
@@ -118,7 +117,6 @@ const columns: DataTableColumns<Model<'Export'>> = [
     ><NButton type="primary" @click="router.push('/warehouse/query')">{{
       uiText('ui.exports_9953cdb5')
     }}</NButton></PageHeader
-  ><NAlert v-if="downloadError" type="error" class="mb">{{ downloadError }}</NAlert
   ><NCard :bordered="false"
     ><QueryToolbar>
       <NInput

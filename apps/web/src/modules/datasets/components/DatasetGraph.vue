@@ -3,12 +3,13 @@ import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { VueFlow, type Connection, type NodeChange, type EdgeChange } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { NButton, NInput, NSelect, NAlert } from 'naive-ui'
 import type { Model } from '@/shared/api/types'
 import { connectionIssue } from '../model/graph'
+import { notifyUiError } from '@/shared/ui/error-message'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
 const real = import.meta.env.VITE_API_MODE === 'real'
@@ -46,6 +47,9 @@ function swapInputs() {
 const from = ref<string | null>(null),
   to = ref<string | null>(null),
   error = ref('')
+watch(error, (value) => {
+  if (value) notifyUiError(uiText('datasets.graph.errors.' + value))
+})
 const nodeOptions = computed(() =>
   nodes.value.map((node) => ({ value: node.id, label: node.label + ' · ' + node.id.slice(0, 8) })),
 )
@@ -169,9 +173,6 @@ function remove() {
       >{{ uiText('datasets.graph.connect') }}</NButton
     >
   </div>
-  <NAlert v-if="error" type="error" class="mb">{{
-    uiText('datasets.graph.errors.' + error)
-  }}</NAlert>
   <div class="graph-canvas">
     <VueFlow
       :nodes="flowNodes"

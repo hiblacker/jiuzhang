@@ -80,7 +80,6 @@ async function save(role: Model<'Role'>) {
           ></NCard
         ></NGridItem
       ></NGrid
-    ><NAlert v-if="actions.role.error.value" type="error">{{ uiText('ui.roles_6c335814') }}</NAlert
     ><NAlert v-if="actions.role.isSuccess.value" type="success" style="margin-top: 20px">{{
       uiText('ui.roles_ce0c005d')
     }}</NAlert></AsyncState

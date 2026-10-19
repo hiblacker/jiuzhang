@@ -12,7 +12,6 @@ import {
   NDataTable,
   NTag,
   NSpace,
-  NAlert,
   NPagination,
   type DataTableColumns,
 } from 'naive-ui'
@@ -98,11 +97,7 @@ const columns = computed<DataTableColumns<Model<'Service'>>>(() => [
       @update:value="update({ q: $event, page: 1 })"
       :placeholder="uiText('ui.services_339febe4')"
       clearable
-      style="max-width: 320px; margin-bottom: 24px" /><NAlert
-      v-if="actions.toggle.error.value"
-      type="error"
-      >{{ uiText('ui.services_a018f1a6') }}</NAlert
-    ><AsyncState
+      style="max-width: 320px; margin-bottom: 24px" /><AsyncState
       :loading="query.isLoading.value"
       :error="query.error.value"
       :empty="query.data.value?.data.length === 0"

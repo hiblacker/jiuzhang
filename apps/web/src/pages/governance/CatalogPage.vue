@@ -15,7 +15,6 @@ import {
   NEllipsis,
   NSpace,
   NPagination,
-  NAlert,
   type DataTableColumns,
 } from 'naive-ui'
 import { Star } from 'lucide-vue-next'
@@ -24,7 +23,6 @@ import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { QueryToolbar } from '@/shared/ui/query-toolbar'
 import { useListRoute } from '@/shared/composables/use-list-route'
-import { errorKey } from '@/shared/api/error-message'
 import type { Model } from '@/shared/api/types'
 const router = useRouter(),
   { filters, update, queryValue, bindPagination } = useListRoute(),
@@ -210,10 +208,7 @@ const columns = computed<DataTableColumns<Model<'CatalogItem'>>>(() => [
         :options="[{ value: 'true', label: uiText('ui.catalog_d07cee78') }]"
         @update:value="update({ favorite: $event, page: 1 })"
       /> </QueryToolbar
-    ><NAlert v-if="actions.favorite.error.value" type="error" class="mb">{{
-      uiText(errorKey(actions.favorite.error.value))
-    }}</NAlert>
-    <AsyncState
+    ><AsyncState
       :loading="query.isLoading.value"
       :error="query.error.value"
       :empty="query.data.value?.data.length === 0"

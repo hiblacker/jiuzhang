@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { NModal, NButton, NAlert, NSpace } from 'naive-ui'
+import { NModal, NButton, NSpace } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 defineProps<{
   show: boolean
   title: string
   description: string
   pending: boolean
-  error?: string
   confirmText?: string
   destructive?: boolean
   disabled?: boolean
@@ -26,8 +25,7 @@ const { t } = useI18n()
     @close="$emit('cancel')"
     @update:show="!$event && !pending && $emit('cancel')"
     ><p>{{ description }}</p>
-    <NAlert v-if="error" type="error">{{ error }}</NAlert
-    ><template #footer
+    <template #footer
       ><NSpace justify="end"
         ><NButton autofocus :disabled="pending" @click="$emit('cancel')">{{ t('cancel') }}</NButton
         ><NButton

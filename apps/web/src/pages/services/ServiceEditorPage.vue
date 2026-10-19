@@ -10,7 +10,6 @@ import { useService, useServiceActions, ServiceForm } from '@/modules/services'
 import { useTable, WarehouseTableSelect } from '@/modules/warehouse'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
-import { errorKey } from '@/shared/api/error-message'
 import { useCan } from '@/shared/security/permissions'
 import type { Model } from '@/shared/api/types'
 const route = useRoute(),
@@ -24,7 +23,6 @@ const restricted = computed(() => query.data.value?.definitionRestricted === tru
 const pending = computed(
   () => actions.save.isPending.value || actions.updateMetadata.isPending.value,
 )
-const saveError = computed(() => actions.save.error.value ?? actions.updateMetadata.error.value)
 const draft = ref<Model<'ServiceInput'>>({
     name: '',
     description: '',
@@ -123,7 +121,6 @@ async function save() {
       ><NAlert v-if="restricted" type="warning" class="mb">{{
         uiText('services.restrictedDefinition')
       }}</NAlert
-      ><NAlert v-if="saveError" type="error" class="mb">{{ uiText(errorKey(saveError)) }}</NAlert
       ><ServiceForm
         ref="form"
         v-model="draft"

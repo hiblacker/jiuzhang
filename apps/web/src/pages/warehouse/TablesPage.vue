@@ -13,7 +13,6 @@ import {
   NDataTable,
   NTag,
   NPagination,
-  NAlert,
   type DataTableColumns,
 } from 'naive-ui'
 import { useTables, useSubjectDomains } from '@/modules/warehouse'
@@ -102,9 +101,10 @@ const columns = computed<DataTableColumns<Model<'Table'>>>(() => [
         @update:value="update({ subjectDomain: $event, page: 1 })"
       />
     </QueryToolbar>
-    <NAlert v-if="domains.error.value" type="error"
-      ><NButton @click="domains.refetch()">{{ uiText('retry') }}</NButton></NAlert
-    ><AsyncState
+    <NButton v-if="domains.error.value" size="small" @click="domains.refetch()">{{
+      uiText('retry')
+    }}</NButton>
+    <AsyncState
       :loading="query.isLoading.value"
       :error="query.error.value"
       :empty="query.data.value?.data.length === 0"

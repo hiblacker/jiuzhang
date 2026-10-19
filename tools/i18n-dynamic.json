@@ -162,6 +162,7 @@
       "errors.INTERNAL_ERROR",
       "errors.UNAUTHENTICATED",
       "errors.INVALID_CREDENTIALS",
+      "errors.INVALID_PARAMETER",
       "errors.LOGIN_THROTTLED",
       "errors.CSRF_REJECTED",
       "errors.LAST_ADMIN",
@@ -471,7 +472,7 @@
     ]
   },
   "modules/datasets/components/DatasetGraph.vue": {
-    "'datasets.graph.errors.' + error": [
+    "'datasets.graph.errors.' + value": [
       "datasets.graph.errors.missing",
       "datasets.graph.errors.input",
       "datasets.graph.errors.duplicate",
@@ -753,8 +754,9 @@
       "warehouse.metricsHint"
     ]
   },
-  "pages/warehouse/QueryPage.vue": {
-    "errorKey(actions.query.error.value)": [
+  "pages/warehouse/QueryPage.vue": {},
+  "shared/ui/error-message/ApiErrorMessageBridge.vue": {
+    "errorKey(error)": [
       "errors.NETWORK_ERROR",
       "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
@@ -769,17 +771,17 @@
       "errors.NOT_IMPLEMENTED",
       "errors.UNAUTHENTICATED",
       "errors.INVALID_CREDENTIALS",
+      "errors.INVALID_PARAMETER",
       "errors.LOGIN_THROTTLED",
       "errors.CSRF_REJECTED",
       "errors.LAST_ADMIN",
       "errors.SOURCE_CONNECTION_FAILED",
-      "errors.SOURCE_ACCOUNT_NOT_READONLY",
       "errors.SOURCE_HOST_DENIED",
       "errors.SOURCE_CREDENTIALS_REQUIRED",
       "errors.SOURCE_TYPE_UNSUPPORTED",
       "errors.SOURCE_TLS_REQUIRED",
+      "errors.SERVICE_DISABLED",
       "errors.SOURCE_KEY_REQUIRED",
-      "errors.UNKNOWN",
       "errors.CLEANING_UNSUPPORTED",
       "errors.DATASET_CONVERSION_FAILED",
       "errors.DATASET_FIELDS_REQUIRED",
@@ -842,7 +844,9 @@
       "errors.WAREHOUSE_ROW_COUNT_MISMATCH",
       "errors.WAREHOUSE_UNAVAILABLE",
       "errors.WAREHOUSE_VALUE_LIMIT",
-      "errors.WORKER_LOST"
+      "errors.WORKER_LOST",
+      "errors.NETWORK_ERROR",
+      "errors.UNKNOWN"
     ]
   }
 }

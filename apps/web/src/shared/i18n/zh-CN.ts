@@ -157,6 +157,7 @@ export default {
     GRAPH_INVALID: '加工流程配置无效',
     GRAPH_UNSUPPORTED: '第一版仅支持线性单表加工流程',
     IDEMPOTENCY_KEY_REQUIRED: '缺少有效的幂等请求标识，请重试',
+    INVALID_PARAMETER: '服务调用参数无效，请检查参数格式和值',
     INVALID_IDENTIFIER: '字段名或表名不符合安全命名规则',
     MASK_KIND_UNSUPPORTED: '第一版仅支持字符串部分脱敏',
     MASK_PARAMETER_INVALID: '脱敏保留长度无效',
@@ -178,6 +179,7 @@ export default {
     RAW_STORAGE_FAILED: '原始批次写入失败，本次未发布',
     RULE_NOT_FOUND: '规则不存在，请重新选择',
     RUN_CANCELED: '运行已取消',
+    SERVICE_DISABLED: '该数据服务已停用',
     RUN_LEASE_LOST: '执行租约已失效，请查看运行终态后重试',
     RUN_NOT_CANCELABLE: '当前运行阶段不能取消',
     RUN_NOT_FOUND: '运行不存在',
@@ -205,7 +207,6 @@ export default {
     WORKER_LOST: '执行进程中断，运行已失败；可创建新运行重试',
 
     SOURCE_CONNECTION_FAILED: '数据库连接失败，请检查地址、凭证、证书与网络',
-    SOURCE_ACCOUNT_NOT_READONLY: '请使用只含 SELECT、SHOW VIEW 权限的数据库账号',
     SOURCE_HOST_DENIED: '服务器拒绝了该目标地址类型',
     SOURCE_CREDENTIALS_REQUIRED: '新建连接或修改账号时，请同时填写数据库账号和密码',
     SOURCE_TYPE_UNSUPPORTED: '第一版真实服务只支持约定的 MySQL 数据类型',

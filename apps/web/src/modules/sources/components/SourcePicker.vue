@@ -2,9 +2,8 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
-import { NAlert, NButton, NSelect } from 'naive-ui'
+import { NButton, NSelect } from 'naive-ui'
 import { useSource, useSourceOptions } from '../composables/use-sources'
-import { errorKey } from '@/shared/api/error-message'
 
 const props = defineProps<{ value: string; label: string; disabled?: boolean }>()
 const emit = defineEmits<{ 'update:value': [value: string] }>()
@@ -57,10 +56,9 @@ async function retry() {
         >{{ t('sources.loadMore') }}</NButton
       >
     </div>
-    <NAlert v-if="error" type="error">
-      <p>{{ t(errorKey(error)) }}</p>
-      <NButton size="small" :disabled="disabled" @click="retry">{{ t('retry') }}</NButton>
-    </NAlert>
+    <NButton v-if="error" size="small" :disabled="disabled" @click="retry">{{
+      t('retry')
+    }}</NButton>
   </div>
 </template>
 <style scoped>

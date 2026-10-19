@@ -13,6 +13,7 @@ import {
   NButton,
   NInput,
   NAlert,
+  useMessage,
   NTabs,
   NTabPane,
   NDescriptions,
@@ -26,14 +27,13 @@ import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { CopyButton } from '@/shared/ui/copy-button'
 import { useCan } from '@/shared/security/permissions'
-import { ApiError } from '@/shared/api/client'
-import { errorKey } from '@/shared/api/error-message'
 import { useListRoute } from '@/shared/composables/use-list-route'
 import { useDisplayTime } from '@/shared/composables/use-display-time'
 import type { Model } from '@/shared/api/types'
 const { filters, update, bindPagination } = useListRoute()
 const route = useRoute(),
   router = useRouter(),
+  message = useMessage(),
   id = computed(() => String(route.params.id)),
   query = useService(id),
   audit = useServiceAudit(id, () => ({
@@ -41,8 +41,7 @@ const route = useRoute(),
     pageSize: String(filters.value.pageSize),
   })),
   actions = useServiceActions(),
-  input = ref('{}'),
-  error = ref('')
+  input = ref('{}')
 const tab = useRouteTab(['contract', 'caller', 'audit'], 'contract')
 bindPagination(() =>
   audit.isSuccess.value && !audit.isFetching.value ? audit.data.value?.meta : undefined,
@@ -71,7 +70,6 @@ const auditColumns: DataTableColumns<Model<'Audit'>> = [
   { title: uiText('description'), key: 'detail', width: 380 },
 ]
 watch([id, input], () => {
-  error.value = ''
   actions.call.reset()
 })
 async function call() {
@@ -88,19 +86,14 @@ async function call() {
       throw new Error()
   } catch {
     actions.call.reset()
-    error.value = uiText('services.invalidJson')
+    message.error(uiText('services.invalidJson'))
     return
   }
   try {
-    error.value = ''
     actions.call.reset()
     await actions.call.mutateAsync({ id: id.value, parameters })
-  } catch (cause) {
-    if (cause instanceof ApiError && cause.code === 'INVALID_PARAMETER')
-      error.value = uiText('services.invalidParameter')
-    else if (cause instanceof ApiError && cause.code === 'SERVICE_DISABLED')
-      error.value = uiText('services.disabled')
-    else error.value = uiText(errorKey(cause))
+  } catch {
+    /* Mutation cache owns API error feedback. */
   }
 }
 const contract = computed(() => ({
@@ -165,7 +158,6 @@ const contract = computed(() => ({
             style="margin: 16px 0"
             @click="call"
             >{{ uiText('ui.service_detail_d946b646') }}</NButton
-          ><NAlert v-if="error" type="error" class="mb">{{ error }}</NAlert
           ><DataPreview
             :rows="actions.call.data.value ?? []"
             :columns="query.data.value?.fields ?? []" /></NTabPane

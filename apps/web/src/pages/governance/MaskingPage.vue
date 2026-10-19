@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
-import { errorKey } from '@/shared/api/error-message'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 import type { FormInst, FormRules } from 'naive-ui'
 import { useI18n as useUiI18n } from 'vue-i18n'
@@ -308,10 +307,7 @@ const columns = [
         ><NFormItem :label="uiText('ui.masking_d4e9ca3d')"
           ><NSwitch
             v-model:value="draft.enabled"
-            :aria-label="uiText('ui.masking_d4e9ca3d')" /></NFormItem
-        ><NAlert v-if="actions.saveMask.error.value" type="error">{{
-          uiText(errorKey(actions.saveMask.error.value))
-        }}</NAlert></NForm
+            :aria-label="uiText('ui.masking_d4e9ca3d')" /></NFormItem></NForm
       ><template #footer
         ><NSpace justify="end"
           ><NButton :disabled="actions.saveMask.isPending.value" @click="close(false)">{{

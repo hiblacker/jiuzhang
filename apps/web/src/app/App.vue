@@ -12,6 +12,7 @@ import {
 } from 'naive-ui'
 import { useUiStore } from './stores'
 import { palettes } from '@/shared/theme/tokens'
+import { ApiErrorMessageBridge } from '@/shared/ui/error-message'
 const ui = useUiStore()
 const palette = computed(() => (ui.darkMode ? palettes.dark : palettes.light))
 const overrides = computed<GlobalThemeOverrides>(() => ({
@@ -48,6 +49,6 @@ watchEffect(() => {
     :locale="zhCN"
     :date-locale="dateZhCN"
     ><NMessageProvider
-      ><NDialogProvider><RouterView /></NDialogProvider></NMessageProvider
+      ><NDialogProvider><ApiErrorMessageBridge /><RouterView /></NDialogProvider></NMessageProvider
   ></NConfigProvider>
 </template>

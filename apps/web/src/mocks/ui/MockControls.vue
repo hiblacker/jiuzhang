@@ -10,6 +10,7 @@ import {
   NText,
   darkTheme,
   zhCN,
+  createDiscreteApi,
 } from 'naive-ui'
 
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
@@ -17,6 +18,7 @@ import { api, unwrap } from '@/shared/api/client'
 import { tickDemoClock } from '../demo-clock'
 import type { Model } from '@/shared/api/types'
 const props = defineProps<{ onClockChange?: (clock: Model<'DemoClock'>) => void }>()
+const { message } = createDiscreteApi(['message'])
 const darkMode = ref(false)
 let themeObserver: MutationObserver | undefined
 const syncTheme = () => {
@@ -26,7 +28,6 @@ const open = ref(false),
   scenario = ref<Model<'Control'>['scenario']>('normal'),
   domain = ref<Model<'Control'>['domain']>('sources'),
   pending = ref(false),
-  error = ref(''),
   clock = ref<Model<'DemoClock'> | null>(null)
 const scenarios = [
   { label: '正常', value: 'normal' },
@@ -37,7 +38,6 @@ const scenarios = [
 ]
 async function apply() {
   if (pending.value) return
-  error.value = ''
   pending.value = true
   try {
     unwrap(
@@ -47,19 +47,18 @@ async function apply() {
     )
     location.reload()
   } catch {
-    error.value = '场景设置失败'
+    message.error('场景设置失败')
     pending.value = false
   }
 }
 async function reset() {
   if (pending.value) return
-  error.value = ''
   pending.value = true
   try {
     unwrap(await api.POST('/demo/reset'))
     location.reload()
   } catch {
-    error.value = '重置失败'
+    message.error('重置失败')
     pending.value = false
   }
 }
@@ -70,8 +69,7 @@ async function advance(seconds: number) {
   if (result) {
     clock.value = result
     props.onClockChange?.(result)
-    error.value = ''
-  } else error.value = '演示时间推进失败，请稍后重试'
+  } else message.error('演示时间推进失败，请稍后重试')
   pending.value = false
 }
 const onDemoClockEvent = (event: Event) => {
@@ -142,8 +140,7 @@ onBeforeUnmount(() => {
             ></template
           >将清除本地新增内容并恢复合成样本，确定重置？</NPopconfirm
         >
-        <p v-if="error">{{ error }}</p></NCard
-      >
+      </NCard>
     </aside></NConfigProvider
   >
 </template>

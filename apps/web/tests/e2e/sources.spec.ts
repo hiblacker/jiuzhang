@@ -60,14 +60,15 @@ for (const connector of [
       }
       await simulate.click()
       await expect(
-        page.getByText('模拟连接失败；名称含“失败”可触发此场景', { exact: true }),
+        page
+          .locator('.n-message')
+          .getByText('模拟连接失败；名称含“失败”可触发此场景', { exact: true }),
       ).toBeVisible()
       await page.getByPlaceholder('名称', { exact: true }).fill('连接器验收-' + connector.type)
-      await expect(
-        page.getByText('模拟连接失败；名称含“失败”可触发此场景', { exact: true }),
-      ).toHaveCount(0)
       await simulate.click()
-      await expect(page.getByText('模拟检查通过，未访问真实服务', { exact: true })).toBeVisible()
+      await expect(
+        page.locator('.n-message').getByText('模拟检查通过，未访问真实服务', { exact: true }),
+      ).toBeVisible()
       await page.getByRole('button', { name: '保存', exact: true }).click()
       await expect(
         page.getByRole('heading', { name: '连接器验收-' + connector.type, exact: true }),
@@ -162,7 +163,9 @@ test('source create, test, persist, edit cancel and dependency delete', async ({
   await page.getByRole('button', { name: '新建数据源', exact: true }).click()
   await page.getByPlaceholder('名称', { exact: true }).fill('验收数据源')
   await page.getByRole('button', { name: '模拟测试连接', exact: true }).click()
-  await expect(page.getByText('模拟检查通过，未访问真实服务', { exact: true })).toBeVisible()
+  await expect(
+    page.locator('.n-message').getByText('模拟检查通过，未访问真实服务', { exact: true }),
+  ).toBeVisible()
   await page.getByRole('button', { name: '保存', exact: true }).click()
   await expect(page.getByRole('heading', { name: '验收数据源', exact: true })).toBeVisible()
   const url = page.url()

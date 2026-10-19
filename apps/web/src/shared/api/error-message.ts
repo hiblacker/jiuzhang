@@ -15,15 +15,16 @@ export function errorKey(error: unknown) {
     'NOT_IMPLEMENTED',
     'UNAUTHENTICATED',
     'INVALID_CREDENTIALS',
+    'INVALID_PARAMETER',
     'LOGIN_THROTTLED',
     'CSRF_REJECTED',
     'LAST_ADMIN',
     'SOURCE_CONNECTION_FAILED',
-    'SOURCE_ACCOUNT_NOT_READONLY',
     'SOURCE_HOST_DENIED',
     'SOURCE_CREDENTIALS_REQUIRED',
     'SOURCE_TYPE_UNSUPPORTED',
     'SOURCE_TLS_REQUIRED',
+    'SERVICE_DISABLED',
     'SOURCE_KEY_REQUIRED',
     'CLEANING_UNSUPPORTED',
     'DATASET_CONVERSION_FAILED',
@@ -89,6 +90,8 @@ export function errorKey(error: unknown) {
     'WAREHOUSE_VALUE_LIMIT',
     'WORKER_LOST',
   ]
-  const code = error instanceof ApiError ? error.code : 'NETWORK_ERROR'
+  let code = 'NETWORK_ERROR'
+  if (error instanceof ApiError) code = error.code
+  else if (typeof error === 'string') code = error
   return 'errors.' + (known.includes(code) ? code : 'UNKNOWN')
 }

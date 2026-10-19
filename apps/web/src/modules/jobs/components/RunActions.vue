@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NAlert, NButton, NSelect } from 'naive-ui'
+import { NButton, NSelect } from 'naive-ui'
 import type { Model } from '@/shared/api/types'
-import { errorKey } from '@/shared/api/error-message'
 import { useCan } from '@/shared/security/permissions'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useJobActions } from '../composables/use-jobs'
@@ -72,9 +71,6 @@ async function retry() {
       @click="retry"
       >{{ t('ui.run_detail_9addab5c') }}</NButton
     >
-    <NAlert v-if="actions.cancel.error.value || actions.retry.error.value" type="error">
-      {{ t(errorKey(actions.cancel.error.value || actions.retry.error.value)) }}
-    </NAlert>
   </div>
 </template>
 <style scoped>
@@ -86,8 +82,5 @@ async function retry() {
 }
 .run-outcome {
   width: 130px;
-}
-.run-actions > .n-alert {
-  flex-basis: 100%;
 }
 </style>
