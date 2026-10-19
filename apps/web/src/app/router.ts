@@ -66,7 +66,11 @@ export const router = createRouter({
   ],
 })
 router.beforeEach(async (to) => {
-  if (to.path !== '/login' && readPreference('session', '') !== 'demo')
+  if (
+    import.meta.env.VITE_API_MODE === 'mock' &&
+    to.path !== '/login' &&
+    readPreference('session', '') !== 'demo'
+  )
     return { path: '/login', query: { redirect: to.fullPath } }
   if (['/login', '/403', '/404'].includes(to.path)) return true
   const role = readPreference('role', 'developer')
@@ -75,6 +79,12 @@ router.beforeEach(async (to) => {
     permissions = (await queryClient.fetchQuery(sessionOptions(role, readPreference('user', ''))))
       .permissions
   } catch (error) {
+    if (
+      import.meta.env.VITE_API_MODE === 'real' &&
+      error instanceof ApiError &&
+      error.status === 401
+    )
+      return { path: '/login', query: { redirect: to.fullPath } }
     if (error instanceof ApiError && [401, 403].includes(error.status))
       return { path: '/403', query: { redirect: to.fullPath } }
     return { path: '/403', query: { reason: 'unavailable', redirect: to.fullPath } }

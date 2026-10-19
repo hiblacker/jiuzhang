@@ -13,6 +13,11 @@ export function errorKey(error: unknown) {
     'STORAGE_UNAVAILABLE',
     'IDEMPOTENCY_CONFLICT',
     'NOT_IMPLEMENTED',
+    'UNAUTHENTICATED',
+    'INVALID_CREDENTIALS',
+    'LOGIN_THROTTLED',
+    'CSRF_REJECTED',
+    'LAST_ADMIN',
   ]
   const code = error instanceof ApiError ? error.code : 'NETWORK_ERROR'
   return 'errors.' + (known.includes(code) ? code : 'UNKNOWN')

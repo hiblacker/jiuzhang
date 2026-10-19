@@ -153,6 +153,19 @@
       "admin",
       "developer",
       "viewer"
+    ],
+    "errorKey(authentication.login.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.UNAUTHENTICATED",
+      "errors.INVALID_CREDENTIALS",
+      "errors.LOGIN_THROTTLED",
+      "errors.CSRF_REJECTED",
+      "errors.LAST_ADMIN",
+      "errors.UNKNOWN"
     ]
   },
   "pages/datasets/DatasetDetailPage.vue": {
@@ -709,6 +722,21 @@
       "datasets.related.states.draft",
       "datasets.related.states.published",
       "datasets.related.states.blocked"
+    ]
+  },
+  "modules/identity/components/PasswordChangeDrawer.vue": {
+    "errorKey(auth.password.error.value)": [
+      "errors.NETWORK_ERROR",
+      "errors.FORBIDDEN",
+      "errors.NOT_FOUND",
+      "errors.VALIDATION_ERROR",
+      "errors.INTERNAL_ERROR",
+      "errors.UNAUTHENTICATED",
+      "errors.INVALID_CREDENTIALS",
+      "errors.LOGIN_THROTTLED",
+      "errors.CSRF_REJECTED",
+      "errors.LAST_ADMIN",
+      "errors.UNKNOWN"
     ]
   }
 }

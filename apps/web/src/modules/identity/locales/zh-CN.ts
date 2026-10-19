@@ -3,6 +3,19 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   identity: {
+    username: '账号',
+    createUser: '新建用户',
+    managedAccounts: '系统账号由管理员维护；停用或修改权限会使已有会话失效。',
+    password: '密码',
+    signIn: '登录',
+    signOut: '退出登录',
+    realMode: '真实服务',
+    realHint: '使用系统账号登录；权限由服务端校验。',
+    passwordHint: '新账号密码至少 12 个字符；已有账号留空表示不修改密码',
+    changePassword: '修改密码',
+    currentPassword: '当前密码',
+    newPassword: '新密码（至少 12 个字符）',
+    passwordChanged: '密码已修改，请重新登录',
     audit: {
       openDetail: '查看审计记录 {id} 详情',
       actions: {

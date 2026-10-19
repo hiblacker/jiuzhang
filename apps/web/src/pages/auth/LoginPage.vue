@@ -3,8 +3,9 @@ import { ref, computed, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { NCard, NButton, NSelect, NAlert } from 'naive-ui'
-import { useUiStore, useDemoUsers } from '@/modules/identity'
+import { NCard, NButton, NSelect, NAlert, NForm, NFormItem, NInput } from 'naive-ui'
+import { useUiStore, useDemoUsers, useAuthentication } from '@/modules/identity'
+import { errorKey } from '@/shared/api/error-message'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { AsyncState } from '@/shared/ui/async-state'
 const { t } = useI18n(),
@@ -12,6 +13,22 @@ const { t } = useI18n(),
   router = useRouter(),
   ui = useUiStore()
 const role = ref(ui.role)
+const real = import.meta.env.VITE_API_MODE === 'real'
+const authentication = useAuthentication()
+const credentials = ref({ username: '', password: '' })
+async function signIn() {
+  if (authentication.login.isPending.value) return
+  try {
+    const session = await authentication.login.mutateAsync(credentials.value)
+    credentials.value.password = ''
+    ui.setRole(session.role)
+    ui.setUser(session.user.id)
+    await cache.cancelQueries()
+    cache.clear()
+    const next = String(route.query.redirect ?? '/overview')
+    await router.push(next.startsWith('/') && !next.startsWith('//') ? next : '/overview')
+  } catch {}
+}
 const users = useDemoUsers(),
   cache = useQueryClient(),
   userId = ref(ui.userId)
@@ -62,34 +79,65 @@ async function login() {
       </div>
     </div>
     <NCard :title="t('workspace')" class="login-card" :bordered="false"
-      ><NAlert type="info" class="mb">{{ t('demoNote') }}</NAlert
-      ><label class="role-label">{{ t('role') }}</label
-      ><NSelect
-        v-model:value="role"
-        v-select-trigger-name="t('role')"
-        :options="['developer', 'admin', 'viewer'].map((value) => ({ value, label: t(value) }))"
-      /><label class="role-label">{{ t('identity.user') }}</label
-      ><NSelect
-        v-model:value="userId"
-        :options="options"
-        v-select-trigger-name="t('identity.user')"
-        :loading="users.isFetching.value"
-        :disabled="users.isFetching.value || !!users.error.value"
-      /><AsyncState :error="users.error.value" @retry="users.refetch()" /><NAlert
-        v-if="
-          !users.isFetching.value && !users.error.value && options.every((user) => user.disabled)
-        "
-        type="warning"
-        class="mt"
-        >{{ t('identity.noEnabledUsers') }}</NAlert
-      ><NButton
-        type="primary"
-        :disabled="!canLogin"
-        block
-        size="large"
-        class="login-button"
-        @click="login"
-        >{{ t('login') }}</NButton
+      ><template v-if="real">
+        <NAlert type="info" class="mb">{{ t('identity.realHint') }}</NAlert>
+        <NForm :model="credentials" label-placement="top" @submit.prevent="signIn">
+          <NFormItem :label="t('identity.username')"
+            ><NInput
+              v-model:value="credentials.username"
+              :input-props="{ 'aria-label': t('identity.username'), autocomplete: 'username' }"
+          /></NFormItem>
+          <NFormItem :label="t('identity.password')"
+            ><NInput
+              v-model:value="credentials.password"
+              type="password"
+              show-password-on="click"
+              :input-props="{
+                'aria-label': t('identity.password'),
+                autocomplete: 'current-password',
+              }"
+          /></NFormItem>
+          <NAlert v-if="authentication.login.error.value" type="error">{{
+            t(errorKey(authentication.login.error.value))
+          }}</NAlert>
+          <NButton
+            attr-type="submit"
+            type="primary"
+            block
+            :loading="authentication.login.isPending.value"
+            >{{ t('identity.signIn') }}</NButton
+          >
+        </NForm> </template
+      ><template v-else
+        ><NAlert type="info" class="mb">{{ t('demoNote') }}</NAlert
+        ><label class="role-label">{{ t('role') }}</label
+        ><NSelect
+          v-model:value="role"
+          v-select-trigger-name="t('role')"
+          :options="['developer', 'admin', 'viewer'].map((value) => ({ value, label: t(value) }))"
+        /><label class="role-label">{{ t('identity.user') }}</label
+        ><NSelect
+          v-model:value="userId"
+          :options="options"
+          v-select-trigger-name="t('identity.user')"
+          :loading="users.isFetching.value"
+          :disabled="users.isFetching.value || !!users.error.value"
+        /><AsyncState :error="users.error.value" @retry="users.refetch()" /><NAlert
+          v-if="
+            !users.isFetching.value && !users.error.value && options.every((user) => user.disabled)
+          "
+          type="warning"
+          class="mt"
+          >{{ t('identity.noEnabledUsers') }}</NAlert
+        ><NButton
+          type="primary"
+          :disabled="!canLogin"
+          block
+          size="large"
+          class="login-button"
+          @click="login"
+          >{{ t('login') }}</NButton
+        ></template
       ></NCard
     >
   </main>

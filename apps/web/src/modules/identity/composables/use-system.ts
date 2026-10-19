@@ -15,7 +15,18 @@ export function useUsers(filters: MaybeRefOrGetter<Record<string, string>> = {})
   })
 }
 export function useDemoUsers() {
-  return useQuery({ queryKey: ['identity', 'demoUsers'], queryFn: repo.demoUsers })
+  return useQuery({
+    queryKey: ['identity', 'demoUsers'],
+    queryFn: repo.demoUsers,
+    enabled: import.meta.env.VITE_API_MODE === 'mock',
+  })
+}
+export function useAuthentication() {
+  return {
+    login: useMutation({ mutationFn: repo.login }),
+    logout: useMutation({ mutationFn: repo.logout }),
+    password: useMutation({ mutationFn: repo.changePassword }),
+  }
 }
 export function useRoles() {
   return useQuery({ queryKey: ['system', 'roles'], queryFn: repo.roles })

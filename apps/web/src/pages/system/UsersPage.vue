@@ -45,6 +45,7 @@ const roles = [
   { label: uiText('ui.users_a6f235ef'), value: 'developer' },
   { label: uiText('ui.users_53ae4414'), value: 'viewer' },
 ]
+const real = import.meta.env.VITE_API_MODE === 'real'
 const form = ref<FormInst | null>(null)
 const baseline = ref('')
 const { canLeave } = useEditGuard(
@@ -63,6 +64,10 @@ function edit(user?: Model<'User'>) {
   draft.value = user
     ? { name: user.name, role: user.role, enabled: user.enabled }
     : { name: '', role: 'developer', enabled: true }
+  if (real) {
+    draft.value.username = user?.username ?? ''
+    draft.value.password = ''
+  }
   baseline.value = JSON.stringify(draft.value)
   open.value = true
 }
@@ -75,7 +80,9 @@ async function save() {
   }
   if (actions.user.isPending.value) return
   try {
-    await actions.user.mutateAsync({ body: { ...draft.value }, id: id.value || undefined })
+    const body = { ...draft.value }
+    if (id.value && body.password === '') delete body.password
+    await actions.user.mutateAsync({ body, id: id.value || undefined })
     open.value = false
   } catch {}
 }
@@ -105,7 +112,9 @@ const columns = [
   <PageHeader :title="uiText('ui.users_baf84751')" :description="uiText('ui.users_13f329dc')"
     ><NButton @click="router.push('/system/roles')">{{ uiText('ui.users_3bfd36ae') }}</NButton
     ><NButton @click="router.push('/system/audit')">{{ uiText('ui.users_7666cd43') }}</NButton
-    ><NButton type="primary" @click="edit()">{{ uiText('ui.users_42dad3be') }}</NButton></PageHeader
+    ><NButton type="primary" @click="edit()">{{
+      real ? uiText('identity.createUser') : uiText('ui.users_42dad3be')
+    }}</NButton></PageHeader
   ><NCard :bordered="false"
     ><NInput
       :value="filters.q"
@@ -148,6 +157,23 @@ const columns = [
         :rules="rules"
         :disabled="actions.user.isPending.value"
         label-placement="top"
+        ><template v-if="real">
+          <NFormItem :label="uiText('identity.username')"
+            ><NInput
+              v-model:value="draft.username"
+              :disabled="!!id"
+              :input-props="{ 'aria-label': uiText('identity.username'), autocomplete: 'off' }"
+          /></NFormItem>
+          <NFormItem :label="uiText('identity.password')"
+            ><NInput
+              v-model:value="draft.password"
+              type="password"
+              :input-props="{
+                'aria-label': uiText('identity.password'),
+                autocomplete: 'new-password',
+              }"
+          /></NFormItem>
+          <NAlert type="info">{{ uiText('identity.passwordHint') }}</NAlert> </template
         ><NFormItem path="name" :label="uiText('ui.users_a311ed74')"
           ><NInput
             v-model:value="draft.name"
@@ -162,7 +188,9 @@ const columns = [
           ><NSwitch
             v-model:value="draft.enabled"
             :aria-label="uiText('ui.users_d4e9ca3d')" /></NFormItem
-        ><NAlert type="info">{{ uiText('ui.users_d965b287') }}</NAlert
+        ><NAlert type="info">{{
+          real ? uiText('identity.managedAccounts') : uiText('ui.users_d965b287')
+        }}</NAlert
         ><NAlert v-if="actions.user.error.value" type="error">{{
           uiText(errorKey(actions.user.error.value))
         }}</NAlert></NForm

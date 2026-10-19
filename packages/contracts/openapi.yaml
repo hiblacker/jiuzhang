@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "九章前端演示契约",
-    "version": "0.1.0",
-    "description": "纯前端 MSW 协议；所有资源为合成数据。无真实认证、数据库或调度。"
+    "title": "九章平台传输契约",
+    "version": "0.2.0",
+    "description": "前端 Mock 与真实 API 共享协议。真实能力按后端里程碑开放；不支持的功能显式返回 NOT_IMPLEMENTED，禁止回退 Mock。"
   },
   "servers": [
     {
@@ -12392,6 +12392,370 @@
           }
         }
       }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "login",
+        "summary": "login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInput"
+              },
+              "example": {
+                "username": "sample_admin",
+                "password": "fictional-password-only"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Session"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "summary": "logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Message"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password": {
+      "post": {
+        "operationId": "change_password",
+        "summary": "change_password",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChangeInput"
+              },
+              "example": {
+                "currentPassword": "fictional-old-password",
+                "newPassword": "fictional-new-password"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Message"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -14411,6 +14775,16 @@
           },
           "enabled": {
             "type": "boolean"
+          },
+          "username": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.-]{3,80}$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 256,
+            "writeOnly": true
           }
         },
         "required": [
@@ -14444,6 +14818,10 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "username": {
+            "type": "string",
+            "description": "System account login name; absent in historical Mock records."
           }
         },
         "required": [
@@ -14693,11 +15071,24 @@
             "additionalProperties": false,
             "description": "Counts across the same complete resource snapshot, independent of list pagination. Drafts include unpublished edits to previously published datasets. Source states are Mock metadata, not real connectivity checks.",
             "properties": {
-              "draftDatasets": { "type": "integer", "minimum": 0 },
-              "warningSources": { "type": "integer", "minimum": 0 },
-              "offlineSources": { "type": "integer", "minimum": 0 }
+              "draftDatasets": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "warningSources": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "offlineSources": {
+                "type": "integer",
+                "minimum": 0
+              }
             },
-            "required": ["draftDatasets", "warningSources", "offlineSources"]
+            "required": [
+              "draftDatasets",
+              "warningSources",
+              "offlineSources"
+            ]
           },
           "trend": {
             "type": "array",
@@ -15058,6 +15449,16 @@
           },
           "enabled": {
             "type": "boolean"
+          },
+          "username": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.-]{3,80}$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 256,
+            "writeOnly": true
           }
         },
         "required": [],
@@ -15128,6 +15529,10 @@
           },
           "user": {
             "$ref": "#/components/schemas/User"
+          },
+          "csrfToken": {
+            "type": "string",
+            "description": "Real mode: memory-only CSRF token. Session cookie is HttpOnly."
           }
         },
         "required": [
@@ -15264,11 +15669,29 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "layer": { "type": "string", "enum": ["ODS", "DWD", "DWS", "ADS"] },
-                "tableCount": { "type": "integer", "minimum": 0 },
-                "rowCount": { "type": "string", "pattern": "^[0-9]+$" }
+                "layer": {
+                  "type": "string",
+                  "enum": [
+                    "ODS",
+                    "DWD",
+                    "DWS",
+                    "ADS"
+                  ]
+                },
+                "tableCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "rowCount": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
               },
-              "required": ["layer", "tableCount", "rowCount"]
+              "required": [
+                "layer",
+                "tableCount",
+                "rowCount"
+              ]
             }
           },
           "tableCount": {
@@ -15509,6 +15932,44 @@
           "scheduledRuns",
           "retryRuns",
           "changed"
+        ]
+      },
+      "LoginInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "PasswordChangeInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
         ]
       }
     }

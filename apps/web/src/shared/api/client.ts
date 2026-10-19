@@ -12,6 +12,10 @@ export class ApiError extends Error {
   }
 }
 export const api = createClient<paths>({ baseUrl: import.meta.env.VITE_API_BASE_URL || '/api/v1' })
+let csrfToken = ''
+export function setCsrfToken(value: string) {
+  csrfToken = value
+}
 api.use({
   onRequest({ request }) {
     if (import.meta.env.VITE_API_MODE === 'mock') {
@@ -20,6 +24,8 @@ api.use({
       if (user) request.headers.set('x-demo-user', user)
     }
     const pathname = new URL(request.url).pathname
+    if (import.meta.env.VITE_API_MODE === 'real' && csrfToken)
+      request.headers.set('X-CSRF-Token', csrfToken)
     if (request.method !== 'GET' && !pathname.endsWith('/demo/tick'))
       request.headers.set('Idempotency-Key', crypto.randomUUID())
     return request

@@ -1,11 +1,26 @@
-import { api, unwrap } from '@/shared/api/client'
+import { api, unwrap, setCsrfToken } from '@/shared/api/client'
 import type { Model } from '@/shared/api/types'
 export const systemRepository = {
   async demoUsers() {
     return unwrap(await api.GET('/session/users')).data
   },
   async session() {
-    return unwrap(await api.GET('/session')).data
+    const session = unwrap(await api.GET('/session')).data
+    setCsrfToken(session.csrfToken ?? '')
+    return session
+  },
+  async login(body: Model<'LoginInput'>) {
+    const session = unwrap(await api.POST('/auth/login', { body })).data
+    setCsrfToken(session.csrfToken ?? '')
+    return session
+  },
+  async logout() {
+    unwrap(await api.POST('/auth/logout'))
+    setCsrfToken('')
+  },
+  async changePassword(body: Model<'PasswordChangeInput'>) {
+    unwrap(await api.POST('/auth/password', { body }))
+    setCsrfToken('')
   },
   async users(query: Record<string, string> = {}) {
     return unwrap(await api.GET('/system/users', { params: { query } }))

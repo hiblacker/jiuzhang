@@ -140,6 +140,11 @@ export default {
     system: '系统管理',
   },
   errors: {
+    UNAUTHENTICATED: '登录已失效，请重新登录',
+    INVALID_CREDENTIALS: '账号或密码不正确',
+    LOGIN_THROTTLED: '尝试次数过多，请稍后再试',
+    CSRF_REJECTED: '请求校验失败，请刷新页面后重试',
+    LAST_ADMIN: '至少保留一名启用的管理员',
     NETWORK_ERROR: '网络请求失败，请重试',
     DEMO_ERROR: '当前已启用接口失败演示，可从演示控制台恢复',
     FORBIDDEN: '当前角色没有操作权限',

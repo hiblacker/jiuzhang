@@ -2,7 +2,7 @@
 import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
-import { computed, h, provide } from 'vue'
+import { computed, h, provide, ref } from 'vue'
 import { RouterView, RouterLink, useRoute, useRouter } from 'vue-router'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useI18n } from 'vue-i18n'
@@ -33,7 +33,12 @@ import {
 } from 'lucide-vue-next'
 import { navigation } from '../navigation'
 import { useUiStore } from '../stores'
-import { useSession, useSettings } from '@/modules/identity'
+import {
+  useSession,
+  useSettings,
+  useAuthentication,
+  PasswordChangeDrawer,
+} from '@/modules/identity'
 import { displayTimeZoneKey } from '@/shared/composables/use-display-time'
 import { permissionsKey } from '@/shared/security/permissions'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
@@ -47,6 +52,21 @@ const session = useSession(
   () => ui.userId,
 )
 const settings = useSettings()
+const real = import.meta.env.VITE_API_MODE === 'real'
+const authentication = useAuthentication()
+const passwordOpen = ref(false)
+async function accountAction(key: string) {
+  if (key === 'password') {
+    passwordOpen.value = true
+    return
+  }
+  await logout()
+}
+async function passwordChanged() {
+  ui.logout()
+  cache.clear()
+  await router.push('/login')
+}
 provide(
   displayTimeZoneKey,
   computed(() => settings.data.value?.timezone ?? 'Asia/Shanghai'),
@@ -99,6 +119,13 @@ async function changeRole(role: string) {
   await router.replace('/overview')
 }
 async function logout() {
+  if (real) {
+    try {
+      await authentication.logout.mutateAsync()
+    } catch {
+      return
+    }
+  }
   ui.logout()
   cache.clear()
   await router.push('/login')
@@ -131,7 +158,8 @@ async function logout() {
         :indent="20"
       />
       <div v-if="!ui.collapsed" class="sidebar-footer">
-        <span class="status-dot" />{{ t('mock') }}<small>LOCAL WORKSPACE</small>
+        <span class="status-dot" />{{ real ? t('identity.realMode') : t('mock')
+        }}<small>LOCAL WORKSPACE</small>
       </div></NLayoutSider
     ><NLayout
       ><NLayoutHeader bordered class="topbar"
@@ -140,18 +168,34 @@ async function logout() {
           ><ChevronRight :size="13" /><strong>{{ t('nav.' + section) }}</strong>
         </div>
         <div class="topbar-actions">
-          <NTag size="small" :bordered="false" type="warning">{{ t('mock') }}</NTag
+          <NTag size="small" :bordered="false" :type="real ? 'success' : 'warning'">{{
+            real ? t('identity.realMode') : t('mock')
+          }}</NTag
           ><NButton quaternary circle :aria-label="t('theme')" @click="ui.toggleDarkMode"
             ><Sun v-if="ui.darkMode" :size="18" /><Moon v-else :size="18" /></NButton
           ><NSelect
+            v-if="!real"
             :value="ui.role"
             :options="['admin', 'developer', 'viewer'].map((value) => ({ value, label: t(value) }))"
             v-select-trigger-name="t('role')"
             style="width: 140px"
             size="small"
             @update:value="changeRole"
-          /><NDropdown :options="[{ label: t('logout'), key: 'logout' }]" @select="logout"
-            ><NButton quaternary circle :aria-label="t('logout')"
+          /><NDropdown
+            :options="
+              real
+                ? [
+                    { label: t('identity.changePassword'), key: 'password' },
+                    { label: t('identity.signOut'), key: 'logout' },
+                  ]
+                : [{ label: t('logout'), key: 'logout' }]
+            "
+            @select="accountAction"
+            ><NButton
+              quaternary
+              circle
+              :aria-label="real ? t('identity.signOut') : t('logout')"
+              :loading="authentication.logout.isPending.value"
               ><NAvatar round :size="30">{{ t('brand').slice(0, 1) }}</NAvatar></NButton
             ></NDropdown
           >
@@ -159,6 +203,7 @@ async function logout() {
       ><NLayoutContent class="main-content"
         ><RouterView :key="route.path" /></NLayoutContent></NLayout
   ></NLayout>
+  <PasswordChangeDrawer v-if="real" v-model="passwordOpen" @changed="passwordChanged" />
 </template>
 <style scoped>
 .app-shell {

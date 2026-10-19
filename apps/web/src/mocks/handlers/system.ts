@@ -2,6 +2,28 @@ import type { Model } from '@/shared/api/types'
 import { nextId } from '../db'
 import { route, find, ensure } from './core'
 export const systemHandlers = [
+  route(
+    'post',
+    '/auth/login',
+    ({ state, body }) => {
+      const input = body as Model<'LoginInput'>
+      const user = state.users.find(
+        (entry) => entry.enabled && (entry.username ?? entry.id) === input.username,
+      )
+      ensure(user, 401, 'INVALID_CREDENTIALS', '演示账号不存在')
+      return { role: user.role, user, permissions: find(state.roles, user.role).permissions }
+    },
+    { input: 'LoginInput', readAction: true },
+  ),
+  route('post', '/auth/logout', () => ({ message: 'OK' }), { readAction: true }),
+  route(
+    'post',
+    '/auth/password',
+    () => {
+      ensure(false, 501, 'NOT_IMPLEMENTED', '演示环境不保存真实密码')
+    },
+    { input: 'PasswordChangeInput', readAction: true },
+  ),
   route('get', '/session/users', ({ state }) => state.users),
   route('get', '/session', ({ state, role, request }) => ({
     role,

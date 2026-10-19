@@ -89,3 +89,5 @@ bash tools/backend.sh api
 `.env` 自动生成随机凭证且不提交；查看本地文件获取初始化配置，不把内容贴到日志/聊天。API 默认仅监听 127.0.0.1:8080，健康检查 `/actuator/health`。API/Worker 普通启动禁用自动迁移，升级显式运行 migrate。
 
 实测：JDK 21.0.12.1、Maven 3.9.11 构建成功；四项领域/架构测试通过；PostgreSQL 空库迁移及二次无操作迁移成功；API 健康 UP。个人环境路径和网络代理不进入项目规范。
+
+真实账号已接通：启动 API 后运行 `pnpm dev:real`，访问 `http://localhost:5175/login`。初始化账号/随机密码见未跟踪的 `.env` 文件；演示站点仍为 5174。完整入仓链尚在开发，未实现端点明确报错。验证账号可运行 `set -a; source .env; set +a; python3 tools/test-identity.py`，桌面浏览器验收 `node tools/test-real-identity.mjs`（需 API 与 real 前端已启动）。
