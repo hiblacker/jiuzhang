@@ -18,6 +18,7 @@ import { useWarehouseMetrics } from '@/modules/warehouse'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 const router = useRouter()
+const real = import.meta.env.VITE_API_MODE === 'real'
 const metrics = useWarehouseMetrics()
 const TrendChart = defineAsyncComponent(() => import('@/shared/charts/TrendChart.vue'))
 const trend = computed(
@@ -34,7 +35,7 @@ const layers = computed(() => metrics.data.value?.layers ?? [])
   <PageHeader
     :title="uiText('ui.warehouse_overview_ce379057')"
     :description="uiText('ui.warehouse_overview_96d7bc79')"
-    ><NButton @click="router.push('/warehouse/imports')">{{
+    ><NButton v-if="!real" @click="router.push('/warehouse/imports')">{{
       uiText('ui.warehouse_overview_5e1024da')
     }}</NButton
     ><NButton type="primary" @click="router.push('/warehouse/query')">{{
@@ -86,7 +87,7 @@ const layers = computed(() => metrics.data.value?.layers ?? [])
         <NGridItem
           ><NStatistic
             :label="uiText('warehouse.storage')"
-            :value="((metrics.data.value?.sampleBytes ?? 0) / 1024).toFixed(1)"
+            :value="real ? '—' : ((metrics.data.value?.sampleBytes ?? 0) / 1024).toFixed(1)"
         /></NGridItem>
         <NGridItem
           ><NStatistic
@@ -94,14 +95,16 @@ const layers = computed(() => metrics.data.value?.layers ?? [])
             :value="metrics.data.value?.activeRuns ?? 0"
         /></NGridItem>
       </NGrid>
-      <h3>{{ uiText('warehouse.readWriteTrend') }}</h3>
+      <h3 v-if="!real">{{ uiText('warehouse.readWriteTrend') }}</h3>
       <TrendChart
+        v-if="!real"
         :points="trend"
         :labels="[uiText('warehouse.reads'), uiText('warehouse.writes')]"
         :label="uiText('warehouse.readWriteTrend')"
       />
-      <h3>{{ uiText('warehouse.tableGrowth') }}</h3>
+      <h3 v-if="!real">{{ uiText('warehouse.tableGrowth') }}</h3>
       <NDataTable
+        v-if="!real"
         :data="metrics.data.value?.trend ?? []"
         :columns="[
           { title: uiText('updated'), key: 'date' },
@@ -109,7 +112,9 @@ const layers = computed(() => metrics.data.value?.layers ?? [])
         ]"
         :bordered="false"
       />
-      <NAlert type="info">{{ uiText('warehouse.metricsHint') }}</NAlert> </NCard
+      <NAlert type="info">{{
+        uiText(real ? 'warehouse.realMetricsHint' : 'warehouse.metricsHint')
+      }}</NAlert> </NCard
     ><NAlert type="info" style="margin-top: 24px">{{
       uiText('ui.warehouse_overview_b21e6749')
     }}</NAlert></AsyncState

@@ -3,6 +3,8 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   overview: {
+    realTrendHint: '近 7 日 · 真实运行记录 · 上海时区',
+    realPendingHint: '按完整元数据快照汇总；连接状态来自最近一次测试，不代表实时探活。',
     title: '工作台',
     description: '从这里掌握数据流转、任务运行与资产健康状况',
     newSource: '接入数据源',

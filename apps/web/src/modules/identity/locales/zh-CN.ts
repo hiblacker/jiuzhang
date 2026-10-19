@@ -3,6 +3,10 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   identity: {
+    unsupportedTitle: '此功能尚未接入真实服务',
+    unsupportedDescription:
+      '第一版提供 MySQL、数据集发布、手动运行、快照入仓、只读查询与 CSV 导出。此页面仅在 Mock 演示模式可用。',
+    backOverview: '返回工作台',
     username: '账号',
     createUser: '新建用户',
     managedAccounts: '系统账号由管理员维护；停用或修改权限会使已有会话失效。',

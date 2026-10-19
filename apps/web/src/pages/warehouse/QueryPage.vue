@@ -29,6 +29,7 @@ import {
 import { useI18n } from 'vue-i18n'
 import { useListRoute } from '@/shared/composables/use-list-route'
 import { QueryToolbar } from '@/shared/ui/query-toolbar'
+import { errorKey } from '@/shared/api/error-message'
 import { AsyncState } from '@/shared/ui/async-state'
 import { PageHeader } from '@/shared/ui/page-header'
 const SqlEditor = defineAsyncComponent(() => import('@/shared/editors/SqlEditor.vue'))
@@ -126,7 +127,7 @@ async function exportResult(format: 'csv' | 'json') {
       v-if="actions.query.error.value"
       type="error"
       style="margin-top: 20px"
-      >{{ uiText('ui.query_6a2a3277') }}</NAlert
+      >{{ uiText(errorKey(actions.query.error.value)) }}</NAlert
     ></NCard
   ><NCard :bordered="false"
     ><NTabs
@@ -160,7 +161,7 @@ async function exportResult(format: 'csv' | 'json') {
           uiText('ui.query_df658bd3')
         }}</NAlert
         ><NAlert v-if="resultData?.status === 'failed'" type="error">{{
-          uiText('ui.query_6a2a3277')
+          uiText(errorKey(actions.query.error.value))
         }}</NAlert
         ><NAlert v-if="resultData?.status === 'canceled'" type="warning">{{
           t('states.canceled')

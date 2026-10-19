@@ -892,3 +892,10 @@ Maven verify（新增 4 项领域测试）、V003→V004 实际 PostgreSQL 升�
 仓库接口返回实际 Doris 数据，整数/Decimal 保持字符串；SQL 第一版只支持单表字段投影、LIMIT 1–1000、OFFSET ≤1,000,000，默认 100 行，15 秒超时、10MiB 结果上限，使用 JSqlParser 和封闭语法验证后重建 SQL。拒绝 DML、函数、JOIN、子查询、多语句和内部物理表。查询/CSV 导出归创建者，CSV 防公式注入、24 小时可读有效期，导出范围为已查询结果。原始批次单次最多 256MiB、源读取最多 1,000,000 行、最长 600 秒；这些是资源上限，不是吞吐承诺。
 
 本地真实环境：Doris 3.0.8、SeaweedFS 3.97 S3 兼容接口（固定镜像 digest；本地验证使用，非生产部署结论）。Maven verify、前端 pnpm check、tools/test-execution.py、tools/test-warehouse.py、tools/test-execution-safety.py 与 tools/test-real-execution.mjs（1280×1000）实际通过。覆盖成功、重复覆盖与源端删除、空阻断/批准、未使用字段增删、已使用类型变化、重试版本、活动互斥、取消、发布对账、保留上限、精度/null、SQL 拒绝、私有查询/导出；杀进程恢复/故障注入与完整交付审计仍在下一块。
+
+### 14.5 真实模式入口与工作台（2026-10-19）
+
+- 工作台在 PostgreSQL 可重复读事务中汇总完整来源、数据集、运行、当前快照与近七日趋势；失败列表先筛选再取五条。审计活动仅管理员可见。
+- 真实模式导航仅展示首版已实现能力，直接访问任务调度、导入、服务等暂缓路由显示明确说明；Mock 的 38 个路由保持可用。
+- 数据集目录移动/复制在真实模式禁用，仓库容量显示未采集，避免以占位零值表示真实容量。查询失败按服务端错误码显示。
+- 实际验证：Maven verify、pnpm check（93 个测试、Mock/real 双构建）、test-overview.py、test-real-overview.mjs；浏览器仅 1280×1000。

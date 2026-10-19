@@ -3,6 +3,9 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   warehouse: {
+    realExports: 'CSV 文件包含创建时的查询结果，仅创建者可见；24 小时后不可下载。',
+    realMetricsHint:
+      '表与行数来自当前已发布快照；容量与仓库性能趋势尚未采集。查询统计仅当前账号可见，运行累计统计当前最多覆盖最近 10000 次。',
     realQueryHint:
       '第一版支持 SELECT 字段列表或 * FROM 单个逻辑表，可加 LIMIT 1–1000 与 OFFSET；默认 100 行。只读、15 秒超时，不支持表达式、函数、JOIN、子查询与多语句。CSV 导出当前查询结果，24 小时过期。',
     sqlEditor: '仓库 SQL 编辑器',

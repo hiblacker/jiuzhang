@@ -201,7 +201,7 @@ async function publish() {
             ><NDescriptionsItem :label="uiText('ui.dataset_detail_e2d53a6d')">{{
               query.data.value?.definition.schedule.retries
             }}</NDescriptionsItem></ResponsiveDescriptions
-          ><NButton @click="router.push('/tasks')">{{
+          ><NButton v-if="!real" @click="router.push('/tasks')">{{
             uiText('ui.dataset_detail_d1d5bfef')
           }}</NButton></NTabPane
         ><NTabPane name="versions" :tab="uiText('ui.dataset_detail_989d1aff')"
@@ -224,7 +224,7 @@ async function publish() {
           ><RunHistory
             :scope="{ datasetId: id }"
             @select="router.push('/runs/' + $event)" /></NTabPane
-        ><NTabPane name="lineage" :tab="uiText('ui.dataset_detail_34c5a283')"
+        ><NTabPane v-if="!real" name="lineage" :tab="uiText('ui.dataset_detail_34c5a283')"
           ><NButton
             type="primary"
             secondary
@@ -240,9 +240,9 @@ async function publish() {
     :show="confirm"
     :title="uiText('ui.dataset_detail_bbbe36d4')"
     :description="
-      uiText('ui.dataset_detail_ef13ebf7') + ((query.data.value?.publishedVersion ?? 0) + 1) + real
-        ? t('datasets.realOutput')
-        : uiText('ui.dataset_detail_ef711d29')
+      uiText('ui.dataset_detail_ef13ebf7') +
+      ((query.data.value?.publishedVersion ?? 0) + 1) +
+      (real ? t('datasets.realOutput') : uiText('ui.dataset_detail_ef711d29'))
     "
     :pending="actions.publish.isPending.value"
     :error="actions.publish.error.value ? t(errorKey(actions.publish.error.value)) : undefined"

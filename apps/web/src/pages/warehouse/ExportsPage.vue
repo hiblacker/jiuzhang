@@ -25,6 +25,7 @@ import { AsyncState } from '@/shared/ui/async-state'
 import { downloadText } from '@/shared/lib/download'
 import type { Model } from '@/shared/api/types'
 import { errorKey } from '@/shared/api/error-message'
+const real = import.meta.env.VITE_API_MODE === 'real'
 const router = useRouter(),
   { filters, update, bindPagination } = useListRoute(),
   query = useExports(() =>
@@ -111,7 +112,9 @@ const columns: DataTableColumns<Model<'Export'>> = [
 ]
 </script>
 <template>
-  <PageHeader :title="uiText('ui.exports_603a049b')" :description="uiText('ui.exports_e95d66c0')"
+  <PageHeader
+    :title="uiText('ui.exports_603a049b')"
+    :description="real ? uiText('warehouse.realExports') : uiText('ui.exports_e95d66c0')"
     ><NButton type="primary" @click="router.push('/warehouse/query')">{{
       uiText('ui.exports_9953cdb5')
     }}</NButton></PageHeader

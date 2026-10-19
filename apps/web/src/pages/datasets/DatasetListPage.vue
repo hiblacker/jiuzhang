@@ -146,7 +146,7 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
           {
             size: 'small',
             quaternary: true,
-            disabled: readonly.value,
+            disabled: real || readonly.value,
             onClick: () => {
               moveDataset.value = d
             },
@@ -168,7 +168,7 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
           {
             size: 'small',
             quaternary: true,
-            disabled: readonly.value || actions.copy.isPending.value,
+            disabled: real || readonly.value || actions.copy.isPending.value,
             onClick: () => copy(d.id),
           },
           () => uiText('ui.dataset_list_4edd1d00'),
@@ -213,8 +213,8 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
       >{{ uiText('ui.dataset_list_e78bd5fa') }}</NButton
     ></PageHeader
   >
-  <div class="dataset-layout">
-    <aside>
+  <div class="dataset-layout" :class="{ 'dataset-layout--real': real }">
+    <aside v-if="!real">
       <DatasetFolderPanel
         v-if="!real"
         :selected="params.folderId"
@@ -291,6 +291,9 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
   grid-template-columns: 244px minmax(0, 1fr);
   gap: 20px;
   align-items: start;
+}
+.dataset-layout--real {
+  grid-template-columns: minmax(0, 1fr);
 }
 .dataset-layout > * {
   min-width: 0;

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { routeManifest } from './route-manifest'
+import { supportsRealRoute } from './real-capabilities'
 import { loadRouteMessages, type LocaleDomain } from './i18n'
 import { readPreference } from '@/shared/lib/preferences'
 import { sessionOptions } from '@/modules/identity'
@@ -52,7 +53,14 @@ function component(path: string) {
 }
 const children: RouteRecordRaw[] = routeManifest
   .filter((r) => r.id !== 'P36')
-  .map((r) => ({ path: r.path, component: component(r.path), meta: { ...r } }))
+  .map((r) => ({
+    path: r.path,
+    component:
+      import.meta.env.VITE_API_MODE === 'real' && !supportsRealRoute(r.path)
+        ? () => import('@/pages/system/UnsupportedPage.vue')
+        : component(r.path),
+    meta: { ...r },
+  }))
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
