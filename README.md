@@ -71,3 +71,21 @@ pnpm preview         # 生产演示包预览，http://localhost:4173
 ## 工程边界
 
 前端：`apps/web/src/app → pages → modules → shared`。协议：`packages/contracts/openapi.yaml`。未来 API/Worker 与 Java 模块布局见 [总体架构](docs/architecture.md)。开发规则入口：[AGENTS.md](AGENTS.md)。
+
+## 第一版真实后端开发（2026-10-19）
+
+已完成工程基础，业务闭环仍在实现，不能将健康检查当成真实入仓验收。
+JDK 21、Spring Boot 3.5.16、Maven Wrapper 3.9.11；PostgreSQL 17.6。
+
+```bash
+bash tools/local-env.sh
+docker compose --env-file .env -f infra/compose.yaml up -d --wait metadata
+bash tools/backend.sh build
+bash tools/backend.sh migrate
+bash tools/backend.sh api
+# 另一个终端：bash tools/backend.sh worker
+```
+
+`.env` 自动生成随机凭证且不提交；查看本地文件获取初始化配置，不把内容贴到日志/聊天。API 默认仅监听 127.0.0.1:8080，健康检查 `/actuator/health`。API/Worker 普通启动禁用自动迁移，升级显式运行 migrate。
+
+实测：JDK 21.0.12.1、Maven 3.9.11 构建成功；四项领域/架构测试通过；PostgreSQL 空库迁移及二次无操作迁移成功；API 健康 UP。个人环境路径和网络代理不进入项目规范。

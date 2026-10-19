@@ -1,0 +1,11 @@
+spring:
+  main:
+    web-application-type: none
+  datasource:
+    url: ${METADATA_URL:jdbc:postgresql://127.0.0.1:15432/jiuzhang}
+    username: ${METADATA_USER:jiuzhang}
+    password: ${METADATA_PASSWORD}
+    hikari:
+      maximum-pool-size: 4
+  flyway:
+    enabled: false

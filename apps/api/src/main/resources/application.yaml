@@ -1,0 +1,34 @@
+server:
+  address: ${API_ADDRESS:127.0.0.1}
+  port: ${API_PORT:8080}
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: strict
+spring:
+  datasource:
+    url: ${METADATA_URL:jdbc:postgresql://127.0.0.1:15432/jiuzhang}
+    username: ${METADATA_USER:jiuzhang}
+    password: ${METADATA_PASSWORD}
+    hikari:
+      maximum-pool-size: 8
+  flyway:
+    enabled: false
+  jackson:
+    deserialization:
+      fail-on-trailing-tokens: true
+  mvc:
+    log-request-details: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+logging:
+  level:
+    root: INFO
+    org.springframework.jdbc: WARN

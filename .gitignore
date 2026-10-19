@@ -9,6 +9,8 @@ dist-real/
 playwright-report/
 test-results/
 coverage/
+target/
+.local/
 
 # Local assistant workspace metadata
 .workbuddy/

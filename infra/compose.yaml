@@ -1,0 +1,31 @@
+name: jiuzhang
+services:
+  metadata:
+    image: postgres:17.6
+    environment:
+      POSTGRES_DB: jiuzhang
+      POSTGRES_USER: jiuzhang
+      POSTGRES_PASSWORD: ${METADATA_PASSWORD:?Run tools/local-env.sh first}
+    ports: ["127.0.0.1:15432:5432"]
+    volumes: ["metadata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jiuzhang"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  source:
+    image: mysql:8.4.6
+    profiles: ["source"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${SOURCE_ROOT_PASSWORD:?Run tools/local-env.sh first}
+      MYSQL_DATABASE: demo_retail
+    ports: ["127.0.0.1:13306:3306"]
+    volumes: ["source:/var/lib/mysql", "./fixtures/mysql.sql:/docker-entrypoint-initdb.d/01-fixtures.sql:ro"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 3s
+      timeout: 3s
+      retries: 60
+volumes:
+  metadata:
+  source:
