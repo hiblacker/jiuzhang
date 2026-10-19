@@ -1,4 +1,5 @@
 package cn.jiuzhang.platform.execution.infrastructure;
+
 import cn.jiuzhang.platform.execution.application.RunStore;
 import cn.jiuzhang.platform.identity.application.IdentityService;
 import cn.jiuzhang.platform.shared.application.Failure;
@@ -8,37 +9,362 @@ import java.util.function.Supplier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
+
 @Repository
-public class JdbcRunStore implements RunStore{
- private final JdbcTemplate db;private final TransactionTemplate tx;private final MetadataJson json;
- public JdbcRunStore(JdbcTemplate db,TransactionTemplate tx,MetadataJson json){this.db=db;this.tx=tx;this.json=json;}
- public <T>T transaction(Supplier<T> work){return tx.execute(s->work.get());}
- public void lockDataset(String id){if(db.queryForList("SELECT id FROM dataset WHERE id=? FOR UPDATE",n(id)).isEmpty())throw new Failure(404,"NOT_FOUND");}
- public Map<String,Object> get(String id,boolean lock){var rows=db.queryForList("SELECT * FROM dataset_run WHERE id=?"+(lock?" FOR UPDATE":""),n(id));if(rows.isEmpty())throw new Failure(404,"RUN_NOT_FOUND");return run(rows.getFirst());}
- public List<Map<String,Object>> list(){return db.queryForList("SELECT * FROM dataset_run ORDER BY id DESC LIMIT 10000").stream().map(this::run).toList();}
- public Map<String,Object> existing(String user,String id,String key){var rows=db.queryForList("SELECT * FROM dataset_run WHERE requested_by=? AND dataset_id=? AND idempotency_key=?",n(user),n(id),key);return rows.isEmpty()?null:run(rows.getFirst());}
- public Map<String,Object> create(String dataset,int version,String user,String key,String hash,boolean allow,String retry){var active=db.queryForList("SELECT id FROM dataset_run WHERE dataset_id=? AND status IN ('queued','running','validating','publishing')",n(dataset));if(!active.isEmpty())throw new Failure(409,"DATASET_RUN_ACTIVE");String id=db.queryForObject("INSERT INTO dataset_run(dataset_id,dataset_version,requested_by,idempotency_key,request_hash,allow_empty,retry_of,logs) VALUES (?,?,?,?,?,?,?,?::jsonb) RETURNING id",Long.class,n(dataset),version,n(user),key,hash,allow,retry==null?null:n(retry),json.write(List.of("RUN_QUEUED"))).toString();return get(id,false);}
- public void cancel(String id){db.update("UPDATE dataset_run SET cancel_requested=true WHERE id=?",n(id));db.update("UPDATE dataset_run SET status='canceled',finished_at=now(),logs=logs||'[\"RUN_CANCELED\"]'::jsonb WHERE id=? AND status='queued'",n(id));}
- public Map<String,Object> claim(){return transaction(()->{
-  // Abandoned reads are terminal; publishing is reconciled against the stable Doris view.
-  db.update("UPDATE dataset_run SET status='failed',error_code='WORKER_LOST',finished_at=now(),logs=logs||'[\"WORKER_LOST\"]'::jsonb WHERE status IN ('running','validating') AND lease_until<now()");
-  var rows=db.queryForList("SELECT id FROM dataset_run WHERE status='queued' OR (status='publishing' AND lease_until<now()) ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1");if(rows.isEmpty())return null;
-  String id=rows.getFirst().get("id").toString(),token=UUID.randomUUID().toString();db.update("UPDATE dataset_run SET lease_token=?,lease_until=now()+interval '90 seconds',status=CASE WHEN status='queued' THEN 'running' ELSE status END,execution_started_at=coalesce(execution_started_at,now()),logs=logs||'[\"WORKER_CLAIMED\"]'::jsonb WHERE id=?",token,n(id));return get(id,false);
- });}
- public boolean heartbeat(String id,String token){return db.update("UPDATE dataset_run SET lease_until=now()+interval '90 seconds' WHERE id=? AND lease_token=? AND lease_until>now() AND status IN ('running','validating','publishing')",n(id),token)==1;}
- public boolean canceled(String id,String token){var rows=db.queryForList("SELECT cancel_requested,lease_token,lease_until>now() AS valid FROM dataset_run WHERE id=?",n(id));if(rows.isEmpty())return true;var row=rows.getFirst();return (Boolean)row.get("cancel_requested")||!token.equals(row.get("lease_token"))||!Boolean.TRUE.equals(row.get("valid"));}
- public void transition(String id,String token,String status,long count,List<Map<String,Object>> quality){int changed=db.update("UPDATE dataset_run SET status=?,row_count=?,quality_results=?::jsonb,logs=logs||?::jsonb WHERE id=? AND lease_token=? AND lease_until>now() AND status IN ('running','validating') AND NOT cancel_requested",status,count,json.write(quality),json.write(List.of("RUN_"+status.toUpperCase(Locale.ROOT))),n(id),token);if(changed!=1)throw new Failure(409,"RUN_LEASE_LOST");}
- public void stage(String id,String token,String physical,List<Map<String,Object>> fields,long count,String raw){transaction(()->{var r=get(id,true);fence(r,token);if((Boolean)r.get("cancelRequested"))throw new Failure(409,"RUN_CANCELED");db.update("INSERT INTO warehouse_snapshot(run_id,dataset_id,physical_table,fields,row_count) VALUES (?,?,?,?::jsonb,?)",n(id),n(r.get("datasetId").toString()),physical,json.write(fields),count);db.update("UPDATE dataset_run SET status='publishing',raw_object_key=?,logs=logs||'[\"RUN_PUBLISHING\"]'::jsonb WHERE id=?",raw,n(id));return null;});}
- public void finish(String id,String token,String status,String code){db.update("UPDATE dataset_run SET status=?,error_code=?,finished_at=now(),logs=logs||?::jsonb WHERE id=? AND lease_token=? AND status IN ('running','validating')",status,code,json.write(List.of(code.isEmpty()?"RUN_"+status.toUpperCase(Locale.ROOT):code)),n(id),token);}
- public void commit(String id,String token){var r=get(id,true);fence(r,token);if(!r.get("status").equals("publishing"))throw new Failure(409,"RUN_STATE_CONFLICT");String dataset=r.get("datasetId").toString();db.update("UPDATE warehouse_snapshot SET replaced_at=now() WHERE run_id=(SELECT current_run_id FROM warehouse_target WHERE dataset_id=?) AND run_id<>? AND replaced_at IS NULL",n(dataset),n(id));db.update("INSERT INTO warehouse_target(dataset_id,name,current_run_id) SELECT id,target_name,? FROM dataset WHERE id=? ON CONFLICT(dataset_id) DO UPDATE SET current_run_id=excluded.current_run_id,updated_at=now()",n(id),n(dataset));db.update("UPDATE dataset_run SET status='succeeded',finished_at=now(),error_code='',logs=logs||'[\"RUN_SUCCEEDED\"]'::jsonb WHERE id=?",n(id));}
- public Map<String,Object> current(String dataset){var rows=db.queryForList("SELECT s.*,t.name FROM warehouse_target t JOIN warehouse_snapshot s ON s.run_id=t.current_run_id WHERE t.dataset_id=?",n(dataset));return rows.isEmpty()?null:snapshotData(rows.getFirst());}
- public List<Map<String,Object>> targets(){return db.queryForList("SELECT s.*,t.name FROM warehouse_target t JOIN warehouse_snapshot s ON s.run_id=t.current_run_id ORDER BY t.name").stream().map(this::snapshotData).toList();}
- public Map<String,Object> snapshot(String id){var rows=db.queryForList("SELECT s.*,d.target_name AS name FROM warehouse_snapshot s JOIN dataset d ON d.id=s.dataset_id WHERE s.run_id=?",n(id));if(rows.isEmpty())throw new Failure(404,"SNAPSHOT_NOT_FOUND");return snapshotData(rows.getFirst());}
- public List<Map<String,Object>> history(String id){return db.queryForList("SELECT s.*,d.target_name AS name FROM warehouse_snapshot s JOIN dataset d ON d.id=s.dataset_id WHERE dataset_id=? AND replaced_at IS NOT NULL AND deleted_at IS NULL ORDER BY replaced_at DESC",n(id)).stream().map(this::snapshotData).toList();}
- public void deleted(String id){db.update("UPDATE warehouse_snapshot SET deleted_at=now() WHERE run_id=? AND replaced_at IS NOT NULL",n(id));}
- private void fence(Map<String,Object>r,String token){if(!token.equals(r.get("leaseToken"))||r.get("leaseUntil")==null||!java.time.Instant.parse(r.get("leaseUntil").toString()).isAfter(java.time.Instant.now()))throw new Failure(409,"RUN_LEASE_LOST");}
- private Map<String,Object> run(Map<String,Object>r){var m=new LinkedHashMap<String,Object>();for(var k:Map.ofEntries(Map.entry("id","id"),Map.entry("dataset_id","datasetId"),Map.entry("dataset_version","datasetVersion"),Map.entry("requested_by","requestedBy"),Map.entry("idempotency_key","idempotencyKey"),Map.entry("request_hash","requestHash"),Map.entry("allow_empty","allowEmpty"),Map.entry("status","status"),Map.entry("cancel_requested","cancelRequested"),Map.entry("error_code","errorCode"),Map.entry("row_count","rowCount")).entrySet())m.put(k.getValue(),r.get(k.getKey()));for(String key:List.of("id","datasetId","requestedBy","rowCount"))m.put(key,m.get(key).toString());m.put("retryOf",r.get("retry_of")==null?"":r.get("retry_of").toString());m.put("leaseToken",r.get("lease_token"));m.put("leaseUntil",instant(r.get("lease_until")));m.put("startedAt",instant(r.get("started_at")));m.put("finishedAt",instant(r.get("finished_at")));m.put("executionStartedAt",instant(r.get("execution_started_at")));m.put("logs",json.read(r.get("logs").toString(),new com.fasterxml.jackson.core.type.TypeReference<List<String>>(){}));m.put("qualityResults",json.read(r.get("quality_results").toString(),new com.fasterxml.jackson.core.type.TypeReference<List<Map<String,Object>>>(){}));return m;}
- private Map<String,Object> snapshotData(Map<String,Object>r){var m=new LinkedHashMap<String,Object>();m.put("runId",r.get("run_id").toString());m.put("datasetId",r.get("dataset_id").toString());m.put("name",r.get("name"));m.put("physical",r.get("physical_table"));m.put("fields",json.read(r.get("fields").toString(),new com.fasterxml.jackson.core.type.TypeReference<List<Map<String,Object>>>(){}));m.put("rowCount",r.get("row_count").toString());m.put("publishedAt",instant(r.get("published_at")));m.put("replacedAt",instant(r.get("replaced_at")));m.put("deletedAt",instant(r.get("deleted_at")));return m;}
- private String instant(Object v){return v==null?null:((java.sql.Timestamp)v).toInstant().toString();}
- private long n(String id){return IdentityService.numericId(id);}
+public class JdbcRunStore implements RunStore {
+  private final JdbcTemplate db;
+  private final TransactionTemplate tx;
+  private final MetadataJson json;
+
+  public JdbcRunStore(JdbcTemplate db, TransactionTemplate tx, MetadataJson json) {
+    this.db = db;
+    this.tx = tx;
+    this.json = json;
+  }
+
+  public <T> T transaction(Supplier<T> work) {
+    return tx.execute(s -> work.get());
+  }
+
+  public void lockDataset(String id) {
+    if (db.queryForList("SELECT id FROM dataset WHERE id=? FOR UPDATE", n(id)).isEmpty())
+      throw new Failure(404, "NOT_FOUND");
+  }
+
+  public Map<String, Object> get(String id, boolean lock) {
+    var rows =
+        db.queryForList(
+            "SELECT * FROM dataset_run WHERE id=?" + (lock ? " FOR UPDATE" : ""), n(id));
+    if (rows.isEmpty()) throw new Failure(404, "RUN_NOT_FOUND");
+    return run(rows.getFirst());
+  }
+
+  public List<Map<String, Object>> list() {
+    return db.queryForList("SELECT * FROM dataset_run ORDER BY id DESC LIMIT 10000").stream()
+        .map(this::run)
+        .toList();
+  }
+
+  public Map<String, Object> existing(String user, String id, String key) {
+    var rows =
+        db.queryForList(
+            "SELECT * FROM dataset_run WHERE requested_by=? AND dataset_id=? AND idempotency_key=?",
+            n(user),
+            n(id),
+            key);
+    return rows.isEmpty() ? null : run(rows.getFirst());
+  }
+
+  public Map<String, Object> create(
+      String dataset,
+      int version,
+      String user,
+      String key,
+      String hash,
+      boolean allow,
+      String retry) {
+    var active =
+        db.queryForList(
+            "SELECT id FROM dataset_run WHERE dataset_id=? AND status IN"
+                + " ('queued','running','validating','publishing')",
+            n(dataset));
+    if (!active.isEmpty()) throw new Failure(409, "DATASET_RUN_ACTIVE");
+    String id =
+        db.queryForObject(
+                "INSERT INTO"
+                    + " dataset_run(dataset_id,dataset_version,requested_by,idempotency_key,request_hash,allow_empty,retry_of,logs)"
+                    + " VALUES (?,?,?,?,?,?,?,?::jsonb) RETURNING id",
+                Long.class,
+                n(dataset),
+                version,
+                n(user),
+                key,
+                hash,
+                allow,
+                retry == null ? null : n(retry),
+                json.write(List.of("RUN_QUEUED")))
+            .toString();
+    return get(id, false);
+  }
+
+  public void cancel(String id) {
+    db.update("UPDATE dataset_run SET cancel_requested=true WHERE id=?", n(id));
+    db.update(
+        "UPDATE dataset_run SET"
+            + " status='canceled',finished_at=now(),logs=logs||'[\"RUN_CANCELED\"]'::jsonb WHERE"
+            + " id=? AND status='queued'",
+        n(id));
+  }
+
+  public Map<String, Object> claim() {
+    return transaction(
+        () -> {
+          // Abandoned reads are terminal; publishing is reconciled against the stable Doris view.
+          db.update(
+              "UPDATE dataset_run SET"
+                  + " status='failed',error_code='WORKER_LOST',finished_at=now(),logs=logs||'[\"WORKER_LOST\"]'::jsonb"
+                  + " WHERE status IN ('running','validating') AND lease_until<now()");
+          var rows =
+              db.queryForList(
+                  "SELECT id FROM dataset_run WHERE status='queued' OR (status='publishing' AND"
+                      + " lease_until<now()) ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1");
+          if (rows.isEmpty()) return null;
+          String id = rows.getFirst().get("id").toString(), token = UUID.randomUUID().toString();
+          db.update(
+              "UPDATE dataset_run SET lease_token=?,lease_until=now()+interval '90"
+                  + " seconds',status=CASE WHEN status='queued' THEN 'running' ELSE status"
+                  + " END,execution_started_at=coalesce(execution_started_at,now()),logs=logs||'[\"WORKER_CLAIMED\"]'::jsonb"
+                  + " WHERE id=?",
+              token,
+              n(id));
+          return get(id, false);
+        });
+  }
+
+  public boolean heartbeat(String id, String token) {
+    return db.update(
+            "UPDATE dataset_run SET lease_until=now()+interval '90 seconds' WHERE id=? AND"
+                + " lease_token=? AND lease_until>now() AND status IN"
+                + " ('running','validating','publishing')",
+            n(id),
+            token)
+        == 1;
+  }
+
+  public boolean canceled(String id, String token) {
+    var rows =
+        db.queryForList(
+            "SELECT cancel_requested,lease_token,lease_until>now() AS valid FROM dataset_run WHERE"
+                + " id=?",
+            n(id));
+    if (rows.isEmpty()) return true;
+    var row = rows.getFirst();
+    return (Boolean) row.get("cancel_requested")
+        || !token.equals(row.get("lease_token"))
+        || !Boolean.TRUE.equals(row.get("valid"));
+  }
+
+  public void transition(
+      String id, String token, String status, long count, List<Map<String, Object>> quality) {
+    int changed =
+        db.update(
+            "UPDATE dataset_run SET"
+                + " status=?,row_count=?,quality_results=?::jsonb,logs=logs||?::jsonb WHERE id=?"
+                + " AND lease_token=? AND lease_until>now() AND status IN ('running','validating')"
+                + " AND NOT cancel_requested",
+            status,
+            count,
+            json.write(quality),
+            json.write(List.of("RUN_" + status.toUpperCase(Locale.ROOT))),
+            n(id),
+            token);
+    if (changed != 1) throw new Failure(409, "RUN_LEASE_LOST");
+  }
+
+  public void prepareArtifacts(String id, String token, String physical, String raw) {
+    int changed =
+        db.update(
+            "UPDATE dataset_run SET staging_table=?,raw_object_key=? WHERE id=? AND lease_token=?"
+                + " AND lease_until>now() AND status='running' AND NOT cancel_requested",
+            physical,
+            raw,
+            n(id),
+            token);
+    if (changed != 1) throw new Failure(409, "RUN_LEASE_LOST");
+  }
+
+  public List<Map<String, Object>> abandonedArtifacts() {
+    return db.queryForList(
+        "SELECT id::text AS id,staging_table AS physical,raw_object_key AS raw FROM dataset_run"
+            + " WHERE status IN ('failed','blocked','canceled') AND staging_table IS NOT NULL AND"
+            + " artifacts_deleted_at IS NULL AND finished_at<now()-interval '5 minutes' ORDER BY id"
+            + " LIMIT 100");
+  }
+
+  public void artifactsDeleted(String id) {
+    db.update("UPDATE dataset_run SET artifacts_deleted_at=now() WHERE id=?", n(id));
+  }
+
+  public void stage(
+      String id,
+      String token,
+      String physical,
+      List<Map<String, Object>> fields,
+      long count,
+      String raw) {
+    transaction(
+        () -> {
+          var r = get(id, true);
+          fence(r, token);
+          if ((Boolean) r.get("cancelRequested")) throw new Failure(409, "RUN_CANCELED");
+          db.update(
+              "INSERT INTO warehouse_snapshot(run_id,dataset_id,physical_table,fields,row_count)"
+                  + " VALUES (?,?,?,?::jsonb,?)",
+              n(id),
+              n(r.get("datasetId").toString()),
+              physical,
+              json.write(fields),
+              count);
+          db.update(
+              "UPDATE dataset_run SET"
+                  + " status='publishing',raw_object_key=?,logs=logs||'[\"RUN_PUBLISHING\"]'::jsonb"
+                  + " WHERE id=?",
+              raw,
+              n(id));
+          return null;
+        });
+  }
+
+  public void finish(String id, String token, String status, String code) {
+    db.update(
+        "UPDATE dataset_run SET status=?,error_code=?,finished_at=now(),logs=logs||?::jsonb WHERE"
+            + " id=? AND lease_token=? AND lease_until>now() AND status IN"
+            + " ('running','validating')",
+        status,
+        code,
+        json.write(List.of(code.isEmpty() ? "RUN_" + status.toUpperCase(Locale.ROOT) : code)),
+        n(id),
+        token);
+  }
+
+  public void commit(String id, String token) {
+    var r = get(id, true);
+    fence(r, token);
+    if (!r.get("status").equals("publishing")) throw new Failure(409, "RUN_STATE_CONFLICT");
+    String dataset = r.get("datasetId").toString();
+    db.update(
+        "UPDATE warehouse_snapshot SET replaced_at=now() WHERE run_id=(SELECT current_run_id FROM"
+            + " warehouse_target WHERE dataset_id=?) AND run_id<>? AND replaced_at IS NULL",
+        n(dataset),
+        n(id));
+    db.update(
+        "INSERT INTO warehouse_target(dataset_id,name,current_run_id) SELECT id,target_name,? FROM"
+            + " dataset WHERE id=? ON CONFLICT(dataset_id) DO UPDATE SET"
+            + " current_run_id=excluded.current_run_id,updated_at=now()",
+        n(id),
+        n(dataset));
+    db.update(
+        "UPDATE dataset_run SET"
+            + " status='succeeded',finished_at=now(),error_code='',logs=logs||'[\"RUN_SUCCEEDED\"]'::jsonb"
+            + " WHERE id=?",
+        n(id));
+  }
+
+  public Map<String, Object> current(String dataset) {
+    var rows =
+        db.queryForList(
+            "SELECT s.*,t.name FROM warehouse_target t JOIN warehouse_snapshot s ON"
+                + " s.run_id=t.current_run_id WHERE t.dataset_id=?",
+            n(dataset));
+    return rows.isEmpty() ? null : snapshotData(rows.getFirst());
+  }
+
+  public List<Map<String, Object>> targets() {
+    return db
+        .queryForList(
+            "SELECT s.*,t.name FROM warehouse_target t JOIN warehouse_snapshot s ON"
+                + " s.run_id=t.current_run_id ORDER BY t.name")
+        .stream()
+        .map(this::snapshotData)
+        .toList();
+  }
+
+  public Map<String, Object> snapshot(String id) {
+    var rows =
+        db.queryForList(
+            "SELECT s.*,d.target_name AS name FROM warehouse_snapshot s JOIN dataset d ON"
+                + " d.id=s.dataset_id WHERE s.run_id=?",
+            n(id));
+    if (rows.isEmpty()) throw new Failure(404, "SNAPSHOT_NOT_FOUND");
+    return snapshotData(rows.getFirst());
+  }
+
+  public List<Map<String, Object>> history(String id) {
+    return db
+        .queryForList(
+            "SELECT s.*,d.target_name AS name FROM warehouse_snapshot s JOIN dataset d ON"
+                + " d.id=s.dataset_id WHERE dataset_id=? AND replaced_at IS NOT NULL AND deleted_at"
+                + " IS NULL ORDER BY replaced_at DESC",
+            n(id))
+        .stream()
+        .map(this::snapshotData)
+        .toList();
+  }
+
+  public void deleted(String id) {
+    db.update(
+        "UPDATE warehouse_snapshot SET deleted_at=now() WHERE run_id=? AND replaced_at IS NOT NULL",
+        n(id));
+  }
+
+  private void fence(Map<String, Object> r, String token) {
+    if (!token.equals(r.get("leaseToken"))
+        || r.get("leaseUntil") == null
+        || !java.time.Instant.parse(r.get("leaseUntil").toString())
+            .isAfter(java.time.Instant.now())) throw new Failure(409, "RUN_LEASE_LOST");
+  }
+
+  private Map<String, Object> run(Map<String, Object> r) {
+    var m = new LinkedHashMap<String, Object>();
+    for (var k :
+        Map.ofEntries(
+                Map.entry("id", "id"),
+                Map.entry("dataset_id", "datasetId"),
+                Map.entry("dataset_version", "datasetVersion"),
+                Map.entry("requested_by", "requestedBy"),
+                Map.entry("idempotency_key", "idempotencyKey"),
+                Map.entry("request_hash", "requestHash"),
+                Map.entry("allow_empty", "allowEmpty"),
+                Map.entry("status", "status"),
+                Map.entry("cancel_requested", "cancelRequested"),
+                Map.entry("error_code", "errorCode"),
+                Map.entry("row_count", "rowCount"))
+            .entrySet()) m.put(k.getValue(), r.get(k.getKey()));
+    for (String key : List.of("id", "datasetId", "requestedBy", "rowCount"))
+      m.put(key, m.get(key).toString());
+    m.put("retryOf", r.get("retry_of") == null ? "" : r.get("retry_of").toString());
+    m.put("rawObjectKey", r.get("raw_object_key"));
+    m.put("leaseToken", r.get("lease_token"));
+    m.put("leaseUntil", instant(r.get("lease_until")));
+    m.put("startedAt", instant(r.get("started_at")));
+    m.put("finishedAt", instant(r.get("finished_at")));
+    m.put("executionStartedAt", instant(r.get("execution_started_at")));
+    m.put(
+        "logs",
+        json.read(
+            r.get("logs").toString(),
+            new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {}));
+    m.put(
+        "qualityResults",
+        json.read(
+            r.get("quality_results").toString(),
+            new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {}));
+    return m;
+  }
+
+  private Map<String, Object> snapshotData(Map<String, Object> r) {
+    var m = new LinkedHashMap<String, Object>();
+    m.put("runId", r.get("run_id").toString());
+    m.put("datasetId", r.get("dataset_id").toString());
+    m.put("name", r.get("name"));
+    m.put("physical", r.get("physical_table"));
+    m.put(
+        "fields",
+        json.read(
+            r.get("fields").toString(),
+            new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {}));
+    m.put("rowCount", r.get("row_count").toString());
+    m.put("publishedAt", instant(r.get("published_at")));
+    m.put("replacedAt", instant(r.get("replaced_at")));
+    m.put("deletedAt", instant(r.get("deleted_at")));
+    return m;
+  }
+
+  private String instant(Object v) {
+    return v == null ? null : ((java.sql.Timestamp) v).toInstant().toString();
+  }
+
+  private long n(String id) {
+    return IdentityService.numericId(id);
+  }
 }
