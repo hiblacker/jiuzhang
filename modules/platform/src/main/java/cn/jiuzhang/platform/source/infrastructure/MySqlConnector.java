@@ -58,6 +58,8 @@ public class MySqlConnector implements SourceConnector {
             supported(used);
             try(var s=c.prepareStatement("SELECT "+columnSql(selected)+" FROM "+quote(table),ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY)){
                 s.setFetchSize(500);s.setQueryTimeout(300);
+                var cancelPoll=java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+                cancelPoll.scheduleAtFixedRate(()->{try{if(canceled.getAsBoolean())s.cancel();}catch(Exception ignored){}},1,1,java.util.concurrent.TimeUnit.SECONDS);
                 try(var r=s.executeQuery()){
                     long count=0;long deadline=System.nanoTime()+java.time.Duration.ofMinutes(10).toNanos();
                     var ordered=selected.stream().map(n->used.stream().filter(x->x.name().equals(n)).findFirst().orElseThrow()).toList();
@@ -66,9 +68,9 @@ public class MySqlConnector implements SourceConnector {
                         if(++count>1000000||System.nanoTime()>deadline)throw new Failure(422,"SOURCE_SCAN_LIMIT");
                         consumer.accept(row(r,ordered));
                     }
-                }
+                }finally{cancelPoll.shutdownNow();}
             }c.rollback();
-        }catch(SQLException e){throw connectionFailure(e);}
+        }catch(SQLException e){if(canceled.getAsBoolean())throw new Failure(409,"RUN_CANCELED");if("42S22".equals(e.getSQLState())||"42S02".equals(e.getSQLState()))throw new Failure(409,"SCHEMA_CHANGED");throw connectionFailure(e);}
     }
     private java.sql.Connection open(Connection v)throws SQLException{
         Failure.require(v.host()!=null&&v.host().matches("[a-zA-Z0-9.-]{1,253}")&&v.port()>0&&v.port()<=65535,"VALIDATION_ERROR");

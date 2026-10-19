@@ -7,6 +7,7 @@ import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
 const canWrite = useCan('write')
+const real = import.meta.env.VITE_API_MODE === 'real'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -239,9 +240,9 @@ async function publish() {
     :show="confirm"
     :title="uiText('ui.dataset_detail_bbbe36d4')"
     :description="
-      uiText('ui.dataset_detail_ef13ebf7') +
-      ((query.data.value?.publishedVersion ?? 0) + 1) +
-      uiText('ui.dataset_detail_ef711d29')
+      uiText('ui.dataset_detail_ef13ebf7') + ((query.data.value?.publishedVersion ?? 0) + 1) + real
+        ? t('datasets.realOutput')
+        : uiText('ui.dataset_detail_ef711d29')
     "
     :pending="actions.publish.isPending.value"
     :error="actions.publish.error.value ? t(errorKey(actions.publish.error.value)) : undefined"

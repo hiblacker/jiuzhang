@@ -109,6 +109,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -285,6 +295,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -388,6 +408,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -516,6 +546,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -618,6 +658,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -737,6 +787,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -964,6 +1024,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -1067,6 +1137,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -1195,6 +1275,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -1297,6 +1387,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -1416,6 +1516,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -1599,6 +1709,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -1702,6 +1822,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -1830,6 +1960,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -1932,6 +2072,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -2051,6 +2201,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -2234,6 +2394,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -2337,6 +2507,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -2465,6 +2645,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -2567,6 +2757,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -2686,6 +2886,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -2869,6 +3079,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -2972,6 +3192,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -3100,6 +3330,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -3202,6 +3442,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -3321,6 +3571,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -3504,6 +3764,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -3607,6 +3877,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -3735,6 +4015,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -3837,6 +4127,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -3963,6 +4263,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -4068,6 +4378,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -4205,6 +4525,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -4312,6 +4642,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -4441,6 +4781,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -4554,6 +4904,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -4701,6 +5061,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -4821,6 +5191,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -4926,6 +5306,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -5063,6 +5453,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -5176,6 +5576,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -5297,6 +5707,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -5409,6 +5829,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -5544,6 +5974,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -5657,6 +6097,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -5873,6 +6323,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -5984,6 +6444,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -6086,6 +6556,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -6223,6 +6703,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -6343,6 +6833,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -6456,6 +6956,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -6589,6 +7099,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -6811,6 +7331,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -6915,6 +7445,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -7042,6 +7582,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -7155,6 +7705,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -7356,6 +7916,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -7460,6 +8030,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -7643,6 +8223,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -7746,6 +8336,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -7874,6 +8474,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -7987,6 +8597,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -8170,6 +8790,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -8273,6 +8903,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -8466,6 +9106,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -8569,6 +9219,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -8690,6 +9350,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -8908,6 +9578,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -9021,6 +9701,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -9163,6 +9853,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -9276,6 +9976,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -9427,6 +10137,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -9540,6 +10260,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -9670,6 +10400,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -9785,6 +10525,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -9889,6 +10639,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -10129,6 +10889,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -10231,6 +11001,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -10324,6 +11104,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -10443,6 +11233,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -10536,6 +11336,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -10665,6 +11475,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -10760,6 +11580,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -10979,6 +11809,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -11089,6 +11929,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -11187,6 +12037,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -11307,6 +12167,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -11516,6 +12386,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -11680,6 +12560,16 @@
                   "meta": {
                     "requestId": "demo-request"
                   }
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -11873,6 +12763,16 @@
                   "meta": {
                     "requestId": "demo-request"
                   }
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -12073,6 +12973,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -12244,6 +13154,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -12360,6 +13280,16 @@
           },
           "500": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -12515,6 +13445,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -12620,6 +13560,16 @@
           },
           "429": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -12746,6 +13696,16 @@
           },
           "429": {
             "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -13737,12 +14697,15 @@
         "additionalProperties": false,
         "properties": {
           "outcome": {
-            "$ref": "#/components/schemas/RunOutcome"
+            "$ref": "#/components/schemas/RunOutcome",
+            "description": "仅 Mock 演示使用；真实服务根据执行结果决定，真实请求不得提供。"
+          },
+          "allowEmptySnapshot": {
+            "type": "boolean",
+            "description": "仅本次运行批准空结果替换已有非空快照；要求管理员权限，不绕过读取/质量失败。"
           }
         },
-        "required": [
-          "outcome"
-        ]
+        "required": []
       },
       "BackfillInput": {
         "type": "object",
@@ -14102,7 +15065,7 @@
           "userId": {
             "type": "string",
             "pattern": "^[0-9]+$",
-            "description": "Demo user who created this private query or export."
+            "description": "创建该私有结果的系统账号 ID；只能由创建者读取。"
           }
         },
         "required": [
@@ -14250,7 +15213,6 @@
               "ready",
               "failed"
             ],
-            "default": "ready",
             "description": "显式演示场景"
           }
         },
@@ -14308,7 +15270,7 @@
           "userId": {
             "type": "string",
             "pattern": "^[0-9]+$",
-            "description": "Demo user who created this private query or export."
+            "description": "创建该私有结果的系统账号 ID；只能由创建者读取。"
           },
           "columns": {
             "type": "array",

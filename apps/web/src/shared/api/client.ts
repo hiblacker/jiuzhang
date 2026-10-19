@@ -26,7 +26,11 @@ api.use({
     const pathname = new URL(request.url).pathname
     if (import.meta.env.VITE_API_MODE === 'real' && csrfToken)
       request.headers.set('X-CSRF-Token', csrfToken)
-    if (request.method !== 'GET' && !pathname.endsWith('/demo/tick'))
+    if (
+      request.method !== 'GET' &&
+      !pathname.endsWith('/demo/tick') &&
+      !request.headers.has('Idempotency-Key')
+    )
       request.headers.set('Idempotency-Key', crypto.randomUUID())
     return request
   },

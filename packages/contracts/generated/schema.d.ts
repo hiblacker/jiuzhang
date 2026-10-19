@@ -1448,7 +1448,10 @@ export interface components {
         /** @enum {string} */
         RunStatus: "queued" | "running" | "validating" | "publishing" | "succeeded" | "failed" | "blocked" | "canceled";
         RunInput: {
-            outcome: components["schemas"]["RunOutcome"];
+            /** @description 仅 Mock 演示使用；真实服务根据执行结果决定，真实请求不得提供。 */
+            outcome?: components["schemas"]["RunOutcome"];
+            /** @description 仅本次运行批准空结果替换已有非空快照；要求管理员权限，不绕过读取/质量失败。 */
+            allowEmptySnapshot?: boolean;
         };
         BackfillInput: {
             /** Format: date */
@@ -1545,7 +1548,7 @@ export interface components {
             columns: string[];
             /** Format: date-time */
             createdAt: string;
-            /** @description Demo user who created this private query or export. */
+            /** @description 创建该私有结果的系统账号 ID；只能由创建者读取。 */
             userId: string;
         };
         ImportInput: {
@@ -1585,10 +1588,9 @@ export interface components {
             format: "csv" | "json";
             /**
              * @description 显式演示场景
-             * @default ready
              * @enum {string}
              */
-            outcome: "ready" | "failed";
+            outcome?: "ready" | "failed";
         };
         Export: {
             id: string;
@@ -1604,7 +1606,7 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
             progress: number;
-            /** @description Demo user who created this private query or export. */
+            /** @description 创建该私有结果的系统账号 ID；只能由创建者读取。 */
             userId: string;
             columns: string[];
         };
@@ -2101,6 +2103,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_sources: {
@@ -2191,6 +2202,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2291,6 +2311,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_sources_id_: {
@@ -2372,6 +2401,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2467,6 +2505,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     patch_sources_id_: {
@@ -2552,6 +2599,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2666,6 +2722,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_datasets: {
@@ -2752,6 +2817,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2847,6 +2921,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     delete_datasets_id_: {
@@ -2928,6 +3011,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3020,6 +3112,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3124,6 +3225,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_governance_quality: {
@@ -3210,6 +3320,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3305,6 +3424,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     delete_governance_quality_id_: {
@@ -3386,6 +3514,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3478,6 +3615,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3582,6 +3728,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_governance_masking: {
@@ -3668,6 +3823,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3763,6 +3927,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     delete_governance_masking_id_: {
@@ -3844,6 +4017,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3936,6 +4118,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4040,6 +4231,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_services: {
@@ -4126,6 +4326,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4221,6 +4430,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     delete_services_id_: {
@@ -4302,6 +4520,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4394,6 +4621,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4498,6 +4734,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_system_users: {
@@ -4584,6 +4829,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4679,6 +4933,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     delete_system_users_id_: {
@@ -4760,6 +5023,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4852,6 +5124,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4952,6 +5233,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_sources_id_test: {
@@ -5036,6 +5326,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5131,6 +5430,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_sources_id_objects_objectId_fields: {
@@ -5213,6 +5521,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5317,6 +5634,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_datasets_id_validate: {
@@ -5408,6 +5734,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_datasets_id_preview: {
@@ -5492,6 +5827,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5592,6 +5936,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_datasets_id_publish: {
@@ -5676,6 +6029,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5774,6 +6136,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_datasets_id_versions: {
@@ -5855,6 +6226,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5944,6 +6324,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6043,6 +6432,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_datasets_id_runs: {
@@ -6131,6 +6529,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6240,6 +6647,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_tasks_id_: {
@@ -6321,6 +6737,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6420,6 +6845,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_tasks_id_pause: {
@@ -6511,6 +6945,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_tasks_id_resume: {
@@ -6595,6 +7038,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6697,6 +7149,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_tasks_id_backfills: {
@@ -6785,6 +7246,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6894,6 +7364,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_runs_id_: {
@@ -6975,6 +7454,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7073,6 +7561,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_runs_id_retry: {
@@ -7161,6 +7658,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7267,6 +7773,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_warehouse_tables_id_: {
@@ -7348,6 +7863,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7452,6 +7976,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_queries: {
@@ -7538,6 +8071,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7633,6 +8175,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_queries_id_cancel: {
@@ -7717,6 +8268,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7821,6 +8381,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_imports: {
@@ -7907,6 +8476,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8011,6 +8589,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_exports: {
@@ -8104,6 +8691,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_exports_id_: {
@@ -8185,6 +8781,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8294,6 +8899,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_governance_catalog_id_favorite: {
@@ -8391,6 +9005,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_governance_lineage: {
@@ -8473,6 +9096,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8578,6 +9210,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_services_id_enable: {
@@ -8669,6 +9310,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_services_id_disable: {
@@ -8753,6 +9403,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8855,6 +9514,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_system_roles: {
@@ -8934,6 +9602,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9028,6 +9705,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9136,6 +9822,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_system_settings: {
@@ -9215,6 +9910,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9312,6 +10016,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_demo_control: {
@@ -9391,6 +10104,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9488,6 +10210,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_demo_reset: {
@@ -9577,6 +10308,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     getSession: {
@@ -9656,6 +10396,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9766,6 +10515,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_warehouse_metrics: {
@@ -9854,6 +10612,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_session_users: {
@@ -9933,6 +10700,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10036,6 +10812,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10211,6 +10996,15 @@ export interface operations {
                      *       }
                      *     }
                      */
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "application/json": components["schemas"]["Error"];
                 };
             };
@@ -10393,6 +11187,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     delete_dataset_folders_id: {
@@ -10560,6 +11363,15 @@ export interface operations {
                      *       }
                      *     }
                      */
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "application/json": components["schemas"]["Error"];
                 };
             };
@@ -10744,6 +11556,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_warehouse_subject_domains: {
@@ -10912,6 +11733,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     tick_demo_clock: {
@@ -11011,6 +11841,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11123,6 +11962,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     logout: {
@@ -11211,6 +12059,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11316,6 +12173,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };

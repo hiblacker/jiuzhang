@@ -103,8 +103,17 @@ export function useJobActions() {
   }
   return {
     run: useMutation({
-      mutationFn: ({ datasetId, outcome }: { datasetId: string; outcome: Model<'RunOutcome'> }) =>
-        jobRepository.run(datasetId, outcome),
+      mutationFn: ({
+        datasetId,
+        outcome,
+        allowEmptySnapshot,
+        key,
+      }: {
+        datasetId: string
+        outcome: Model<'RunOutcome'>
+        allowEmptySnapshot?: boolean
+        key?: string
+      }) => jobRepository.run(datasetId, outcome, allowEmptySnapshot, key),
       onSuccess: done,
     }),
     toggle: useMutation({
@@ -119,8 +128,17 @@ export function useJobActions() {
     }),
     cancel: useMutation({ mutationFn: jobRepository.cancel, onSuccess: done }),
     retry: useMutation({
-      mutationFn: ({ id, outcome }: { id: string; outcome: Model<'RunOutcome'> }) =>
-        jobRepository.retry(id, outcome),
+      mutationFn: ({
+        id,
+        outcome,
+        allowEmptySnapshot,
+        key,
+      }: {
+        id: string
+        outcome: Model<'RunOutcome'>
+        allowEmptySnapshot?: boolean
+        key?: string
+      }) => jobRepository.retry(id, outcome, allowEmptySnapshot, key),
       onSuccess: done,
     }),
     backfill: useMutation({

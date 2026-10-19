@@ -22,14 +22,14 @@ public record DatasetPlan(List<Field> fields,List<Filter> filters,boolean trim,L
   }
   for(var q:quality){if(!Set.of("required","range").contains(q.kind())||fieldList.stream().noneMatch(f->f.target().equals(q.field())))throw new Problem("QUALITY_RULE_INVALID");if(q.kind().equals("range"))range(q.parameter());}
  }
- public Set<String> usedSourceFields(){var names=new HashSet<String>();fields.forEach(f->names.add(f.source()));filters.forEach(f->names.add(f.field()));return Set.copyOf(names);}
+ public Set<String> usedSourceFields(){var names=new HashSet<String>();fields.stream().filter(f->f.output()||quality.stream().anyMatch(q->q.field().equals(f.target()))).forEach(f->names.add(f.source()));filters.forEach(f->names.add(f.field()));return Set.copyOf(names);}
  /** Null means filtered out. Invalid input never silently becomes zero. */
  public Map<String,Object> transform(Map<String,Object> row){
   for(var f:filters)if(!Objects.equals(row.get(f.field())==null?null:row.get(f.field()).toString(),f.value()))return null;
   var result=new LinkedHashMap<String,Object>();
-  for(var f:fields){Object value=row.get(f.source());if(value instanceof String s&&trim)value=s.strip();if(value==null&&!f.nullable())throw new Problem("DATASET_NULL_NOT_ALLOWED");
+  for(var f:fields){if(!f.output()&&quality.stream().noneMatch(q->q.field().equals(f.target())))continue;Object value=row.get(f.source());if(value instanceof String s&&trim)value=s.strip();if(value==null&&!f.nullable())throw new Problem("DATASET_NULL_NOT_ALLOWED");
    try{if(value!=null)value=switch(f.type().startsWith("decimal(")?"decimal":f.type()){
-    case "string"->value.toString();case "integer"->new BigInteger(value.toString()).toString();case "decimal"->{var n=new BigDecimal(value.toString());if(f.type().startsWith("decimal(")){var parts=f.type().substring(8,f.type().length()-1).split(",");int precision=Integer.parseInt(parts[0]),scale=Integer.parseInt(parts[1]);if(precision>38||scale>precision)throw new IllegalArgumentException();n=n.setScale(scale,java.math.RoundingMode.UNNECESSARY);if(n.precision()>precision)throw new IllegalArgumentException();}yield n.toPlainString();}
+    case "string"->value.toString();case "integer"->new BigInteger(value.toString()).toString();case "decimal"->{var n=new BigDecimal(value.toString());if(f.type().equals("decimal")){n=n.setScale(9,java.math.RoundingMode.UNNECESSARY);if(n.precision()>38)throw new IllegalArgumentException();}if(f.type().startsWith("decimal(")){var parts=f.type().substring(8,f.type().length()-1).split(",");int precision=Integer.parseInt(parts[0]),scale=Integer.parseInt(parts[1]);if(precision>38||scale>precision)throw new IllegalArgumentException();n=n.setScale(scale,java.math.RoundingMode.UNNECESSARY);if(n.precision()>precision)throw new IllegalArgumentException();}yield n.toPlainString();}
     case "boolean"->{if(value.equals(true)||value.toString().equals("1"))yield true;if(value.equals(false)||value.toString().equals("0"))yield false;throw new IllegalArgumentException();}
     case "date"->LocalDate.parse(value.toString()).toString();default->throw new IllegalArgumentException();};
    }catch(Exception e){throw new Problem("DATASET_CONVERSION_FAILED");}result.put(f.target(),value);

@@ -11,6 +11,8 @@ const props = defineProps<{ run: Model<'Run'>; size?: 'small' | 'medium' }>()
 const emit = defineEmits<{ retried: [id: string] }>()
 const { t } = useI18n()
 const canWrite = useCan('write')
+const real = import.meta.env.VITE_API_MODE === 'real'
+const requestKey = ref(crypto.randomUUID())
 const actions = useJobActions()
 const outcome = ref<Model<'RunOutcome'>>('succeeded')
 const cancelable = computed(() => ['queued', 'running', 'validating'].includes(props.run.status))
@@ -27,7 +29,12 @@ async function cancel() {
 async function retry() {
   if (!canWrite.value || !retryable.value || pending.value) return
   try {
-    const run = await actions.retry.mutateAsync({ id: props.run.id, outcome: outcome.value })
+    const run = await actions.retry.mutateAsync({
+      id: props.run.id,
+      outcome: outcome.value,
+      key: requestKey.value,
+    })
+    requestKey.value = crypto.randomUUID()
     emit('retried', run.id)
   } catch {}
 }
@@ -43,7 +50,7 @@ async function retry() {
       >{{ t('ui.run_detail_644b4a0b') }}</NButton
     >
     <NSelect
-      v-if="retryable"
+      v-if="retryable && !real"
       v-model:value="outcome"
       :size="size"
       v-select-trigger-name="t('jobs.retryOutcome', { id: run.id })"

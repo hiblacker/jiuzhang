@@ -1,0 +1,36 @@
+name: jiuzhang
+services:
+  warehouse-fe:
+    image: apache/doris:fe-3.0.8@sha256:749afa2be75cd58d54a0bdb3edaa805d5974646f67500f094912f8dbc4a96b8f
+    hostname: warehouse-fe
+    environment:
+      FE_SERVERS: fe1:172.28.90.2:9010
+      FE_ID: 1
+    ports: ["127.0.0.1:18030:8030", "127.0.0.1:19030:9030"]
+    volumes: ["warehouse-fe:/opt/apache-doris/fe/doris-meta"]
+    networks:
+      warehouse:
+        ipv4_address: 172.28.90.2
+    ulimits:
+      nofile: {soft: 1000000, hard: 1000000}
+  warehouse-be:
+    image: apache/doris:be-3.0.8@sha256:a337e2b17a65c86c22a1205467a825d46dc3380c94ba8024e53eea033641f12e
+    hostname: warehouse-be
+    environment:
+      FE_SERVERS: fe1:172.28.90.2:9010
+      BE_ADDR: 172.28.90.3:9050
+    ports: ["127.0.0.1:18040:8040"]
+    volumes: ["warehouse-be:/opt/apache-doris/be/storage"]
+    depends_on: [warehouse-fe]
+    networks:
+      warehouse:
+        ipv4_address: 172.28.90.3
+    ulimits:
+      nofile: {soft: 1000000, hard: 1000000}
+networks:
+  warehouse:
+    ipam:
+      config: [{subnet: 172.28.90.0/24}]
+volumes:
+  warehouse-fe:
+  warehouse-be:

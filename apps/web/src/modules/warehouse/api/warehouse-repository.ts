@@ -40,6 +40,13 @@ export const warehouseRepository = {
     return unwrap(await api.GET('/exports/{id}', { params: { path: { id } } })).data
   },
   async export(body: Model<'ExportInput'>) {
-    return unwrap(await api.POST('/exports', { body })).data
+    return unwrap(
+      await api.POST('/exports', {
+        body:
+          import.meta.env.VITE_API_MODE === 'real'
+            ? { queryId: body.queryId, format: body.format }
+            : body,
+      }),
+    ).data
   },
 }

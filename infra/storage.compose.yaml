@@ -1,0 +1,9 @@
+name: jiuzhang
+services:
+  objects:
+    image: chrislusf/seaweedfs:3.97@sha256:bb05d66d2963b1cc48073190781c3dd29e2c4c88a2ae2986bf58e38c86d89c6e
+    command: server -dir=/data -s3 -s3.config=/run/s3.json -ip=objects -ip.bind=0.0.0.0 -master.volumeSizeLimitMB=1024 -volume.max=5
+    ports: ["127.0.0.1:18333:8333"]
+    volumes: ["objects:/data", "../.local/s3.json:/run/s3.json:ro"]
+volumes:
+  objects:

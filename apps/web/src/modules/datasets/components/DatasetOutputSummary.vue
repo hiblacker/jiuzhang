@@ -5,6 +5,7 @@ import { NAlert, NDescriptionsItem } from 'naive-ui'
 import { ResponsiveDescriptions } from '@/shared/ui/responsive-descriptions'
 import type { Model } from '@/shared/api/types'
 
+const real = import.meta.env.VITE_API_MODE === 'real'
 const props = defineProps<{ output: Model<'Output'> }>()
 const { t } = useI18n()
 const mode = computed(() => {
@@ -26,6 +27,8 @@ const mode = computed(() => {
         output.keys.join('、') || t('datasets.output.noKeys')
       }}</NDescriptionsItem>
     </ResponsiveDescriptions>
-    <NAlert type="info">{{ mode.description }} {{ t('datasets.output.boundary') }}</NAlert>
+    <NAlert type="info">{{
+      real ? t('datasets.realOutput') : mode.description + ' ' + t('datasets.output.boundary')
+    }}</NAlert>
   </section>
 </template>

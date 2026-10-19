@@ -3,8 +3,14 @@ import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
 const canWrite = useCan('write')
+const canApproveEmpty = useCan('system')
+const real = import.meta.env.VITE_API_MODE === 'real'
+const allowEmpty = ref(false)
+const confirmEmpty = ref(false)
+const requestKey = ref(crypto.randomUUID())
 import { ref } from 'vue'
-import { NButton, NSelect, NAlert } from 'naive-ui'
+import { NButton, NSelect, NAlert, NCheckbox } from 'naive-ui'
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
 import type { Model } from '@/shared/api/types'
 import { useJobActions } from '../composables/use-jobs'
 import { useCan } from '@/shared/security/permissions'
@@ -16,10 +22,22 @@ const emit = defineEmits<{ started: [id: string] }>()
 const outcome = ref<Model<'RunOutcome'>>('succeeded'),
   { run } = useJobActions(),
   { t } = useI18n()
-async function start() {
+async function start(approved = false) {
+  if (real && allowEmpty.value && !approved) {
+    confirmEmpty.value = true
+    return
+  }
   if (run.isPending.value || props.disabled || !canWrite.value) return
   try {
-    const result = await run.mutateAsync({ datasetId: props.datasetId, outcome: outcome.value })
+    const result = await run.mutateAsync({
+      datasetId: props.datasetId,
+      outcome: outcome.value,
+      allowEmptySnapshot: allowEmpty.value,
+      key: requestKey.value,
+    })
+    requestKey.value = crypto.randomUUID()
+    confirmEmpty.value = false
+    allowEmpty.value = false
     emit('started', result.id)
   } catch {}
 }
@@ -27,6 +45,7 @@ async function start() {
 <template>
   <div class="run-trigger">
     <NSelect
+      v-if="!real"
       v-model:value="outcome"
       v-select-trigger-name="t('jobs.runOutcome', { id: datasetId })"
       :disabled="disabled || !canWrite || run.isPending.value"
@@ -42,10 +61,27 @@ async function start() {
       size="small"
       :disabled="disabled || !canWrite"
       :loading="run.isPending.value"
-      @click="start"
+      @click="start(false)"
       >{{ uiText('ui.run_trigger_0c3acd44') }}</NButton
     >
+    <NCheckbox
+      v-if="real && canApproveEmpty"
+      v-model:checked="allowEmpty"
+      :disabled="run.isPending.value"
+      >{{ t('jobs.allowEmpty') }}</NCheckbox
+    >
   </div>
+  <ConfirmDialog
+    :show="confirmEmpty"
+    :confirm-text="t('confirm')"
+    :destructive="false"
+    @cancel="confirmEmpty = false"
+    :title="t('jobs.allowEmpty')"
+    :description="t('jobs.allowEmptyWarning')"
+    :pending="run.isPending.value"
+    :error="run.error.value ? t(errorKey(run.error.value)) : undefined"
+    @confirm="start(true)"
+  />
   <NAlert v-if="run.error.value" type="error">{{ t(errorKey(run.error.value)) }}</NAlert>
 </template>
 <style scoped>

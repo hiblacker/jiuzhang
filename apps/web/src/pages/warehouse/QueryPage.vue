@@ -32,6 +32,7 @@ import { QueryToolbar } from '@/shared/ui/query-toolbar'
 import { AsyncState } from '@/shared/ui/async-state'
 import { PageHeader } from '@/shared/ui/page-header'
 const SqlEditor = defineAsyncComponent(() => import('@/shared/editors/SqlEditor.vue'))
+const real = import.meta.env.VITE_API_MODE === 'real'
 const route = useRoute(),
   router = useRouter(),
   { filters, update, bindPagination } = useListRoute(),
@@ -113,7 +114,9 @@ async function exportResult(format: 'csv' | 'json') {
     ></PageHeader
   ><NCard :bordered="false" class="mb"
     ><NAlert type="info" class="mb">{{ t('warehouse.privateResults') }}</NAlert
-    ><NAlert type="info" class="mb">{{ t('warehouse.queryHint') }}</NAlert
+    ><NAlert type="info" class="mb">{{
+      real ? t('warehouse.realQueryHint') : t('warehouse.queryHint')
+    }}</NAlert
     ><WarehouseTableSelect
       v-model:value="tableId"
       :label="uiText('ui.query_074ab09a')"
@@ -134,6 +137,7 @@ async function exportResult(format: 'csv' | 'json') {
       ><NTabPane name="result" :tab="uiText('ui.query_afeb896e')"
         ><NSpace justify="end" class="mb"
           ><NSelect
+            v-if="!real"
             v-model:value="exportOutcome"
             v-select-trigger-name="t('warehouse.scenario')"
             style="width: 190px"
@@ -148,7 +152,7 @@ async function exportResult(format: 'csv' | 'json') {
             @click="exportResult('csv')"
             >{{ uiText('ui.query_7e9cc863') }}</NButton
           ><NButton
-            :disabled="resultData?.status !== 'succeeded' || actions.export.isPending.value"
+            :disabled="real || resultData?.status !== 'succeeded' || actions.export.isPending.value"
             @click="exportResult('json')"
             >{{ uiText('ui.query_3b9ec1c4') }}</NButton
           ></NSpace

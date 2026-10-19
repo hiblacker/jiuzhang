@@ -3,6 +3,8 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   warehouse: {
+    realQueryHint:
+      '第一版支持 SELECT 字段列表或 * FROM 单个逻辑表，可加 LIMIT 1–1000 与 OFFSET；默认 100 行。只读、15 秒超时，不支持表达式、函数、JOIN、子查询与多语句。CSV 导出当前查询结果，24 小时过期。',
     sqlEditor: '仓库 SQL 编辑器',
     loadMoreTables: '加载更多仓库表',
     tableOptionsCount: '已加载 {loaded} 张表',

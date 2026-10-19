@@ -374,7 +374,7 @@ export const jobHandlers = [
       createRun(
         state,
         find(state.tasks, params.id).datasetId,
-        (body as Model<'RunInput'>).outcome,
+        (body as Model<'RunInput'>).outcome ?? 'succeeded',
         'manual',
         now,
       ),
@@ -397,7 +397,7 @@ export const jobHandlers = [
         createRun(
           state,
           find(state.tasks, params.id).datasetId,
-          input.outcome,
+          input.outcome ?? 'succeeded',
           'backfill',
           now,
           '',
@@ -411,7 +411,13 @@ export const jobHandlers = [
     'post',
     '/datasets/{id}/runs',
     ({ state, params, body, now }) =>
-      createRun(state, String(params.id), (body as Model<'RunInput'>).outcome, 'manual', now),
+      createRun(
+        state,
+        String(params.id),
+        (body as Model<'RunInput'>).outcome ?? 'succeeded',
+        'manual',
+        now,
+      ),
     { input: 'RunInput', created: true },
   ),
   route(
@@ -482,7 +488,7 @@ export const jobHandlers = [
       return createRun(
         state,
         run.datasetId,
-        (body as Model<'RunInput'>).outcome,
+        (body as Model<'RunInput'>).outcome ?? 'succeeded',
         'retry',
         now,
         run.id,

@@ -74,6 +74,7 @@ public class DatasetService {
    var o=map(d,"output");if(!text(o,"writeMode").equals("replace")||!text(o,"table").matches("[a-zA-Z_][a-zA-Z0-9_]{0,55}")||text(o,"table").startsWith("jz_"))throw new Failure(422,"OUTPUT_UNSUPPORTED");if(!Set.of("ODS","DWD","DWS","ADS").contains(text(o,"layer")))throw new Failure(422,"VALIDATION_ERROR");
    if(strings(d,"cleaning").stream().anyMatch(x->!x.equals("trim")))throw new Failure(422,"CLEANING_UNSUPPORTED");
    var nodes=objects(d,"nodes");var edges=objects(d,"edges");if(nodes.isEmpty()||nodes.size()>20||nodes.stream().filter(n->text(n,"type").equals("input")).count()!=1||nodes.stream().anyMatch(n->!Set.of("input","filter","fields").contains(text(n,"type"))))throw new Failure(422,"GRAPH_UNSUPPORTED");
+   if(nodes.stream().anyMatch(n->text(n,"type").equals("fields")&&!text(n,"config").isBlank()))throw new Failure(422,"GRAPH_UNSUPPORTED");
    var ids=new HashSet<String>();for(var n:nodes)if(!ids.add(text(n,"id")))throw new Failure(422,"GRAPH_INVALID");
    if(edges.size()!=nodes.size()-1)throw new Failure(422,"GRAPH_INVALID");
    String current=nodes.stream().filter(n->text(n,"type").equals("input")).findFirst().orElseThrow().get("id").toString();var visited=new HashSet<String>();
