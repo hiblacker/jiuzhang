@@ -115,8 +115,8 @@ public class WarehouseService {
               || !available.containsAll(columns)) throw new Failure(422, "QUERY_FIELD_INVALID");
           var rows =
               warehouse.rows(text(snap, "physical"), columns, parsed.limit(), parsed.offset());
-          if (json.write(rows).getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 10485760)
-            throw new Failure(422, "QUERY_RESULT_LIMIT");
+          if (json.write(rows).getBytes(java.nio.charset.StandardCharsets.UTF_8).length
+              > WarehousePort.MAX_RESULT_BYTES) throw new Failure(422, "QUERY_RESULT_LIMIT");
           String id = queries.nextId("queries");
           var body = new LinkedHashMap<String, Object>();
           body.put("id", id);

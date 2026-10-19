@@ -862,3 +862,9 @@ Maven verify（新增 4 项领域测试）、V003→V004 实际 PostgreSQL 升�
 - 最终 `pnpm check` 通过：14 文件 93 项单元/HTTP 测试、契约/边界/UI/i18n/lint/格式/类型及 Mock/real 双构建；Maven verify 10 项测试与所有模块构建通过。另运行 `sources.spec.ts quality-rules.spec.ts tabs.spec.ts`，1280×1000 Mock 回归 23 项通过。
 - real 隐藏质量模拟结果按钮，实际结果来自已发布数据集运行；非管理员不自动请求原始预览，禁用相应按钮。未实现同步/血缘/目录入口隐藏。页面修补独立提交 `55012e98`。
 - 本地执行日志在 `/tmp/jiuzhang-{real-final-verify,final-check,lifecycle-final,migrations-final,storage-recovery-final,final-mock-regression}.log`，属于临时证据；复现依赖仓库脚本。远端 CI/分支保护、生产 TLS/加密/备份、多 Worker/容量压测未验证；Mock 大 chunk 构建警告保留。
+
+### 14.8 查询结果读取预算（2026-10-19）
+
+- 完成审计发现原 10 MiB 结果上限在全量读取后检查，不能限制 JDBC 缓冲和应用结果积累。Doris 读取改用 Connector/J 流式结果，逐行计算实际 UTF-8 JSON 字节（含转义、逗号和数组界限）；超限立即中止连接，不再读取或持久化后续结果。表样本与 SQL 查询共用读取预算和限制所有者。
+- 三项新增单元测试覆盖提前停止、精确边界/转义与 null/大整数/Decimal 文本。`test-result-budget.py` 实际创建 190 行、每行 60000 字节的合成源，完整入仓成功；100 行样本可读，1000 行上限查询超过 10 MiB 时返回 QUERY_RESULT_LIMIT，数据库不新增查询结果，后续两行查询成功且当前快照不变。此样本验证资源保护，不是容量或吞吐基准。
+- `local.sh verify` 已接入真实大结果验收。未改变 OpenAPI、前端或 Mock 行为；精确版本沿用已验证组合。
