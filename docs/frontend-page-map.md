@@ -357,4 +357,21 @@ P18 仓库来源与版本（2026-10-17）：桌面验收发现 CSV 导入表在�
 
 ### 交付边界
 
-本阶段完成前端 Mock 验收，可按根 README 独立启动和体验数据源 → 数据集 → 任务 → 入仓 → 查询/导出闭环。真实数据库/API 连接、后台调度、真实鉴权与脱敏、数仓性能不在此结论内；关闭浏览器后不执行 Mock 调度。远端 GitHub Actions 与分支保护尚未验证。demo Mock chunk 的 >500 kB 构建警告仍保留，未调高阈值。后续行为或共享组件变更按实际影响回归，不以本次 verified 代替未来验证。
+本阶段完成前端 Mock 验收，可按根 README 独立启动和体验数据源 → 数据集 → 任务 → 入仓 → 查询/导出闭环。真实数据库/API 连接、后台调度、真实鉴权与脱敏、数仓性能不在本节历史结论内；2026-10-19 的真实服务范围见 §11。关闭浏览器后不执行 Mock 调度。远端 GitHub Actions 与分支保护尚未验证。demo Mock chunk 的 >500 kB 构建警告仍保留，未调高阈值。后续行为或共享组件变更按实际影响回归，不以本次 verified 代替未来验证。
+
+## 11. 第一版真实服务范围
+
+2026-10-19 新增 real 模式，入口 http://localhost:5175/login；原 Mock 5174 与 38 路由保持独立。以下只声明第一版本地范围，不沿用 Mock 的全部 verified 结论。
+
+| 页面 | 真实范围与限制 | 验证入口 |
+|---|---|---|
+| P01 | 完整数据库汇总、七日运行趋势、失败/待办、管理员审计活动 | test-overview.py、test-real-overview.mjs |
+| P02–P05 | MySQL 创建/编辑、真实只读测试、目录/字段、管理员原始预览；无独立同步任务 | test-sources.py、test-real-sources.mjs |
+| P06–P10 | 单表字段/精确转换/过滤/trim、质量/脱敏、保存/发布/版本恢复；目录移动/复制禁用，原始预览仅管理员 | test-datasets.py、test-real-datasets.mjs |
+| P14–P15 | 手动运行/日志/取消/新运行重试、空覆盖管理员确认、真实状态；无模拟结果选择 | test-execution.py、test-execution-safety.py、test-execution-rules.py、test-real-execution.mjs |
+| P16–P19/P21 | 实际快照、表/来源、受控只读查询、私有 CSV；容量/趋势未采集，血缘入口暂缓 | test-warehouse.py、test-real-execution.mjs |
+| P24–P27 | 必填/范围质量、WARN/BLOCK、部分字符串脱敏、冻结规则与实际运行结果；real 无质量模拟结果按钮 | test-datasets.py、test-execution-rules.py、test-real-overview.mjs |
+| P32/P34/P36–P38 | 用户管理、会话/改密/权限、审计、异常页面；无演示角色切换 | test-identity.py、test-real-identity.mjs |
+| P11–P13/P20/P22–P23/P28–P31/P33/P35 | 任务调度/导入/目录血缘/数据服务/可编辑权限与设置暂缓；导航隐藏，直接访问显示真实能力说明 | test-real-overview.mjs |
+
+真实页面统一 1280×1000，不新增/执行小屏专项。test-real-contracts.mjs 对 34 个真实响应执行 OpenAPI/AJV 校验；test-worker-recovery.py 覆盖真实读阶段及跨系统发布阶段 SIGKILL。运行/查询/导出等数据通过 HTTP，真实失败不回退 Mock。实际命令及引擎版本见总体架构 §14；启动见 README。

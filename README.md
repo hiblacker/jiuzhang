@@ -1,97 +1,102 @@
 # 九章数据仓库工作台
 
-Vue 3 + TypeScript + Pinia + Naive UI 的纯前端演示。38 个路由及矩阵约定的主要交互已完成本地桌面验收，默认 1280×1000；逐项范围与证据见 [页面矩阵](docs/frontend-page-map.md#10-桌面验收收尾)。
+2026-10-19：第一版本地单机真实闭环已实现，保留独立的 38 路由 Mock 前端。桌面验证固定 1280×1000。
 
-## 整体进度与下一步
+## 第一版功能
 
-截至 2026-10-19：前端 B0–B5 的本地 Mock 验收已完成；真实数据源、后端 API/Worker、持久调度和 Doris 仓库尚未实施，远端 CI 尚未验证。完整验收结果来自 2026-10-17 的 e43b1530 基线，e63f2441 记录文档收尾；本次规划整理未重新运行全量测试。
+- 系统账号登录/改密、用户管理、固定角色权限、审计。
+- MySQL 只读连接、目录/字段发现、管理员原始预览、InnoDB 一致性全量读取。
+- 单源单表数据集：字段选择/改名/精确转换、等值过滤、trim、必填/范围质量、字符串部分脱敏；草稿、不可变发布版本和恢复。
+- 手动运行、日志、取消、新运行重试，同数据集最多一个活动运行。
+- Doris 完整快照替换、表浏览、受控查询、本人 CSV 导出（24 小时过期）。
+- 首次空批允许；非空→零行默认阻断，管理员可批准本次空覆盖，不能绕过读取/质量错误。当前快照保留，历史最多三份且被替换后最多七天。
 
-2026-10-19 已确认：工作区文案改为“九章数据工作台”；删除旧工程并独立提交；首个真实闭环使用 MySQL、系统自带账号登录、本地单机验证、手动全量运行，成功后替换数据集独占目标表的上一批数据并保留最新完整快照。这些是已确认的后续方向，当前应用仍是单工作区 Mock。
+暂缓其他连接器、CDC/增量/upsert、Join/聚合/任意 SQL 加工、Cron/依赖/补数/自动重试、多工作区、数据服务及生产集群。未实现入口显示说明，真实模式不回退 Mock。
 
-按用户最新要求，当前先明确工作，不开始开发或旧工程清理。先形成后端实施规格，明确范围、模型、接口差异、执行/发布、登录/密钥、版本/容量及验收；恢复实施后分别完成文案调整与旧工程清理提交，再按 API/元数据 → 真实读取 → 数据集执行 → Doris 入仓/查询逐块推进。远端 CI 尚待单独落实。
+## 启动真实版本
 
-详细状态、依赖与完成条件统一维护在 [总体规划与实施队列](docs/architecture.md#12-分阶段交付)，本 README 只提供入口与启动说明。
+准备 .node-version 指定的 Node、根 package.json 指定的 pnpm、JDK 21、Python 3、OpenSSL 和可访问的 Docker Engine/Compose v2。在仓库根目录执行：
 
-## 本地启动
+~~~bash
+bash tools/local.sh up
+~~~
 
-使用 `.node-version` 声明的 Node 22.23.2 和 `package.json` 声明的 pnpm 12.11.2。在仓库根目录执行：
+顺序完成私有配置→PostgreSQL/MySQL/Doris/S3 就绪→源与仓库账号初始化→冻结安装依赖→Maven verify→显式 Flyway 迁移→API/Worker/真实前端。系统管理员由 API 首次启动初始化。首次需联网下载。Doris 需要足够内存/磁盘；Linux vm.max_map_count 建议至少 2000000，脚本只提示、不改宿主。
 
-```bash
+访问 **http://localhost:5175/login**。初始化账号/随机密码见未跟踪的 .env：JIUZHANG_BOOTSTRAP_USER / JIUZHANG_BOOTSTRAP_PASSWORD，在编辑器内查看，不复制到聊天/日志/Git。仅空账号表创建管理员，不覆盖已有账号。
+
+~~~bash
+bash tools/local.sh status
+bash tools/local.sh stop            # 仅停止本脚本受管进程，保留数据卷
+bash tools/local.sh start           # 使用已有构建，不安装/迁移
+bash tools/local.sh stop worker
+bash tools/local.sh start worker
+bash tools/local.sh prepare         # 停止应用后安装/构建/迁移
+bash tools/local.sh infra           # 单独准备基础服务
+~~~
+
+日志在 .local/logs/{api,worker,web}.log。升级先 stop 再 up，迁移时不能保留旧 API/Worker 连接。脚本不终止其他方式启动的进程，不清空卷，不修改 Docker 权限。使用同一具备 Docker 权限的账号，避免私有文件归属冲突；不要使用 --remove-orphans 或 down -v 清理数据。
+
+手动三终端模式：bash tools/backend.sh api、bash tools/backend.sh worker、pnpm dev:real；进程由终端管理。启动采用不可变 jar 副本，后续构建不覆盖运行文件。
+
+## 操作流程
+
+1. 新建 MySQL 源：127.0.0.1:13306 / demo_retail / jiuzhang_reader，密码为 .env 的 SOURCE_READ_PASSWORD。本地关闭 TLS 使用固定公钥；外部源必须 TLS 并加入 JIUZHANG_SOURCE_HOSTS 白名单。
+2. 测试/保存→orders→创建数据集→配置字段/质量/脱敏→保存/发布→运行。
+3. 仓库表查看当前快照→SQL 工作台→查询→导出 CSV→导出中心下载。
+
+SQL 仅支持 SELECT *|字段列表 FROM 单逻辑表 [LIMIT 1–1000 [OFFSET n]]，默认 100 行、15 秒、10 MiB；拒绝函数/JOIN/子查询/多语句/内部表。CSV 只导出该查询结果。
+
+## 权限与限制
+
+admin 可管理用户/审计/原始预览和一次空覆盖；developer 可配置/发布/运行；viewer 可读仓库、查询和导出本人结果。当前无逐对象授权和独立 export 权限，私有结果按创建者隔离。敏感输出必须绑定启用脱敏，质量在脱敏前执行。
+
+PostgreSQL 保存元数据及有上限的已处理查询/导出；原始所选字段批次存私有 SeaweedFS S3，Doris 存脱敏输出。历史与失败暂存产物回收。原始对象未启用服务端加密，本地基础服务之间未启用 TLS；生产密钥、TLS、备份、独立原始保留及负载验证待后续完成。
+
+保护上限：200 表/200 字段、源扫描 100 万行/600 秒、原始批次 256 MiB、输出字符串 65533 字节。上限不是已压测容量。运行列表/部分累计统计最多最近 10000 次，首页汇总完整；仓库容量/趋势未采集。API/基础服务端口仅绑定回环地址，非生产部署方案。
+
+## Mock 演示
+
+~~~bash
 pnpm install --frozen-lockfile
 pnpm dev
-```
+~~~
 
-打开 `http://localhost:5174`，选择演示角色进入。端口固定且启用 strictPort；如被占用，先确认是否已有本项目服务，不终止其他项目进程。首次加载需要浏览器支持 Service Worker 与 IndexedDB。
+访问 **http://localhost:5174**，无需后端/容器。MSW/IndexedDB 保存虚构数据；更多连接器、画布、前台调度、导入/血缘/服务为交互演示。端口/浏览器数据独立，重置清除本地修改；勿输入真实凭证/客户数据。
 
-不需要启动 Java、API 服务、数据库或容器。业务请求由 MSW 拦截，修改保存在当前浏览器当前 origin 的 IndexedDB；刷新不会重置。清除浏览器站点数据或右下角“演示控制台 → 重置全部演示数据”会删除本地演示修改。不同端口/浏览器不共享数据。
+## 验证
 
-## 体验流程
-
-1. 数据源列表 → 新建源 → 模拟测试连接 → 保存 → 浏览可搜索的对象树；选表和字段保留在 URL。
-2. 从对象创建数据集 → 选择层级目录 → 配置输入/加工图或预设 SQL/输出字段/质量/脱敏/目标表及主题域。图编辑支持调整 Join 输入顺序、Union 模式和聚合配置。
-3. 保存草稿 → 发布不可变版本 → 运行 → 查看阶段、日志和质量结果。版本页可比较字段变化、查看发布时的源结构快照，确认后恢复历史定义为新草稿。快照只保存元数据；旧版本迁移补录会明确标识，不能视作原发布时的真实结构。
-4. 运行成功 → 仓库表 → SQL 工作台 → 示例查询 → 导出 CSV/JSON。
-5. 文件导入支持虚构 CSV 的解析与字段映射；选择成功或失败场景观察进度。
-6. 治理维护资产、资源/字段血缘、质量、脱敏；数据服务展示调用契约、参数调用器和审计。
-
-演示控制台另提供空列表、接口失败、慢响应与无权限场景。角色切换会清除 Query 缓存；管理员、开发者和只读角色用于展示访问差异。
-
-任务配置校验 Cron、时区、间隔、超时、重试次数和并发上限。手动运行按依赖与并发情况排队，SLA 包含排队时间；补数按所选日历日生成独立运行，重试保留原业务日期、数据集版本和调度快照。
-
-查询、导出和资产收藏属于创建者；即使角色相同，其他演示用户也不能读取这些私有结果。源与数据集预览、表、查询、服务输出和导出应用敏感列可见性规则；改名、Join 和上游版本引用保留敏感来源标记。“查看敏感列”仍展示已脱敏的合成样本，不代表还原原始值。结构元数据与数据预览是不同的展示范围。
-
-服务编辑遇到隐藏字段时只能更新可见元信息，不能通过保存局部定义移除原字段。调用器支持参数校验、失败恢复和分页；停用服务不能继续调用。
-
-## 检查命令
-
-```bash
-pnpm generate:api     # 修改 OpenAPI 后生成 DTO
-pnpm check            # 契约、边界、UI、文案、lint、格式、类型、单元/HTTP 集成、两种构建
+~~~bash
+pnpm check
+./mvnw -B verify
 pnpm --filter @jiuzhang/web exec playwright install chromium
-pnpm test:e2e         # 需先启动 5174 开发服务
-pnpm build
-pnpm preview         # 生产演示包预览，http://localhost:4173
-```
+bash tools/local.sh verify
+~~~
 
-独立契约校验：`pnpm --filter @jiuzhang/contracts check`。2026-10-17 在 e43b1530 应用与测试基线上，完整桌面 E2E 52 文件 190 项通过，排序键盘 32 次重复验证另行通过；完整 pnpm check 通过，含 14 文件 93 项单元/HTTP 集成、demo/real 双构建和 real 排除 Mock 检查。38 路由及主要 Tab 明暗首屏、长页底部、成功结果和专项弹层已实际复核；后续不执行小屏幕验收。demo Mock chunk 仍有 >500 kB 构建警告；检查通过只证明其覆盖的行为，不代表真实后端、安全或性能能力。
+verify 先在独立临时 PostgreSQL 库验证空库 V001–V006 与重复迁移，再按依赖创建合成源/数据集，验证真实接口/引擎/桌面流程，生成 .local/*-test.json；不能对生产运行。
 
-已添加 `.github/workflows/frontend.yml`：冻结安装依赖、运行 `pnpm check`、安装 Chromium 并执行 E2E；CI 中由 Playwright 启动本项目开发服务，失败时保存报告。工作流尚未在远端执行，本地通过不代表远端 CI 或分支保护已生效。
+本地完整重启验收会停止/重启受管应用并重新构建；存储故障验收会短暂停止本项目 S3 与 Doris FE，仅在没有其他运行时单独执行：
 
-## Mock 边界
+~~~bash
+python3 tools/test-local-lifecycle.py
+python3 tools/test-storage-recovery.py
+~~~
 
-- 连接测试不会访问填写的数据库或 API；仅使用虚构连接值，勿输入真实密钥。
-- API 的 headers/query/body 必须是 JSON 对象；普通配置保留，已知凭证键替换为 `[REDACTED]`，主机/基础 URL 使用 `.invalid`。按键名替换不能检测任意敏感内容。
-- SQL 仅支持页面声明的预设查询；未知 SQL 明确报错。
-- 加工图基于合成样本，按连线计算过滤、字段选择、Join、Union 和金额聚合；它不是 SQL 引擎。配置说明随节点显示。
-- 质量检查计算样本结果；BLOCK 阻断入仓。取消、失败不推进成功游标，重试新建运行。
-- 浏览器前台会推进持久化的演示时钟，按五字段数字 Cron（列表/范围/步长）、固定间隔和时区派发任务；页面关闭时不执行，恢复后每个任务最多补派一个已过期计划，其余错过时刻跳过。失败运行按固定 5 秒延迟自动重试；任务暂停时重试等待，BLOCK 与取消不自动重试。演示控制台可推进 10/60 秒验证行为。以上均为浏览器 Mock，不构成后台调度或真实仓库能力。
-- 仓库统计由样本和操作记录汇总，不表示真实数据库容量、延迟或吞吐。
-- 真实模式 `pnpm build:real` 排除 Mock 数据与 Worker。接真实 API 前还需后端认证、鉴权与服务端校验，当前不提供真实后端。
+独占 Worker 的真实崩溃测试（约三至五分钟等待自然租约到期）：
 
-## 工程边界
+~~~bash
+bash tools/local.sh stop worker
+set -a; source .env; set +a
+python3 tools/test-worker-recovery.py
+bash tools/local.sh start worker
+~~~
 
-前端：`apps/web/src/app → pages → modules → shared`。协议：`packages/contracts/openapi.yaml`。未来 API/Worker 与 Java 模块布局见 [总体架构](docs/architecture.md)。开发规则入口：[AGENTS.md](AGENTS.md)。
+覆盖 MySQL 等待读取时 SIGKILL，以及 Doris VIEW 已更新而 PostgreSQL 成功事务未提交时 SIGKILL；结束移除专用触发器并停止自建 Worker。
 
-## 第一版真实后端开发（2026-10-19）
+2026-10-19 已运行 Maven verify（10 项）、pnpm check（93 项/双构建）、真实 API/引擎/1280×1000 页面；完整启停重建/数据保留、空库/重复迁移、S3/Doris 故障恢复及历史表/对象回收通过。相关 Mock 页面专项 23 项通过，历史 Mock 全量为 2026-10-17 的 190 项，不等同本次全量重跑。详细证据见总体架构 §14.7。远端 CI/main 保护未验证，无生产性能结论。
 
-已完成工程基础，业务闭环仍在实现，不能将健康检查当成真实入仓验收。
-JDK 21、Spring Boot 3.5.16、Maven Wrapper 3.9.11；PostgreSQL 17.6。
+## 工程入口
 
-```bash
-bash tools/local-env.sh
-docker compose --env-file .env -f infra/compose.yaml up -d --wait metadata
-bash tools/backend.sh build
-bash tools/backend.sh migrate
-bash tools/backend.sh api
-# 另一个终端：bash tools/backend.sh worker
-```
+apps/web 前端；apps/api HTTP；apps/worker 执行；modules/platform 后端库；packages/contracts/openapi.yaml 唯一协议；infra/migrations/postgresql 迁移。pnpm/Maven 独立构建。
 
-`.env` 自动生成随机凭证且不提交；查看本地文件获取初始化配置，不把内容贴到日志/聊天。API 默认仅监听 127.0.0.1:8080，健康检查 `/actuator/health`。API/Worker 普通启动禁用自动迁移，升级显式运行 migrate。
-
-实测：JDK 21.0.12.1、Maven 3.9.11 构建成功；四项领域/架构测试通过；PostgreSQL 空库迁移及二次无操作迁移成功；API 健康 UP。个人环境路径和网络代理不进入项目规范。
-
-真实账号已接通：启动 API 后运行 `pnpm dev:real`，访问 `http://localhost:5175/login`。初始化账号/随机密码见未跟踪的 `.env` 文件；演示站点仍为 5174。完整入仓链尚在开发，未实现端点明确报错。验证账号可运行 `set -a; source .env; set +a; python3 tools/test-identity.py`，桌面浏览器验收 `node tools/test-real-identity.mjs`（需 API 与 real 前端已启动）。
-
-MySQL 接入已实现：`python3 tools/init-source.py` 启动专用合成源并创建只读账号、提取服务器公钥；此脚本需 Docker 权限。连接 127.0.0.1:13306 / demo_retail / jiuzhang_reader，密码见 `.env` 的 SOURCE_READ_PASSWORD；本地演示关闭 TLS，使用固定公钥验证认证，禁止动态抓取公钥。外部源必须 TLS 且主机位于 JIUZHANG_SOURCE_HOSTS 白名单。编辑保留密码为空；修改账号必须重新提供密码。
-
-`set -a; source .env; set +a; python3 tools/test-sources.py` 验证真实源；`node tools/test-real-sources.mjs` 验证 1280×1000 页面。预览仅管理员可查看原始明细，限制 100 行；字段目录不运行全表 COUNT，rowCountKnown=false 表示数量未知。数值以字符串传输避免精度丢失；当前明确支持整数、Decimal、字符、日期/时间，其余类型拒绝。全量读取仅承诺 InnoDB 一致性事务；取消/大小上限等执行行为在 Worker 接通后验证。
+[总体架构](docs/architecture.md) · [页面矩阵](docs/frontend-page-map.md) · [开发规范](AGENTS.md) · [AI 规范](docs/ai-development.md)。

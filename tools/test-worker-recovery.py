@@ -49,6 +49,7 @@ def main():
         run=start()
         until(lambda:state(run)['status']=='running')
         until(lambda:sql('metadata','SELECT staging_table IS NOT NULL FROM dataset_run WHERE id='+run['id'])=='t')
+        until(lambda:int(sql('source',"SELECT count(*) FROM information_schema.processlist WHERE USER='jiuzhang_reader' AND STATE LIKE 'Waiting%' AND INFO LIKE '%"+table+"%'").splitlines()[-1])>0)
         kill()
         source_lock.stdin.close();source_lock.wait(timeout=10);source_lock=None
         assert current()==baseline

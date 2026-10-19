@@ -4,7 +4,7 @@
 
 九章是三层数仓管理平台：数据源接入 → 数据集清洗/加工/脱敏/调度 → 仓库读写服务。任务、治理、血缘、审计和权限是配套能力。
 
-当前已建立 Vue Mock 前端、OpenAPI 契约、依赖锁文件和本地质量检查；没有后端服务。已新增前端 GitHub Actions 配置，远端执行尚未验证。当前执行范围是 38 个路由的纯 Mock 前端，已完成 1280×1000 本地桌面验收；具体行为、证据与边界以 [页面矩阵](docs/frontend-page-map.md) 为准。后端与仓库设计属于后续阶段，不为完成前端而启动基础设施。
+当前已实现本地单机第一版真实闭环：系统账号、MySQL、数据集发布、手动执行、质量/脱敏、Doris 快照替换、只读查询/CSV 导出、审计及进程恢复；同时保留 38 路由纯 Mock 前端。浏览器仅 1280×1000；真实范围与证据见 [总体架构](docs/architecture.md) 和 [页面矩阵](docs/frontend-page-map.md)。Cron/增量/复杂转换/数据服务/多工作区及生产部署仍暂缓，真实模式不得回退 Mock。启动见 README。远端 CI/分支保护尚未验证。
 
 ## 技术栈与选型状态
 
@@ -18,11 +18,11 @@
 | Mock | MSW、IndexedDB/idb | 只通过 HTTP 模拟接口；统一且可重置的数据源 |
 | 编辑器/画布/图表 | CodeMirror 6、Vue Flow、ECharts | 按页面加载，不进入默认首页依赖 |
 | 包管理与质量 | pnpm workspace、ESLint、vue-tsc、Vitest、Playwright | 本地命令已实现；根命令委托到所属包 |
-| 未来后端 | Java + Spring Boot，API 与 Worker 两个进程 | 候选；JDK/框架/驱动兼容组合实施时验证并锁定 |
-| 未来存储 | PostgreSQL 元数据、S3 兼容对象存储、Doris 分析仓库 | 规划；Redis 可选，不承诺多种元数据库同时兼容 |
-| 未来调度与工程 | Quartz、Maven Wrapper/Flyway/ArchUnit/Testcontainers | 规划；具体版本与验证命令在后端启动阶段落实 |
+| 后端 | Java 21 + Spring Boot 3.5.16，API 与 Worker 两个进程 | 已实现；Maven Wrapper 3.9.11，精确依赖见 pom |
+| 存储 | PostgreSQL 17.6、SeaweedFS 3.97 S3、Doris 3.0.8 | 已验证本地单机；镜像与摘要见 Compose，不代表生产兼容矩阵 |
+| 执行与验证 | 持久运行/租约、Flyway、JUnit/ArchUnit、真实引擎验收脚本 | 已实现；Quartz/Testcontainers 仍规划，首版仅手动运行 |
 
-前端精确版本以实际 package.json、.node-version 和 pnpm-lock.yaml 为准；后端 wrapper 仍为规划，CI 执行状态以实际记录为准。参考项目只贡献适用原则，不自动迁移语言、工具链或其专用规则。
+前端精确版本以实际 package.json、.node-version 和 pnpm-lock.yaml 为准；后端以 pom/wrapper 为准，CI 执行状态以实际记录为准。参考项目只贡献适用原则，不自动迁移语言、工具链或其专用规则。
 
 ## 架构与职责
 
@@ -30,7 +30,7 @@
 - 请求：page → 领域 composable → repository/mapper → 统一 HTTP client → MSW/真实 API；组件不直接请求或读取 fixture/Mock DB。
 - 模块外只用公开入口；不深路径导入其他领域，不建全项目总 barrel；跨域例外记录原因、消费者和无环验证。
 - packages/contracts 只拥有传输 schema、生成类型和虚构示例，不依赖前端、后端、ORM 或应用配置；不复制一套 DTO。
-- 未来后端：Controller → Application → Domain/Port；Infrastructure 实现 Port，由应用入口装配；领域不导入 Web/ORM/数据库驱动。
+- 后端：Controller → Application → Domain/Port；Infrastructure 实现 Port，由应用入口装配；领域不导入 Web/ORM/数据库驱动。
 - 仓库布局：apps/web 是前端，apps/api 与 apps/worker 是后端入口，modules/platform 是首期 Java 领域库（按包隔离），connector-* 按需建立；packages/contracts 是协议边界。详见 [全栈目录](docs/architecture.md#10-全栈仓库目录)。
 - pnpm 只管理 web/契约工具，Maven 只管理 Java 应用/库；前端 src/modules 不等于根 modules。不为前端启动增加 JDK、后端或容器依赖。
 - Connector SPI 与仓库 Port 不依赖宿主应用、鉴权、调度或数据库实现；具体适配器依赖 Port。抽成独立模块后必须单独构建/测试，根应用通过不能代替独立性验证。
@@ -56,17 +56,17 @@
 ## 安全与配置边界
 
 - 真实凭证、Token、连接串敏感部分和客户数据不进入源码、VITE_*、fixture、浏览器持久化、日志或错误详情。
-- 当前演示身份只控制 UI；接真实后端后，由服务端检查对象权限、会话、导出、脱敏和状态迁移。
+- Mock 演示身份只控制 UI；真实模式由服务端检查固定角色权限、会话、私有查询/导出、脱敏和状态迁移。逐对象授权仍规划。
 - 涉及真实认证/会话变更时查适用 OWASP ASVS 与专题指南，记录版本/适用控制和失败验证；不把文档要求当作已通过认证。
 - 外部 HTTP/数据库访问只经受控适配器；查询参数绑定、标识符校验、超时、资源上限和密钥引用有统一所有者。
 - 数据转换/序列化/错误处理放在已有边界；不在业务层重复构建 HTTP client、JSON 配置、日期/数值格式或脱敏日志工具。
 
 ## 规则入口与变更路径
 
-- 产品与未来后端：[总体架构](docs/architecture.md)；当前阶段：[前端设计](docs/frontend-design.md)。
+- 产品与后端：[总体架构](docs/architecture.md)；前端：[前端设计](docs/frontend-design.md)。
 - UI 契约：[UI 与 Vue 约定](docs/ui-conventions.md)；执行协议/门禁：[AI 开发规范](docs/ai-development.md)。
 - 前端先读 [apps/web/AGENTS.md](apps/web/AGENTS.md)，契约先读 [packages/contracts/AGENTS.md](packages/contracts/AGENTS.md)。
-- 修改未来后端 `apps/api`、`apps/worker`、根 `modules` 或 `infra/migrations` 时，须显式阅读并遵守 [后端规则](apps/api/AGENTS.md)。该文件是后端共用规则入口，不依赖对同级目录的自动继承；后续各目录规则只补充本地差异，不复制通用规则。
+- 修改后端 `apps/api`、`apps/worker`、根 `modules` 或 `infra/migrations` 时，须显式阅读并遵守 [后端规则](apps/api/AGENTS.md)。该文件是后端共用规则入口，不依赖对同级目录的自动继承；后续各目录规则只补充本地差异，不复制通用规则。
 - 每次功能按契约 → Mock → repository → composable/组件 → 页面完成可验证闭环。契约变化同步生成、Mock、mapper、测试及受影响消费者。
 - 文档优先更新已有权威文件；只有独立且长期维护的主题才新增，禁止把同一规则复制成多份。涉及第三方代码时保留实际许可与署名，仓库身份变更遵循用户明确范围。
 

@@ -17,7 +17,7 @@ if 'SOURCE_READ_PASSWORD' not in values:
         file.write('SOURCE_READ_PASSWORD=' + values['SOURCE_READ_PASSWORD'] + '\n')
 subprocess.run(['docker', 'compose', '--env-file', '.env', '-f', 'infra/compose.yaml',
     '--profile', 'source', 'up', '-d', '--wait', 'source'], check=True)
-sql = (root / 'infra/fixtures/mysql.sql').read_text() + '\n'
+sql = ''
 sql += "CREATE USER IF NOT EXISTS 'jiuzhang_reader'@'%' IDENTIFIED WITH caching_sha2_password BY '" + values['SOURCE_READ_PASSWORD'] + "';\n"
 sql += "GRANT SELECT, SHOW VIEW ON demo_retail.* TO 'jiuzhang_reader'@'%';\n"
 subprocess.run(['docker', 'exec', '-i', '-e', 'MYSQL_PWD=' + values['SOURCE_ROOT_PASSWORD'],

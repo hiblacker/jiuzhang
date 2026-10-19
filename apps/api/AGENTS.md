@@ -4,7 +4,7 @@
 
 ## 技术栈与模块
 
-- Java/Spring Boot 为候选；Maven Wrapper、Flyway、ArchUnit、JUnit/AssertJ 与 Testcontainers 为后端工程候选。实施时统一验证并锁定 JDK、框架、插件和驱动，不把设计中的版本当成已验证组合。
+- Java 21/Spring Boot 3.5.16、Maven Wrapper 3.9.11、Flyway、ArchUnit、JUnit/AssertJ 已实现，精确版本以 pom/wrapper 为准。真实 PostgreSQL/MySQL/Doris/S3 由 Compose 与验收脚本验证，Testcontainers 尚未引入。
 - PostgreSQL 为首个元数据库，Doris 为首个分析仓库，S3 兼容存储为原始/隔离批次存储。源端支持多种数据库不等于元数据库支持多种方言。
 - Controller → Application → Domain/Port；Infrastructure 实现 Port。Controller 管传输/身份/DTO，Application 管用例和短事务，Domain 管规则，适配器管外部 I/O。
 - 模块通过公开 application API、领域事件和稳定 ID 协作，禁止跨域 DAO/ORM 导入。应用入口负责装配，API 与 Worker 不互相依赖入口代码。
@@ -27,4 +27,4 @@
 - 源端 HTTP 防 SSRF 和重定向绕过；数据库账号默认只读；演示场景与真实环境隔离。
 - 持久化/驱动/迁移变化执行受影响真实引擎的支持矩阵；覆盖空库初始化、代表性旧 schema 升级、重复启动/迁移、数据/索引/约束保留。只跑 Mock 或构建不能报告兼容。
 - 功能小改优先扩展已有测试；按行为边界覆盖关键不变量，不在每层重复 fixture/断言。并发、重试、游标和失败恢复需确定性测试。
-- ArchUnit、OpenAPI 一致性、迁移与真实引擎集成测试均待实施；报告实际版本、命令、结果和未验证范围，不提前宣称完成。
+- ArchUnit、OpenAPI 真实响应校验、迁移与真实引擎验收已有实现，入口见 README；新能力须扩展相应覆盖。报告实际版本、命令、结果和未验证范围，不以既有测试代替新行为验证。
