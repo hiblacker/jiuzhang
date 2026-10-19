@@ -23,12 +23,18 @@ export function newDataset(): DatasetInput {
         cron: '0 9 * * *',
         intervalMinutes: 60,
         timezone: 'Asia/Shanghai',
-        retries: 2,
+        retries: import.meta.env.VITE_API_MODE === 'real' ? 0 : 2,
         timeoutSeconds: 600,
         concurrency: 1,
         dependencies: [],
       },
-      output: { table: '', layer: 'DWD', subjectDomain: '', keys: [], writeMode: 'upsert' },
+      output: {
+        table: '',
+        layer: 'DWD',
+        subjectDomain: '',
+        keys: [],
+        writeMode: import.meta.env.VITE_API_MODE === 'real' ? 'replace' : 'upsert',
+      },
     },
   }
 }
@@ -41,4 +47,13 @@ export function toInput(value: DatasetInput): DatasetInput {
     tags: [...value.tags],
     definition: JSON.parse(JSON.stringify(value.definition)),
   }
+}
+
+/** Preserve MySQL decimal precision when creating the executable field mapping. */
+export function sourceFieldType(type: string): string {
+  if (import.meta.env.VITE_API_MODE !== 'real') return type
+  if (/^(tinyint|smallint|mediumint|int|bigint)/i.test(type)) return 'integer'
+  if (/^decimal\(\d+,\d+\)$/i.test(type)) return type.toLowerCase()
+  if (type === 'date') return 'date'
+  return 'string'
 }

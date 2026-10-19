@@ -29,6 +29,7 @@ import {
 } from 'naive-ui'
 import {
   useDatasetEditor,
+  sourceFieldType,
   useDataset,
   useDatasetVersion,
   DatasetFields,
@@ -48,6 +49,7 @@ const SqlEditor = defineAsyncComponent(() => import('@/shared/editors/SqlEditor.
 const route = useRoute(),
   router = useRouter(),
   { t } = useI18n()
+const real = import.meta.env.VITE_API_MODE === 'real'
 const id = computed(() => String(route.params.id ?? ''))
 const { query, draft, dirty, save, preview } = useDatasetEditor(id)
 const objects = useSourceObjects(() => draft.value.definition.sourceId)
@@ -92,6 +94,7 @@ watch(
     if (object && !draft.value.definition.fields.length)
       draft.value.definition.fields = object.fields.map((field) => ({
         ...field,
+        type: sourceFieldType(field.type),
         output:
           !id.value && typeof route.query.field === 'string'
             ? field.name === route.query.field
@@ -110,7 +113,11 @@ function selectSource(value: string) {
 function selectObject(value: string) {
   draft.value.definition.objectId = value
   const object = objects.data.value?.find((x) => x.id === value)
-  if (object) draft.value.definition.fields = object.fields.map((field) => ({ ...field }))
+  if (object)
+    draft.value.definition.fields = object.fields.map((field) => ({
+      ...field,
+      type: sourceFieldType(field.type),
+    }))
 }
 async function submit() {
   if (save.isPending.value || selectedUpstream.value) return
@@ -157,7 +164,8 @@ useEditGuard(dirty, save.isPending)
     :loading="!!id && query.isLoading.value"
     :error="query.error.value"
     @retry="query.refetch()"
-    ><NAlert v-if="save.error.value" type="error" class="mb">{{
+    ><NAlert v-if="real" type="info" class="mb">{{ t('datasets.realScope') }}</NAlert>
+    <NAlert v-if="save.error.value" type="error" class="mb">{{
       t(errorKey(save.error.value))
     }}</NAlert
     ><NCard :bordered="false"
@@ -172,6 +180,7 @@ useEditGuard(dirty, save.isPending)
           ><NFormItemGi :label="uiText('ui.dataset_editor_5aa625bf')" path="name"
             ><NInput
               v-model:value="draft.name"
+              :input-props="{ 'aria-label': uiText('ui.dataset_editor_5aa625bf') }"
               :placeholder="uiText('ui.dataset_editor_5aa625bf')" /></NFormItemGi
           ><NFormItemGi :label="uiText('ui.dataset_editor_974d383f')"
             ><NInput
@@ -181,7 +190,7 @@ useEditGuard(dirty, save.isPending)
             ><TagEditor
               v-model="draft.tags"
               :disabled="save.isPending.value" /></NFormItemGi></NGrid
-        ><NFormItem :label="t('folders.folder')"
+        ><NFormItem v-if="!real" :label="t('folders.folder')"
           ><DatasetFolderSelect
             v-model="draft.folderId"
             :label="t('folders.folder')"
@@ -196,7 +205,7 @@ useEditGuard(dirty, save.isPending)
           type="line"
           animated
           ><NTabPane name="input" :tab="uiText('ui.dataset_editor_f0f6fbb8')">
-            <NFormItem :label="t('datasets.upstream')">
+            <NFormItem v-if="!real" :label="t('datasets.upstream')">
               <UpstreamDatasetSelect
                 :value="draft.definition.upstreamDatasetId"
                 :excluded-id="id"
@@ -241,7 +250,7 @@ useEditGuard(dirty, save.isPending)
                   v-select-trigger-name="uiText('ui.dataset_editor_dbab9d39')"
                   :options="[
                     { label: uiText('ui.dataset_editor_3ada073b'), value: 'visual' },
-                    { label: uiText('ui.dataset_editor_59d93d23'), value: 'sql' },
+                    { label: uiText('ui.dataset_editor_59d93d23'), value: 'sql', disabled: real },
                   ]" /></NFormItemGi></NGrid
             ><DatasetGraph
               v-if="draft.definition.mode === 'visual'"
@@ -277,8 +286,10 @@ useEditGuard(dirty, save.isPending)
                 v-model:value="draft.definition.cleaning"
                 :aria-label="uiText('ui.dataset_editor_16fda324')"
                 ><NCheckbox value="trim">{{ uiText('ui.dataset_editor_d9f06fea') }}</NCheckbox
-                ><NCheckbox value="fill-null">{{ uiText('ui.dataset_editor_6ec90bfe') }}</NCheckbox
-                ><NCheckbox value="deduplicate">{{
+                ><NCheckbox value="fill-null" :disabled="real">{{
+                  uiText('ui.dataset_editor_6ec90bfe')
+                }}</NCheckbox
+                ><NCheckbox value="deduplicate" :disabled="real">{{
                   uiText('ui.dataset_editor_69d3566b')
                 }}</NCheckbox></NCheckboxGroup
               ></NFormItem
@@ -298,7 +309,9 @@ useEditGuard(dirty, save.isPending)
                 :disabled="save.isPending.value" /></NFormItem
             ><NAlert type="info">{{ uiText('ui.dataset_editor_0f9ea115') }}</NAlert></NTabPane
           ><NTabPane name="schedule" :tab="uiText('ui.dataset_editor_36019dc2')"
-            ><ScheduleForm
+            ><NAlert v-if="real" type="info">{{ t('datasets.realScope') }}</NAlert>
+            <ScheduleForm
+              v-else
               v-model="draft.definition.schedule"
               path="definition.schedule"
               :excluded-dataset-id="id"
@@ -321,6 +334,7 @@ useEditGuard(dirty, save.isPending)
               ><NFormItemGi :label="uiText('ui.dataset_editor_442be9c4')"
                 ><NInput
                   v-model:value="draft.definition.output.table"
+                  :disabled="real && !!id"
                   :input-props="{ 'aria-label': uiText('ui.dataset_editor_442be9c4') }"
                   placeholder="dwd_demo_orders" /></NFormItemGi
               ><NFormItemGi :label="uiText('ui.dataset_editor_167a31ec')"
@@ -328,8 +342,16 @@ useEditGuard(dirty, save.isPending)
                   v-model:value="draft.definition.output.writeMode"
                   v-select-trigger-name="uiText('ui.dataset_editor_167a31ec')"
                   :options="[
-                    { label: uiText('ui.dataset_editor_aec344de'), value: 'append' },
-                    { label: uiText('ui.dataset_editor_b2a57ab0'), value: 'upsert' },
+                    {
+                      label: uiText('ui.dataset_editor_aec344de'),
+                      value: 'append',
+                      disabled: real,
+                    },
+                    {
+                      label: uiText('ui.dataset_editor_b2a57ab0'),
+                      value: 'upsert',
+                      disabled: real,
+                    },
                     { label: uiText('ui.dataset_editor_855241c2'), value: 'replace' },
                   ]" /></NFormItemGi
               ><NFormItemGi :label="uiText('ui.dataset_editor_fd37952d')"

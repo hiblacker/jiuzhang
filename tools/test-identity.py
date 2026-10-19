@@ -16,12 +16,13 @@ class Client:
         self.http = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar))
         self.csrf = ""
 
-    def call(self, method, path, body=None, expected=200, csrf=True, origin=None):
+    def call(self, method, path, body=None, expected=200, csrf=True, origin=None, extra_headers=None):
         headers = {"Content-Type": "application/json"}
         if csrf and self.csrf:
             headers["X-CSRF-Token"] = self.csrf
         if origin:
             headers["Origin"] = origin
+        headers.update(extra_headers or {})
         request = urllib.request.Request(BASE + path, method=method, headers=headers,
             data=None if body is None else json.dumps(body).encode())
         try:

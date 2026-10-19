@@ -157,7 +157,9 @@ const columns = computed<DataTableColumns<Model<'Field'>>>(() => [
         size: 'small',
         filterable: true,
         inputProps: { 'aria-label': uiText('datasets.fieldType', { name: row.name }) },
-        options: ['string', 'integer', 'decimal(18,2)', 'boolean', 'date'].map((value) => ({
+        options: [
+          ...new Set(['string', 'integer', 'decimal(18,2)', 'boolean', 'date', row.type]),
+        ].map((value) => ({
           label: value,
           value,
         })),

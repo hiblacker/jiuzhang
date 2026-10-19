@@ -24,7 +24,7 @@ const pending = new Map<LocaleDomain, Promise<void>>()
 
 export function loadRouteMessages(domains: readonly LocaleDomain[]) {
   return Promise.all(
-    domains.map((domain) => {
+    [...new Set<LocaleDomain>(['identity', ...domains])].map((domain) => {
       let request = pending.get(domain)
       if (!request) {
         request = loaders[domain]()

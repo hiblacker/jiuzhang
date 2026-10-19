@@ -6,6 +6,7 @@ import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
 const canWrite = useCan('write')
+const real = import.meta.env.VITE_API_MODE === 'real'
 import { computed, h, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -301,10 +302,10 @@ const columns = [
             v-select-trigger-name="uiText('ui.quality_e4e46c72')"
             :options="[
               { label: uiText('ui.quality_32945d3e'), value: 'required' },
-              { label: uiText('ui.quality_e805014a'), value: 'unique' },
+              { label: uiText('ui.quality_e805014a'), value: 'unique', disabled: real },
               { label: uiText('ui.quality_785b52eb'), value: 'range' },
-              { label: uiText('ui.quality_d7f83126'), value: 'enum' },
-              { label: uiText('ui.quality_17bb0cbf'), value: 'freshness' },
+              { label: uiText('ui.quality_d7f83126'), value: 'enum', disabled: real },
+              { label: uiText('ui.quality_17bb0cbf'), value: 'freshness', disabled: real },
             ]" /></NFormItem
         ><NFormItem path="field" :label="uiText('ui.quality_77a49f2c')"
           ><NInput

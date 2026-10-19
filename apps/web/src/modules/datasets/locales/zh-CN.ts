@@ -23,6 +23,8 @@ export default {
     confirmMove: '确认移动',
   },
   datasets: {
+    realScope:
+      '第一版：MySQL 单表、字段映射、等值过滤、trim 清洗、必填/范围质量、字符串脱敏；仅手动全量替换。目标表名创建后固定。',
     related: {
       title: '关联数据集',
       states: { draft: '草稿', published: '已发布', blocked: '已阻断' },

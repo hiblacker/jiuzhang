@@ -42,6 +42,7 @@ const { t } = useI18n(),
   router = useRouter(),
   { filters, update, queryValue, bindPagination } = useListRoute(),
   actions = useDatasetActions()
+const real = import.meta.env.VITE_API_MODE === 'real'
 const folders = useFolders()
 const moveDataset = ref<Model<'Dataset'> | null>(null)
 const params = computed(() => ({
@@ -215,6 +216,7 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
   <div class="dataset-layout">
     <aside>
       <DatasetFolderPanel
+        v-if="!real"
         :selected="params.folderId"
         @select="update({ folderId: $event, page: 1 })"
       />

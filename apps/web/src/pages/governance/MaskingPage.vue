@@ -7,6 +7,7 @@ import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
 const canWrite = useCan('write')
+const real = import.meta.env.VITE_API_MODE === 'real'
 import { computed, h, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -295,8 +296,8 @@ const columns = [
             v-select-trigger-name="uiText('ui.masking_af908096')"
             :options="[
               { label: uiText('ui.masking_32866382'), value: 'mask' },
-              { label: uiText('ui.masking_0ccc9cb0'), value: 'remove' },
-              { label: uiText('ui.masking_0a09cd89'), value: 'generalize' },
+              { label: uiText('ui.masking_0ccc9cb0'), value: 'remove', disabled: real },
+              { label: uiText('ui.masking_0a09cd89'), value: 'generalize', disabled: real },
             ]" /></NFormItem
         ><NFormItem path="parameter" :label="uiText('ui.masking_749d7652')"
           ><NInput

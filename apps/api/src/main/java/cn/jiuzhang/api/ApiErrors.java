@@ -15,6 +15,7 @@ public class ApiErrors {
     @ExceptionHandler(DuplicateKeyException.class) ResponseEntity<?> duplicate(HttpServletRequest request) { return response(409,"DUPLICATE_NAME",request); }
     @ExceptionHandler({HttpMessageNotReadableException.class, org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
     ResponseEntity<?> malformed(HttpServletRequest request) { return response(422,"VALIDATION_ERROR",request); }
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class) ResponseEntity<?> referenced(HttpServletRequest request) { return response(409,"RESOURCE_REFERENCED",request); }
     @ExceptionHandler(NoResourceFoundException.class) ResponseEntity<?> missing(HttpServletRequest request) { return response(501,"NOT_IMPLEMENTED",request); }
     @ExceptionHandler(Exception.class) ResponseEntity<?> internal(Exception error,HttpServletRequest request) {
         org.slf4j.LoggerFactory.getLogger(ApiErrors.class).error("Request {} failed: {}",HttpSupport.requestId(request),error.getClass().getSimpleName());

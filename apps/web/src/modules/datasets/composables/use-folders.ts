@@ -4,6 +4,7 @@ import { folderRepository } from '../api/folder-repository'
 export function useFolders() {
   return useQuery({
     queryKey: ['dataset-folders'],
+    enabled: import.meta.env.VITE_API_MODE === 'mock',
     queryFn: ({ signal }) => folderRepository.list(signal),
   })
 }

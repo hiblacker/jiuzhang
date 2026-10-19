@@ -1066,6 +1066,7 @@ describe('HTTP contract and persistence', () => {
     ).toEqual([])
   })
   it('uses one column policy across table, query, service and export, with private ownership', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-19T00:00:00Z'))
     const source = (await request('/sources/1001/preview', 'POST', { objectId: '11001' }, 'viewer'))
       .body.data
     expect(source.fields.map((field: { name: string }) => field.name)).not.toContain('phone')
