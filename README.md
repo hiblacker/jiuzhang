@@ -13,7 +13,7 @@
 - Doris 完整快照替换、表浏览、受控查询、本人 CSV 导出（24 小时过期）。
 - 首次空批允许；非空→零行默认阻断，管理员可批准本次空覆盖，不能绕过读取/质量错误。当前快照保留，历史最多三份且被替换后最多七天。
 
-一期只补 OceanBase（MySQL 模式）与双表 JOIN、派生字段、Cron 调度、K8s 部署和 Crest 消费；暂缓 GROUP BY 聚合、任意加工 SQL、CDC/增量/upsert、依赖编排/补数、多工作区、数据服务及 OceanBase Oracle 模式。未实现入口显示说明，真实模式不回退 Mock。
+一期只补 OceanBase（MySQL 模式）与双表 JOIN、派生字段、Cron 调度、K8s 部署和 Crest 消费；暂缓 GROUP BY 聚合、任意加工 SQL、CDC/增量/upsert、依赖编排/补数、多工作区、数据服务及 OceanBase Oracle 模式。投产验证后另行规划面向已发布仓库数据的 AI 问数：自然语言对话生成受控 SQL、查询数据、生成图表并给出可追溯分析；当前尚未实现，也不在一期排期内。规划边界见[总体架构 §12.4](docs/architecture.md#124-暂缓能力与后续工作)。未实现入口显示说明，真实模式不回退 Mock。
 
 ## 启动真实版本
 
