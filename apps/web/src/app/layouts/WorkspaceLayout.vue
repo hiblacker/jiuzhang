@@ -161,7 +161,7 @@ async function logout() {
         <span class="status-dot" />{{ real ? t('identity.realMode') : t('mock')
         }}<small>LOCAL WORKSPACE</small>
       </div></NLayoutSider
-    ><NLayout
+    ><NLayout class="workspace-main"
       ><NLayoutHeader bordered class="topbar"
         ><div class="breadcrumb">
           <span>{{ t('workspace') }}</span
@@ -207,7 +207,18 @@ async function logout() {
 </template>
 <style scoped>
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+}
+.app-shell :deep(.n-layout-sider) {
+  height: 100vh;
+  align-self: flex-start;
+}
+.workspace-main {
+  height: 100vh;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 .brand {
   height: 92px;
@@ -292,7 +303,10 @@ async function logout() {
 .main-content {
   padding: 30px 32px 72px;
   background: var(--surface);
-  min-height: calc(100vh - 68px);
+  height: calc(100vh - 68px);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
 }
 @media (max-width: 1000px) {
   .topbar {

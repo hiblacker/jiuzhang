@@ -2,7 +2,6 @@ export {
   useSources,
   useSource,
   useSourceObjects,
-  useSourcePreview,
   useDeleteSource,
   useSourceEditor,
 } from './composables/use-sources'

@@ -117,7 +117,7 @@ test('API parameters validate, persist after reload and redact credentials witho
   await expect(query).toHaveValue(JSON.stringify({ page: 0, enabled: false }, null, 2))
   await expect(body).toHaveValue(JSON.stringify({ city: '杭州', ids: ['100', '101'] }, null, 2))
 })
-test('source object tree preserves table and field selection in shareable URLs', async ({
+test('source directory selects tables and shows their fields without row samples', async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -127,28 +127,51 @@ test('source object tree preserves table and field selection in shareable URLs',
   await page.goto('/sources/1001')
   const tree = page.getByRole('complementary', { name: '对象目录', exact: true })
   await expect(tree.getByText('orders', { exact: true })).toBeVisible()
+  await expect(tree.locator('[data-object-node^="field:"]')).toHaveCount(0)
+  await expect(page.getByRole('tab')).toHaveCount(0)
+  await expect(page.getByText('样本预览', { exact: true })).toHaveCount(0)
   await tree.getByText('customers', { exact: true }).click()
   await expect(page).toHaveURL(/objectId=11002/)
-  await tree
-    .locator('[data-object-node="field:11002:phone"]')
-    .getByText('phone · string', { exact: true })
-    .click()
-  await expect(page).toHaveURL(/field=phone/)
-  await expect(page.getByText('当前字段：phone')).toBeVisible()
   await expect(page.getByRole('cell', { name: 'phone', exact: true })).toBeVisible()
-  await expect(page.getByRole('cell', { name: 'id', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('cell', { name: 'id', exact: true })).toBeVisible()
   await page.reload()
-  await expect(page.getByText('当前字段：phone')).toBeVisible()
-  await page.getByText('样本预览', { exact: true }).click()
-  await expect(page).toHaveURL(/objectId=11002.*field=phone.*tab=preview/)
-  await expect(page.getByRole('cell', { name: '138****0000', exact: true })).toBeVisible()
-  await page.goBack()
-  await expect(page.getByText('当前字段：phone')).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'phone', exact: true })).toBeVisible()
+  await expect(page.getByText('138****0000', { exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: '从此对象新建数据集' }).click()
-  await expect(page).toHaveURL(/datasets[/]new[?]sourceId=1001&objectId=11002&field=phone/)
+  await expect(page).toHaveURL(/datasets[/]new[?]sourceId=1001&objectId=11002$/)
   await page.getByText('字段与清洗', { exact: true }).click()
   await expect(page.getByRole('checkbox', { name: '输出 phone', exact: true })).toBeChecked()
-  await expect(page.getByRole('checkbox', { name: '输出 id', exact: true })).not.toBeChecked()
+  await expect(page.getByRole('checkbox', { name: '输出 id', exact: true })).toBeChecked()
+})
+
+test('workspace navigation stays at viewport height while page content scrolls', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('jiuzhang.preference.session', 'demo')
+    localStorage.setItem('jiuzhang.preference.role', 'developer')
+  })
+  await page.goto('/overview')
+  const sidebar = page.locator('.n-layout-sider')
+  const header = page.locator('.topbar')
+  const content = page.locator('.main-content')
+  const initialSidebar = await sidebar.boundingBox()
+  const initialHeader = await header.boundingBox()
+  expect(initialSidebar?.y).toBe(0)
+  expect(initialSidebar?.height).toBe(1000)
+  expect(initialHeader?.y).toBe(0)
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1000)
+  await content.evaluate((element) => {
+    const spacer = document.createElement('div')
+    spacer.style.height = '1200px'
+    element.append(spacer)
+  })
+  await content.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  expect(await content.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  expect(await sidebar.boundingBox()).toEqual(initialSidebar)
+  expect(await header.boundingBox()).toEqual(initialHeader)
 })
 test('source create, test, persist, edit cancel and dependency delete', async ({ page }) => {
   const errors: string[] = []

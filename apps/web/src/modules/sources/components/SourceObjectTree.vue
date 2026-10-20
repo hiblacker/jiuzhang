@@ -8,9 +8,8 @@ const props = defineProps<{
   source: Model<'Source'>
   objects: Model<'SourceObject'>[]
   objectId: string
-  field: string
 }>()
-const emit = defineEmits<{ select: [objectId: string, field: string] }>()
+const emit = defineEmits<{ select: [objectId: string] }>()
 const { t } = useI18n(),
   search = ref('')
 const tree = computed<TreeOption[]>(() => {
@@ -19,13 +18,6 @@ const tree = computed<TreeOption[]>(() => {
     key: 'object:' + object.id,
     label: object.name,
     objectId: object.id,
-    field: '',
-    children: object.fields.map((field) => ({
-      key: 'field:' + object.id + ':' + field.name,
-      label: field.name + ' · ' + field.type,
-      objectId: object.id,
-      field: field.name,
-    })),
   }))
   const children =
     connection.schema && props.source.settings.schema
@@ -39,9 +31,7 @@ const tree = computed<TreeOption[]>(() => {
     },
   ]
 })
-const selected = computed(() =>
-  props.field ? ['field:' + props.objectId + ':' + props.field] : ['object:' + props.objectId],
-)
+const selected = computed(() => ['object:' + props.objectId])
 const expanded = ref<(string | number)[]>(['root', 'schema'])
 watch(
   () => props.source.id + ':' + props.objectId,
@@ -52,8 +42,7 @@ watch(
 )
 function select(_keys: (string | number)[], options: (TreeOption | null)[]) {
   const option = options[0]
-  if (option && typeof option.objectId === 'string')
-    emit('select', option.objectId, String(option.field ?? ''))
+  if (option && typeof option.objectId === 'string') emit('select', option.objectId)
 }
 </script>
 <template>

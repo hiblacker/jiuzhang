@@ -40,9 +40,4 @@ export const sourceRepository = {
   async objects(id: string, signal?: AbortSignal) {
     return unwrap(await api.GET('/sources/{id}/objects', { params: { path: { id } }, signal })).data
   },
-  async preview(id: string, objectId: string) {
-    return unwrap(
-      await api.POST('/sources/{id}/preview', { params: { path: { id } }, body: { objectId } }),
-    ).data
-  },
 }

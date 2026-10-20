@@ -1,17 +1,12 @@
 <script setup lang="ts">
-import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
-import { useRouteTab } from '@/shared/composables/use-route-tab'
 import { DataPreview } from '@/shared/ui/data-preview'
 import { ResponsiveDescriptions } from '@/shared/ui/responsive-descriptions'
 const canWrite = useCan('write')
-const canReadSensitive = useCan('readSensitive')
-const real = import.meta.env.VITE_API_MODE === 'real'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { NButton, NCard, NTag, NTabs, NTabPane, NDescriptionsItem, NAlert } from 'naive-ui'
-import { useSource, useSourceObjects, useSourcePreview, SourceObjectTree } from '@/modules/sources'
-import { RunHistory } from '@/modules/jobs'
+import { NButton, NCard, NTag, NDescriptionsItem, NAlert } from 'naive-ui'
+import { useSource, useSourceObjects, SourceObjectTree } from '@/modules/sources'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { CopyButton } from '@/shared/ui/copy-button'
@@ -30,17 +25,13 @@ const selected = computed(() =>
 const selectedObject = computed(() =>
   objects.data.value?.find((object) => object.id === selected.value),
 )
-const selectedField = computed(() =>
-  typeof route.query.field === 'string' ? route.query.field : '',
-)
-function select(objectId: string, field: string) {
-  void router.push({ query: { ...route.query, objectId, field: field || undefined } })
+function select(objectId: string) {
+  const query = { ...route.query }
+  delete query.field
+  query.objectId = objectId
+  void router.push({ query })
 }
-const preview = useSourcePreview(id, selected, () => !real || canReadSensitive.value)
-const tab = useRouteTab(['catalog', 'preview', 'sync'], 'catalog')
-const fields = computed(
-  () => objects.data.value?.find((x) => x.id === selected.value)?.fields ?? [],
-)
+const fields = computed(() => selectedObject.value?.fields ?? [])
 const columns = computed(() => [
   { title: t('field'), key: 'name' },
   { title: t('dataType'), key: 'type' },
@@ -75,75 +66,42 @@ const readonly = computed(() => !canWrite.value)
           source.data.value?.owner
         }}</NDescriptionsItem></ResponsiveDescriptions
       ></NCard
-    ><NAlert v-if="real" type="info" class="mb">{{ t('sources.realPreviewPermission') }}</NAlert
     ><NCard :bordered="false"
-      ><NTabs v-accessible-tabs="t('sources.details')" :value="tab" @update:value="tab = $event"
-        ><NTabPane name="catalog" :tab="t('sources.catalog')"
-          ><AsyncState
-            :loading="objects.isLoading.value"
-            :error="objects.error.value"
-            :empty="objects.data.value?.length === 0"
-            @retry="objects.refetch()"
-            ><div class="catalog-layout">
-              <SourceObjectTree
-                v-if="source.data.value"
-                :source="source.data.value"
-                :objects="objects.data.value ?? []"
-                :object-id="selected"
-                :field="selectedField"
-                @select="select"
-              />
-              <section>
-                <NAlert v-if="!selectedObject" type="warning">{{ t('resourceNotFound') }}</NAlert>
-                <div v-else class="query-toolbar">
-                  <h3>{{ selectedObject.name }}</h3>
-                  <NButton
-                    secondary
-                    type="primary"
-                    :disabled="readonly || !selectedObject"
-                    @click="
-                      router.push({
-                        path: '/datasets/new',
-                        query: {
-                          sourceId: id,
-                          objectId: selected,
-                          field: selectedField || undefined,
-                        },
-                      })
-                    "
-                    >{{ t('sources.fromSource') }}</NButton
-                  >
-                </div>
-                <NAlert v-if="selectedField" type="info" class="mb"
-                  >{{ t('sources.selectedField', { field: selectedField }) }}
-                  <NButton text @click="select(selected, '')">{{
-                    t('sources.allFields')
-                  }}</NButton></NAlert
-                >
-                <h3>{{ t('sources.fields') }}</h3>
-                <DataPreview
-                  :columns="columns"
-                  :rows="
-                    (selectedField
-                      ? fields.filter((field) => field.name === selectedField)
-                      : fields
-                    ).map((field) => ({ ...field }))
+      ><AsyncState
+        :loading="objects.isLoading.value"
+        :error="objects.error.value"
+        :empty="objects.data.value?.length === 0"
+        @retry="objects.refetch()"
+        ><div class="catalog-layout">
+          <SourceObjectTree
+            v-if="source.data.value"
+            :source="source.data.value"
+            :objects="objects.data.value ?? []"
+            :object-id="selected"
+            @select="select"
+          />
+          <section>
+            <NAlert v-if="!selectedObject" type="warning">{{ t('resourceNotFound') }}</NAlert>
+            <template v-else>
+              <div class="query-toolbar">
+                <h3>{{ selectedObject.name }}</h3>
+                <NButton
+                  secondary
+                  type="primary"
+                  :disabled="readonly"
+                  @click="
+                    router.push({
+                      path: '/datasets/new',
+                      query: { sourceId: id, objectId: selected },
+                    })
                   "
-                />
-              </section></div></AsyncState></NTabPane
-        ><NTabPane :disabled="real && !canReadSensitive" name="preview" :tab="t('sources.preview')"
-          ><AsyncState
-            :loading="preview.isLoading.value"
-            :error="preview.error.value"
-            @retry="preview.refetch()"
-            ><NAlert type="info" class="mb">{{ preview.data.value?.notes.join('；') }}</NAlert
-            ><DataPreview
-              :columns="preview.data.value?.fields.map((field) => field.name) ?? []"
-              :rows="preview.data.value?.rows ?? []" /></AsyncState></NTabPane
-        ><NTabPane v-if="!real" name="sync" :tab="t('sources.sync')"
-          ><RunHistory
-            :scope="{ sourceId: id }"
-            @select="router.push('/runs/' + $event)" /></NTabPane></NTabs></NCard
+                  >{{ t('sources.fromSource') }}</NButton
+                >
+              </div>
+              <h3>{{ t('sources.fields') }}</h3>
+              <DataPreview :columns="columns" :rows="fields.map((field) => ({ ...field }))" />
+            </template>
+          </section></div></AsyncState></NCard
   ></AsyncState>
 </template>
 <style scoped>
