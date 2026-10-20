@@ -52,6 +52,9 @@ const readonly = computed(() => !canWrite.value)
     <PageHeader
       :title="source.data.value?.name ?? t('sources.details')"
       :description="source.data.value?.description"
+      ><NTag type="success" :bordered="false" data-source-status>{{
+        t(source.data.value?.status ?? 'connected')
+      }}</NTag
       ><NButton @click="router.push('/sources')">{{ t('back') }}</NButton
       ><NButton
         type="primary"
@@ -66,9 +69,6 @@ const readonly = computed(() => !canWrite.value)
     >
       <section class="source-summary" :aria-label="t('sources.basic')">
         <NTag :bordered="false">{{ source.data.value?.type }}</NTag>
-        <NTag type="success" :bordered="false">{{
-          t(source.data.value?.status ?? 'connected')
-        }}</NTag>
         <span class="source-identity"
           ><span class="muted">ID</span><NEllipsis>{{ id }}</NEllipsis
           ><CopyButton :value="id"

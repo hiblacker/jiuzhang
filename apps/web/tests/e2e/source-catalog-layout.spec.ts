@@ -40,6 +40,20 @@ test('source explorer fills the desktop with resizable independently scrolling p
   const preview = schema.getByRole('region', { name: '数据结果', exact: true })
   const separator = page.getByRole('separator', { name: '调整表目录宽度', exact: true })
   await expect(catalog.getByText('80 张表', { exact: true })).toBeVisible()
+  const status = page.locator('[data-source-status]')
+  const actions = page.locator('.page-header .page-actions')
+  await expect(status).toHaveText('已连接')
+  await expect(actions.getByRole('button', { name: '返回', exact: true })).toBeVisible()
+  await expect(actions.getByRole('button', { name: '编辑', exact: true })).toBeVisible()
+  expect((await status.boundingBox())!.y).toBe(
+    (await actions.boundingBox())!.y +
+      ((await actions.boundingBox())!.height - (await status.boundingBox())!.height) / 2,
+  )
+  await expect(
+    page
+      .getByRole('region', { name: '基本信息', exact: true })
+      .getByText('已连接', { exact: true }),
+  ).toHaveCount(0)
   for (const theme of ['light', 'dark']) {
     if (theme === 'dark')
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
