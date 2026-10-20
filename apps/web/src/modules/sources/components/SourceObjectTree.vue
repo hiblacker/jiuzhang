@@ -47,6 +47,10 @@ function select(_keys: (string | number)[], options: (TreeOption | null)[]) {
 </script>
 <template>
   <aside class="object-tree" :aria-label="t('sources.catalog')">
+    <header class="catalog-heading">
+      <h2>{{ t('sources.catalog') }}</h2>
+      <span>{{ t('sources.tableCount', { count: objects.length }) }}</span>
+    </header>
     <NInput
       v-model:value="search"
       clearable
@@ -70,19 +74,35 @@ function select(_keys: (string | number)[], options: (TreeOption | null)[]) {
 </template>
 <style scoped>
 .object-tree {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   min-width: 0;
-  padding-right: 20px;
-  border-right: 1px solid var(--border);
+  padding: 20px 16px 20px 20px;
+}
+.catalog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.catalog-heading h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.catalog-heading span {
+  color: var(--textSecondary);
+  font-size: 12px;
+}
+.object-tree :deep(.n-input) {
+  flex-shrink: 0;
 }
 .object-tree :deep(.n-tree) {
+  flex: 1;
+  min-height: 0;
   margin-top: 16px;
-  max-height: 520px;
   overflow: auto;
-}
-@media (max-width: 1000px) {
-  .object-tree {
-    border-right: none;
-    padding-right: 0;
-  }
 }
 </style>

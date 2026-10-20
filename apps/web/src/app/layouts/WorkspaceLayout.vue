@@ -200,7 +200,9 @@ async function logout() {
             ></NDropdown
           >
         </div></NLayoutHeader
-      ><NLayoutContent class="main-content"
+      ><NLayoutContent
+        class="main-content"
+        :class="{ 'main-content--source-detail': route.meta.id === 'P04' }"
         ><RouterView :key="route.path" /></NLayoutContent></NLayout
   ></NLayout>
   <PasswordChangeDrawer v-if="real" v-model="passwordOpen" @changed="passwordChanged" />
@@ -307,6 +309,9 @@ async function logout() {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior-y: contain;
+}
+.main-content--source-detail {
+  padding-bottom: 24px;
 }
 @media (max-width: 1000px) {
   .topbar {

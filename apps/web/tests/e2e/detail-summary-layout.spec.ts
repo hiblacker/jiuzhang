@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('long source owners do not squeeze detail values and desktop columns preserve copy and tabs', async ({
+test('compact source summary keeps long owners readable and preserves ID copying', async ({
   page,
   context,
 }) => {
@@ -25,22 +25,17 @@ test('long source owners do not squeeze detail values and desktop columns preser
     if (!response.ok) throw new Error(await response.text())
   }, owner)
   await page.reload()
-  const summary = page.locator('.n-descriptions').first()
+  const summary = page.getByRole('region', { name: '基本信息', exact: true })
   await expect(summary.getByText(owner, { exact: true })).toBeVisible()
-  await expect
-    .poll(() =>
-      summary
-        .locator('.n-descriptions-table-content')
-        .evaluateAll((cells) =>
-          Math.min(...cells.map((cell) => cell.getBoundingClientRect().width)),
-        ),
-    )
-    .toBeGreaterThanOrEqual(220)
+  expect((await summary.boundingBox())!.height).toBeLessThanOrEqual(40)
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBe(page.viewportSize()?.width)
   await expect(summary.getByText('MySQL', { exact: true })).toBeVisible()
   await expect(summary.getByText(owner, { exact: true })).toHaveText(owner)
+  await summary.locator('.source-owner .n-ellipsis').focus()
+  await expect(page.getByRole('tooltip')).toHaveText(owner)
+  await page.keyboard.press('Escape')
   for (const theme of ['light', 'dark']) {
     if ((await page.evaluate(() => document.documentElement.style.colorScheme)) !== theme)
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).press('Enter')
@@ -52,14 +47,9 @@ test('long source owners do not squeeze detail values and desktop columns preser
   }
   await summary.getByRole('button', { name: '复制', exact: true }).press('Enter')
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('1001')
-  const sync = page.getByRole('tab', { name: '同步记录', exact: true })
-  await sync.focus()
-  await sync.press('Enter')
-  await expect(sync).toHaveAttribute('aria-selected', 'true')
-  await expect(page).toHaveURL('/sources/1001?tab=sync')
+  await expect(page.getByRole('tab')).toHaveCount(0)
   await page.reload()
   await expect(summary.getByText(owner, { exact: true })).toHaveText(owner)
-  await expect(sync).toHaveAttribute('aria-selected', 'true')
   expect(errors).toEqual([])
 })
 

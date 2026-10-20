@@ -35,7 +35,7 @@
 | P01  | /overview                       | 工作台       | 统计卡、运行趋势、最近失败、待处理事项         | 卡片统计来自同一 DB；点击跳转带筛选条件                   | B0/B5 | verified |
 | P02  | /sources                        | 数据源列表   | 搜索/类型/状态筛选、分页、创建、编辑、删除     | 保存后可见；刷新保持；被依赖对象删除返回 409              | B1    | verified |
 | P03  | /sources/new                    | 新建数据源   | 连接器选择、连接参数、API 配置、模拟测试       | 分类型校验；假测试成功/失败；保存回列表                   | B1    | verified |
-| P04  | /sources/:id                    | 数据源详情   | 基本信息、对象目录、字段、预览、同步记录       | 树展开、选表选列、查看 schema；未知 ID 为资源未找到       | B1    | verified |
+| P04  | /sources/:id                    | 数据源详情   | 紧凑摘要、可调宽表目录、字段结构与说明          | 搜索/选表、URL 保持、双栏独立滚动、长值完整查看；未知 ID 为资源未找到 | B1    | verified |
 | P05  | /sources/:id/edit               | 编辑数据源   | 复用连接表单、配置差异、保存/取消              | 原始信息与草稿分开，取消不污染详情                        | B1    | verified |
 | P06  | /datasets                       | 数据集列表   | 目录、名称/状态搜索、排序、复制、运行、删除    | 复制生成新 ID；只读角色不能修改；依赖冲突可见             | B2    | verified |
 | P07  | /datasets/new                   | 新建数据集   | 输入选择、图/SQL 模式、字段、转换、规则、目标  | 来源可追踪；表单与 DAG 校验；保存草稿可重开               | B2    | verified |
@@ -366,7 +366,7 @@ P18 仓库来源与版本（2026-10-17）：桌面验收发现 CSV 导入表在�
 | 页面 | 真实范围与限制 | 验证入口 |
 |---|---|---|
 | P01 | 完整数据库汇总、七日运行趋势、失败/待办、管理员审计活动 | test-overview.py、test-real-overview.mjs |
-| P02–P05 | MySQL 创建/编辑、真实只读测试、目录/字段、管理员原始预览；无独立同步任务 | test-sources.py、test-real-sources.mjs |
+| P02–P05 | MySQL 创建/编辑、真实只读测试、可调宽表目录与字段说明；数据源详情无样本预览，无独立同步任务 | test-sources.py、test-real-sources.mjs |
 | P06–P10 | 单表字段/精确转换/过滤/trim、质量/脱敏、保存/发布/版本恢复；目录移动/复制禁用，原始预览仅管理员 | test-datasets.py、test-real-datasets.mjs |
 | P14–P15 | 手动运行/日志/取消/新运行重试、空覆盖管理员确认、真实状态；无模拟结果选择 | test-execution.py、test-execution-safety.py、test-execution-rules.py、test-real-execution.mjs |
 | P16–P19/P21 | 实际快照、表/来源、受控只读查询、私有 CSV；容量/趋势未采集，血缘入口暂缓 | test-warehouse.py、test-real-execution.mjs |
@@ -375,3 +375,10 @@ P18 仓库来源与版本（2026-10-17）：桌面验收发现 CSV 导入表在�
 | P11–P13/P20/P22–P23/P28–P31/P33/P35 | 任务调度/导入/目录血缘/数据服务/可编辑权限与设置暂缓；导航隐藏，直接访问显示真实能力说明 | test-real-overview.mjs |
 
 真实页面统一 1280×1000，不新增/执行小屏专项。test-real-contracts.mjs 对 34 个真实响应执行 OpenAPI/AJV 校验；test-worker-recovery.py 覆盖真实读阶段及跨系统发布阶段 SIGKILL。运行/查询/导出等数据通过 HTTP，真实失败不回退 Mock。实际命令及引擎版本见总体架构 §14；启动见 README。
+
+### 数据源详情空间调整（2026-10-20）
+
+- 顶部独立信息卡改为紧凑摘要，保留类型、状态、ID 复制和负责人完整查看；目录与字段区填满剩余可视高度。默认双栏约 30% / 70%，通过 Naive NSplit 拖拽，或聚焦分隔线后使用左右键、Home/End 调整目录宽度。表目录与字段表独立滚动，搜索框、字段表头和分页保持可用。
+- 复用记录：保留 sources/SourceObjectTree 的目录搜索与选表所有者；shared/ui/data-preview 已提供分页、长值弹窗与复制，缺口仅为默认 480px 高度和统一 180px 列宽，故兼容增加 fillHeight 与可选列宽，不新建字段表组件。默认消费者行为保持不变；布局和跨域新建数据集仍由页面协调，无 API 契约变更或新增依赖。
+- 验证：source-catalog-layout.spec.ts 覆盖 80 张表、75 个字段、双栏尺寸、独立滚动、分页末行、拖拽/键盘调整、搜索及长值弹窗焦点恢复，1280×1000 明暗主题截图已查看；sources、detail-summary-layout、schema-reading、wide-preview 共 19 项相关浏览器用例通过。93 项单元/HTTP 集成、typecheck、lint、format:check、UI/i18n/边界门禁及 demo/real 双构建通过。未重跑全部 E2E。
+- 使用现有真实 MySQL 数据源只读检查目录搜索、字段说明、可视区尺寸及明暗主题，截图已查看；未创建或修改数据源。截图位于本地临时目录 /tmp/jiuzhang-source-explorer-*.png，复现以仓库测试为准。

@@ -5,7 +5,17 @@ import { useI18n } from 'vue-i18n'
 import { CopyButton } from '@/shared/ui/copy-button'
 import type { Model } from '@/shared/api/types'
 type Row = Model<'Row'>
-const props = defineProps<{ columns: (string | { key: string; title: string })[]; rows: Row[] }>()
+const props = defineProps<{
+  columns: (string | { key: string; title: string; width?: number })[]
+  rows: Row[]
+  fillHeight?: boolean
+}>()
+const scrollWidth = computed(() =>
+  props.columns.reduce(
+    (width, column) => width + (typeof column === 'string' ? 180 : (column.width ?? 180)),
+    0,
+  ),
+)
 const { t } = useI18n()
 const page = ref(1)
 const pageSize = ref(50)
@@ -18,7 +28,7 @@ const columns = computed<DataTableColumns<Row>>(() =>
   props.columns.map((column) => ({
     title: typeof column === 'string' ? column : column.title,
     key: typeof column === 'string' ? column : column.key,
-    width: 180,
+    width: typeof column === 'string' ? 180 : (column.width ?? 180),
     ellipsis: { tooltip: true },
     render: (row, index) => {
       const key = typeof column === 'string' ? column : column.key
@@ -44,14 +54,19 @@ const columns = computed<DataTableColumns<Row>>(() =>
 )
 </script>
 <template>
-  <section :aria-label="t('dataPreview.region')" class="data-preview">
+  <section
+    :aria-label="t('dataPreview.region')"
+    class="data-preview"
+    :class="{ 'data-preview--fill': fillHeight }"
+  >
     <NDataTable
       :columns="columns"
       :data="rows"
       :bordered="false"
-      :max-height="480"
+      :max-height="fillHeight ? undefined : 480"
+      :flex-height="fillHeight"
       table-layout="fixed"
-      :scroll-x="Math.max(180, columns.length * 180)"
+      :scroll-x="Math.max(180, scrollWidth)"
       :pagination="
         rows.length > 50
           ? {
@@ -90,6 +105,16 @@ const columns = computed<DataTableColumns<Row>>(() =>
 <style scoped>
 .data-preview {
   min-width: 0;
+}
+.data-preview--fill {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.data-preview--fill :deep(.n-data-table) {
+  flex: 1;
+  min-height: 0;
 }
 .data-preview :deep(.preview-value) {
   max-width: 100%;
