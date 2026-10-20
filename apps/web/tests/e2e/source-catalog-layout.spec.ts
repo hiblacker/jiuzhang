@@ -52,8 +52,8 @@ test('source explorer fills the desktop with resizable independently scrolling p
   const actions = page.locator('.page-header .page-actions')
   await expect(status).toContainText('retail_demo')
   await expect(status).toContainText('已连接')
-  await expect(catalog.locator('[data-object-node="root"]')).toHaveCount(0)
-  await expect(catalog.locator('[data-object-node^="object:"]')).toHaveCount(80)
+  await expect(catalog.locator('.n-tree')).toHaveCount(0)
+  await expect(catalog.locator('[data-object-item]')).toHaveCount(80)
   await expect(actions.getByRole('button', { name: '返回', exact: true })).toBeVisible()
   await expect(actions.getByRole('button', { name: '编辑', exact: true })).toBeVisible()
   expect((await status.boundingBox())!.y).toBe(
@@ -131,13 +131,13 @@ test('source explorer fills the desktop with resizable independently scrolling p
     await separator.press('ArrowRight')
     await separator.press('ArrowRight')
     await separator.press('ArrowRight')
-    const tree = catalog.locator('.n-tree')
-    await tree.evaluate((element) => {
+    const objectList = catalog.locator('.object-list')
+    await objectList.evaluate((element) => {
       element.scrollTop = element.scrollHeight
     })
     await expect(catalog.getByText('synthetic_table_079', { exact: true })).toBeInViewport()
     await expect(catalog.getByRole('textbox', { name: '搜索表名', exact: true })).toBeInViewport()
-    await tree.evaluate((element) => {
+    await objectList.evaluate((element) => {
       element.scrollTop = 0
     })
     await separator.blur()
@@ -154,23 +154,21 @@ test('source explorer fills the desktop with resizable independently scrolling p
   }
   const search = catalog.getByRole('textbox', { name: '搜索表名', exact: true })
   await search.fill('synthetic_table_079')
-  await expect(catalog.locator('[data-object-node^="object:"]')).toHaveCount(1)
+  await expect(catalog.locator('[data-object-item]')).toHaveCount(1)
   await catalog.getByText('synthetic_table_079', { exact: true }).click()
   await expect(page).toHaveURL(/objectId=71079/)
   await expect(
     schema.getByRole('heading', { name: 'synthetic_table_079', exact: true }),
   ).toBeVisible()
   await search.fill('no_such_synthetic_table')
-  await expect(catalog.locator('[data-object-node^="object:"]')).toHaveCount(0)
+  await expect(catalog.locator('[data-object-item]')).toHaveCount(0)
   await expect(
     schema.getByRole('heading', { name: 'synthetic_table_079', exact: true }),
   ).toBeVisible()
   expect(errors).toEqual([])
 })
 
-test('schema-based sources retain schema grouping without a database tree level', async ({
-  page,
-}) => {
+test('schema-based sources show a flat list of tables without a tree', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('jiuzhang.preference.session', 'demo')
     localStorage.setItem('jiuzhang.preference.role', 'admin')
@@ -189,13 +187,16 @@ test('schema-based sources retain schema grouping without a database tree level'
   })
   await page.goto('/sources/1001')
   const catalog = page.getByRole('complementary', { name: '对象目录', exact: true })
-  const schemaNode = catalog.locator('[data-object-node="schema"]')
-  const schemaLabel = catalog.getByText('sales', { exact: true })
   const tableLabel = catalog.getByText('orders', { exact: true })
-  await expect(catalog.locator('[data-object-node="root"]')).toHaveCount(0)
-  await expect(schemaNode).toBeVisible()
+  const customerLabel = catalog.getByText('customers', { exact: true })
+  await expect(catalog.locator('.n-tree')).toHaveCount(0)
+  await expect(catalog.locator('[data-object-item]')).toHaveCount(2)
   await expect(tableLabel).toBeVisible()
-  expect((await tableLabel.boundingBox())!.x).toBeGreaterThan((await schemaLabel.boundingBox())!.x)
+  await expect(customerLabel).toBeVisible()
+  expect((await tableLabel.locator('xpath=..').boundingBox())!.y).toBeLessThan(
+    (await customerLabel.locator('xpath=..').boundingBox())!.y,
+  )
+  await expect(catalog.getByText('sales', { exact: true })).toHaveCount(0)
   await expect(catalog.getByText('retail_demo', { exact: true })).toHaveCount(0)
   await expect(page.locator('[data-source-status]')).toContainText('retail_demo')
 })

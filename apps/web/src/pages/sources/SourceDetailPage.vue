@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { NButton, NCard, NTag, NAlert, NEllipsis, NSplit } from 'naive-ui'
-import { connectorRegistry, useSource, useSourceObjects, SourceObjectTree } from '@/modules/sources'
+import { connectorRegistry, useSource, useSourceObjects, SourceObjectList } from '@/modules/sources'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { CopyButton } from '@/shared/ui/copy-button'
@@ -118,9 +118,7 @@ const readonly = computed(() => !canWrite.value)
             class="catalog-layout"
           >
             <template #1>
-              <SourceObjectTree
-                v-if="source.data.value"
-                :source="source.data.value"
+              <SourceObjectList
                 :objects="objects.data.value ?? []"
                 :object-id="selected"
                 @select="select"

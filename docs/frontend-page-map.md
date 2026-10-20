@@ -385,3 +385,4 @@ AI 问数是一期投产验证后的规划能力，不属于当前 real 页面�
 - 验证：source-catalog-layout.spec.ts 覆盖 80 张表、75 个字段、双栏尺寸、独立滚动、分页末行、拖拽/键盘调整、搜索及长值弹窗焦点恢复，1280×1000 明暗主题截图已查看；sources、detail-summary-layout、schema-reading、wide-preview 共 19 项相关浏览器用例通过。93 项单元/HTTP 集成、typecheck、lint、format:check、UI/i18n/边界门禁及 demo/real 双构建通过。未重跑全部 E2E。
 - 后续目录层级调整增加单库扁平目录与 Schema 分组浏览器验证；数据源目录相关 3 项定向 E2E、typecheck、lint、格式、UI/i18n/边界门禁及 demo/real 双构建通过。真实 MySQL 页面再次只读验收搜索、字段说明、尺寸和明暗主题，未修改数据源。
 - 使用现有真实 MySQL 数据源只读检查目录搜索、字段说明、可视区尺寸及明暗主题，截图已查看；未创建或修改数据源。截图位于本地临时目录 /tmp/jiuzhang-source-explorer-*.png，复现以仓库测试为准。
+- 后续调整（2026-10-20）：因单库目录已没有层级，移除 NTree，改用按对象 ID 选中的平面表名列表；所有连接器均不显示库/Schema/API/文件根节点。搜索、表名滚动、键盘原生按钮操作和字段详情保持可用；Schema 源仍直接列出返回对象，不再把 Schema 作为视觉分组。
