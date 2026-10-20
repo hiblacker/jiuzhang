@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Local single-machine lifecycle. Never removes volumes or stops unowned processes."""
 from pathlib import Path
+from importlib import import_module
 import argparse, datetime, hashlib, hmac, json, os, shutil, signal, socket, subprocess, sys, time, urllib.error, urllib.parse, urllib.request, uuid
 
 ROOT=Path(__file__).resolve().parent.parent
@@ -138,7 +139,11 @@ def prepare():
 
 
 def start(role):
-    if managed(role):
+    artifact = import_module('backend-build').check(role) if role in ['api', 'worker'] else None
+    current = managed(role)
+    if current and artifact is not None and current.get('artifact') != artifact:
+        raise RuntimeError(role+' is running an older build; stop it with bash tools/local.sh stop '+role+' before starting again')
+    if current:
         print(role+' already running (owned)',flush=True);return
     if alive(SERVICES[role]):raise RuntimeError('Port '+str(SERVICES[role])+' is occupied; no process was stopped')
     if role=='worker' and unowned_worker():raise RuntimeError('An unowned Worker is running; stop its terminal before managed startup')
@@ -147,7 +152,7 @@ def start(role):
     command=['pnpm','dev:real'] if role=='web' else ['bash','tools/backend.sh',role]
     with (logs/(role+'.log')).open('wb') as log:
         process=subprocess.Popen(command,cwd=ROOT,env=environment(),stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
-    record={'pid':process.pid,'start':identity(process.pid),'root':str(ROOT),'role':role}
+    record={'pid':process.pid,'start':identity(process.pid),'root':str(ROOT),'role':role,'artifact':artifact}
     (LOCAL/(role+'.process.json')).write_text(json.dumps(record))
     def ready():
         if identity(process.pid)!=record['start']:raise RuntimeError(role+' exited; inspect .local/logs/'+role+'.log')
@@ -175,6 +180,7 @@ def stop(role):
 
 def verify():
     env=environment()
+    run(['python3','tools/test-backend-build.py'],env=env)
     run(['python3','tools/test-migrations.py'],env=env)
     for name in ['identity','sources','datasets','execution','warehouse','execution-safety','execution-rules','result-budget','overview']:
         run(['python3','tools/test-'+name+'.py'],env=env)

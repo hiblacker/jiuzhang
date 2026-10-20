@@ -6,10 +6,13 @@ set -a
 source .env
 set +a
 case "${1:-build}" in
-  build) exec ./mvnw -B verify ;;
-  migrate) exec java -Dloader.main=cn.jiuzhang.platform.migration.Migrate -cp apps/api/target/api-0.1.0-SNAPSHOT.jar org.springframework.boot.loader.launch.PropertiesLauncher ;;
+  build) exec python3 tools/backend-build.py build ;;
+  migrate)
+    python3 tools/backend-build.py check api
+    exec java -Dloader.main=cn.jiuzhang.platform.migration.Migrate -cp apps/api/target/api-0.1.0-SNAPSHOT.jar org.springframework.boot.loader.launch.PropertiesLauncher ;;
   api|worker)
     role="$1"
+    python3 tools/backend-build.py check "$role"
     mkdir -p .local/runtime
     runtime=$(mktemp ".local/runtime/$role-XXXXXXXX.jar")
     cp "apps/$role/target/$role-0.1.0-SNAPSHOT.jar" "$runtime"

@@ -28,7 +28,7 @@ bash tools/local.sh up
 ~~~bash
 bash tools/local.sh status
 bash tools/local.sh stop            # 仅停止本脚本受管进程，保留数据卷
-bash tools/local.sh start           # 使用已有构建，不安装/迁移
+bash tools/local.sh start           # 校验并使用已有构建，不安装/迁移
 bash tools/local.sh stop worker
 bash tools/local.sh start worker
 bash tools/local.sh prepare         # 停止应用后安装/构建/迁移
@@ -37,7 +37,7 @@ bash tools/local.sh infra           # 单独准备基础服务
 
 日志在 .local/logs/{api,worker,web}.log。升级先 stop 再 up，迁移时不能保留旧 API/Worker 连接。脚本不终止其他方式启动的进程，不清空卷，不修改 Docker 权限。使用同一具备 Docker 权限的账号，避免私有文件归属冲突；不要使用 --remove-orphans 或 down -v 清理数据。
 
-手动三终端模式：bash tools/backend.sh api、bash tools/backend.sh worker、pnpm dev:real；进程由终端管理。启动采用不可变 jar 副本，后续构建不覆盖运行文件。
+手动三终端模式：bash tools/backend.sh api、bash tools/backend.sh worker、pnpm dev:real；进程由终端管理。启动采用不可变 jar 副本，后续构建不覆盖运行文件。构建通过 `bash tools/backend.sh build` 记录源码和 JAR 指纹；启动与迁移拒绝缺失或过期构建，已运行的旧 JAR 也不会被误报为最新版。源码更新后执行 stop → up；启动检查回归为 `python3 tools/test-backend-build.py`。
 
 ## 操作流程
 

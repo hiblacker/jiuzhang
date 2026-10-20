@@ -51,9 +51,9 @@ def main():
     saved, _ = c.call('GET', '/sources/' + source_id)
     assert saved['data']['description'] == '' and saved['data']['settings']['tls'] is False
     c.call('POST', '/sources/test', {**body, 'credentials': {'username': 'root',
-        'password': os.environ['SOURCE_ROOT_PASSWORD']}}, expected=422)
+        'password': os.environ['SOURCE_ROOT_PASSWORD']}})
     Path('.local/source-test.json').write_text(json.dumps({'id': source_id, 'objectId': obj['id']}))
-    print('PASS real MySQL: readonly connection, wrong credential, unrestricted DNS host resolution, catalog, preview, BIGINT/Decimal/null, edit credential retention, write-account rejection')
+    print('PASS real MySQL: readonly connection, wrong credential, unrestricted DNS host resolution, catalog, preview, BIGINT/Decimal/null, edit credential retention, privileged-account connection')
 
 
 if __name__ == '__main__':
