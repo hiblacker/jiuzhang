@@ -73,7 +73,7 @@ public class SourceService {
     public Connection connection(String id){var source=store.get(id);return connection(source.settings(),new Credentials(source.username(),vault.open(id,store.secret(id))));}
     public void delete(User user,String id,String requestId){IdentityService.require(user,"write");store.transaction(()->{store.get(id);store.delete(id);identity.audit(user.id(),"delete","source",id,requestId);return null;});}
     public static Map<String,Object> field(SourceConnector.Column c){
-        var f=new LinkedHashMap<String,Object>();f.put("name",c.name());f.put("target",c.name());f.put("type",c.type());f.put("nullable",c.nullable());f.put("output",true);f.put("sensitive",false);f.put("maskPolicyId","");f.put("description","");return f;
+        var f=new LinkedHashMap<String,Object>();f.put("name",c.name());f.put("target",c.name());f.put("type",c.type());f.put("nullable",c.nullable());f.put("output",true);f.put("sensitive",false);f.put("maskPolicyId","");f.put("description",c.description()==null?"":c.description());return f;
     }
     private Connection connection(Map<String,Object>s,Credentials v){return new Connection((String)s.get("host"),((Number)s.get("port")).intValue(),(String)s.get("database"),(Boolean)s.get("tls"),v.username(),v.password());}
     private void validate(Draft d){

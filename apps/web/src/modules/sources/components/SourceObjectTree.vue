@@ -58,6 +58,7 @@ function select(_keys: (string | number)[], options: (TreeOption | null)[]) {
       :data="tree"
       :node-props="({ option }) => ({ 'data-object-node': String(option.key) })"
       :pattern="search"
+      :show-irrelevant-nodes="false"
       :selected-keys="selected"
       v-model:expanded-keys="expanded"
       block-line

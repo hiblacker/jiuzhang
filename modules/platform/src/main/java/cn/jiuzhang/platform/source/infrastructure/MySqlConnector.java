@@ -54,7 +54,11 @@ public class MySqlConnector implements SourceConnector {
             try(var s=c.createStatement()){s.setQueryTimeout(15);s.executeQuery("SELECT "+columnSql(selected)+" FROM "+quote(table)+" LIMIT 0").close();}
             var actual=columns(c,config.database(),table);var used=actual.stream().filter(x->selected.contains(x.name())).toList();
             Failure.require(expected.stream().filter(x->selected.contains(x.name())).toList().size()==selected.size(),"SCHEMA_CHANGED");
-            for(var col:expected)if(selected.contains(col.name())&&!actual.contains(col))throw new Failure(409,"SCHEMA_CHANGED");
+            for(var col:expected){
+                if(!selected.contains(col.name()))continue;
+                var current=actual.stream().filter(x->x.name().equals(col.name())).findFirst().orElse(null);
+                if(current==null||!sameDefinition(col,current))throw new Failure(409,"SCHEMA_CHANGED");
+            }
             supported(used);
             try(var s=c.prepareStatement("SELECT "+columnSql(selected)+" FROM "+quote(table),ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY)){
                 s.setFetchSize(500);s.setQueryTimeout(300);
@@ -83,6 +87,7 @@ public class MySqlConnector implements SourceConnector {
             for(var a:addresses)if(a.isAnyLocalAddress()||a.isMulticastAddress()||a.isLinkLocalAddress())throw new Failure(403,"SOURCE_HOST_DENIED");
             var p=new Properties();p.setProperty("user",v.username());p.setProperty("password",v.password());
             p.setProperty("connectTimeout","5000");p.setProperty("socketTimeout","30000");p.setProperty("useCursorFetch","true");p.setProperty("useServerPrepStmts","true");
+            p.setProperty("characterEncoding","UTF-8");
             p.setProperty("connectionTimeZone","UTC");p.setProperty("forceConnectionTimeZoneToSession","true");
             // Keep TLS encryption while intentionally skipping server certificate and hostname validation.
             p.setProperty("sslMode",v.tls()?"REQUIRED":"DISABLED");
@@ -99,10 +104,15 @@ public class MySqlConnector implements SourceConnector {
     }
     private List<Column> columns(java.sql.Connection c,String database,String table)throws SQLException{
         var columns=new ArrayList<Column>();
-        try(var s=c.prepareStatement("SELECT column_name,column_type,numeric_precision,numeric_scale,character_maximum_length,is_nullable FROM information_schema.columns WHERE table_schema=? AND table_name=? ORDER BY ordinal_position")){
+        try(var s=c.prepareStatement("SELECT column_name,column_type,numeric_precision,numeric_scale,character_maximum_length,is_nullable,column_comment FROM information_schema.columns WHERE table_schema=? AND table_name=? ORDER BY ordinal_position")){
             s.setString(1,database);s.setString(2,table);s.setQueryTimeout(15);
-            try(var r=s.executeQuery()){while(r.next())columns.add(new Column(r.getString(1),r.getString(2),r.getLong(3),r.getInt(4),r.getLong(5),r.getString(6).equals("YES")));}
+            try(var r=s.executeQuery()){while(r.next())columns.add(new Column(r.getString(1),r.getString(2),r.getLong(3),r.getInt(4),r.getLong(5),r.getString(6).equals("YES"),r.getString(7)));}
         }if(columns.isEmpty())throw new Failure(404,"SOURCE_TABLE_MISSING");Failure.require(columns.size()<=200,"SOURCE_CATALOG_LIMIT");return columns;
+    }
+    static boolean sameDefinition(Column expected,Column actual){
+        return expected.name().equals(actual.name())&&expected.type().equals(actual.type())
+                &&expected.precision()==actual.precision()&&expected.scale()==actual.scale()
+                &&expected.length()==actual.length()&&expected.nullable()==actual.nullable();
     }
     private void supported(List<Column> columns){for(var c:columns){String base=c.type().toLowerCase(java.util.Locale.ROOT).split("[ (]")[0];if(!TYPES.contains(base)||c.length()>1048576)throw new Failure(422,"SOURCE_TYPE_UNSUPPORTED");}}
     private Map<String,Object> row(ResultSet r,List<Column> columns)throws SQLException{

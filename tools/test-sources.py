@@ -48,6 +48,8 @@ def main():
     c.call('POST', '/sources/' + source_id + '/test')
     fields, _ = c.call('GET', '/sources/' + source_id + '/objects/' + obj['id'] + '/fields')
     assert any(x['name'] == 'amount' and x['type'] == 'decimal(20,4)' for x in fields['data'])
+    id_field = next((x for x in fields['data'] if x['name'] == 'id'), None)
+    assert id_field and id_field['description'] == '订单主键', id_field
     saved, _ = c.call('GET', '/sources/' + source_id)
     assert saved['data']['description'] == '' and saved['data']['settings']['tls'] is False
     c.call('POST', '/sources/test', {**body, 'credentials': {'username': 'root',
