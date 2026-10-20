@@ -42,7 +42,10 @@ test('source explorer fills the desktop with resizable independently scrolling p
   await expect(catalog.getByText('80 张表', { exact: true })).toBeVisible()
   const status = page.locator('[data-source-status]')
   const actions = page.locator('.page-header .page-actions')
-  await expect(status).toHaveText('已连接')
+  await expect(status).toContainText('retail_demo')
+  await expect(status).toContainText('已连接')
+  await expect(catalog.locator('[data-object-node="root"]')).toHaveCount(0)
+  await expect(catalog.locator('[data-object-node^="object:"]')).toHaveCount(80)
   await expect(actions.getByRole('button', { name: '返回', exact: true })).toBeVisible()
   await expect(actions.getByRole('button', { name: '编辑', exact: true })).toBeVisible()
   expect((await status.boundingBox())!.y).toBe(
@@ -54,6 +57,7 @@ test('source explorer fills the desktop with resizable independently scrolling p
       .getByRole('region', { name: '基本信息', exact: true })
       .getByText('已连接', { exact: true }),
   ).toHaveCount(0)
+  await expect(catalog.getByText('retail_demo', { exact: true })).toHaveCount(0)
   for (const theme of ['light', 'dark']) {
     if (theme === 'dark')
       await page.getByRole('button', { name: '切换明暗主题', exact: true }).click()
@@ -154,4 +158,36 @@ test('source explorer fills the desktop with resizable independently scrolling p
     schema.getByRole('heading', { name: 'synthetic_table_079', exact: true }),
   ).toBeVisible()
   expect(errors).toEqual([])
+})
+
+test('schema-based sources retain schema grouping without a database tree level', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('jiuzhang.preference.session', 'demo')
+    localStorage.setItem('jiuzhang.preference.role', 'admin')
+    const original = window.fetch
+    window.fetch = async (input, init) => {
+      const response = await original(input, init)
+      const url = new URL(input instanceof Request ? input.url : String(input), location.href)
+      if (url.pathname !== '/api/v1/sources/1001' || !response.ok) return response
+      const payload = (await response.json()) as { data: Model<'Source'> }
+      payload.data.type = 'PostgreSQL'
+      payload.data.settings.schema = 'sales'
+      return new Response(JSON.stringify(payload), {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+  })
+  await page.goto('/sources/1001')
+  const catalog = page.getByRole('complementary', { name: '对象目录', exact: true })
+  const schemaNode = catalog.locator('[data-object-node="schema"]')
+  const schemaLabel = catalog.getByText('sales', { exact: true })
+  const tableLabel = catalog.getByText('orders', { exact: true })
+  await expect(catalog.locator('[data-object-node="root"]')).toHaveCount(0)
+  await expect(schemaNode).toBeVisible()
+  await expect(tableLabel).toBeVisible()
+  expect((await tableLabel.boundingBox())!.x).toBeGreaterThan((await schemaLabel.boundingBox())!.x)
+  await expect(catalog.getByText('retail_demo', { exact: true })).toHaveCount(0)
+  await expect(page.locator('[data-source-status]')).toContainText('retail_demo')
 })

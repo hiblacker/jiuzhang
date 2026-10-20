@@ -19,17 +19,11 @@ const tree = computed<TreeOption[]>(() => {
     label: object.name,
     objectId: object.id,
   }))
-  const children =
-    connection.schema && props.source.settings.schema
+  if (connection.kind === 'database')
+    return connection.schema && props.source.settings.schema
       ? [{ key: 'schema', label: props.source.settings.schema, children: objects }]
       : objects
-  return [
-    {
-      key: 'root',
-      label: connection.kind === 'database' ? props.source.settings.database : props.source.name,
-      children,
-    },
-  ]
+  return [{ key: 'root', label: props.source.name, children: objects }]
 })
 const selected = computed(() => ['object:' + props.objectId])
 const expanded = ref<(string | number)[]>(['root', 'schema'])

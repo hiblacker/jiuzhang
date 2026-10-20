@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { NButton, NCard, NTag, NAlert, NEllipsis, NSplit } from 'naive-ui'
-import { useSource, useSourceObjects, SourceObjectTree } from '@/modules/sources'
+import { connectorRegistry, useSource, useSourceObjects, SourceObjectTree } from '@/modules/sources'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { CopyButton } from '@/shared/ui/copy-button'
@@ -16,6 +16,12 @@ const { t } = useI18n(),
 const id = computed(() => String(route.params.id))
 const source = useSource(id),
   objects = useSourceObjects(id)
+const sourceDatabase = computed(() => {
+  const current = source.data.value
+  return current && connectorRegistry[current.type].kind === 'database'
+    ? current.settings.database
+    : ''
+})
 const catalogSize = ref(0.3)
 const selected = computed(() =>
   typeof route.query.objectId === 'string'
@@ -52,9 +58,11 @@ const readonly = computed(() => !canWrite.value)
     <PageHeader
       :title="source.data.value?.name ?? t('sources.details')"
       :description="source.data.value?.description"
-      ><NTag type="success" :bordered="false" data-source-status>{{
-        t(source.data.value?.status ?? 'connected')
-      }}</NTag
+      ><NTag type="success" :bordered="false" data-source-status
+        ><span v-if="sourceDatabase" class="source-status-database"
+          ><NEllipsis :tooltip="true">{{ sourceDatabase }}</NEllipsis
+          ><span aria-hidden="true">·</span></span
+        ><span>{{ t(source.data.value?.status ?? 'connected') }}</span></NTag
       ><NButton @click="router.push('/sources')">{{ t('back') }}</NButton
       ><NButton
         type="primary"
@@ -205,6 +213,15 @@ const readonly = computed(() => !canWrite.value)
 }
 .source-summary .muted {
   flex-shrink: 0;
+}
+.source-status-database {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 200px;
+}
+.source-status-database :deep(.n-ellipsis) {
+  max-width: 180px;
 }
 .catalog-card {
   flex: 1;
