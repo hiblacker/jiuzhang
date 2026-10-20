@@ -58,7 +58,33 @@ const readonly = computed(() => !canWrite.value)
     <PageHeader
       :title="source.data.value?.name ?? t('sources.details')"
       :description="source.data.value?.description"
-      ><NTag type="success" :bordered="false" data-source-status
+      ><template #title-meta>
+        <section class="source-summary" :aria-label="t('sources.basic')">
+          <NTag :bordered="false">{{ source.data.value?.type }}</NTag>
+          <span class="source-identity"
+            ><span class="muted">ID</span><NEllipsis>{{ id }}</NEllipsis
+            ><CopyButton :value="id"
+          /></span>
+          <span class="source-owner"
+            ><span class="muted">{{ t('owner') }}</span
+            ><NEllipsis
+              tabindex="0"
+              :tooltip="{
+                trigger: 'focus',
+                contentStyle: {
+                  maxWidth: 'min(480px, calc(100vw - 32px))',
+                  overflowWrap: 'anywhere',
+                },
+              }"
+              >{{ source.data.value?.owner
+              }}<template #tooltip
+                ><span role="tooltip">{{ source.data.value?.owner }}</span></template
+              ></NEllipsis
+            ></span
+          >
+        </section>
+      </template>
+      <NTag type="success" :bordered="false" data-source-status
         ><span v-if="sourceDatabase" class="source-status-database"
           ><NEllipsis :tooltip="true">{{ sourceDatabase }}</NEllipsis
           ><span aria-hidden="true">·</span></span
@@ -75,30 +101,6 @@ const readonly = computed(() => !canWrite.value)
       :error="source.error.value"
       @retry="source.refetch()"
     >
-      <section class="source-summary" :aria-label="t('sources.basic')">
-        <NTag :bordered="false">{{ source.data.value?.type }}</NTag>
-        <span class="source-identity"
-          ><span class="muted">ID</span><NEllipsis>{{ id }}</NEllipsis
-          ><CopyButton :value="id"
-        /></span>
-        <span class="source-owner"
-          ><span class="muted">{{ t('owner') }}</span
-          ><NEllipsis
-            tabindex="0"
-            :tooltip="{
-              trigger: 'focus',
-              contentStyle: {
-                maxWidth: 'min(480px, calc(100vw - 32px))',
-                overflowWrap: 'anywhere',
-              },
-            }"
-            >{{ source.data.value?.owner
-            }}<template #tooltip
-              ><span role="tooltip">{{ source.data.value?.owner }}</span></template
-            ></NEllipsis
-          ></span
-        >
-      </section>
       <NCard
         :bordered="false"
         :content-style="{ padding: '0', height: '100%', minHeight: '0' }"
@@ -193,10 +195,10 @@ const readonly = computed(() => !canWrite.value)
 }
 .source-summary {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 8px 16px;
   min-width: 0;
-  margin-bottom: 20px;
 }
 .source-identity,
 .source-owner {
@@ -209,7 +211,7 @@ const readonly = computed(() => !canWrite.value)
   max-width: 45%;
 }
 .source-owner {
-  flex: 1;
+  flex: 1 1 180px;
 }
 .source-summary .muted {
   flex-shrink: 0;

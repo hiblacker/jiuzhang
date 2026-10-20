@@ -39,7 +39,15 @@ test('source explorer fills the desktop with resizable independently scrolling p
   const schema = page.getByRole('region', { name: '字段结构', exact: true })
   const preview = schema.getByRole('region', { name: '数据结果', exact: true })
   const separator = page.getByRole('separator', { name: '调整表目录宽度', exact: true })
+  const sourceHeading = page.getByRole('heading', { name: '零售订单库', exact: true })
+  const sourceSummary = page.getByRole('region', { name: '基本信息', exact: true })
   await expect(catalog.getByText('80 张表', { exact: true })).toBeVisible()
+  await expect(
+    page.locator('.page-title-row').getByRole('region', { name: '基本信息' }),
+  ).toBeVisible()
+  expect(
+    Math.abs((await sourceHeading.boundingBox())!.y - (await sourceSummary.boundingBox())!.y),
+  ).toBeLessThan(12)
   const status = page.locator('[data-source-status]')
   const actions = page.locator('.page-header .page-actions')
   await expect(status).toContainText('retail_demo')
