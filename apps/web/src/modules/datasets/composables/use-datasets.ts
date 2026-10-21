@@ -2,6 +2,7 @@ import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { datasetRepository } from '../api/dataset-repository'
 import { newDataset, toInput } from '../model/definition'
+import { useDatasetDraftPreview } from './use-dataset-draft-preview'
 export function useDatasets(filters: MaybeRefOrGetter<Record<string, string>>) {
   return useQuery({
     queryKey: computed(() => ['datasets', toValue(filters)]),
@@ -70,6 +71,7 @@ export function useDatasetEditor(id: MaybeRefOrGetter<string>) {
     baseline = ref(JSON.stringify(draft.value))
   const cache = useQueryClient()
   let loaded = ''
+  const preview = useDatasetDraftPreview(draft, id)
   watch(
     () => query.data.value,
     (data) => {
@@ -77,6 +79,7 @@ export function useDatasetEditor(id: MaybeRefOrGetter<string>) {
         draft.value = toInput(data)
         baseline.value = JSON.stringify(draft.value)
         loaded = data.id
+        preview.acceptDefinition()
       }
     },
     { immediate: true },
@@ -100,6 +103,5 @@ export function useDatasetEditor(id: MaybeRefOrGetter<string>) {
       await cache.invalidateQueries({ queryKey: ['overview'] })
     },
   })
-  const preview = useMutation({ mutationFn: () => datasetRepository.preview(toInput(draft.value)) })
   return { query, draft, dirty, save, preview }
 }

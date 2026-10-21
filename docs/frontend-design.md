@@ -1,6 +1,6 @@
 # 九章前端架构
 
-> 更新：2026-10-20。前端开发和生产均通过 HTTP 调用真实 API；自动化测试可在网络边界替换响应，但应用启动不装配测试服务或本地业务数据库。
+> 更新：2026-10-21。前端开发和生产均通过 HTTP 调用真实 API；自动化测试可在网络边界替换响应，但应用启动不装配测试服务或本地业务数据库。
 > [根开发规范](../AGENTS.md) · [UI 与 Vue 约定](ui-conventions.md) · [AI 开发规范](ai-development.md) · [总体架构](architecture.md) · [数据集快速操作](dataset-quick-start.md)
 
 ## 1. 当前范围
@@ -77,6 +77,15 @@ Page -> domain composable -> repository/mapper -> shared HTTP client -> API
 页面使用统一的加载、空、失败和成功状态。表单包含领域校验、提交中防重、失败保留草稿和取消保护；请求错误只显示一次。Naive UI 的 `message`、`notification`、`dialog` 通过应用现有 provider 使用，不在 repository 或底层 API client 弹提示。
 
 颜色和明暗主题使用语义 token；领域文案由 Vue I18n 管理。按钮、表格、选择器、焦点和错误行为遵守 [UI 与 Vue 约定](ui-conventions.md)，新增路由同步[页面矩阵](frontend-page-map.md)。
+
+### 6.1 SQL 数据集工作区（2026-10-21）
+
+参考 DataEase **v2.0.0**（提交 `4061cb39c4cf46255e786aa8c1a071c6e8c8df48`）的 [AddSql.vue](https://github.com/dataease/dataease/blob/4061cb39c4cf46255e786aa8c1a071c6e8c8df48/core/core-frontend/src/views/visualized/data/dataset/form/AddSql.vue) 与 [数据集定义表单](https://github.com/dataease/dataease/blob/4061cb39c4cf46255e786aa8c1a071c6e8c8df48/core/core-frontend/src/views/visualized/data/dataset/form/index.vue)，直接读取源码核对：前者 `getSQLPreview` 运行入口、左侧表/字段参考、右侧编辑器及其下方结果、可调整高度；后者提供字段管理与刷新数据。借鉴这些交互原则，不复制实现、不引入 Element Plus，也不把 BI 维度/指标、SQL 参数、多源关联视为本轮能力。
+
+- 基本信息折叠，SQL 的源、定义方式和提供方式保持一行；左侧可搜索源表并查看/复制字段，右侧编辑 SQL 和查看结果。运行不离开输入页，失败保留 SQL 和原字段；名称在保存时校验。
+- 复用 `sources/SourceObjectList`、`SourcePicker`、`shared/editors/SqlEditor`、`DataPreview`、`CopyButton` 与 Naive UI `NSplit`。原组件缺少 SQL 与查询结果的联合布局，因此新增领域组件 `DatasetSqlWorkspace`，通过 reference slot 由页面装配来源，不让 datasets 深入 sources。共享编辑器和结果表的契约未改。
+- `useDatasetDraftPreview` 拥有输入快照、运行状态、SQL 结构有效性、结果失效及过期响应保护；repository 仍只管 HTTP。SQL 首次/改动后先发现字段，再按当前映射执行，页面只展示应用转换与脱敏后的结果；这是两次受限查询，不承诺它们属于同一源数据库快照。
+- 映射按源字段名保留用户设置与顺序，新字段追加，移除字段提醒；转换失败保留草稿以供调整。不把 SQL 类型变化静默覆盖用户设定的目标类型。切源/切定义方式清理字段，不让旧请求写回新草稿。API 失败仅由应用错误桥调用 Naive message。
 
 ## 7. 验证与本地运行
 
