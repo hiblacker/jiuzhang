@@ -42,6 +42,14 @@ def main():
  bad=json.loads(json.dumps(body));bad['name']='bad_'+suffix;bad['definition']['schedule']['retries']=2;c.call('POST','/datasets',bad,expected=422)
  sql_body=json.loads(json.dumps(body));sql_body['name']='direct_sql_'+suffix
  sql_body['definition'].update({'mode':'sql','deliveryMode':'direct','objectId':'','sql':'SELECT id, amount, phone FROM orders','fields':[]})
+ # Running SQL is independent of dataset save metadata, including the target table.
+ unnamed=json.loads(json.dumps(sql_body));unnamed.update(name='',owner='')
+ unnamed['definition']['output']['table']=''
+ before,_=c.call('GET','/datasets')
+ unnamed_preview,_=c.call('POST','/datasets/preview',unnamed)
+ assert unnamed_preview['data']['rows'] and unnamed_preview['data']['fields']
+ after,_=c.call('GET','/datasets');assert before['meta']['total']==after['meta']['total']
+ c.call('POST','/datasets',unnamed,expected=422)
  sql_preview,_=c.call('POST','/datasets/preview',sql_body)
  assert any(r['id']=='9007199254740993' and r['amount']=='12345.6700' for r in sql_preview['data']['rows'])
  sql_fields=sql_preview['data']['fields']

@@ -178,7 +178,7 @@ public class DatasetService {
 
   public Map<String, Object> preview(User u, Map<String, Object> input) {
     IdentityService.require(u, "readSensitive");
-    var body = input(input, null);
+    var body = input(input, null, false);
     var d = map(body, "definition");
     if (text(d, "mode").equals("sql")) {
       var result = sources.previewSql(u, text(d, "sourceId"), text(d, "sql"));
@@ -529,6 +529,11 @@ public class DatasetService {
   }
 
   private Map<String, Object> input(Map<String, Object> input, Map<String, Object> old) {
+    return input(input, old, true);
+  }
+
+  private Map<String, Object> input(
+      Map<String, Object> input, Map<String, Object> old, boolean requireMetadata) {
     if (!Set.of("name", "description", "owner", "tags", "definition", "folderId")
         .containsAll(input.keySet())) throw new Failure(422, "VALIDATION_ERROR");
     var body = new LinkedHashMap<String, Object>();
@@ -536,17 +541,20 @@ public class DatasetService {
       for (String key : List.of("name", "description", "owner", "tags", "definition", "folderId"))
         body.put(key, old.get(key));
     body.putAll(input);
-    base(body);
+    base(body, requireMetadata);
     if (body.get("folderId") != null) throw new Failure(422, "FOLDERS_UNSUPPORTED");
     map(body, "definition");
     return body;
   }
 
   private void base(Map<String, Object> b) {
-    if (text(b, "name").isBlank()
+    base(b, true);
+  }
+
+  private void base(Map<String, Object> b, boolean requireMetadata) {
+    if ((requireMetadata && (text(b, "name").isBlank() || text(b, "owner").isBlank()))
         || text(b, "name").length() > 120
         || text(b, "description").length() > 2000
-        || text(b, "owner").isBlank()
         || text(b, "owner").length() > 120
         || strings(b, "tags").size() > 20) throw new Failure(422, "VALIDATION_ERROR");
   }
