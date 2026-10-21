@@ -117,6 +117,7 @@ async function logout() {
 <template>
   <NLayout has-sider class="app-shell"
     ><NLayoutSider
+      v-if="!route.meta.fullscreen"
       :width="224"
       :collapsed-width="72"
       :collapsed="ui.collapsed"
@@ -141,7 +142,7 @@ async function logout() {
         :indent="20"
       /> </NLayoutSider
     ><NLayout class="workspace-main"
-      ><NLayoutHeader bordered class="topbar"
+      ><NLayoutHeader bordered class="topbar" v-if="!route.meta.fullscreen"
         ><div class="breadcrumb">
           <span>{{ t('workspace') }}</span
           ><ChevronRight :size="13" /><strong>{{ t('nav.' + section) }}</strong>
@@ -166,8 +167,18 @@ async function logout() {
         </div></NLayoutHeader
       ><NLayoutContent
         class="main-content"
-        :class="{ 'main-content--source-detail': route.meta.id === 'P04' }"
-        ><RouterView :key="route.path" /></NLayoutContent></NLayout
+        :class="{
+          'main-content--source-detail': route.meta.id === 'P04',
+          'main-content--fullscreen': route.meta.fullscreen,
+        }"
+        ><RouterView v-slot="{ Component }" :key="route.path">
+          <component :is="Component">
+            <template #workspace-actions>
+              <NButton quaternary circle :aria-label="t('theme')" @click="ui.toggleDarkMode">
+                <Sun v-if="ui.darkMode" :size="18" /><Moon v-else :size="18" />
+              </NButton>
+            </template>
+          </component> </RouterView></NLayoutContent></NLayout
   ></NLayout>
   <PasswordChangeDrawer v-model="passwordOpen" @changed="passwordChanged" />
 </template>
@@ -255,6 +266,11 @@ async function logout() {
 }
 .main-content--source-detail {
   padding-bottom: 24px;
+}
+.main-content.main-content--fullscreen {
+  height: 100vh;
+  padding: 0;
+  overflow: hidden;
 }
 @media (max-width: 1000px) {
   .topbar {

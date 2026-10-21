@@ -10,6 +10,8 @@ export {
 export { default as DatasetFields } from './components/DatasetFields.vue'
 export { default as DatasetGraph } from './components/DatasetGraph.vue'
 export { default as DatasetSqlWorkspace } from './components/DatasetSqlWorkspace.vue'
+export { default as DatasetPreviewPanel } from './components/DatasetPreviewPanel.vue'
+export { default as DatasetDeliverySettings } from './components/DatasetDeliverySettings.vue'
 export { compareVersionFields } from './model/version-diff'
 export { default as DatasetOutputSummary } from './components/DatasetOutputSummary.vue'
 export { default as RelatedDatasets } from './components/RelatedDatasets.vue'

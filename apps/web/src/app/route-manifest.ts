@@ -40,6 +40,7 @@ export const routeManifest = [
   },
   {
     id: 'P07',
+    fullscreen: true,
     path: '/datasets/new',
     labelKey: 'routes.P07',
     section: 'datasets',
@@ -52,6 +53,7 @@ export const routeManifest = [
   },
   {
     id: 'P09',
+    fullscreen: true,
     path: '/datasets/:id/edit',
     labelKey: 'routes.P09',
     section: 'datasets',

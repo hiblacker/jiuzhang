@@ -193,6 +193,16 @@
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
+    ],
+    "step.labelKey": [
+      "datasets.editor.define",
+      "datasets.editor.process",
+      "datasets.editor.deliver"
+    ],
+    "progressHint": [
+      "datasets.editor.needDefinition",
+      "datasets.editor.needProcessing",
+      "datasets.editor.ready"
     ]
   },
   "pages/datasets/DatasetListPage.vue": {
@@ -696,6 +706,20 @@
       "errors.WAREHOUSE_UNAVAILABLE",
       "errors.WAREHOUSE_VALUE_LIMIT",
       "errors.WORKER_LOST"
+    ]
+  },
+  "modules/datasets/components/DatasetPreviewPanel.vue": {
+    "'datasets.editor.results.' + kind": [
+      "datasets.editor.results.definition",
+      "datasets.editor.results.processing"
+    ],
+    "'datasets.editor.resultHints.' + kind": [
+      "datasets.editor.resultHints.definition",
+      "datasets.editor.resultHints.processing"
+    ],
+    "'datasets.editor.emptyResults.' + kind": [
+      "datasets.editor.emptyResults.definition",
+      "datasets.editor.emptyResults.processing"
     ]
   }
 }

@@ -3,6 +3,45 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   datasets: {
+    editor: {
+      define: '定义取数',
+      process: '清洗与脱敏',
+      deliver: '输出与保存',
+      steps: '数据集配置步骤',
+      unsaved: '未保存',
+      draft: '草稿',
+      exit: '退出编辑',
+      defineHint: '先选表或编写 SQL，确认取数结果后再配置清洗与脱敏。',
+      processHint: '基于已确认的结果字段加工；预览处理结果后继续。',
+      deliverHint: '填写基本信息与提供方式，保存后在详情页发布版本。',
+      chooseTable: '从左侧选择一张数据表',
+      readTable: '读取数据',
+      previewProcessing: '预览处理结果',
+      governance: '质量与统一脱敏策略',
+      visualProcessing: '可视化加工（选表模式）',
+      review: '配置确认',
+      outputFields: '输出字段数',
+      processingStatus: '处理结果',
+      verified: '已预览确认',
+      publishHint:
+        '保存只更新草稿。发布后直连数据集可查询，入库数据集还需手动运行。预览使用受限样本，发布与运行继续执行完整校验。',
+      previous: '上一步',
+      nextProcessing: '确认取数，下一步',
+      nextDelivery: '确认处理，下一步',
+      needDefinition: '请先成功运行 SQL 或读取数据，确认取数结构。',
+      needProcessing: '取数已确认，请预览清洗与脱敏后的处理结果。',
+      ready: '处理结果已确认，可以配置输出并保存草稿。',
+      previewFailed: '预览未完成，请按消息提示调整配置后重试。',
+      results: { definition: '取数结果', processing: '处理结果' },
+      resultHints: {
+        definition: '最多 100 行 · 清洗与脱敏前的数据',
+        processing: '最多 100 行 · 已应用字段转换、清洗与脱敏',
+      },
+      emptyResults: {
+        definition: '运行 SQL 或读取数据后，在这里确认取数结果。',
+        processing: '配置字段与规则后，点击“预览处理结果”。',
+      },
+    },
     realOutput:
       '完整读取、质量检查与脱敏后发布独立快照；成功后替换当前数据，失败不影响旧快照。旧快照最多保留 3 份且不超过 7 天。',
     realScope:
@@ -23,7 +62,7 @@ export default {
     sqlFieldsHelp:
       '首次运行会读取结果字段并自动生成字段映射；可在“字段与清洗”中调整映射后重新运行。',
     runSql: '运行 SQL',
-    sqlRunHint: '编写 SQL → 运行查看结果 → 调整字段 → 保存发布',
+    sqlRunHint: 'SQL 负责关联、计算与筛选；下一步基于查询结果配置字段、清洗与脱敏。',
     sqlResult: '查询结果',
     sqlResultLimit: '最多 100 行 · 已应用字段转换与脱敏',
     sqlResultEmpty: '编写 SQL 后点击“运行 SQL”，查询结果会显示在这里。',
@@ -133,7 +172,8 @@ export default {
     passRate: '通过率',
     sampleCount: '样本数',
     failureCount: '失败样本数',
-    sampleHint: '质量规则在入库运行时执行；预览用于检查字段转换与脱敏结果。',
+    sampleHint:
+      '质量规则在正式直连查询或完整入库运行时执行；预览用于检查字段转换、清洗与脱敏结果。',
     addField: '添加输出字段',
     fieldName: '源字段名（支持 right_ 前缀）',
     fieldOrder: '顺序',

@@ -82,10 +82,13 @@ Page -> domain composable -> repository/mapper -> shared HTTP client -> API
 
 参考 DataEase **v2.0.0**（提交 `4061cb39c4cf46255e786aa8c1a071c6e8c8df48`）的 [AddSql.vue](https://github.com/dataease/dataease/blob/4061cb39c4cf46255e786aa8c1a071c6e8c8df48/core/core-frontend/src/views/visualized/data/dataset/form/AddSql.vue) 与 [数据集定义表单](https://github.com/dataease/dataease/blob/4061cb39c4cf46255e786aa8c1a071c6e8c8df48/core/core-frontend/src/views/visualized/data/dataset/form/index.vue)，直接读取源码核对：前者 `getSQLPreview` 运行入口、左侧表/字段参考、右侧编辑器及其下方结果、可调整高度；后者提供字段管理与刷新数据。借鉴这些交互原则，不复制实现、不引入 Element Plus，也不把 BI 维度/指标、SQL 参数、多源关联视为本轮能力。
 
-- 基本信息折叠，SQL 的源、定义方式和提供方式保持一行；左侧可搜索源表并查看/复制字段，右侧编辑 SQL 和查看结果。运行不离开输入页，失败保留 SQL 和原字段；名称在保存时校验。
+- 新建和编辑路由使用 `fullscreen` 元数据，WorkspaceLayout 保留身份/时区提供者，隐藏导航和通用页头，移除内容区外边距；不调用浏览器 Fullscreen API。编辑器采用固定页头、三步导航、固定底部操作栏和内部滚动，按 1280×1000 验收。主题操作仍由 app 通过 slot 装配。
+- 流程为「定义取数 → 清洗与脱敏 → 输出与保存」。第一步只选源及表/SQL，成功读取结构后才能继续；第二步配置字段映射、trim、质量和脱敏（选表的可视化过滤也在这里），成功预览处理结果后才能进入第三步。名称、负责人和提供方式移到第三步；保存只更新草稿，发布仍在详情页单独执行。编辑已保存定义可沿用其结构进入第二步，处理预览仍需重新运行。
 - 复用 `sources/SourceObjectList`、`SourcePicker`、`shared/editors/SqlEditor`、`DataPreview`、`CopyButton` 与 Naive UI `NSplit`。原组件缺少 SQL 与查询结果的联合布局，因此新增领域组件 `DatasetSqlWorkspace`，通过 reference slot 由页面装配来源，不让 datasets 深入 sources。共享编辑器和结果表的契约未改。
-- `useDatasetDraftPreview` 拥有输入快照、运行状态、SQL 结构有效性、结果失效及过期响应保护；repository 仍只管 HTTP。SQL 首次/改动后先发现字段，再按当前映射执行，页面只展示应用转换与脱敏后的结果；这是两次受限查询，不承诺它们属于同一源数据库快照。
+- `useDatasetDraftPreview` 分开拥有取数结果、处理结果及其有效性。第一步仅一次查询：SQL 使用空映射，选表使用恒等字段映射，发送的副本去掉清洗、图加工和治理配置，独立调试取数；第二步使用当前完整加工配置再查一次。结果分别明确标注「清洗与脱敏前」「已应用字段转换、清洗与脱敏」。两次受限查询不承诺来自同一源快照；原始取数结果继续要求服务端 `readSensitive` 权限。
+- 修改 SQL/来源使两类结果与取数确认失效并返回第一步；字段/规则/画布变动仅清空处理结果，名称及输出配置变动不清空预览。独立修订号阻止过期取数/处理响应写回；同步互斥防止重复请求。治理检查以正式直连查询或完整入库运行为准，样本处理预览不承诺全量通过。
 - 映射按源字段名保留用户设置与顺序，新字段追加，移除字段提醒；转换失败保留草稿以供调整。不把 SQL 类型变化静默覆盖用户设定的目标类型。切源/切定义方式清理字段，不让旧请求写回新草稿。API 失败仅由应用错误桥调用 Naive message。
+- 复用评审：`DatasetSqlWorkspace` 扩展为全高布局；查询和处理缺少统一结果状态，新增领域展示组件 `DatasetPreviewPanel`，仍复用 `DataPreview`，不请求、不弹消息。输出配置以 `DatasetDeliverySettings` 维护发布锁和受控更新；主题/仓库词典由 app/page 装配。页面保留跨域的 SourcePicker/SourceObjectList/GovernanceBindingSelect 协调，不向领域组件引入其他领域内部实现。未增加依赖或后端/协议。
 
 ## 7. 验证与本地运行
 
