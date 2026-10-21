@@ -97,11 +97,19 @@ export function useDatasetEditor(id: MaybeRefOrGetter<string>) {
   )
   const save = useMutation({
     mutationFn: () => datasetRepository.save(toInput(draft.value), toValue(id) || undefined),
-    onSuccess: async () => {
+    onSuccess: async (saved) => {
+      draft.value = toInput(saved)
       baseline.value = JSON.stringify(draft.value)
+      preview.acceptDefinition()
       await cache.invalidateQueries({ queryKey: ['datasets'] })
       await cache.invalidateQueries({ queryKey: ['overview'] })
     },
   })
-  return { query, draft, dirty, save, preview }
+  function reset() {
+    if (!query.data.value) return
+    draft.value = toInput(query.data.value)
+    baseline.value = JSON.stringify(draft.value)
+    preview.acceptDefinition()
+  }
+  return { query, draft, dirty, save, preview, reset }
 }

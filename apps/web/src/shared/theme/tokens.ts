@@ -14,6 +14,7 @@ export const palettes = {
     editorString: '#12674f',
     editorNumber: '#825015',
     editorComment: '#52667e',
+    editorSelection: '#b9ceff',
   },
   dark: {
     surface: '#101a28',
@@ -30,5 +31,6 @@ export const palettes = {
     editorString: '#7fe0be',
     editorNumber: '#f0c788',
     editorComment: '#92a6be',
+    editorSelection: '#395a90',
   },
 }

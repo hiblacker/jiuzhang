@@ -3,6 +3,7 @@ import { defineAsyncComponent, ref } from 'vue'
 import { NButton, NSplit } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { Model } from '@/shared/api/types'
+import type { SQLNamespace } from '@codemirror/lang-sql'
 import DatasetPreviewPanel from './DatasetPreviewPanel.vue'
 const SqlEditor = defineAsyncComponent(() => import('@/shared/editors/SqlEditor.vue'))
 defineProps<{
@@ -11,10 +12,14 @@ defineProps<{
   pending: boolean
   failed: boolean
   disabled: boolean
+  schema?: SQLNamespace
+  database?: string
 }>()
 defineEmits<{ 'update:modelValue': [value: string]; run: [] }>()
 const { t } = useI18n()
 const editorSize = ref(0.42)
+const editor = ref<InstanceType<typeof SqlEditor>>()
+defineExpose({ insertText: (text: string) => editor.value?.insertText(text) })
 function resize(event: KeyboardEvent) {
   if (event.key === 'ArrowUp') editorSize.value = Math.max(0.25, editorSize.value - 0.05)
   else if (event.key === 'ArrowDown') editorSize.value = Math.min(0.65, editorSize.value + 0.05)
@@ -27,15 +32,13 @@ function resize(event: KeyboardEvent) {
 <template>
   <section class="sql-workspace" :aria-label="t('datasets.sqlWorkspace')">
     <div class="sql-toolbar">
+      <strong>{{ t('datasets.sqlMode') }}</strong>
       <span>{{ t('datasets.sqlRunHint') }}</span>
       <NButton type="primary" :disabled="disabled" :loading="pending" @click="$emit('run')">
         {{ t('datasets.runSql') }}
       </NButton>
     </div>
     <div class="sql-body">
-      <aside class="sql-reference" :aria-label="t('datasets.sourceReference')">
-        <slot name="reference" />
-      </aside>
       <NSplit
         v-model:size="editorSize"
         direction="vertical"
@@ -46,10 +49,16 @@ function resize(event: KeyboardEvent) {
       >
         <template #1>
           <SqlEditor
+            ref="editor"
             :model-value="modelValue"
             :label="t('datasets.sqlEditor')"
             :readonly="pending"
+            mysql
+            run-shortcut
+            :schema="schema"
+            :default-schema="database"
             @update:model-value="$emit('update:modelValue', $event)"
+            @run="!disabled && $emit('run')"
           />
         </template>
         <template #resize-trigger>
@@ -94,8 +103,13 @@ function resize(event: KeyboardEvent) {
   display: flex;
   align-items: center;
   gap: 12px;
-  justify-content: space-between;
-  margin-bottom: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  background: var(--surfaceRaised);
+}
+.sql-toolbar > span {
+  flex: 1;
 }
 .sql-toolbar > span,
 .sql-help {
@@ -103,20 +117,9 @@ function resize(event: KeyboardEvent) {
   font-size: 12px;
 }
 .sql-body {
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  gap: 16px;
+  display: flex;
   flex: 1;
   min-height: 0;
-}
-.sql-reference {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
 }
 .sql-split {
   height: 100%;
@@ -125,6 +128,9 @@ function resize(event: KeyboardEvent) {
 .sql-split :deep(.cm-editor) {
   height: 100%;
   min-height: 0;
+}
+.sql-split :deep(.sql-editor) {
+  border-radius: 0;
 }
 .sql-resizer {
   height: 100%;

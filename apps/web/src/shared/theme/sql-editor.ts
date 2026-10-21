@@ -25,9 +25,16 @@ export function sqlEditorTheme(dark: boolean) {
         color: 'var(--editorComment)',
         borderRightColor: 'var(--border)',
       },
-      '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'var(--surface)' },
-      '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
-        backgroundColor: 'var(--accentSoft)',
+      '.cm-activeLine': {
+        // Selection is drawn behind the text line; an opaque line background hides it.
+        backgroundColor: 'color-mix(in srgb, var(--accent) 4%, transparent)',
+      },
+      '.cm-activeLineGutter': { backgroundColor: 'var(--surface)' },
+      '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
+        backgroundColor: 'var(--editorSelection) !important',
+      },
+      '.cm-content ::selection, .cm-content::selection': {
+        backgroundColor: 'var(--editorSelection)',
       },
       '&.cm-focused .cm-matchingBracket': {
         backgroundColor: 'var(--accentSoft)',

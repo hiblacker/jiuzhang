@@ -1,16 +1,40 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { EditorView, basicSetup } from 'codemirror'
-import { EditorState, Compartment } from '@codemirror/state'
-import { sql } from '@codemirror/lang-sql'
+import { EditorState, Compartment, Prec } from '@codemirror/state'
+import { sql, MySQL, type SQLNamespace } from '@codemirror/lang-sql'
 import { sqlEditorTheme, sqlHighlighting } from '@/shared/theme/sql-editor'
-const props = defineProps<{ modelValue: string; label: string; readonly?: boolean }>()
-const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+const props = defineProps<{
+  modelValue: string
+  label: string
+  readonly?: boolean
+  mysql?: boolean
+  schema?: SQLNamespace
+  defaultSchema?: string
+  runShortcut?: boolean
+}>()
+const emit = defineEmits<{ 'update:modelValue': [value: string]; run: [] }>()
 const el = ref<HTMLElement>()
 let view: EditorView | undefined
 const editable = new Compartment()
 const theme = new Compartment()
+const language = new Compartment()
+function sqlLanguage() {
+  return sql({
+    dialect: props.mysql ? MySQL : undefined,
+    schema: props.schema,
+    defaultSchema: props.defaultSchema,
+    upperCaseKeywords: props.mysql,
+  })
+}
 let themeObserver: MutationObserver | undefined
+defineExpose({
+  insertText(text: string) {
+    if (!view || props.readonly) return
+    view.dispatch(view.state.replaceSelection(text), { scrollIntoView: true })
+    view.focus()
+  },
+})
 onMounted(() => {
   let dark = document.documentElement.style.colorScheme === 'dark'
   view = new EditorView({
@@ -19,7 +43,7 @@ onMounted(() => {
       doc: props.modelValue,
       extensions: [
         basicSetup,
-        sql(),
+        language.of(sqlLanguage()),
         sqlHighlighting,
         theme.of(sqlEditorTheme(dark)),
         EditorView.contentAttributes.of(() => ({
@@ -27,6 +51,17 @@ onMounted(() => {
           'aria-multiline': 'true',
         })),
         editable.of(EditorView.editable.of(!props.readonly)),
+        Prec.highest(
+          EditorView.domEventHandlers({
+            keydown(event) {
+              if (!props.runShortcut || event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey))
+                return false
+              event.preventDefault()
+              if (!props.readonly) emit('run')
+              return true
+            },
+          }),
+        ),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) emit('update:modelValue', update.state.doc.toString())
         }),
@@ -41,6 +76,10 @@ onMounted(() => {
   })
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] })
 })
+watch(
+  () => [props.mysql, props.schema, props.defaultSchema],
+  () => view?.dispatch({ effects: language.reconfigure(sqlLanguage()) }),
+)
 watch(
   () => props.modelValue,
   (value) => {

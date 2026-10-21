@@ -11,14 +11,19 @@ const { t } = useI18n()
 const search = ref('')
 const query = useSourceOptions(search)
 const selected = useSource(() => props.value)
-const listed = computed(() => query.data.value?.pages.flatMap((page) => page.data) ?? [])
-const total = computed(() => query.data.value?.pages[0]?.meta.total)
+const listed = computed(() => query.data.value?.data ?? [])
 const options = computed(() => {
   const entries = [...listed.value]
   const current = selected.data.value
-  if (current && current.id === props.value && !entries.some((source) => source.id === current.id))
+  if (
+    !search.value.trim() &&
+    current &&
+    current.id === props.value &&
+    !entries.some((source) => source.id === current.id)
+  )
     entries.unshift(current)
-  return entries.map((source) => ({ value: source.id, label: source.name }))
+  // A selected source outside the first page still needs its name, within the same 20 options.
+  return entries.slice(0, 20).map((source) => ({ value: source.id, label: source.name }))
 })
 const error = computed(() => query.error.value ?? selected.error.value)
 async function retry() {
@@ -39,23 +44,9 @@ async function retry() {
       filterable
       remote
       @search="search = $event"
+      @update:show="!$event && (search = '')"
       @update:value="emit('update:value', $event)"
     />
-    <div v-if="query.data.value" class="source-options-status">
-      <span class="muted">{{
-        total === undefined
-          ? t('sources.optionsCount', { loaded: listed.length })
-          : t('sources.optionsTotal', { loaded: listed.length, total })
-      }}</span>
-      <NButton
-        v-if="query.hasNextPage.value"
-        size="small"
-        :loading="query.isFetchingNextPage.value"
-        :disabled="disabled || query.isFetching.value"
-        @click="query.fetchNextPage()"
-        >{{ t('sources.loadMore') }}</NButton
-      >
-    </div>
     <NButton v-if="error" size="small" :disabled="disabled" @click="retry">{{
       t('retry')
     }}</NButton>
@@ -67,13 +58,5 @@ async function retry() {
   min-width: 0;
   display: grid;
   gap: 8px;
-}
-.source-options-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  font-size: 12px;
 }
 </style>

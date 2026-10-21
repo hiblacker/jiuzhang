@@ -194,7 +194,7 @@ export default {
     SOURCE_TABLE_MISSING: '源表不存在',
     SOURCE_VALUE_LIMIT: '源值超过读取大小限制',
     SQL_COLUMNS_INVALID: 'SQL 结果字段名为空或重复，请为计算字段设置唯一别名',
-    SQL_EXECUTION_FAILED: 'SQL 执行失败，请检查语法、表名和字段名',
+    SQL_EXECUTION_FAILED: 'SQL 执行失败，请检查语法、表名和字段名；表名大小写须与左侧目录一致',
     TARGET_NAME_IMMUTABLE: '数据集首次发布后不可修改目标表名',
     DATASET_DELIVERY_MODE_IMMUTABLE: '数据集首次发布后不可更改提供方式',
     TIMEOUT_LIMIT: '运行超时配置超出允许范围',

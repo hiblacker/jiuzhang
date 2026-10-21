@@ -82,13 +82,16 @@ Page -> domain composable -> repository/mapper -> shared HTTP client -> API
 
 参考 DataEase **v2.0.0**（提交 `4061cb39c4cf46255e786aa8c1a071c6e8c8df48`）的 [AddSql.vue](https://github.com/dataease/dataease/blob/4061cb39c4cf46255e786aa8c1a071c6e8c8df48/core/core-frontend/src/views/visualized/data/dataset/form/AddSql.vue) 与 [数据集定义表单](https://github.com/dataease/dataease/blob/4061cb39c4cf46255e786aa8c1a071c6e8c8df48/core/core-frontend/src/views/visualized/data/dataset/form/index.vue)，直接读取源码核对：前者 `getSQLPreview` 运行入口、左侧表/字段参考、右侧编辑器及其下方结果、可调整高度；后者提供字段管理与刷新数据。借鉴这些交互原则，不复制实现、不引入 Element Plus，也不把 BI 维度/指标、SQL 参数、多源关联视为本轮能力。
 
-- 新建和编辑路由使用 `fullscreen` 元数据，WorkspaceLayout 保留身份/时区提供者，隐藏导航和通用页头，移除内容区外边距；不调用浏览器 Fullscreen API。编辑器采用固定页头、三步导航、固定底部操作栏和内部滚动，按 1280×1000 验收。主题操作仍由 app 通过 slot 装配。
-- 流程为「定义取数 → 清洗与脱敏 → 输出与保存」。第一步只选源及表/SQL，成功读取结构后才能继续；第二步配置字段映射、trim、质量和脱敏（选表的可视化过滤也在这里），成功预览处理结果后才能进入第三步。名称、负责人和提供方式移到第三步；保存只更新草稿，发布仍在详情页单独执行。编辑已保存定义可沿用其结构进入第二步，处理预览仍需重新运行。
-- 复用 `sources/SourceObjectList`、`SourcePicker`、`shared/editors/SqlEditor`、`DataPreview`、`CopyButton` 与 Naive UI `NSplit`。原组件缺少 SQL 与查询结果的联合布局，因此新增领域组件 `DatasetSqlWorkspace`，通过 reference slot 由页面装配来源，不让 datasets 深入 sources。共享编辑器和结果表的契约未改。
-- `useDatasetDraftPreview` 分开拥有取数结果、处理结果及其有效性。第一步仅一次查询：SQL 使用空映射，选表使用恒等字段映射，发送的副本去掉清洗、图加工和治理配置，独立调试取数；第二步使用当前完整加工配置再查一次。结果分别明确标注「清洗与脱敏前」「已应用字段转换、清洗与脱敏」。两次受限查询不承诺来自同一源快照；原始取数结果继续要求服务端 `readSensitive` 权限。
-- 修改 SQL/来源使两类结果与取数确认失效并返回第一步；字段/规则/画布变动仅清空处理结果，名称及输出配置变动不清空预览。独立修订号阻止过期取数/处理响应写回；同步互斥防止重复请求。治理检查以正式直连查询或完整入库运行为准，样本处理预览不承诺全量通过。
-- 映射按源字段名保留用户设置与顺序，新字段追加，移除字段提醒；转换失败保留草稿以供调整。不把 SQL 类型变化静默覆盖用户设定的目标类型。切源/切定义方式清理字段，不让旧请求写回新草稿。API 失败仅由应用错误桥调用 Naive message。
-- 复用评审：`DatasetSqlWorkspace` 扩展为全高布局；查询和处理缺少统一结果状态，新增领域展示组件 `DatasetPreviewPanel`，仍复用 `DataPreview`，不请求、不弹消息。输出配置以 `DatasetDeliverySettings` 维护发布锁和受控更新；主题/仓库词典由 app/page 装配。页面保留跨域的 SourcePicker/SourceObjectList/GovernanceBindingSelect 协调，不向领域组件引入其他领域内部实现。未增加依赖或后端/协议。
+本轮另读取 dev-v2 提交 `00f5cf171c171c29af0ff8bb70d3839bfb04c562` 的同目录 AddSql.vue 和 CodeMirror.vue，核对页头运行/保存、左侧来源/目录、右侧编辑与结果的布局；继续使用项目现有 CodeMirror 6 和 Naive UI 实现，无第三方代码移植。
+
+- 新建和编辑路由使用 `fullscreen` 元数据，WorkspaceLayout 保留身份/时区提供者，隐藏导航和通用页头，移除内容区外边距；不调用浏览器 Fullscreen API。工作区采用固定页头、左侧定义/源/对象目录、右侧 SQL/结果以及内部滚动，按 1280×1000 验收。主题操作仍由 app 通过 slot 装配。
+- 创建页只负责选择数据源、表或 SQL 并保存基础信息。保存对话框不显示字段/清洗/脱敏，也不要求处理预览；SQL 结构尚未确认时，保存会先执行定义查询。保存只更新草稿，发布仍在详情页单独执行。字段、trim、质量与脱敏在详情的「清洗与脱敏」页签配置和预览。
+- 数据源选择器复用 `SourcePicker` 与 `useSourceOptions`，只请求第一页 20 条；现有 `/sources?q=&page=1&pageSize=20` 已支持服务端搜索，无须增加 OpenAPI 操作。移除计数和加载更多控件。对象目录搜索继续复用 `SourceObjectList`。
+- SQL 复用 `shared/editors/SqlEditor`、`DataPreview`、`CopyButton` 与 Naive UI `NSplit`。`DatasetSqlWorkspace` 拥有编辑/结果联合布局；页面基于已加载的源目录提供 MySQL 表/字段补全及插入操作。共享编辑器增加可选方言/schema、运行快捷键和插入 API；保持仓库 SQL 调用方默认语言行为。选择背景采用独立主题 token。
+- `useDatasetDraftPreview` 继续分开拥有取数结果、处理结果及其有效性。取数执行发送去掉清洗、图加工和治理配置的副本；详情处理预览使用当前完整配置。原始取数仍要求服务端 `readSensitive` 权限；样本处理预览不承诺全量治理检查。
+- 修改 SQL/来源会使取数定义失效；字段/规则/画布变动仅清空处理结果。独立修订号阻止过期响应写回；同步互斥防止重复请求。详情页保存处理配置与创建页编辑基本定义均基于脱离 Query cache 的草稿；编辑基本定义保留处理配置。
+- 映射按源字段名保留设置与顺序，新字段追加，移除字段提醒。SQL 表名使用源目录的实际标识符大小写；MySQL 在大小写敏感部署中会拒绝错误大小写，消息提示从目录插入准确名称。不将错误改写为猜测性数据库匹配。
+- 复用评审：新增 `DatasetProcessingSettings` 领域组件承载数据集详情的字段/规则/画布配置，既有 `DatasetFields`、`DatasetGraph` 和 `DatasetDeliverySettings` 继续负责各自控件；`DatasetPreviewPanel` 复用 `DataPreview`，不请求、不弹消息。未增加依赖或后端/协议。
 
 ## 7. 验证与本地运行
 

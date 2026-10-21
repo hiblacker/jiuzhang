@@ -7,6 +7,7 @@ import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
 const canWrite = useCan('write')
+const canReadSensitive = useCan('readSensitive')
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -22,12 +23,16 @@ import {
   NDataTable,
 } from 'naive-ui'
 import {
-  useDataset,
+  useDatasetEditor,
   useDatasetVersions,
   useDatasetActions,
   useDatasetPreview,
   DatasetOutputSummary,
+  DatasetProcessingSettings,
+  DatasetPreviewPanel,
 } from '@/modules/datasets'
+import { GovernanceBindingSelect } from '@/modules/governance'
+import { useEditGuard } from '@/shared/composables/use-edit-guard'
 import { RunHistory, RunTrigger } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
@@ -38,8 +43,10 @@ const route = useRoute(),
   router = useRouter(),
   { t } = useI18n(),
   id = computed(() => String(route.params.id))
-const query = useDataset(id),
-  versions = useDatasetVersions(id),
+const { query, draft, dirty, save, preview: processing, reset } = useDatasetEditor(id)
+const editing = ref(false)
+const busy = computed(() => save.isPending.value || processing.isPending.value)
+const versions = useDatasetVersions(id),
   actions = useDatasetActions(),
   confirm = ref(false),
   readonly = computed(() => !canWrite.value)
@@ -55,8 +62,27 @@ const preview = useDatasetPreview(
       query.data.value?.definition.deliveryMode === 'direct' && query.data.value?.publishedVersion,
     ),
 )
+const editGuard = useEditGuard(() => editing.value && dirty.value, busy)
+function editProcessing() {
+  if (readonly.value || busy.value) return
+  tab.value = 'rules'
+  editing.value = true
+}
+function cancelProcessing() {
+  if (!editGuard.canLeave()) return
+  reset()
+  editing.value = false
+}
+async function saveProcessing() {
+  if (readonly.value || busy.value) return
+  try {
+    await save.mutateAsync()
+    editing.value = false
+  } catch {}
+}
 function requestPublish() {
-  if (readonly.value || !query.data.value || actions.publish.isPending.value) return
+  if (readonly.value || editing.value || !query.data.value || actions.publish.isPending.value)
+    return
   actions.publish.reset()
   confirm.value = true
 }
@@ -75,9 +101,14 @@ async function publish() {
     ><NButton :disabled="readonly" @click="router.push('/datasets/' + id + '/edit')">{{
       uiText('ui.dataset_detail_13bd30e1')
     }}</NButton
-    ><NButton :disabled="readonly || !query.data.value" type="primary" @click="requestPublish">{{
-      uiText('ui.dataset_detail_c789c17a')
+    ><NButton :disabled="readonly || !query.data.value || editing" @click="editProcessing">{{
+      t('datasets.editor.configureProcessing')
     }}</NButton
+    ><NButton
+      :disabled="readonly || !query.data.value || editing"
+      type="primary"
+      @click="requestPublish"
+      >{{ uiText('ui.dataset_detail_c789c17a') }}</NButton
     ><RunTrigger
       v-if="query.data.value?.definition.deliveryMode !== 'direct'"
       :dataset-id="id"
@@ -156,8 +187,66 @@ async function publish() {
               { title: uiText('ui.dataset_detail_e4e46c72'), key: 'type' },
               { title: uiText('ui.dataset_detail_26670dda'), key: 'description' },
             ]" /></NTabPane
-        ><NTabPane name="rules" :tab="uiText('ui.dataset_detail_9b99d4d0')"
-          ><NDescriptions :column="1" bordered
+        ><NTabPane name="rules" :tab="t('datasets.editor.process')">
+          <template v-if="editing">
+            <div class="processing-actions">
+              <span>{{ t('datasets.editor.processHint') }}</span>
+              <NButton :disabled="busy" @click="cancelProcessing">{{ t('cancel') }}</NButton>
+              <NButton
+                :disabled="
+                  !canReadSensitive ||
+                  busy ||
+                  !draft.definition.fields.some((field) => field.output)
+                "
+                :loading="processing.isPending.value"
+                @click="processing.run()"
+                >{{ t('datasets.editor.previewProcessing') }}</NButton
+              >
+              <NButton
+                type="primary"
+                :disabled="busy || !dirty"
+                :loading="save.isPending.value"
+                @click="saveProcessing"
+                >{{ t('datasets.editor.saveProcessing') }}</NButton
+              >
+            </div>
+            <DatasetProcessingSettings v-model="draft.definition" :disabled="busy">
+              <template #mask-policy="{ field, disabled, update }">
+                <GovernanceBindingSelect
+                  kind="masking"
+                  single
+                  size="small"
+                  :value="field.maskPolicyId ? [field.maskPolicyId] : []"
+                  :label="t('datasets.fieldPolicy', { name: field.name })"
+                  :disabled="disabled"
+                  @update:value="update($event[0] ?? '')"
+                />
+              </template>
+              <template #quality
+                ><GovernanceBindingSelect
+                  kind="quality"
+                  v-model:value="draft.definition.qualityRuleIds"
+                  :label="t('ui.dataset_editor_e974beee')"
+                  :disabled="busy"
+              /></template>
+              <template #masking
+                ><GovernanceBindingSelect
+                  kind="masking"
+                  v-model:value="draft.definition.maskPolicyIds"
+                  :label="t('ui.dataset_editor_3792a310')"
+                  :disabled="busy"
+              /></template>
+            </DatasetProcessingSettings>
+            <div class="processing-preview">
+              <DatasetPreviewPanel
+                kind="processing"
+                :result="processing.data.value"
+                :pending="processing.isPending.value"
+                :failed="processing.failed.value"
+              />
+            </div>
+          </template>
+          <NDescriptions v-else :column="1" bordered
             ><NDescriptionsItem :label="uiText('ui.dataset_detail_cd56476f')">{{
               query.data.value?.definition.cleaning.join('、') || '—'
             }}</NDescriptionsItem
@@ -226,6 +315,20 @@ async function publish() {
   />
 </template>
 <style scoped>
+.processing-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.processing-actions > span {
+  flex: 1;
+  color: var(--textSecondary);
+}
+.processing-preview {
+  height: 360px;
+  margin-top: 24px;
+}
 .version-row {
   display: flex;
   align-items: center;
