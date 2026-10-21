@@ -1,7 +1,9 @@
 package cn.jiuzhang.platform.source.infrastructure;
 
 import cn.jiuzhang.platform.shared.application.Failure;
+import net.sf.jsqlparser.parser.CCJSqlParserConstants;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import java.util.regex.Pattern;
 
@@ -18,12 +20,32 @@ final class ReadOnlySql {
   static String validate(String sql) {
     if (sql == null || sql.isBlank() || sql.length() > 8192)
       throw new Failure(422, "UNSUPPORTED_SQL");
-    if (SIDE_EFFECT_FUNCTION.matcher(sql).find()
-        || FILE_OUTPUT.matcher(sql).find()
-        || ROW_LOCK.matcher(sql).find()
-        || USER_VARIABLE_WRITE.matcher(sql).find())
-      throw new Failure(422, "UNSUPPORTED_SQL");
     try {
+      // Inspect lexer tokens so literals and ordinary comments are not treated as SQL.
+      var lexer = CCJSqlParserUtil.newParser(sql);
+      var syntax = new StringBuilder();
+      while (true) {
+        var token = lexer.getNextToken();
+        for (var comment = token.specialToken; comment != null; comment = comment.specialToken)
+          if (comment.image.startsWith("/*!") || comment.image.startsWith("/*M!"))
+            throw new Failure(422, "UNSUPPORTED_SQL");
+        if (token.kind == CCJSqlParserConstants.EOF) break;
+        String text = token.image;
+        if (token.kind == CCJSqlParserConstants.S_CHAR_LITERAL) text = "?";
+        else if (token.kind == CCJSqlParserConstants.S_QUOTED_IDENTIFIER) {
+          String name = text.substring(1, text.length() - 1);
+          // Quoted column names are not keywords, but quoted function names still execute.
+          text = SIDE_EFFECT_FUNCTION.matcher(name + "(").find()
+                  || USER_VARIABLE_WRITE.matcher(name + "(").find()
+              ? name : "quoted_identifier";
+        }
+        syntax.append(text).append(' ');
+      }
+      if (SIDE_EFFECT_FUNCTION.matcher(syntax).find()
+          || FILE_OUTPUT.matcher(syntax).find()
+          || ROW_LOCK.matcher(syntax).find()
+          || USER_VARIABLE_WRITE.matcher(syntax).find())
+        throw new Failure(422, "UNSUPPORTED_SQL");
       var statements = CCJSqlParserUtil.parseStatements(sql).getStatements();
       if (statements.size() != 1 || !(statements.getFirst() instanceof Select select))
         throw new Failure(422, "UNSUPPORTED_SQL");
@@ -31,8 +53,7 @@ final class ReadOnlySql {
           || select.getForMode() != null
           || select.getForClause() != null
           || select.isSkipLocked()) throw new Failure(422, "UNSUPPORTED_SQL");
-      var plain = select.getPlainSelect();
-      if (plain != null
+      if (select instanceof PlainSelect plain
           && (plain.getIntoTempTable() != null
               || (plain.getIntoTables() != null && !plain.getIntoTables().isEmpty())))
         throw new Failure(422, "UNSUPPORTED_SQL");

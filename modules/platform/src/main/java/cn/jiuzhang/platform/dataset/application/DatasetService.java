@@ -513,8 +513,7 @@ public class DatasetService {
 
   private String deliveryMode(Map<String, Object> definition) {
     if (!definition.containsKey("deliveryMode")) return "warehouse";
-    String mode = text(definition, "deliveryMode");
-    return mode.isEmpty() ? "warehouse" : mode;
+    return text(definition, "deliveryMode");
   }
 
   private void verifySchema(List<SourceConnector.Column> expected, List<SourceConnector.Column> actual) {
