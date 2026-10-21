@@ -1,9 +1,9 @@
 # 九章数据仓库设计方案
 
-> 状态：第一版本地单机真实闭环已实现；2026-10-20 起转入客户环境投产验证（§12.6）；保留 38 路由独立 Mock 前端，长期能力与首版实现分开声明
+> 状态：第一版本地单机真实闭环已实现；前端仅使用真实 API；数据集支持表/SQL 定义与直连/入库两种提供方式。2026-10-20 起转入客户环境投产验证（§12.6）
 > 更新时间：2026-10-20
 > 参考：Crest 的数据源、数据集、同步任务、字段和执行日志资源模型。新方案只借鉴资源边界，不复用 Crest 的 BI 展示层。
-> 当前进度与下一步以 [§12 分阶段交付](#12-分阶段交付) 为统一入口；前端逐页证据见 [页面矩阵](frontend-page-map.md#10-桌面验收收尾)。[纯 Mock 前端设计](frontend-design.md) · [UI 与 Vue 规范](ui-conventions.md) · [AI 开发规范](ai-development.md)。new-api 组件规范的适配依据见 [对照研究](research/new-api-adaptation.md)；当前首版与长期目标的差异以 §12 和 §14 为准。
+> 当前进度与下一步以 [§12 分阶段交付](#12-分阶段交付) 为统一入口；前端逐页证据见 [页面矩阵](frontend-page-map.md#10-桌面验收收尾)，数据集操作见[快速指南](dataset-quick-start.md)。[UI 与 Vue 规范](ui-conventions.md) · [AI 开发规范](ai-development.md)。new-api 组件规范的适配依据见 [对照研究](research/new-api-adaptation.md)；当前首版与长期目标的差异以 §12 和 §14 为准。
 
 ## 1. 目标与边界
 
@@ -85,10 +85,10 @@ flowchart LR
 
 | 范围 | 已实施组合 | 边界 |
 |---|---|---|
-| 前端 | Vue 3、TypeScript strict、Pinia、Naive UI、Vite、Vue Router/Vue Query | 38 路由 Mock；real 只开放首版能力；版本见 manifest/lockfile |
-| 接口 | OpenAPI 3.1、openapi-typescript/openapi-fetch | 唯一协议；MSW/IndexedDB 仅 Mock，real 使用 API |
+| 前端 | Vue 3、TypeScript strict、Pinia、Naive UI、Vite、Vue Router/Vue Query | 开发及生产均连接 API；页面按真实能力开放；版本见 manifest/lockfile |
+| 接口 | OpenAPI 3.1、openapi-typescript/openapi-fetch | 唯一协议；测试可在 HTTP 边界替换网络响应 |
 | 后端/构建 | Java 21、Spring Boot 3.5.16、Maven Wrapper 3.9.11 | API/Worker 两进程，共用 platform；精确依赖见 pom |
-| 元数据库 | PostgreSQL 17.6、Spring JDBC、Flyway V001–V006 | 单元数据库，显式受控迁移；普通进程不自动升级 |
+| 元数据库 | PostgreSQL 17.6、Spring JDBC、Flyway V001–V007 | 单元数据库，显式受控迁移；普通进程不自动升级 |
 | 对象存储 | SeaweedFS 3.97、S3 API/AWS SDK | 私有原始所选源字段 NDJSON；未实现 Parquet、生产加密 |
 | 分析仓库 | Doris 3.0.8 | 不可变物理表＋稳定逻辑 VIEW；本地单 BE 验证 |
 | 执行 | PostgreSQL 运行状态/幂等/租约与 Worker 轮询 | Cron 排在 P3（§12.6）；Quartz/依赖/自动重试仍暂缓 |
@@ -286,17 +286,18 @@ dataset_run_log
   分阶段日志、SQL、错误、质量结果和告警
 ~~~
 
-### 4.2 数据集模式
+### 4.2 数据集定义与提供方式
 
-| 模式 | 用途 | 是否落仓 |
+数据集定义和提供方式是两个独立维度：
+
+| 维度 | 选项 | 行为 |
 |---|---|---|
-| DIRECT | 只做预览或临时查询 | 否 |
-| MATERIALIZED | 定时加工并供下游复用 | 是 |
-| INCREMENTAL | 按游标持续追加/更新 | 是 |
-| SNAPSHOT | 每次生成独立快照，支持回溯 | 是 |
-| STREAMING | 第二阶段，CDC 或消息流实时处理 | 是 |
+| 定义方式 | 选择数据表 | 选择 MySQL 单表，映射源字段、输出名、类型、过滤、清洗和治理策略 |
+| 定义方式 | 自定义 SQL | 在一个数据源连接内执行单条只读 SELECT；支持 CTE、JOIN、子查询、聚合、窗口函数和计算表达式 |
+| 提供方式 | 直连数据源 | 九章服务端按请求查询源库、执行字段映射/清洗/脱敏并通过受控 API 返回；不写 Doris、不创建运行 |
+| 提供方式 | 入库到数仓 | Worker 手动全量读取、校验和脱敏，写入 Doris 独占目标表并替换当前快照 |
 
-默认使用 MATERIALIZED。DIRECT 只允许白名单 SQL 和只读连接，不能绕过脱敏和权限。
+定义方式和提供方式可以自由组合。直连查询受 1000 行、10 MiB 和查询超时限制；SQL 仅允许一条只读语句，拒绝 DDL/DML、多语句、文件写出与已知副作用函数。入库当前只支持手动全量快照替换；源表/SQL 结构发布后固定，结构变化须重新校验并发布。
 
 ### 4.3 数据集 DAG
 
@@ -318,7 +319,7 @@ extract
 
 每个节点产生输入/输出批次、schema hash 和统计信息。节点执行检查点用于恢复中间步骤；源端 successCursor 只能按第 6 节的发布确认流程提交。
 
-第一版 SQL 节点支持字段映射、过滤、Join、Union、聚合、类型转换、去重、业务键合并和参数化 SQL。任意 Java/Python 代码作为后续插件，必须设置 CPU、内存、网络和文件系统限制。
+SQL 数据集在首版支持源数据库提供的只读 SELECT 运算能力。任意 Java/Python 代码、跨数据源 SQL、Union 写入语义和增量物化作为后续能力，必须设置 CPU、内存、网络和文件系统限制。
 
 ### 4.4 清洗与标准化
 
@@ -452,7 +453,7 @@ interface WarehouseAdapter {
 
 ### 6.1 运行与尝试
 
-统一 API/Mock/界面状态枚举为小写：queued、running、validating、publishing、succeeded、failed、blocked、canceled；标签由前端领域词典映射。枚举在契约实施时只有一个来源。
+统一 API、测试样例与界面状态枚举为小写：queued、running、validating、publishing、succeeded、failed、blocked、canceled；标签由前端领域词典映射。枚举在契约实施时只有一个来源。
 
 ~~~text
 queued -> running -> validating -> publishing -> succeeded
@@ -499,7 +500,7 @@ Worker 使用租约/心跳和单调 fencing token；接管时确认旧 Worker �
 | 显式值不丢失 | PATCH 区分缺失/null/false/0/空值；行数/高精度转换不溢出 |
 | 隔离与审计完整 | 越权不能查询/导出；敏感值不进入日志；修改与审计关联 requestId/runId |
 
-这些是实现验收要求，不是当前 Mock 已证明的分布式保证。前端先演示可观察状态和失败分支，后端阶段通过真实引擎及确定性故障注入验证。
+这些是实现验收要求，单元或网络替身测试不能证明分布式保证；通过真实引擎及确定性故障注入验证。
 
 ## 7. 权限、审计和血缘
 
@@ -530,7 +531,7 @@ SQL 解析器提取表、字段、表达式和 Join。无法解析的自定义�
 
 ### 7.1 真实认证与会话验证
 
-已接入系统账号、Argon2id、服务端会话、CSRF/Origin 检查、登录限流、退出/改密/停用撤销。适用 OWASP 指南版本与实际验证记录见 §14.1；不因采用某库就宣称安全认证。Mock 仍只控制演示身份。
+已接入系统账号、Argon2id、服务端会话、CSRF/Origin 检查、登录限流、退出/改密/停用撤销。适用 OWASP 指南版本与实际验证记录见 §14.1；不因采用某库就宣称安全认证。
 
 首版为单工作区固定角色，私有查询/导出按创建者隔离；未实现逐对象授权、敏感操作再认证及独立 export 权限。审计不保存密码、可用 Token 或原始行。外部源要求 TLS，本地回环连接允许已固定公钥认证；元数据库、对象存储与 Doris 的本地服务连接尚未启用 TLS，S3 原始对象未启用服务端加密。
 
@@ -611,7 +612,7 @@ jiuzhang/
   apps/
     web/                                              # Vue 应用，pnpm 管理
       package.json
-      src/{app,pages,modules,shared,mocks}/
+      src/{app,pages,modules,shared}/
       tests/{integration,e2e,support}/
     api/                                              # 已实现 Spring Boot HTTP 应用
       AGENTS.md                                       # 后端共用规则
@@ -690,7 +691,7 @@ pnpm workspace 路径配置和 Maven reactor/依赖排序按官方机制实施�
 
 ### 10.4 前后端集成与 CI
 
-- web 变化：前端类型、边界、UI/文案、行为测试与构建；当前 Mock 流程不依赖 Java。
+- web 变化：前端类型、边界、UI/文案、行为测试与构建；应用通过 HTTP 调用真实 API。
 - contracts 变化：schema/生成漂移/样例，前端消费者；后端创建后同时验证 Java DTO/实际 API 响应，破坏性变更声明兼容窗口。
 - api/worker/platform/connector 变化：后端构建、ArchUnit、用例及受影响真实引擎测试；改接口时同时验证前端消费者。
 - migrations 变化：新建、旧版本升级、重复执行/重启及数据保留；不是只跑 SQL 文本检查。
@@ -700,9 +701,9 @@ pnpm workspace 路径配置和 Maven reactor/依赖排序按官方机制实施�
 
 ## 11. 开发和部署
 
-### 11.1 独立 Mock 前端
+### 11.1 本地前后端开发
 
-只启动前端开发服务器，数据经 HTTP 被 MSW 拦截并持久化到本地 Mock DB。项目 Node/pnpm 要求、根命令和浏览器验收见 [前端启动方案](frontend-design.md#10-从本地启动到看到页面)；不需要数据库、对象存储或容器。个人工具安装和终端设置不属于仓库规范。
+开发服务器通过 HTTP 连接本地 API；完整依赖、启动命令和浏览器地址见 README。组件/接口自动化测试可替换 HTTP 响应，但应用启动和页面操作始终使用真实服务。
 
 ### 11.2 后端集成环境
 
@@ -716,7 +717,7 @@ pnpm workspace 路径配置和 Maven reactor/依赖排序按官方机制实施�
 | 源端连接器 | 按批次承诺的数据库/API/文件类型与版本 | 真实驱动/引擎发现、只读读取、类型/时区/分页/游标、断连与恢复；独立列版本 |
 | 分析仓库 | 首个 Doris 适配器 | 实际加载/确认、重复提交、UPSERT/分区发布能力、超时未知和重启恢复；不以其他方言代测 |
 | 对象存储 | 选定 S3 兼容实现 | 写读、分页、分段上传、权限/错误、重试清理；声称兼容多个实现时逐一验证差异 |
-| Mock DB | 当前 IndexedDB | seed/reset、版本迁移、CRUD 事务、引用、字段值语义；不代替上述真实引擎测试 |
+| 测试替身 | `apps/web/tests/support` | 固定数据和 HTTP 处理器仅供自动化测试，不进入应用启动与生产构建 |
 
 数据库驱动、框架数据访问组件和迁移工具按兼容组合管理，升级其一不推定其他仍兼容。涉及版本特性时验证支持下限；没有确定版本或未运行验证时标为待验证，不写“已支持”。报告中保留实际版本、命令和结果。
 
@@ -736,10 +737,10 @@ API、Worker、Web 可独立部署，任务状态与检查点外置；重启恢�
 
 | 功能块 | 状态 | 实际范围 |
 |---|---|---|
-| Mock B0–B5 | 保留原桌面验收 | 38 路由、190 项历史 E2E；不据此宣称真实能力 |
+| 前端应用 | 已接入真实 API | 自动化测试网络替身不进入应用运行时 |
 | M0 工程/身份 | 已实现并本地验证 | Maven/API/Worker/PostgreSQL/Flyway、系统账号/会话/角色/审计 |
 | M1 MySQL | 已实现并真实验证 | 只读连接、目录/字段/预览、InnoDB 一致性读取、精度/大小/超时约束 |
-| M2 数据集/执行 | 已实现并真实验证 | 草稿/不可变版本、单表清洗/过滤/质量/脱敏、手动运行/取消/新运行重试、租约/恢复 |
+| M2 数据集/执行 | 已实现并真实验证 | 可视化单表或只读 SQL、直连或独占目标快照入库、质量/脱敏、手动运行/恢复 |
 | M3 Doris/读取 | 已实现并真实验证 | 不可变表＋逻辑 VIEW 发布、空覆盖保护、历史回收、浏览/受控 SQL/私有 CSV |
 | 本地交付 | 已实现，入口见 README | 统一基础设施就绪、安装/构建/迁移、受管进程启停、顺序验收 |
 | G2/生产 M4 | 未完成，部分排入 P4a | 远端 CI/main 保护、生产 TLS/密钥/备份、监控/负载与集群运维；行列/对象权限仍属二期 |
@@ -774,13 +775,13 @@ API、Worker、Web 可独立部署，任务状态与检查点外置；重启恢�
 
 ### 12.4 暂缓能力与后续工作
 
-1. 依据首版本地使用反馈修正流程与实际故障，不再重建 Mock 或清理已删除旧工程。
+1. 依据首版本地使用反馈修正流程与实际故障，不恢复已清理的旧工程。
 2. 获得对应授权后验证远端 CI/main 保护，不能把本地通过当作远端通过。
-3. 一期范围已确定并按 §12.6 执行：MySQL 真实库收敛、OceanBase MySQL 模式、JOIN 与派生字段、Cron 调度、K8s 部署与 Crest 消费。其余数据库/API 连接器与增量仍按需求排期，需补真实引擎支持矩阵、状态/契约和验收，不能直接将 Mock 功能打开。
+3. 一期范围已确定并按 §12.6 执行：MySQL 真实库收敛、OceanBase MySQL 模式、Cron 调度、K8s 部署与 Crest 消费。其余数据库/API 连接器与增量仍按需求排期，需补真实引擎支持矩阵、状态/契约和验收。
 4. 生产化单列密钥托管/轮换、备份恢复演练、监控、逐对象权限和容量基准；性能目标先定义再测量。
 5. 一期投产验证后单独规划 AI 问数，不占用 §12.6 的既定工期；在语义、权限、模型服务和成本边界明确前不锁定模型供应商或排实现日期。
 
-一期不做数据集层 GROUP BY 与任意加工 SQL（聚合下推到 ADS 视图，见 §12.6）、CDC/upsert、依赖编排/补数、多工作区、数据服务、OceanBase Oracle 模式；DWS 汇总、增量与权限/脱敏增强放入二期。不为本次交付启动未来基础设施或附加微服务。
+一期已开放数据集只读 SQL（含 GROUP BY、JOIN、窗口和子查询），并支持直连及手动快照入库；仍不做 CDC/upsert、依赖编排/补数、多工作区、数据服务、OceanBase Oracle 模式。DWS 自动汇总、增量与权限/脱敏增强放入二期。不为本次交付启动未来基础设施或附加微服务。
 
 AI 问数规划为面向已发布仓库数据的自然语言分析能力：用户通过多轮对话描述问题，系统结合经过治理的指标/维度语义与数据集、ADS 视图关系生成 SQL；用户可检查并确认 SQL 后，通过现有受控查询服务读取结果，再生成可调整的图表和基于查询结果的分析说明。分析可使用系统侧统计摘要，或在策略允许时使用经最小化/脱敏的结果。它不直接连接源数据库，也不绕开仓库查询 API。
 
@@ -788,7 +789,7 @@ AI 问数规划为面向已发布仓库数据的自然语言分析能力：用�
 
 ### 12.5 验收与所有权
 
-README 拥有启动和验证入口；本节维护范围/状态；§14 记录实际验证；页面矩阵区分 Mock 与 real。功能按契约→实现→消费者→验证→本地提交，完成一块立即提交。未授权 push/PR/发布，本次不执行。
+README 拥有启动和验证入口；本节维护范围/状态；§14 记录实际验证；页面矩阵标明当前实现边界。功能按契约→实现→消费者→验证→本地提交，完成一块立即提交。未授权 push/PR/发布，本次不执行。
 
 真实验收包含账号越权、精度/null/零、不可变版本、空覆盖、结构变化、质量/脱敏、并发拒绝、取消/重试、Doris 读取与私有导出、真实 SIGKILL 读取/发布断点恢复。原始记录/大规模负载、生产集群、多 Worker 扩展和远端 CI 仍有独立边界，不能用本地三行合成样本证明容量或生产安全。
 
@@ -836,7 +837,7 @@ README 拥有启动和验证入口；本节维护范围/状态；§14 记录实�
 
 ## 14. 核心决策
 
-Vue Mock 与首版本地真实流程已分别验证。当前实现组合如下，具体版本与证据见本节记录；Quartz 等后续能力未实现：
+前端运行时只连接真实 API；测试网络替身限定在自动化测试目录。当前实现组合如下，具体版本与证据见本节记录；Quartz 等后续能力未实现：
 
 ~~~text
 Spring Boot API + Java Worker
@@ -851,26 +852,26 @@ Vue 3 管理端
 
 ### 14.1 首版实施记录：账号与会话（2026-10-19）
 
-- M0 工程基础提交 `78019305`；账号块实现初始化管理员、登录/退出、修改密码、管理员创建/编辑/停用账号、固定角色权限和审计。服务端会话不依赖浏览器演示角色。
+- M0 工程基础提交 `78019305`；账号块实现初始化管理员、登录/退出、修改密码、管理员创建/编辑/停用账号、固定角色权限和审计。固定角色由服务端校验。
 - 参考 OWASP ASVS **5.0.0 V7**、Password Storage / Session Management Cheat Sheets：Argon2id 19 MiB、2 次迭代、并行度 1；256 bit 随机会话，数据库只保存会话 Token 哈希；浏览器 HttpOnly、SameSite=Strict Cookie；CSRF Token 仅在前端内存和服务端保存，不写 localStorage。
 - 本地 HTTP 默认绑定回环地址；正式 TLS 部署必须设置 `JIUZHANG_COOKIE_SECURE=true` 和精确的 `JIUZHANG_BROWSER_ORIGIN`。绝对会话 8 小时、空闲 30 分钟；退出/密码修改/停用/角色变化使对应会话失效。首次启动需要私有环境文件中的随机初始化密码，已有账号不会被启动参数重置。
 - 每账号/IP 五次失败后限制 15 分钟；身份与密码不存在性统一错误；保留最后一名启用管理员。源码/日志/API 响应不包含密码哈希或原始会话 Cookie。
-- 实际验证：Maven verify；真实 PostgreSQL 迁移 V001→V002；`tools/test-identity.py` 覆盖 Cookie、未登录/越权、CSRF/Origin、最后管理员、停用、密码/退出撤销、限流和审计；1280×1000 真实浏览器登录失败/成功、刷新恢复、用户表单取消、密码失败、退出；Mock 用户管理定向 E2E 1 项通过。完整 pnpm check 包含 14 文件 93 项测试、两种构建通过；最后文案/Mock 小改后静态检查通过。
-- 真实 UI 使用独立端口 5175；Mock 保持 5174。真实 API 不支持的功能返回 NOT_IMPLEMENTED，不回退 Mock。该账号块提交时尚未实现真实 MySQL/数据集执行/Doris，后续实现与验收见以下记录；工程或账号通过不代表全版本验收。ASVS 是设计依据，不是安全认证结论。
+- 实际验证：Maven verify；真实 PostgreSQL 迁移 V001→V002；`tools/test-identity.py` 覆盖 Cookie、未登录/越权、CSRF/Origin、最后管理员、停用、密码/退出撤销、限流和审计；1280×1000 浏览器登录失败/成功、刷新恢复、用户表单取消、密码失败、退出。该历史记录形成时的前端检查不代表本轮改动后的检查结果。
+- Web 使用端口 5175；API 不支持的功能由服务端明确返回，不伪造成功结果。该账号块提交时尚未实现真实 MySQL/数据集执行/Doris，后续实现与验收见以下记录；工程或账号通过不代表全版本验收。ASVS 是设计依据，不是安全认证结论。
 
 ### 14.2 首版实施记录：MySQL 接入（2026-10-19）
 
 - SourceConnector 为纯 Java Port；JDBC 适配器只执行数据读取，不检查或限制数据库账号授权范围；支持 200 表/200 字段目录上限、100 行预览、5 秒连接/30 秒 socket 超时。不限制源主机白名单，但拒绝未指定、IPv6、未分配、组播和链路本地地址；非本机连接要求 TLS 加密（Connector/J REQUIRED），但不验证证书链或主机名。元数据与 AES-256-GCM 源密钥引用分表保存，主密钥仅进程环境提供，AAD 绑定 source ID，API 不返回密码。
-- 保存/编辑/删除走数据源用例及短事务；浏览器凭证只保留在临时表单中，保存后清除，不写 Pinia/localStorage/IndexedDB；Mock 忽略凭证且拒绝保存账号密码。真实预览要求 readSensitive，目录不读取明细。单工作区对象权限采用固定服务端角色；后续多工作区必须另设归属。
-- JDK 21/Spring Boot 3.5.16 的实际托管 MySQL 驱动与 MySQL 8.4.6 真实连接、catalog、错误凭证/非白名单 DNS 主机继续执行解析、只读权限、预览、字段、PATCH 空字符串/false、编辑密码保留已通过。超安全整数 BIGINT 与 Decimal(20,4) 保留精确字符串，null 不替换为 0。`test-source-snapshot.py` 真实覆盖全量读取一致性和取消/schema变化；1280×1000 页面创建→测试→目录→预览→编辑复测通过。完整 pnpm check 再次通过，含 93 单元/HTTP 测试和两种构建。
+- 保存/编辑/删除走数据源用例及短事务；浏览器凭证只保留在临时表单中，保存后清除，不写 Pinia/localStorage/IndexedDB。真实预览要求 readSensitive，目录不读取明细。单工作区对象权限采用固定服务端角色；后续多工作区必须另设归属。
+- JDK 21/Spring Boot 3.5.16 的实际托管 MySQL 驱动与 MySQL 8.4.6 真实连接、catalog、错误凭证/非白名单 DNS 主机继续执行解析、只读权限、预览、字段、PATCH 空字符串/false、编辑密码保留已通过。超安全整数 BIGINT 与 Decimal(20,4) 保留精确字符串，null 不替换为 0。`test-source-snapshot.py` 真实覆盖全量读取一致性和取消/schema变化；1280×1000 页面创建→测试→目录→预览→编辑复测通过。完整 pnpm check 再次通过，含 93 单元/HTTP 测试及当时的构建检查。
 - 一致性全量扫描仅对 InnoDB，使用 REPEATABLE READ + consistent snapshot + read only；事务元数据锁后检查已使用字段，使用服务端游标分批；最多 100 万行/10 分钟。1200 行跨批次、并发更新/插入隔离、DDL 等锁、后续扫描读取新值、取消、null/Decimal 与 schema drift 已用真实引擎验证。这个样本不是 100 万行容量/吞吐测试。
 
 
 ### 14.3 数据集与治理规则真实闭环（2026-10-19）
 
-已实现持久草稿、字段选择/改名/精确类型转换、等值过滤、trim、必填与范围质量、字符串部分脱敏的配置与预览；发布冻结定义、质量/脱敏规则及源字段契约，恢复只创建草稿。发布使用按用户/数据集作用域的幂等键，重复键复用版本；目标表名创建后固定。敏感输出必须绑定启用的字符串脱敏策略。第一版拒绝 SQL 加工、多源、复杂画布、自动调度/重试和非 replace 写入，Mock 功能仍保留。
+已实现持久草稿、表选择或单条只读 SQL、字段映射与类型转换、质量/脱敏配置和预览；支持实时直连或手动全量快照入库。发布冻结定义、质量/脱敏规则及源字段契约，恢复只创建草稿。发布使用按用户/数据集作用域的幂等键，重复键复用版本；目标表和提供方式首次发布后固定。敏感输出必须绑定启用的字符串脱敏策略。多源、复杂画布、自动调度/重试和非 replace 写入仍暂缓。
 
-Maven verify（新增 4 项领域测试）、V003→V004 实际 PostgreSQL 升级、tools/test-datasets.py（实际 MySQL/API/PostgreSQL）与 tools/test-real-datasets.mjs（1280×1000 预览/保存/发布）通过；前端 pnpm check 的静态门禁、93 项测试和两种构建通过。完整 Worker/入仓验收仍在后续功能块，不把样本预览当全量质量验收。
+2026-10-19 历史记录：Maven verify、V003→V004 实际 PostgreSQL 升级、`tools/test-datasets.py`（实际 MySQL/API/PostgreSQL）与 `tools/test-real-datasets.mjs`（1280×1000 预览/保存/发布）通过。该记录形成时 SQL 数据集尚未开放；当前能力以 §12.1 和本轮验收结果为准。
 
 
 ### 14.4 手动全量执行与仓库读写（2026-10-19）
@@ -883,12 +884,12 @@ Maven verify（新增 4 项领域测试）、V003→V004 实际 PostgreSQL 升�
 
 本地真实环境：Doris 3.0.8、SeaweedFS 3.97 S3 兼容接口（固定镜像 digest；本地验证使用，非生产部署结论）。Maven verify、前端 pnpm check、tools/test-execution.py、tools/test-warehouse.py、tools/test-execution-safety.py 与 tools/test-real-execution.mjs（1280×1000）实际通过。覆盖成功、重复覆盖与源端删除、空阻断/批准、未使用字段增删、已使用类型变化、重试版本、活动互斥、取消、发布对账、保留上限、精度/null、SQL 拒绝、私有查询/导出；进程恢复与本地交付验收见 §14.6–§14.9。
 
-### 14.5 真实模式入口与工作台（2026-10-19）
+### 14.5 当前页面入口与工作台（2026-10-19）
 
 - 工作台在 PostgreSQL 可重复读事务中汇总完整来源、数据集、运行、当前快照与近七日趋势；失败列表先筛选再取五条。审计活动仅管理员可见。
-- 真实模式导航仅展示首版已实现能力，直接访问任务调度、导入、服务等暂缓路由显示明确说明；Mock 的 38 个路由保持可用。
+- 导航仅展示当前已实现能力；未开放的任务调度和数据服务路由显示明确说明，未接通真实服务的 CSV 导入入口已移除。
 - 数据集目录移动/复制在真实模式禁用，仓库容量显示未采集，避免以占位零值表示真实容量。查询失败按服务端错误码显示。
-- 实际验证：Maven verify、pnpm check（93 个测试、Mock/real 双构建）、test-overview.py、test-real-overview.mjs；浏览器仅 1280×1000。
+- 2026-10-19 基线验证：Maven verify、pnpm check（93 个测试、当时的两种构建）、test-overview.py、test-real-overview.mjs；浏览器仅 1280×1000。本轮构建结构已调整，须以本轮实际检查结果为准。
 
 ### 14.6 进程故障与产物回收（2026-10-19）
 
@@ -903,19 +904,19 @@ Maven verify（新增 4 项领域测试）、V003→V004 实际 PostgreSQL 升�
 
 - `bash tools/local.sh up` 提供基础设施就绪、冻结安装、后端验证/迁移及 API/Worker/real Web 启动；`status/start/stop` 依据 PID 与进程启动时间管理本脚本进程，不停止未托管进程或清数据卷。源 fixtures 仅由空 MySQL 卷初始化，不在每次启动重新插入已删除行。
 - S3 就绪使用带身份签名的 bucket/对象写入、读取与删除，不将端口开放当作服务可用。Doris 等待实际 backend 存活；迁移前拒绝仍在运行的 API/Worker。
-- `test-local-lifecycle.py` 实际完整停止→up→再次 start，API/Worker/Web 就绪，账号、数据集、版本、运行、当前快照指针与源订单数据保持不变。`test-migrations.py` 在独占临时 PostgreSQL 数据库执行 V001–V006，再重复迁移，验证数据/索引/约束保留；结束删除该临时库，不清当前库。
+- `test-local-lifecycle.py` 实际完整停止→up→再次 start，API/Worker/Web 就绪，账号、数据集、版本、运行、当前快照指针与源订单数据保持不变。`test-migrations.py` 在独占临时 PostgreSQL 数据库执行 V001–V007，再重复迁移，验证数据/索引/约束保留；结束删除该临时库，不清当前库。
 - `test-execution-rules.py` 真实验证首次零行、质量 BLOCK/WARN、冻结规则重试、Decimal 收窄溢出，以及已使用字段长度/可空性/删除变化；失败或阻断保留当前快照。
 - `test-storage-recovery.py` 真实停止/恢复 S3 与 Doris FE，故障运行失败且旧快照不变，恢复就绪后新运行重试成功；仅将合成历史记录的替换时间推进到八天前，验证定期清理实际 Doris 表与 S3 原始对象，同时保留当前快照与对象。没有等待真实七个自然日，也不据此声称生产集群故障矩阵已覆盖。
 - `bash tools/local.sh verify` 顺序验收真实迁移、身份、MySQL、数据集、执行/安全/规则、Doris 查询/CSV、完整首页汇总、34 个 OpenAPI 响应与 1280×1000 浏览器流程。真实 Worker SIGKILL 测试为 §14.6 的独占入口，不混入常规 verify。
-- 最终 `pnpm check` 通过：14 文件 93 项单元/HTTP 测试、契约/边界/UI/i18n/lint/格式/类型及 Mock/real 双构建；Maven verify 10 项测试与所有模块构建通过。另运行 `sources.spec.ts quality-rules.spec.ts tabs.spec.ts`，1280×1000 Mock 回归 23 项通过。
-- real 隐藏质量模拟结果按钮，实际结果来自已发布数据集运行；非管理员不自动请求原始预览，禁用相应按钮。未实现同步/血缘/目录入口隐藏。页面修补独立提交 `55012e98`。
-- 本地执行日志在 `/tmp/jiuzhang-{real-final-verify,final-check,lifecycle-final,migrations-final,storage-recovery-final,final-mock-regression}.log`，属于临时证据；复现依赖仓库脚本。远端 CI/分支保护、生产 TLS/加密/备份、多 Worker/容量压测未验证；Mock 大 chunk 构建警告保留。
+- 2026-10-19 基线 `pnpm check` 通过：14 文件 93 项单元/HTTP 测试、契约/边界/UI/i18n/lint/格式/类型及当时的两种构建；本轮变更后需要重新验证当前命令。Maven 基线与浏览器证据记录于当日验收日志。
+- 质量结果来自真实数据集运行；合成质量结果入口已移除。非管理员不自动请求原始预览；未实现的同步、血缘和目录入口仍需按实际能力隐藏或说明。
+- 本地执行日志属于临时证据；复现依赖仓库脚本。远端 CI/分支保护、生产 TLS/加密/备份、多 Worker/容量压测未验证。
 
 ### 14.8 查询结果读取预算（2026-10-19）
 
 - 完成审计发现原 10 MiB 结果上限在全量读取后检查，不能限制 JDBC 缓冲和应用结果积累。Doris 读取改用 Connector/J 流式结果，逐行计算实际 UTF-8 JSON 字节（含转义、逗号和数组界限）；超限立即中止连接，不再读取或持久化后续结果。表样本与 SQL 查询共用读取预算和限制所有者。
 - 三项新增单元测试覆盖提前停止、精确边界/转义与 null/大整数/Decimal 文本。`test-result-budget.py` 实际创建 190 行、每行 60000 字节的合成源，完整入仓成功；100 行样本可读，1000 行上限查询超过 10 MiB 时返回 QUERY_RESULT_LIMIT，数据库不新增查询结果，后续两行查询成功且当前快照不变。此样本验证资源保护，不是容量或吞吐基准。
-- `local.sh verify` 已接入真实大结果验收。未改变 OpenAPI、前端或 Mock 行为；精确版本沿用已验证组合。
+- `local.sh verify` 已接入真实大结果验收；精确版本沿用已验证组合。
 
 ### 14.9 MySQL 一致性读取边界（2026-10-19）
 

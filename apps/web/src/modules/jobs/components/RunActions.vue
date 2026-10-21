@@ -1,19 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NButton, NSelect } from 'naive-ui'
+import { NButton } from 'naive-ui'
 import type { Model } from '@/shared/api/types'
 import { useCan } from '@/shared/security/permissions'
-import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useJobActions } from '../composables/use-jobs'
 const props = defineProps<{ run: Model<'Run'>; size?: 'small' | 'medium' }>()
 const emit = defineEmits<{ retried: [id: string] }>()
 const { t } = useI18n()
 const canWrite = useCan('write')
-const real = import.meta.env.VITE_API_MODE === 'real'
 const requestKey = ref(crypto.randomUUID())
 const actions = useJobActions()
-const outcome = ref<Model<'RunOutcome'>>('succeeded')
 const cancelable = computed(() => ['queued', 'running', 'validating'].includes(props.run.status))
 const retryable = computed(
   () => ['failed', 'blocked', 'canceled'].includes(props.run.status) && !props.run.retryRunId,
@@ -30,7 +27,6 @@ async function retry() {
   try {
     const run = await actions.retry.mutateAsync({
       id: props.run.id,
-      outcome: outcome.value,
       key: requestKey.value,
     })
     requestKey.value = crypto.randomUUID()
@@ -48,19 +44,6 @@ async function retry() {
       @click="cancel"
       >{{ t('ui.run_detail_644b4a0b') }}</NButton
     >
-    <NSelect
-      v-if="retryable && !real"
-      v-model:value="outcome"
-      :size="size"
-      v-select-trigger-name="t('jobs.retryOutcome', { id: run.id })"
-      :disabled="!canWrite || pending"
-      class="run-outcome"
-      :options="[
-        { label: t('ui.run_detail_b791a1f7'), value: 'succeeded' },
-        { label: t('ui.run_detail_4857620b'), value: 'failed' },
-        { label: t('ui.run_detail_d6e418e3'), value: 'blocked' },
-      ]"
-    />
     <NButton
       v-if="retryable"
       :size="size"
@@ -79,8 +62,5 @@ async function retry() {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-}
-.run-outcome {
-  width: 130px;
 }
 </style>

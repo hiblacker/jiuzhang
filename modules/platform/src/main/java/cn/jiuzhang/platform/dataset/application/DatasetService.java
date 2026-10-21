@@ -7,7 +7,7 @@ import cn.jiuzhang.platform.identity.application.IdentityService.User;
 import cn.jiuzhang.platform.shared.application.Failure;
 import cn.jiuzhang.platform.shared.application.JsonWriter;
 import cn.jiuzhang.platform.source.application.SourceService;
-import cn.jiuzhang.platform.source.application.SourceStore;
+import cn.jiuzhang.platform.source.domain.SourceConnector;
 import java.time.Instant;
 import java.util.*;
 import org.springframework.stereotype.Service;
@@ -42,15 +42,22 @@ public class DatasetService {
     IdentityService.require(user, "write");
     var body = input(input, id == null ? null : store.get(id, false));
     var d = map(body, "definition");
-    plan(d, snapshots(d, "quality"), snapshots(d, "masking"));
-    var object = sources.object(user, text(d, "sourceId"), text(d, "objectId"));
-    validateSource(d, object);
+    plan(d, snapshots(d, "quality"), snapshots(d, "masking"), false);
+    var columns = sourceColumns(user, d);
+    validateSource(d, columns);
     return store.transaction(
         () -> {
           if (id != null) {
             var old = store.get(id, true);
-            var previous = map(map(old, "definition"), "output");
-            if (!previous.get("table").equals(map(d, "output").get("table")))
+            var oldDefinition = map(old, "definition");
+            var previous = map(oldDefinition, "output");
+            boolean published = ((Number) old.get("publishedVersion")).intValue() > 0;
+            if (published && !deliveryMode(oldDefinition).equals(deliveryMode(d)))
+              throw new Failure(409, "DATASET_DELIVERY_MODE_IMMUTABLE");
+            if (published
+                && deliveryMode(oldDefinition).equals("warehouse")
+                && deliveryMode(d).equals("warehouse")
+                && !previous.get("table").equals(map(d, "output").get("table")))
               throw new Failure(409, "TARGET_NAME_IMMUTABLE");
           }
           var saved = store.save(id, body);
@@ -99,8 +106,8 @@ public class DatasetService {
   public Map<String, Object> validate(User u, String id) {
     try {
       var d = map(get(u, id), "definition");
-      plan(d, snapshots(d, "quality"), snapshots(d, "masking"));
-      validateSource(d, sources.object(u, text(d, "sourceId"), text(d, "objectId")));
+      plan(d, snapshots(d, "quality"), snapshots(d, "masking"), false);
+      validateSource(d, sourceColumns(u, d));
       return Map.of("valid", true, "issues", List.of());
     } catch (Failure e) {
       return Map.of("valid", false, "issues", List.of(e.code));
@@ -125,10 +132,13 @@ public class DatasetService {
     }
     var quality = snapshots(d, "quality");
     var masking = snapshots(d, "masking");
-    plan(d, quality, masking);
-    var object = sources.object(u, text(d, "sourceId"), text(d, "objectId"));
-    validateSource(d, object);
-    var source = sources.get(u, object.sourceId());
+    plan(d, quality, masking, true);
+    var columns = sourceColumns(u, d);
+    validateSource(d, columns);
+    var source = sources.get(u, text(d, "sourceId"));
+    var object = text(d, "mode").equals("visual")
+        ? sources.object(u, text(d, "sourceId"), text(d, "objectId"))
+        : null;
     return store.transaction(
         () -> {
           var current = store.get(id, true);
@@ -154,27 +164,12 @@ public class DatasetService {
           body.put("upstreamVersion", 0);
           body.put("sourceSnapshotOrigin", "published");
           body.put("sourceSnapshotCapturedAt", now);
-          body.put(
-              "sourceSnapshots",
-              List.of(
-                  Map.of(
-                      "sourceName",
-                      source.name(),
-                      "object",
-                      Map.of(
-                          "id",
-                          object.id(),
-                          "sourceId",
-                          object.sourceId(),
-                          "name",
-                          object.name(),
-                          "rowCount",
-                          "0",
-                          "rowCountKnown",
-                          false,
-                          "fields",
-                          object.columns().stream().map(SourceService::field).toList()))));
-          store.publish(id, v, body, object.name(), object.columns());
+          body.put("sourceSnapshots", object == null ? List.of() : List.of(Map.of(
+              "sourceName", source.name(),
+              "object", Map.of("id", object.id(), "sourceId", object.sourceId(), "name", object.name(),
+                  "rowCount", "0", "rowCountKnown", false,
+                  "fields", object.columns().stream().map(SourceService::field).toList()))));
+          store.publish(id, v, body, object == null ? "" : object.name(), columns);
           store.publication(u.id(), id, key, draftHash, body);
           identity.audit(u.id(), "publish", "dataset", id, requestId);
           return body;
@@ -185,10 +180,24 @@ public class DatasetService {
     IdentityService.require(u, "readSensitive");
     var body = input(input, null);
     var d = map(body, "definition");
-    var plan = plan(d, snapshots(d, "quality"), snapshots(d, "masking"));
-    var preview = sources.preview(u, text(d, "sourceId"), text(d, "objectId"));
+    if (text(d, "mode").equals("sql")) {
+      var result = sources.previewSql(u, text(d, "sourceId"), text(d, "sql"));
+      if (objects(d, "fields").isEmpty())
+        return Map.of("fields", result.columns().stream().map(SourceService::field).toList(),
+            "rows", result.rows(), "notes", List.of("SQL_PREVIEW_LIMIT_100", "SET_FIELD_MAPPINGS_THEN_PREVIEW_AGAIN"));
+      var plan = plan(d, snapshots(d, "quality"), snapshots(d, "masking"), false);
+      validateSource(d, result.columns());
+      return previewRows(d, plan, result.rows());
+    }
+    var plan = plan(d, snapshots(d, "quality"), snapshots(d, "masking"), false);
+    var result = sources.preview(u, text(d, "sourceId"), text(d, "objectId"));
+    return previewRows(d, plan, objects(result, "rows"));
+  }
+
+  private Map<String, Object> previewRows(
+      Map<String, Object> d, DatasetPlan plan, List<Map<String, Object>> sourceRows) {
     var rows = new ArrayList<Map<String, Object>>();
-    for (var row : objects(preview, "rows")) {
+    for (var row : sourceRows) {
       try {
         var converted = plan.transform(row);
         if (converted != null) rows.add(plan.output(converted));
@@ -201,13 +210,62 @@ public class DatasetService {
         objects(d, "fields").stream().filter(x -> bool(x, "output")).toList(),
         "rows",
         rows,
-        "notes",
-        List.of("SOURCE_SAMPLE_LIMIT_100", "QUALITY_ENFORCED_ON_FULL_RUN"));
+        "notes", List.of(text(d, "mode").equals("sql") ? "SQL_PREVIEW_LIMIT_100" : "SOURCE_SAMPLE_LIMIT_100",
+            "QUALITY_ENFORCED_ON_FULL_RUN"));
   }
 
   public Map<String, Object> preview(User u, String id) {
     var d = get(u, id);
     return preview(u, input(Map.of(), d));
+  }
+
+  public Map<String, Object> query(User user, String id, int limit, String requestId) {
+    IdentityService.require(user, "readSensitive");
+    if (limit < 1 || limit > 1000) throw new Failure(422, "QUERY_LIMIT");
+    var dataset = get(user, id);
+    if (((Number) dataset.get("publishedVersion")).intValue() < 1)
+      throw new Failure(409, "DATASET_NOT_PUBLISHED");
+    var version = store.version(id, ((Number) dataset.get("publishedVersion")).intValue());
+    var definition = map(version, "definition");
+    if (!deliveryMode(definition).equals("direct")) throw new Failure(409, "DATASET_NOT_DIRECT");
+    var plan = executable(version);
+    List<Map<String,Object>> sourceRows;
+    List<SourceConnector.Column> actualColumns;
+    if (text(definition, "mode").equals("sql")) {
+      var result = sources.querySql(user, text(definition, "sourceId"), text(definition, "sql"), limit);
+      actualColumns = result.columns();
+      verifySchema(store.columns(id, ((Number) version.get("version")).intValue()), actualColumns);
+      sourceRows = result.rows();
+    } else {
+      actualColumns = store.columns(id, ((Number) version.get("version")).intValue());
+      sourceRows = sources.queryTable(text(definition, "sourceId"),
+          store.table(id, ((Number) version.get("version")).intValue()), actualColumns,
+          new ArrayList<>(plan.usedSourceFields()), limit, () -> false);
+    }
+    var rows = new ArrayList<Map<String,Object>>();
+    long warnings = 0;
+    for (var row : sourceRows) {
+      try {
+        var converted = plan.transform(row);
+        if (converted != null) {
+          for (var rule : plan.quality()) {
+            if (rule.enabled() && !plan.passes(rule, converted)) {
+              if (rule.severity().equals("BLOCK")) throw new Failure(422, "QUALITY_BLOCKED");
+              warnings++;
+            }
+          }
+          rows.add(plan.output(converted));
+        }
+      } catch (Problem e) {
+        throw new Failure(422, e.code);
+      }
+    }
+    if (json.write(rows).getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 10 * 1024 * 1024)
+      throw new Failure(422, "QUERY_RESULT_LIMIT");
+    identity.audit(user.id(), "query", "dataset", id, requestId);
+    return Map.of("fields", objects(definition, "fields").stream().filter(x -> bool(x, "output")).toList(),
+        "rows", rows, "notes", List.of("DIRECT_SOURCE_QUERY", "ROW_LIMIT_" + limit,
+            warnings == 0 ? "QUALITY_PASS" : "QUALITY_WARNINGS_" + warnings));
   }
 
   public DatasetPlan executable(Map<String, Object> version) {
@@ -300,14 +358,24 @@ public class DatasetService {
 
   public DatasetPlan plan(
       Map<String, Object> d, List<Map<String, Object>> quality, List<Map<String, Object>> masking) {
+    return plan(d, quality, masking, true);
+  }
+
+  public DatasetPlan plan(
+      Map<String, Object> d,
+      List<Map<String, Object>> quality,
+      List<Map<String, Object>> masking,
+      boolean requireWarehouseOutput) {
     try {
-      if (!text(d, "upstreamDatasetId").isEmpty() || !text(d, "mode").equals("visual"))
-        throw new Failure(422, "DATASET_MODE_UNSUPPORTED");
-      if (!Set.of(
+      if (!text(d, "upstreamDatasetId").isEmpty()) throw new Failure(422, "DATASET_MODE_UNSUPPORTED");
+      String mode = text(d, "mode");
+      if (!Set.of("visual", "sql").contains(mode)) throw new Failure(422, "DATASET_MODE_UNSUPPORTED");
+      Set<String> allowed = Set.of(
               "sourceId",
               "objectId",
               "upstreamDatasetId",
               "mode",
+              "deliveryMode",
               "sql",
               "fields",
               "nodes",
@@ -316,8 +384,14 @@ public class DatasetService {
               "qualityRuleIds",
               "maskPolicyIds",
               "schedule",
-              "output")
-          .equals(d.keySet())) throw new Failure(422, "VALIDATION_ERROR");
+              "output");
+      if (!allowed.containsAll(d.keySet())
+          || !d.keySet().containsAll(allowed.stream().filter(k -> !k.equals("deliveryMode")).toList()))
+        throw new Failure(422, "VALIDATION_ERROR");
+      String delivery = deliveryMode(d);
+      if (!Set.of("direct", "warehouse").contains(delivery)) throw new Failure(422, "VALIDATION_ERROR");
+      if (mode.equals("sql") && (text(d, "sql").isBlank() || text(d, "sql").length() > 8192))
+        throw new Failure(422, "UNSUPPORTED_SQL");
       var s = map(d, "schedule");
       if (!text(s, "mode").equals("manual")
           || integer(s, "retries") != 0
@@ -326,49 +400,44 @@ public class DatasetService {
       int timeout = integer(s, "timeoutSeconds");
       if (timeout < 1 || timeout > 600) throw new Failure(422, "TIMEOUT_LIMIT");
       var o = map(d, "output");
-      if (!text(o, "writeMode").equals("replace")
-          || !text(o, "table").matches("[a-zA-Z_][a-zA-Z0-9_]{0,55}")
-          || text(o, "table").startsWith("jz_")) throw new Failure(422, "OUTPUT_UNSUPPORTED");
-      if (!Set.of("ODS", "DWD", "DWS", "ADS").contains(text(o, "layer")))
-        throw new Failure(422, "VALIDATION_ERROR");
+      if (requireWarehouseOutput && delivery.equals("warehouse")) {
+        if (!text(o, "writeMode").equals("replace")
+            || !text(o, "table").matches("[a-zA-Z_][a-zA-Z0-9_]{0,55}")
+            || text(o, "table").startsWith("jz_")) throw new Failure(422, "OUTPUT_UNSUPPORTED");
+        if (!Set.of("ODS", "DWD", "DWS", "ADS").contains(text(o, "layer")))
+          throw new Failure(422, "VALIDATION_ERROR");
+      }
       if (strings(d, "cleaning").stream().anyMatch(x -> !x.equals("trim")))
         throw new Failure(422, "CLEANING_UNSUPPORTED");
       var nodes = objects(d, "nodes");
       var edges = objects(d, "edges");
-      if (nodes.isEmpty()
-          || nodes.size() > 20
-          || nodes.stream().filter(n -> text(n, "type").equals("input")).count() != 1
-          || nodes.stream()
-              .anyMatch(n -> !Set.of("input", "filter", "fields").contains(text(n, "type"))))
-        throw new Failure(422, "GRAPH_UNSUPPORTED");
-      if (nodes.stream()
-          .anyMatch(n -> text(n, "type").equals("fields") && !text(n, "config").isBlank()))
-        throw new Failure(422, "GRAPH_UNSUPPORTED");
-      var ids = new HashSet<String>();
-      for (var n : nodes) if (!ids.add(text(n, "id"))) throw new Failure(422, "GRAPH_INVALID");
-      if (edges.size() != nodes.size() - 1) throw new Failure(422, "GRAPH_INVALID");
-      String current =
-          nodes.stream()
-              .filter(n -> text(n, "type").equals("input"))
-              .findFirst()
-              .orElseThrow()
-              .get("id")
-              .toString();
-      var visited = new HashSet<String>();
-      while (visited.add(current)) {
-        String parent = current;
-        var children = edges.stream().filter(e -> text(e, "source").equals(parent)).toList();
-        if (children.size() > 1) throw new Failure(422, "GRAPH_INVALID");
-        if (children.isEmpty()) break;
-        current = text(children.getFirst(), "target");
-        if (!ids.contains(current)) throw new Failure(422, "GRAPH_INVALID");
+      if (mode.equals("visual")) {
+        if (nodes.isEmpty()
+            || nodes.size() > 20
+            || nodes.stream().filter(n -> text(n, "type").equals("input")).count() != 1
+            || nodes.stream().anyMatch(n -> !Set.of("input", "filter", "fields").contains(text(n, "type"))))
+          throw new Failure(422, "GRAPH_UNSUPPORTED");
+        if (nodes.stream().anyMatch(n -> text(n, "type").equals("fields") && !text(n, "config").isBlank()))
+          throw new Failure(422, "GRAPH_UNSUPPORTED");
+        var ids = new HashSet<String>();
+        for (var n : nodes) if (!ids.add(text(n, "id"))) throw new Failure(422, "GRAPH_INVALID");
+        if (edges.size() != nodes.size() - 1) throw new Failure(422, "GRAPH_INVALID");
+        String current = nodes.stream().filter(n -> text(n, "type").equals("input")).findFirst().orElseThrow().get("id").toString();
+        var visited = new HashSet<String>();
+        while (visited.add(current)) {
+          String parent = current;
+          var children = edges.stream().filter(e -> text(e, "source").equals(parent)).toList();
+          if (children.size() > 1) throw new Failure(422, "GRAPH_INVALID");
+          if (children.isEmpty()) break;
+          current = text(children.getFirst(), "target");
+          if (!ids.contains(current)) throw new Failure(422, "GRAPH_INVALID");
+        }
+        if (visited.size() != nodes.size()
+            || edges.stream().anyMatch(e -> !ids.contains(text(e, "source")) || !ids.contains(text(e, "target"))))
+          throw new Failure(422, "GRAPH_INVALID");
       }
-      if (visited.size() != nodes.size()
-          || edges.stream()
-              .anyMatch(e -> !ids.contains(text(e, "source")) || !ids.contains(text(e, "target"))))
-        throw new Failure(422, "GRAPH_INVALID");
       var filters = new ArrayList<Filter>();
-      for (var n : nodes)
+      for (var n : mode.equals("visual") ? nodes : List.<Map<String, Object>>of())
         if (text(n, "type").equals("filter")) {
           String config = text(n, "config");
           int at = config.indexOf('=');
@@ -429,11 +498,35 @@ public class DatasetService {
         bool(m, "enabled"));
   }
 
-  private void validateSource(Map<String, Object> d, SourceStore.SourceObject o) {
-    var plan = plan(d, snapshots(d, "quality"), snapshots(d, "masking"));
+  private void validateSource(Map<String, Object> d, List<SourceConnector.Column> columns) {
+    var plan = plan(d, snapshots(d, "quality"), snapshots(d, "masking"), false);
     var names =
-        o.columns().stream().map(c -> c.name()).collect(java.util.stream.Collectors.toSet());
+        columns.stream().map(c -> c.name()).collect(java.util.stream.Collectors.toSet());
     if (!names.containsAll(plan.usedSourceFields())) throw new Failure(422, "SOURCE_FIELD_MISSING");
+  }
+
+  private List<SourceConnector.Column> sourceColumns(User user, Map<String, Object> definition) {
+    if (text(definition, "mode").equals("sql"))
+      return sources.previewSql(user, text(definition, "sourceId"), text(definition, "sql")).columns();
+    return sources.object(user, text(definition, "sourceId"), text(definition, "objectId")).columns();
+  }
+
+  private String deliveryMode(Map<String, Object> definition) {
+    if (!definition.containsKey("deliveryMode")) return "warehouse";
+    String mode = text(definition, "deliveryMode");
+    return mode.isEmpty() ? "warehouse" : mode;
+  }
+
+  private void verifySchema(List<SourceConnector.Column> expected, List<SourceConnector.Column> actual) {
+    if (expected.size() != actual.size()) throw new Failure(409, "SCHEMA_CHANGED");
+    for (int i = 0; i < expected.size(); i++) {
+      var left = expected.get(i);
+      var right = actual.get(i);
+      if (!left.name().equals(right.name()) || !left.type().equalsIgnoreCase(right.type())
+          || left.precision() != right.precision() || left.scale() != right.scale()
+          || left.length() != right.length() || left.nullable() != right.nullable())
+        throw new Failure(409, "SCHEMA_CHANGED");
+    }
   }
 
   private Map<String, Object> input(Map<String, Object> input, Map<String, Object> old) {

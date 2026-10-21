@@ -1,4 +1,4 @@
-/** Real mode exposes only the implemented first-version workflows. */
+/** Only routes backed by the current API are exposed as product workflows. */
 export function supportsRealRoute(path: string): boolean {
   return [
     '/overview',

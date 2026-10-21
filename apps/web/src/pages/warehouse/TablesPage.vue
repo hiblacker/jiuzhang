@@ -69,7 +69,6 @@ const columns = computed<DataTableColumns<Model<'Table'>>>(() => [
 </script>
 <template>
   <PageHeader :title="uiText('ui.tables_25d85ef7')" :description="uiText('ui.tables_c6e4ea11')"
-    ><NButton @click="router.push('/warehouse/imports')">{{ uiText('ui.tables_c92a5d17') }}</NButton
     ><NButton type="primary" @click="router.push('/warehouse/query')">{{
       uiText('ui.tables_b335a616')
     }}</NButton></PageHeader

@@ -2,31 +2,11 @@ import ui from './ui.zh-CN.json'
 
 export default {
   ui,
-  folders: {
-    title: '数据集目录',
-    all: '全部数据集',
-    unfiled: '未分类',
-    folder: '所属目录',
-    create: '新建目录',
-    edit: '编辑目录',
-    delete: '删除目录',
-    name: '目录名称',
-    parent: '父目录',
-    root: '根目录',
-    scope: '选中目录包含其全部子目录的数据集。',
-    invalidName: '请填写 1–80 个字符的目录名称',
-    loadError: '目录加载失败',
-    notEmpty: '请先移动数据集和子目录，再删除空目录。',
-    deleteHint: '确认删除目录“{name}”？仅允许删除空目录。',
-    move: '移动到目录',
-    target: '目标目录',
-    confirmMove: '确认移动',
-  },
   datasets: {
     realOutput:
-      '完整读取、质量检查与脱敏后发布独立快照，以稳定逻辑视图切换当前数据；失败不影响旧快照。当前快照不清理，历史最多 3 份且被替换后最多保留 7 天。',
+      '完整读取、质量检查与脱敏后发布独立快照；成功后替换当前数据，失败不影响旧快照。旧快照最多保留 3 份且不超过 7 天。',
     realScope:
-      '第一版：MySQL 单表、字段映射、等值过滤、trim 清洗、必填/范围质量、字符串脱敏；仅手动全量替换。目标表名创建后固定。',
+      'MySQL 数据集支持单表或只读 SQL；可选择实时直连，或手动全量快照入库。入库目标表必须独占，首次发布后固定。',
     related: {
       title: '关联数据集',
       states: { draft: '草稿', published: '已发布', blocked: '已阻断' },
@@ -36,7 +16,21 @@ export default {
       hint: '按当前草稿引用查询；历史发布版本与运行快照保持独立。',
     },
     sqlEditor: '数据集 SQL 编辑器',
-    sqlPreset: '数据集预设 SQL',
+    definitionMode: '定义方式',
+    tableMode: '选择数据表',
+    sqlMode: '自定义 SQL',
+    sqlHelp:
+      '在所选数据源的数据库中执行单条只读查询，支持 CTE、关联、聚合、窗口函数及子查询。预览最多返回 100 行。',
+    sqlFieldsHelp: '首次预览会读取 SQL 结果字段。字段映射完成后再次预览，查看最终数据集结果。',
+    reloadSqlFields: '重新读取 SQL 字段',
+    deliveryMode: '提供方式',
+    directMode: '直连数据源',
+    warehouseMode: '入库到数仓',
+    directHelp: '发布后通过平台查询接口实时读取数据源，不生成仓库快照，也不创建运行任务。',
+    directPublishedOutput:
+      '发布后，平台查询接口会按此版本定义读取源库并返回经过字段处理与脱敏的结果。',
+    warehouseHelp: '发布后可手动运行，将处理结果写入数仓目标表并替换当前快照。',
+    scheduleUnsupported: '第一版仅支持手动运行，定时调度暂未开放。',
     output: {
       summary: '输出写入配置',
       mode: '写入语义',
@@ -49,7 +43,7 @@ export default {
       replaceHelp: '用本次全部输出替换目标表已有样本；业务日期用于分区标记，不代表只替换该分区。',
       upsertHelp:
         '按全部业务主键组合更新相同行，插入新键，并保留本次未出现的旧键；业务主键必须输出且不能为空。',
-      boundary: '当前仅演示合成样本写入；运行使用绑定发布版本的配置，草稿修改须重新发布后生效。',
+      boundary: '运行使用绑定发布版本的配置；草稿修改须重新发布后生效。目标表必须由该数据集独占。',
     },
     nullableField: '允许空值 {name}',
     removeField: '删除字段 {name}',
@@ -74,13 +68,13 @@ export default {
     version: {
       sourceSchemas: '输入源结构快照',
       schemaBoundary:
-        '记录发布时的源对象与字段结构，不保存源数据、连接参数或凭证。预览仍使用合成样本，不是历史数据备份。',
+        '记录发布时的源对象与字段结构，不保存源数据、连接参数或凭证。它是结构快照，不是历史数据备份。',
       migratedWarning:
         '此版本创建于快照功能启用前，结构由迁移时的元数据补录，不能证明其与原发布时一致。',
       captureOrigin: '快照来源',
       capturedAt: '结构采集时间',
       published: '发布时采集',
-      migrated: '旧演示数据迁移补录',
+      migrated: '历史版本迁移补录',
       objectId: '源对象 ID',
       currentSource: '查看当前数据源',
       upstreamVersion: '查看绑定的上游版本 v{version}',
@@ -124,8 +118,7 @@ export default {
     passRate: '通过率',
     sampleCount: '样本数',
     failureCount: '失败样本数',
-    sampleHint:
-      'PASS 使用符合规则的合成样本；WARN / BLOCK 注入一个违规样本，并分别演示告警和阻断。实际运行遵循规则严重级别。',
+    sampleHint: '质量规则在入库运行时执行；预览用于检查字段转换与脱敏结果。',
     addField: '添加输出字段',
     fieldName: '源字段名（支持 right_ 前缀）',
     fieldOrder: '顺序',
@@ -134,6 +127,15 @@ export default {
     moveFieldUp: '上移字段 {name}',
     moveFieldDown: '下移字段 {name}',
     fieldType: '字段类型 {name}',
+    fieldTypes: {
+      text: '文本',
+      number: '数值（整数）',
+      decimal: '数值（小数） decimal(18,2)',
+      boolean: '布尔值',
+      date: '日期',
+      datetime: '日期时间',
+      geo: '地理位置（文本）',
+    },
     fieldPolicy: '脱敏策略 {name}',
     preview: '样本预览',
     upstream: '已发布上游数据集',

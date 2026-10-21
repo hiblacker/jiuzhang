@@ -43,7 +43,7 @@ try {
   const search=directory.getByRole('textbox', { name: '搜索表名', exact: true })
   await search.fill('orders')
   await directory.getByText('orders', { exact: true }).waitFor()
-  if (await directory.locator('[data-object-node^="object:"]:visible').count() !== 1) throw new Error('Table search did not filter the directory')
+  if (await directory.getByRole('listitem').count() !== 1) throw new Error('Table search did not filter the directory')
   await search.fill('')
   await page.getByRole('cell', { name: 'id', exact: true }).waitFor()
   await page.getByRole('cell', { name: 'amount', exact: true }).waitFor()

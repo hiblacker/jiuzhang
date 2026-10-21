@@ -1,6 +1,6 @@
 # 九章 AI 开发规范
 
-> 2026-10-17 · 规则与本地检查已实现；38 路由纯 Mock 前端已完成本地桌面行为与视觉验收。前端 CI 配置已建立，远端执行与保护规则仍未验证。
+> 2026-10-20 · 前后端真实 API 已接通；AI 开发规则、静态门禁和真实服务验收入口已建立。远端 CI 执行与分支保护仍需实查。
 > [根入口](../AGENTS.md) · [前端规则](../apps/web/AGENTS.md) · [后端规则](../apps/api/AGENTS.md) · [契约规则](../packages/contracts/AGENTS.md)
 > [前端设计](frontend-design.md) · [UI 与 Vue 约定](ui-conventions.md) · [页面验收](frontend-page-map.md) · [调研来源](research/ai-engineering-research.md) · [new-api 对照](research/new-api-adaptation.md)
 
@@ -29,10 +29,10 @@ AGENTS.md 不是权限隔离，也不能保证模型永远服从。只有规则�
 ### 实现时
 
 - 保持代码直接可读，优先提前返回和清晰分支；只用一次的机械步骤不单独建 helper。复杂业务概念、明确接口/生命周期或有独立验证价值的逻辑仍可提取，避免把规则绝对化。
-- 接口变更先改 OpenAPI，再生成类型，更新 Mock、mapper 和调用方。
+- 接口变更先改 OpenAPI，再生成类型，更新 repository、mapper、调用方和必要的 HTTP 契约测试。
 - 优先在现有领域所有者内修改；只在职责或稳定契约明确时提取新模块。
 - 不改无关文件，不恢复旧项目清理形成的删除，不为消除报错重写整个工具链。
-- Mock 场景可使用纯虚构数据，但所有“成功”必须对应可观察的状态变化。
+- 自动化测试可用固定虚构数据替换 HTTP 响应，但所有“成功”必须对应可观察的状态变化；测试替身不得从应用入口或运行时代码导入。
 - 不伪造真实数据库连接、SQL 执行、权限、定时任务或性能结果。
 
 ### 交付时
@@ -53,7 +53,7 @@ AGENTS.md 不是权限隔离，也不能保证模型永远服从。只有规则�
 | apps/web/src/modules/<domain> | 该领域组件、composable、HTTP repository、纯规则 | 其他领域内部实现、后端源码、全局通用工具杂项 |
 | modules/platform | 后端 Java 领域包：application/domain/infrastructure；API/Worker 的公开用例 | Vue/TS 组件、宿主入口、跨域私有 DAO |
 | shared | 通用 UI、HTTP client、编辑器集成、日期/下载工具 | 数据集发布流程、任务业务状态机 |
-| mocks | HTTP 模拟、固定数据、模拟持久化与场景 | 被页面当作数据库直接读取、生产业务规则权威来源 |
+| tests/support | HTTP 测试替身、固定测试数据与隔离工具 | 被页面或 repository 导入、成为生产业务规则权威来源 |
 | contracts | OpenAPI、生成类型、示例 | Vue/Pinia/后端 ORM/运行时密钥 |
 | 后端 Controller | 传输校验、身份上下文、DTO、错误状态映射 | SQL、任务编排、业务规则 |
 | 后端 Application | 用例编排、事务边界、调用领域和端口 | UI 状态、HTTP 框架细节 |
@@ -117,39 +117,37 @@ SFC 或 composable 超过约 300 行时做职责检查；复杂度高、嵌套�
 - Pinia state/getter 解构使用 storeToRefs；不要机械照搬 React 的 props/memo/hooks 约束。公共 composable 的响应式输入、取消和清理必须明确。
 - API 错误只由一个展示所有者消费；repository 不提示，局部字段/弹层处理与全局兜底互斥。具体交互契约见 UI 规范。
 
-## 6. 接口契约与 Mock 纪律
+## 6. 接口契约与测试替身
 
 - 不手写另一套 SourceDTO/DatasetDTO；用生成类型、Pick/Omit 或明确 ViewModel 映射。
 - TS 类型只在编译期生效，不自动验证远端 JSON；契约测试要检查响应结构与状态码。
-- handlers 按领域组织；GET 真正执行筛选分页，写请求更新统一 DB 并产生日志。
-- 使用固定 seed、固定 clock 或注入时钟；异常场景显式选择，不用随机成功率。
-- 每个失败分支有约定 error.code/requestId；未知 API 默认报错，不能偷偷穿透到真实后台。
-- 引用不存在对象返回 404；不能删除被引用源返回 409；校验失败返回 400/422（由契约明确选择）。
-- 接口延迟是演示值，吞吐和成功率也应标注模拟，不能包装为真实测量。
-- Mock 只承担协议与交互演示，不在浏览器实现真正数仓/调度引擎。
-- CI 的 demo 测试与 real 构建分别验证；real 包排除 fixture、控制面和 MSW worker。
+- 测试网络处理器按领域组织，固定数据只服务于协议和边界测试；它们放在 `tests/support`，不进入应用运行路径。
+- 使用固定 seed、固定 clock 或注入时钟；异常响应由测试明确选择，不用随机成功率。
+- 契约测试验证 error.code/requestId、404/409/400/422 等明确响应；真实 API 的语义以服务端实现和真实引擎测试为准。
+- 测试替身不能被描述为真实 SQL、调度、吞吐或安全能力的证据。
+- 前端生产构建只构建一条真实 API 应用路径，并检查产物不包含测试数据、处理器或测试启动代码。
 - 缺失/null/空字符串/0/false 分别定义并测试，PATCH 不吞显式 false/0；高精度及大整数按契约传输，不隐式浮点化。
-- 发布版本、运行终态、重试关联、幂等写、游标提交遵循总体架构的不变量；Mock 可演示协议，不能代替真实跨系统恢复验证。
+- 发布版本、运行终态、重试关联、幂等写、游标提交遵循总体架构的不变量；测试替身不能代替真实跨系统恢复验证。
 
 ## 7. 机器门禁设计
 
-下表保留完整约束。本地 check:contracts / check:boundaries / check:ui / check:i18n / lint / typecheck / test:unit / build / build:real 已接入 pnpm check，浏览器测试另行运行。.github/workflows/frontend.yml 已接入这些检查与浏览器流程，远端执行尚未验证；各规则的覆盖能力以具体检查器和允许/拒绝样例为准，不能由一次整体通过推导全部语义规则已证明。
+下表保留完整约束。本地 `pnpm check` 执行契约、边界、UI/i18n、lint、格式、类型、单元/HTTP 集成测试和单一前端构建。`pnpm test:e2e` 连接已启动的本地真实服务；完整引擎验收入口为 `bash tools/local.sh verify`。GitHub workflow 当前只运行可在托管环境独立执行的前端检查，远端执行尚未验证；各规则的覆盖能力以具体检查器和允许/拒绝样例为准。
 
 | 规则 ID | 约束 | 建议实现 | 验证反例 |
 |---|---|---|---|
 | ARCH-01 | shared 不导入上层 | TypeScript/Vue AST 解析 TS/.vue 与路径别名 | shared import modules 必须失败 |
-| ARCH-02 | 页面不直接请求/读存储 | ESLint 限定 fetch/axios/localStorage 调用位置 | 页面 fetch 或读取 Mock DB 必须失败 |
+| ARCH-02 | 页面不直接请求/读存储 | ESLint 限定 fetch/axios/localStorage 调用位置 | 页面 fetch 或读取测试数据必须失败 |
 | ARCH-03 | 模块只走公开入口 | 解析后依赖图 + 明确模块路径规则 | 跨模块深路径及相对路径绕过均失败 |
 | ARCH-04 | 无循环依赖 | 解析后的有向依赖图循环检查 | A->B->A 必须失败 |
-| ARCH-05 | 应用不可依赖 mocks | 路径规则，main.ts 启动例外和 tests 例外 | repository import fixtures 必须失败 |
+| ARCH-05 | 应用不可依赖测试替身 | 路径规则允许 tests 导入 support，不允许 app/pages/modules 导入 | repository import tests/support 必须失败 |
 | ARCH-06 | 前后端/契约分离 | workspace exports + 依赖图 | web import apps/api，contracts import web 必须失败 |
 | TYPE-01 | 严格 TS，禁止逃逸 | vue-tsc、no-explicit-any、ban-ts-comment | 错误 DTO/非法枚举必须失败 |
 | CONTRACT-01 | 契约合法与生成一致 | OpenAPI linter、临时目录生成后逐字节比较 | 只改生成文件必须失败 |
-| CONTRACT-02 | Mock 请求/响应符合契约 | 读取 OpenAPI 校验并测试字段存在性/值语义 | 遗漏必填字段、丢失 false/0 或错误类型必须失败 |
+| CONTRACT-02 | HTTP 测试响应符合契约 | 读取 OpenAPI 校验响应字段和状态码 | 遗漏必填字段、丢失 false/0 或错误类型必须失败 |
 | CONTRACT-03 | 契约包独立 | 包内 schema/类型生成命令 + ARCH-06；根脚本委托 | 删除 web 配置依赖后仍可校验生成；contracts 引用宿主输入失败 |
-| DATA-01 | 发布/运行/游标不变量 | 确定性领域/Mock 协议案例；后端期真实存储故障恢复 | 重试改写旧运行、BLOCK 推进成功游标或取消覆盖已确认发布必须失败 |
-| MOCK-01 | 统一数据与合法引用 | fixture 引用检查、CRUD 行为测试 | dangling dataset.sourceId 必须失败 |
-| BUILD-01 | real 无 Mock 数据 | 对 dist chunk/worker 产物及启动入口检查 | real 包含 fixture/worker 必须失败 |
+| DATA-01 | 发布/运行/游标不变量 | 确定性领域案例与真实存储故障恢复 | 重试改写旧运行、BLOCK 推进成功游标或取消覆盖已确认发布必须失败 |
+| TEST-DATA-01 | 固定测试数据与合法引用 | fixture 引用检查、隔离的 HTTP 行为测试 | dangling dataset.sourceId 必须失败 |
+| BUILD-01 | 构建产物无测试运行时代码 | 检查 dist 文件和应用启动依赖 | dist 包含测试 fixture 或网络处理器必须失败 |
 | UX-01 | 路由与功能闭环 | Playwright + 页面 ID 验收矩阵 | 保存后列表未更新或刷新丢失必须失败 |
 | CODE-01 | 类型 import、无嵌套三元、无浮动 Promise | ESLint TS/Vue 规则，明确受控的 void 用途 | 不处理 mutation Promise 或嵌套三元必须失败 |
 | UI-01 | 已覆盖基础控件/主题边界 | check:ui 用 Vue/TS AST 检测业务文件的重复原生控件与原始样式色值；小范围例外 | 已有 Naive 替代的业务原生 button、无 token 的界面色值失败；语义布局元素允许 |
@@ -172,9 +170,9 @@ check:i18n 对当前唯一 zh-CN 校验 key、脚本/模板中文及 labelKey/ti
 
 1. 开发和 CI 使用项目声明的相同 Node/pnpm 与锁文件，pnpm install --frozen-lockfile。
 2. 契约校验、生成漂移检查、边界检查、UI/key 检查、lint、格式检查、vue-tsc。
-3. 逻辑/mapper/Mock/关键组件行为测试。
-4. demo build 与 real build；确认产物边界。
-5. Playwright 对当前批次完整流程和受影响共享消费者验证。
+3. 逻辑、mapper、HTTP 契约和关键组件行为测试。
+4. 单一前端构建并确认构建产物边界。
+5. 连接本地真实服务，用 Playwright 验证当前批次流程和受影响共享消费者。
 
 当前 CI 范围是 apps/web、packages/contracts 和相关工具；根规则/检查配置变化也触发必要验证，不能恢复已清理的旧工作流。后端建立后新增 api/worker/modules/infra 的 Maven 与集成测试；契约变化触发两端检查，具体影响矩阵见总体架构。顶层必需检查汇总实际执行/合理跳过状态，不能用路径过滤误报通过。生成漂移检查用临时产物比较，对未跟踪文件也有效，不只依赖 git diff。
 
@@ -183,16 +181,16 @@ check:i18n 对当前唯一 zh-CN 校验 key、脚本/模板中文及 labelKey/ti
 - 测试用户行为与外部契约，避免逐字镜像实现或大量无意义截图快照。
 - 单元：字段 mapper、日期/时区、分页、DAG 环检测、状态迁移、敏感字段筛除。
 - 组件：连接器切换后的表单校验、保存失败保留草稿、取消不污染缓存、只读禁用。
-- Mock 集成：分页/排序、增删改、关联约束、schema、刷新持久化、reset 可复现。
-- E2E：源->数据集->运行->仓库->查询；BLOCK->重试；角色切换->403；deep link 刷新。
+- HTTP 集成：分页/排序、增删改、关联约束、schema、精度与空值语义；测试网络状态彼此隔离。
+- E2E：真实登录、源->数据集->发布/运行->仓库查询；验证权限失败、刷新和用户可见错误。
 - 多个测试隔离 IndexedDB/Query cache/clock，不共享全局可变 fixture 造成顺序依赖。
 - 低风险文本/样式更改不新增镜像测试；做与变更相称的视觉检查。
 - 单元/组件测试就近放在所属模块或组件目录 __tests__；跨模块集成、E2E 和公共 setup 放 apps/web/tests，不混成一个跨领域巨型测试文件。
 - 每个用例说明触发条件和预期行为；优先角色/label/公共回调，不断言私有 state、完整 class 字符串或内部 DOM 层级。真实布局/滚动/焦点需浏览器验证。
-- 行为缺陷先构造能复现问题的失败用例再修复；异步等待明确状态，禁止固定 sleep，时钟/随机/网络等边界可控 Mock，不 Mock 被测模块或复制其逻辑算期望值。
+- 行为缺陷先构造能复现问题的失败用例再修复；异步等待明确状态，禁止固定 sleep，时钟/随机/网络等边界可控替换，不替换被测模块或复制其逻辑算期望值。
 - 共享改动覆盖实际消费者与受影响状态；不以统一覆盖率百分比或测试数量代替风险判断。
 - 小功能先扩展一个最合适的已有测试文件，不因实现经过多层就每层复制同样 fixture/断言；不同持久化/并发/接口风险确有独立边界时才增加用例位置，不机械限制文件数量。
-- 后端阶段数据库/驱动/迁移变化按总体架构的支持矩阵验证真实引擎；记录版本、命令、结果，未执行的场景明示。前端 Mock 阶段不为这项未来要求引入数据库或 Docker。
+- 数据库/驱动/迁移变化按总体架构的支持矩阵验证真实引擎；记录版本、命令、结果，未执行的场景明示。
 - 实际认证/会话变更按总体架构的安全验证约定选择 OWASP 控制；覆盖适用的失败、过期、重放和越权，不假称安全合规。
 
 ## 9. AI 可直接使用的任务模板
@@ -200,10 +198,10 @@ check:i18n 对当前唯一 zh-CN 校验 key、脚本/模板中文及 labelKey/ti
 ~~~text
 任务：实现 Pxx <页面/功能>，以 docs/frontend-page-map.md 为验收标准。
 读取：根 AGENTS.md + apps/web/AGENTS.md + 本模块现有实现。
-范围：列出允许改动目录与涉及契约；无后端、全部数据经 MSW。
+范围：列出允许改动目录与涉及契约；运行时通过真实 API，测试替身只放在 tests/support。
 先检查：按行为检索组件/composable/Query keys/repository/DTO，读候选 API 和调用方。
 复用记录：候选路径 -> 复用/组合/扩展/新增 -> 具体能力缺口 -> 所有者 -> 受影响消费者。
-实现：契约 -> Mock -> repository -> composable/组件 -> 页面 -> 行为验证。
+实现：契约 -> 后端/API -> repository -> composable/组件 -> 页面 -> 行为验证；测试替身按需更新。
 边界：不导入其他模块私有文件，不直接使用 fixture，不复制 DTO，不建立第二份接口缓存。
 验收：正常/空/失败/只读，保存/取消/刷新/重复点击；表单草稿、URL、错误提示归属一致。
 检查：实际可用的契约/边界/UI/key/lint/typecheck/相关测试；受影响布局和焦点在浏览器验证。
@@ -214,12 +212,12 @@ check:i18n 对当前唯一 zh-CN 校验 key、脚本/模板中文及 labelKey/ti
 
 - 功能属于当前目录吗？有没有重复实现？抽象是否已有真实消费者？
 - 组件和 composable 的职责、状态生命周期是否清晰？仅用了 NButton/NModal 是否仍重复已有行为？
-- HTTP/缓存/草稿/Mock 是否分离？当前页面是否有直接数据访问？
-- 契约、生成类型、Mock 和接口调用是否一致？是否伪造兼容？
+- HTTP/缓存/草稿/测试替身是否分离？当前页面是否有直接数据访问？
+- 契约、生成类型、API 和接口调用是否一致？是否伪造兼容？
 - 共享改动有哪些消费者？跨域依赖和 re-export 是否绕过公开入口？
 - mutation/取消/失败/刷新/并发点击是否行为一致？API/Query/组件是否重复提示同一错误？
 - 主题 token、文案 key 和可访问性是否符合统一约定？共享变更是否验证真实消费者？
-- 是否把 Mock UI 权限当真实安全，或保存了真实凭证？
+- 是否把客户端界面状态当真实权限，或保存了真实凭证？
 - 检查是真的执行成功吗？门禁有负例证明能挡住违规吗？
 
 ## 11. 规范维护
@@ -228,4 +226,4 @@ check:i18n 对当前唯一 zh-CN 校验 key、脚本/模板中文及 labelKey/ti
 
 如果未来使用其他 AI 编程工具，在其原生规则入口中简短链接同一规范；不要假定所有工具自动识别 AGENTS.md。Codex 目录指令发现有工作目录和大小限制，执行代理仍应主动读目标范围规则，CI 不依赖 AI 是否读到。[R1]
 
-阶段变化时同步“当前阶段/可运行命令/已启用门禁”，避免后端上线后仍把生产资源当 Mock。分支模型、提交/PR/清理规则只维护在根 AGENTS，本文件通过链接使用；远端分支保护单独核实是否配置。规则的例外不自动意味着需要用户确认，已授权任务内的普通实现选择由执行者决定。
+阶段变化时同步“当前阶段/可运行命令/已启用门禁”，避免过期的应用运行方式或验证命令继续留在规范里。分支模型、提交/PR/清理规则只维护在根 AGENTS，本文件通过链接使用；远端分支保护单独核实是否配置。规则的例外不自动意味着需要用户确认，已授权任务内的普通实现选择由执行者决定。

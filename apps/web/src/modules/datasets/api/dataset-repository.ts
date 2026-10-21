@@ -16,9 +16,6 @@ export const datasetRepository = {
   async remove(id: string) {
     return unwrap(await api.DELETE('/datasets/{id}', { params: { path: { id } } })).data
   },
-  async copy(id: string) {
-    return unwrap(await api.POST('/datasets/{id}/copy', { params: { path: { id } } })).data
-  },
   async publish(id: string) {
     return unwrap(await api.POST('/datasets/{id}/publish', { params: { path: { id } } })).data
   },
@@ -27,6 +24,11 @@ export const datasetRepository = {
   },
   async previewSaved(id: string) {
     return unwrap(await api.POST('/datasets/{id}/preview', { params: { path: { id } } })).data
+  },
+  async query(id: string, limit = 100) {
+    return unwrap(
+      await api.POST('/datasets/{id}/query', { params: { path: { id } }, body: { limit } }),
+    ).data
   },
   async versions(id: string) {
     return unwrap(await api.GET('/datasets/{id}/versions', { params: { path: { id } } })).data

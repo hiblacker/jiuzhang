@@ -40,16 +40,6 @@ export function useMaskDetail(id: MaybeRefOrGetter<string>) {
     enabled: computed(() => !!toValue(id)),
   })
 }
-export function useMaskPreview(
-  id: MaybeRefOrGetter<string>,
-  sample: MaybeRefOrGetter<'phone' | 'email' | 'text' | 'amount'>,
-) {
-  return useQuery({
-    queryKey: computed(() => ['governance', 'maskPreview', toValue(id), toValue(sample)]),
-    queryFn: () => repo.maskPreview(toValue(id), toValue(sample)),
-    enabled: computed(() => !!toValue(id)),
-  })
-}
 export function useGovernanceActions() {
   const cache = useQueryClient()
   const done = () => cache.invalidateQueries({ queryKey: ['governance'] })
@@ -63,10 +53,6 @@ export function useGovernanceActions() {
       mutationFn: ({ body, id }: { body: Model<'MaskingInput'>; id?: string }) =>
         repo.saveMask(body, id),
       onSuccess: done,
-    }),
-    evaluate: useMutation({
-      mutationFn: ({ id, scenario }: { id: string; scenario: 'pass' | 'warn' | 'block' }) =>
-        repo.evaluate(id, scenario),
     }),
     favorite: useMutation({
       mutationFn: ({ id, favorite }: { id: string; favorite: boolean }) =>

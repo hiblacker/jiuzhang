@@ -208,6 +208,7 @@ public class DorisWarehouse implements WarehousePort {
       case "integer" -> "LARGEINT";
       case "decimal" -> "DECIMAL(38,9)";
       case "date" -> "DATEV2";
+      case "datetime" -> "DATETIMEV2(6)";
       case "boolean" -> "BOOLEAN";
       default -> "VARCHAR(65533)";
     };

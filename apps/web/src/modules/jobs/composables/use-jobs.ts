@@ -105,15 +105,13 @@ export function useJobActions() {
     run: useMutation({
       mutationFn: ({
         datasetId,
-        outcome,
         allowEmptySnapshot,
         key,
       }: {
         datasetId: string
-        outcome: Model<'RunOutcome'>
         allowEmptySnapshot?: boolean
         key?: string
-      }) => jobRepository.run(datasetId, outcome, allowEmptySnapshot, key),
+      }) => jobRepository.run(datasetId, allowEmptySnapshot, key),
       onSuccess: done,
     }),
     toggle: useMutation({
@@ -130,15 +128,13 @@ export function useJobActions() {
     retry: useMutation({
       mutationFn: ({
         id,
-        outcome,
         allowEmptySnapshot,
         key,
       }: {
         id: string
-        outcome: Model<'RunOutcome'>
         allowEmptySnapshot?: boolean
         key?: string
-      }) => jobRepository.retry(id, outcome, allowEmptySnapshot, key),
+      }) => jobRepository.retry(id, allowEmptySnapshot, key),
       onSuccess: done,
     }),
     backfill: useMutation({

@@ -21,14 +21,6 @@ export const governanceRepository = {
     return unwrap(await api.GET('/governance/masking/{id}', { params: { path: { id } }, signal }))
       .data
   },
-  async maskPreview(id: string, sample: 'phone' | 'email' | 'text' | 'amount') {
-    return unwrap(
-      await api.POST('/governance/masking/{id}/preview', {
-        params: { path: { id } },
-        body: { sample },
-      }),
-    ).data
-  },
   async saveQuality(body: Model<'QualityInput'>, id?: string) {
     return id
       ? unwrap(await api.PATCH('/governance/quality/{id}', { params: { path: { id } }, body })).data
@@ -38,14 +30,6 @@ export const governanceRepository = {
     return id
       ? unwrap(await api.PATCH('/governance/masking/{id}', { params: { path: { id } }, body })).data
       : unwrap(await api.POST('/governance/masking', { body })).data
-  },
-  async evaluate(id: string, scenario: 'pass' | 'warn' | 'block') {
-    return unwrap(
-      await api.POST('/governance/quality/{id}/evaluate', {
-        params: { path: { id } },
-        body: { scenario },
-      }),
-    ).data
   },
   async favorite(id: string, favorite: boolean) {
     return unwrap(

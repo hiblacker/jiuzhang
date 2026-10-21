@@ -1,6 +1,6 @@
 # 九章 UI 与 Vue 开发约定
 
-> 2026-10-17 · 行为规范。核心组件和本地检查脚本已建立；当前真实消费者已随 38 路由完成本地桌面验收，范围见页面矩阵。候选清单中未被真实消费者使用的项目不要求生成空实现。
+> 2026-10-20 · 行为规范。核心组件和本地检查脚本已建立；页面范围与真实服务支持状态见页面矩阵。候选清单中未被真实消费者使用的项目不要求生成空实现。
 > 技术基线：Vue 3 + TypeScript + Pinia + Naive UI。来源：[new-api 对照研究](research/new-api-adaptation.md)。
 > 本文维护 UI 行为契约；分层见 [前端设计](frontend-design.md)，执行流程和门禁见 [AI 开发规范](ai-development.md)，验收见 [页面矩阵](frontend-page-map.md)。
 
@@ -58,7 +58,7 @@ SourceConnectionForm、DatasetFieldTable、ScheduleForm、RunTimeline、MaskRule
 | 详情/筛选侧栏      | NDrawer + NDrawerContent                    | 标题、关闭路径、焦点恢复与未保存保护         |
 | 短上下文操作       | NPopover / NDropdown                        | 键盘入口与关闭行为一致                       |
 | 列表空态/首屏占位  | NEmpty / NSkeleton，经 AsyncState 协调      | 未加载不展示空态，有旧数据时不整页闪白       |
-| 状态和轻量进度     | NTag、NProgress、NSpin                      | 状态同时有文字；演示指标标明 Mock            |
+| 状态和轻量进度     | NTag、NProgress、NSpin                      | 状态同时有文字；样例或估算值明确标注           |
 
 不得套用 shadcn 的 asChild/render、组件 Group 层级、Spinner 写法或 class API。以实际安装版本的 Naive UI 类型、文档和本地封装为准；普通按钮可直接使用其 loading/disabled 能力。
 

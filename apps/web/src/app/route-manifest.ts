@@ -122,13 +122,6 @@ export const routeManifest = [
     section: 'warehouse',
   },
   {
-    id: 'P20',
-    menu: true,
-    path: '/warehouse/imports',
-    labelKey: 'routes.P20',
-    section: 'warehouse',
-  },
-  {
     id: 'P21',
     menu: true,
     path: '/warehouse/exports',
@@ -227,12 +220,6 @@ export const routeManifest = [
     path: '/system/settings',
     labelKey: 'routes.P35',
     section: 'system',
-  },
-  {
-    id: 'P36',
-    path: '/login',
-    labelKey: 'routes.P36',
-    section: 'login',
   },
   {
     id: 'P37',

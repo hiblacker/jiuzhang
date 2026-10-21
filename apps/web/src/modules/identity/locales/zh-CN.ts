@@ -5,7 +5,7 @@ export default {
   identity: {
     unsupportedTitle: '此功能尚未接入真实服务',
     unsupportedDescription:
-      '第一版提供 MySQL、数据集发布、手动运行、快照入仓、只读查询与 CSV 导出。此页面仅在 Mock 演示模式可用。',
+      '当前版本提供 MySQL、数据集发布、手动运行、快照入仓、只读查询与 CSV 导出。该页面暂未开放。',
     backOverview: '返回工作台',
     username: '账号',
     createUser: '新建用户',
@@ -42,16 +42,16 @@ export default {
         seed: '初始化',
       },
     },
-    user: '演示用户',
+    user: '用户',
     disabled: '已停用',
-    noEnabledUsers: '当前角色没有可用演示用户，请选择其他角色',
+    noEnabledUsers: '没有可用用户',
   },
   settings: {
     saved: '设置已保存',
     title: '系统设置',
-    description: '工作区偏好与演示环境信息',
+    description: '工作区偏好设置',
     timezone: '显示时区',
-    notifications: '演示通知',
+    notifications: '通知设置',
     hint: '通知仅保存在本地，不发送外部消息',
   },
 }

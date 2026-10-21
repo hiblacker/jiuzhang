@@ -96,7 +96,6 @@ async function backfill() {
       input: {
         from: range.value[0],
         to: range.value[1],
-        outcome: 'succeeded',
       },
     })
     backfillOpen.value = false

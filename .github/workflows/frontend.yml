@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   frontend:
-    name: Frontend checks and browser flows
+    name: Frontend contract and quality checks
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -34,19 +34,5 @@ jobs:
           cache: true
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
-      - name: Contracts, architecture, quality, tests and both builds
+      - name: Contracts, architecture, quality, tests and build
         run: pnpm check
-      - name: Install Chromium
-        run: pnpm --filter @jiuzhang/web exec playwright install --with-deps chromium
-      - name: Browser flows against the Mock frontend
-        run: pnpm test:e2e
-      - name: Preserve browser failure evidence
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: frontend-browser-failures
-          path: |
-            apps/web/test-results
-            apps/web/playwright-report
-          if-no-files-found: ignore
-          retention-days: 7

@@ -15,16 +15,11 @@ export const jobRepository = {
       ? unwrap(await api.POST('/tasks/{id}/resume', { params: { path: { id } } })).data
       : unwrap(await api.POST('/tasks/{id}/pause', { params: { path: { id } } })).data
   },
-  async run(
-    datasetId: string,
-    outcome: Model<'RunOutcome'>,
-    allowEmptySnapshot = false,
-    key?: string,
-  ) {
+  async run(datasetId: string, allowEmptySnapshot = false, key?: string) {
     return unwrap(
       await api.POST('/datasets/{id}/runs', {
         params: { path: { id: datasetId } },
-        body: import.meta.env.VITE_API_MODE === 'real' ? { allowEmptySnapshot } : { outcome },
+        body: { allowEmptySnapshot },
         headers: key ? { 'Idempotency-Key': key } : undefined,
       }),
     ).data
@@ -38,11 +33,11 @@ export const jobRepository = {
   async cancel(id: string) {
     return unwrap(await api.POST('/runs/{id}/cancel', { params: { path: { id } } })).data
   },
-  async retry(id: string, outcome: Model<'RunOutcome'>, allowEmptySnapshot = false, key?: string) {
+  async retry(id: string, allowEmptySnapshot = false, key?: string) {
     return unwrap(
       await api.POST('/runs/{id}/retry', {
         params: { path: { id } },
-        body: import.meta.env.VITE_API_MODE === 'real' ? { allowEmptySnapshot } : { outcome },
+        body: { allowEmptySnapshot },
         headers: key ? { 'Idempotency-Key': key } : undefined,
       }),
     ).data

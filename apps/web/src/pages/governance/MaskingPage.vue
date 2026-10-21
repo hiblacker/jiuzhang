@@ -6,7 +6,6 @@ import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
 const canWrite = useCan('write')
-const real = import.meta.env.VITE_API_MODE === 'real'
 import { computed, h, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -26,12 +25,7 @@ import {
   NDescriptionsItem,
   NPagination,
 } from 'naive-ui'
-import {
-  useMasking,
-  useMaskDetail,
-  useMaskPreview,
-  useGovernanceActions,
-} from '@/modules/governance'
+import { useMasking, useMaskDetail, useGovernanceActions } from '@/modules/governance'
 import { RelatedDatasets } from '@/modules/datasets'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
@@ -65,8 +59,6 @@ const draft = ref<Model<'MaskingInput'>>({
   enabled: true,
 })
 const form = ref<FormInst | null>(null)
-const sampleType = ref<'phone' | 'email' | 'text' | 'amount'>('phone')
-const sampleQuery = useMaskPreview(id, sampleType)
 const baseline = ref('')
 const { canLeave } = useEditGuard(
   () => open.value && baseline.value !== JSON.stringify(draft.value),
@@ -85,11 +77,6 @@ const rules: FormRules = {
         !/^[0-9]{1,3},[0-9]{1,3}$/.test(draft.value.parameter.trim())
       )
         return new Error(uiText('masking.invalidMask'))
-      if (
-        draft.value.kind === 'generalize' &&
-        (!draft.value.parameter.trim() || draft.value.parameter.length > 120)
-      )
-        return new Error(uiText('masking.invalidGeneralize'))
       return true
     },
   },
@@ -135,17 +122,6 @@ async function save() {
     open.value = false
   } catch {}
 }
-const sample = computed(() => {
-  const value = sampleQuery.data.value
-  return value
-    ? [
-        {
-          original: value.original,
-          masked: value.removed ? uiText('ui.masking_64f38422') : value.masked,
-        },
-      ]
-    : []
-})
 const columns = [
   {
     title: uiText('ui.masking_235f7a86'),
@@ -184,9 +160,6 @@ const columns = [
         : uiText('ui.masking_0549993d')
     "
     :description="uiText('ui.masking_5cca49c7')"
-    ><NButton v-if="!real" @click="router.push('/governance/catalog')">{{
-      uiText('ui.masking_3c41d918')
-    }}</NButton
     ><NButton
       type="primary"
       :disabled="readonly || (!!id && !detail.data.value)"
@@ -234,37 +207,6 @@ const columns = [
           detail.data.value?.enabled ? uiText('ui.masking_d4e9ca3d') : uiText('ui.masking_d989e551')
         }}</NDescriptionsItem></NDescriptions
       >
-      <h3>{{ uiText('ui.masking_0bc9366d') }}</h3>
-      <NSelect
-        v-model:value="sampleType"
-        v-select-trigger-name="uiText('masking.sample')"
-        :options="[
-          { label: uiText('masking.phone'), value: 'phone' },
-          { label: uiText('masking.email'), value: 'email' },
-          { label: uiText('masking.text'), value: 'text' },
-          { label: uiText('masking.amount'), value: 'amount' },
-        ]"
-        class="mb" />
-      <NAlert
-        v-if="sampleQuery.data.value && !sampleQuery.data.value.enabled"
-        type="warning"
-        class="mb"
-        >{{ uiText('masking.disabled') }}</NAlert
-      >
-      <AsyncState
-        :loading="sampleQuery.isLoading.value"
-        :error="sampleQuery.error.value"
-        @retry="sampleQuery.refetch()"
-      >
-        <NDataTable
-          :data="sample"
-          :columns="[
-            { title: uiText('ui.masking_d4f3e54a'), key: 'original' },
-            { title: uiText('ui.masking_9a5ff083'), key: 'masked' },
-          ]"
-          :bordered="false"
-        />
-      </AsyncState>
       <h3>{{ uiText('ui.masking_f0225b54') }}</h3>
       <RelatedDatasets
         :relation="{ maskPolicyId: id }"
@@ -293,11 +235,7 @@ const columns = [
           ><NSelect
             v-model:value="draft.kind"
             v-select-trigger-name="uiText('ui.masking_af908096')"
-            :options="[
-              { label: uiText('ui.masking_32866382'), value: 'mask' },
-              { label: uiText('ui.masking_0ccc9cb0'), value: 'remove', disabled: real },
-              { label: uiText('ui.masking_0a09cd89'), value: 'generalize', disabled: real },
-            ]" /></NFormItem
+            :options="[{ label: uiText('ui.masking_32866382'), value: 'mask' }]" /></NFormItem
         ><NFormItem path="parameter" :label="uiText('ui.masking_749d7652')"
           ><NInput
             v-model:value="draft.parameter"

@@ -16,8 +16,8 @@ export default {
     expired: '已过期',
     searchTransfers: '搜索任务、文件或目标表',
     searchHistory: '搜索历史 SQL',
-    importRowLimit: '最多 1000 行演示数据',
-    importCsvOnly: '请选择 .csv 格式的虚构数据文件',
+    importRowLimit: '最多 1000 行',
+    importCsvOnly: '请选择 .csv 格式的数据文件',
     importReadFailed: '文件读取失败，请重新选择文件',
     importMappingInvalid: '请为每列提供唯一且非空的输出名',
     importMapping: '{field} 的输出字段',
@@ -31,7 +31,7 @@ export default {
     exportFailedAccess: '导出失败或列权限已变化，请重新查询后导出。',
     metricsHint:
       '读写统计由本地查询、运行和导入记录计算；存储量是样本 JSON 字节数，不代表真实仓库容量、CPU 或吞吐。',
-    readWriteTrend: '近七日读写次数（模拟）',
+    readWriteTrend: '近七日读写次数',
     reads: '成功查询',
     writes: '成功写入',
     storage: '样本存储（KB）',
@@ -41,7 +41,7 @@ export default {
     writtenRows: '写入处理行数',
     stats: '读写统计',
     preparing: '准备中',
-    scenario: '模拟执行结果',
+    scenario: '执行结果',
     importSuccess: '导入成功',
     importFailure: '导入失败（不写入目标表）',
     exportSuccess: '文件生成成功',
@@ -52,7 +52,6 @@ export default {
     noPublishedTable: '尚未生成目标表',
     exportFailed: '文件生成失败，请重新发起导出',
     cancelQuery: '取消查询',
-    queryHint:
-      '仅支持选择表生成的预设 SQL。模拟查询约 2.5 秒，可取消并在刷新后恢复；不连接真实数据库。',
+    queryHint: '查询已发布的仓库数据。',
   },
 }

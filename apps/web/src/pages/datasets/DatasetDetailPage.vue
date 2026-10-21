@@ -7,7 +7,6 @@ import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
 const canWrite = useCan('write')
-const real = import.meta.env.VITE_API_MODE === 'real'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -27,8 +26,6 @@ import {
   useDatasetVersions,
   useDatasetActions,
   useDatasetPreview,
-  useFolders,
-  folderPath,
   DatasetOutputSummary,
 } from '@/modules/datasets'
 import { RunHistory, RunTrigger } from '@/modules/jobs'
@@ -42,16 +39,22 @@ const route = useRoute(),
   { t } = useI18n(),
   id = computed(() => String(route.params.id))
 const query = useDataset(id),
-  folders = useFolders(),
   versions = useDatasetVersions(id),
   actions = useDatasetActions(),
   confirm = ref(false),
   readonly = computed(() => !canWrite.value)
 const tab = useRouteTab(
-  ['overview', 'preview', 'fields', 'rules', 'schedule', 'versions', 'runs', 'lineage'],
+  ['overview', 'preview', 'fields', 'rules', 'schedule', 'versions', 'runs'],
   'overview',
 )
-const preview = useDatasetPreview(id, () => tab.value === 'preview')
+const preview = useDatasetPreview(
+  id,
+  () => tab.value === 'preview',
+  () =>
+    Boolean(
+      query.data.value?.definition.deliveryMode === 'direct' && query.data.value?.publishedVersion,
+    ),
+)
 function requestPublish() {
   if (readonly.value || !query.data.value || actions.publish.isPending.value) return
   actions.publish.reset()
@@ -76,6 +79,7 @@ async function publish() {
       uiText('ui.dataset_detail_c789c17a')
     }}</NButton
     ><RunTrigger
+      v-if="query.data.value?.definition.deliveryMode !== 'direct'"
       :dataset-id="id"
       :disabled="!query.data.value?.publishedVersion"
       @started="router.push('/runs/' + $event)" /></PageHeader
@@ -87,10 +91,6 @@ async function publish() {
         @update:value="tab = $event"
         ><NTabPane name="overview" :tab="uiText('ui.dataset_detail_5060421d')"
           ><ResponsiveDescriptions :max-columns="2" bordered
-            ><NDescriptionsItem :label="t('folders.folder')">{{
-              folderPath(folders.data.value ?? [], query.data.value?.folderId) ||
-              t('folders.unfiled')
-            }}</NDescriptionsItem
             ><NDescriptionsItem label="ID">{{ id }} <CopyButton :value="id" /></NDescriptionsItem
             ><NDescriptionsItem :label="uiText('ui.dataset_detail_62e951a6')"
               ><NTag :bordered="false">{{
@@ -104,28 +104,23 @@ async function publish() {
               ><NButton
                 text
                 type="primary"
-                @click="
-                  router.push(
-                    query.data.value?.definition.upstreamDatasetId
-                      ? '/datasets/' + query.data.value.definition.upstreamDatasetId
-                      : '/sources/' + query.data.value?.definition.sourceId,
-                  )
-                "
-                >{{
-                  query.data.value?.definition.upstreamDatasetId ||
-                  query.data.value?.definition.sourceId
-                }}</NButton
+                @click="router.push('/sources/' + query.data.value?.definition.sourceId)"
+                >{{ query.data.value?.definition.sourceId }}</NButton
               ></NDescriptionsItem
             ><NDescriptionsItem :label="uiText('ui.dataset_detail_442be9c4')">{{
-              query.data.value?.definition.output.table
+              query.data.value?.definition.deliveryMode === 'direct'
+                ? t('datasets.directMode')
+                : query.data.value?.definition.output.table
             }}</NDescriptionsItem></ResponsiveDescriptions
           ><DatasetOutputSummary
-            v-if="query.data.value"
+            v-if="query.data.value && query.data.value.definition.deliveryMode !== 'direct'"
             class="mt"
             :output="query.data.value.definition.output"
           />
           <NAlert type="info" style="margin-top: 24px">{{
-            uiText('ui.dataset_detail_ea6f74c7')
+            query.data.value?.definition.deliveryMode === 'direct'
+              ? t('datasets.directHelp')
+              : uiText('ui.dataset_detail_ea6f74c7')
           }}</NAlert></NTabPane
         ><NTabPane name="preview" :tab="t('datasets.preview')">
           <AsyncState
@@ -187,22 +182,11 @@ async function publish() {
             ></NDescriptions
           ></NTabPane
         ><NTabPane name="schedule" :tab="uiText('ui.dataset_detail_36019dc2')"
-          ><ResponsiveDescriptions :max-columns="2"
-            ><NDescriptionsItem :label="uiText('ui.dataset_detail_af908096')">{{
-              query.data.value?.definition.schedule.mode
-            }}</NDescriptionsItem
-            ><NDescriptionsItem label="Cron">{{
-              query.data.value?.definition.schedule.cron
-            }}</NDescriptionsItem
-            ><NDescriptionsItem :label="uiText('ui.dataset_detail_fb2a23dc')">{{
-              query.data.value?.definition.schedule.timezone
-            }}</NDescriptionsItem
-            ><NDescriptionsItem :label="uiText('ui.dataset_detail_e2d53a6d')">{{
-              query.data.value?.definition.schedule.retries
-            }}</NDescriptionsItem></ResponsiveDescriptions
-          ><NButton v-if="!real" @click="router.push('/tasks')">{{
-            uiText('ui.dataset_detail_d1d5bfef')
-          }}</NButton></NTabPane
+          ><NAlert type="info">{{
+            query.data.value?.definition.deliveryMode === 'direct'
+              ? t('datasets.directHelp')
+              : t('datasets.scheduleUnsupported')
+          }}</NAlert></NTabPane
         ><NTabPane name="versions" :tab="uiText('ui.dataset_detail_989d1aff')"
           ><AsyncState
             :loading="versions.isLoading.value"
@@ -222,26 +206,16 @@ async function publish() {
         ><NTabPane name="runs" :tab="uiText('ui.dataset_detail_0c3acd44')"
           ><RunHistory
             :scope="{ datasetId: id }"
-            @select="router.push('/runs/' + $event)" /></NTabPane
-        ><NTabPane v-if="!real" name="lineage" :tab="uiText('ui.dataset_detail_34c5a283')"
-          ><NButton
-            type="primary"
-            secondary
-            @click="
-              router.push({ path: '/governance/lineage', query: { resource: 'dataset-' + id } })
-            "
-            >{{ uiText('ui.dataset_detail_119a12a0') }}</NButton
-          ></NTabPane
-        ></NTabs
-      ></NCard
-    ></AsyncState
+            @select="router.push('/runs/' + $event)" /></NTabPane></NTabs></NCard></AsyncState
   ><ConfirmDialog
     :show="confirm"
     :title="uiText('ui.dataset_detail_bbbe36d4')"
     :description="
       uiText('ui.dataset_detail_ef13ebf7') +
       ((query.data.value?.publishedVersion ?? 0) + 1) +
-      (real ? t('datasets.realOutput') : uiText('ui.dataset_detail_ef711d29'))
+      (query.data.value?.definition.deliveryMode === 'direct'
+        ? t('datasets.directPublishedOutput')
+        : t('datasets.realOutput'))
     "
     :pending="actions.publish.isPending.value"
     :confirm-text="uiText('ui.dataset_detail_221f71a4')"

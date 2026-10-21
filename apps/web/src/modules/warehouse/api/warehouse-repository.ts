@@ -27,12 +27,6 @@ export const warehouseRepository = {
   async queries(query: Record<string, string> = {}, signal?: AbortSignal) {
     return unwrap(await api.GET('/queries', { params: { query }, signal }))
   },
-  async imports(query: Record<string, string> = {}, signal?: AbortSignal) {
-    return unwrap(await api.GET('/imports', { params: { query }, signal }))
-  },
-  async import(body: Model<'ImportInput'>) {
-    return unwrap(await api.POST('/imports', { body })).data
-  },
   async exports(query: Record<string, string> = {}, signal?: AbortSignal) {
     return unwrap(await api.GET('/exports', { params: { query }, signal }))
   },
@@ -41,12 +35,7 @@ export const warehouseRepository = {
   },
   async export(body: Model<'ExportInput'>) {
     return unwrap(
-      await api.POST('/exports', {
-        body:
-          import.meta.env.VITE_API_MODE === 'real'
-            ? { queryId: body.queryId, format: body.format }
-            : body,
-      }),
+      await api.POST('/exports', { body: { queryId: body.queryId, format: body.format } }),
     ).data
   },
 }

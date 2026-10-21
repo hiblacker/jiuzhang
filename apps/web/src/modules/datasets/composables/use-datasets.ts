@@ -1,42 +1,11 @@
 import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { datasetRepository } from '../api/dataset-repository'
 import { newDataset, toInput } from '../model/definition'
 export function useDatasets(filters: MaybeRefOrGetter<Record<string, string>>) {
   return useQuery({
     queryKey: computed(() => ['datasets', toValue(filters)]),
     queryFn: ({ signal }) => datasetRepository.list(toValue(filters), signal),
-  })
-}
-export function useUpstreamDatasetOptions(
-  search: MaybeRefOrGetter<string>,
-  excludedId: MaybeRefOrGetter<string>,
-) {
-  return useInfiniteQuery({
-    queryKey: computed(() => [
-      'datasets',
-      'upstream-options',
-      toValue(search),
-      toValue(excludedId),
-    ]),
-    initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) =>
-      datasetRepository.list(
-        {
-          q: toValue(search),
-          excludeId: toValue(excludedId),
-          publishedOnly: 'true',
-          page: String(pageParam),
-          pageSize: '20',
-          sort: 'name',
-        },
-        signal,
-      ),
-    getNextPageParam: (lastPage) => {
-      const { page = 1, pageSize = 20, total } = lastPage.meta
-      if (total === undefined) return lastPage.data.length === pageSize ? page + 1 : undefined
-      return page * pageSize < total ? page + 1 : undefined
-    },
   })
 }
 export function useDataset(id: MaybeRefOrGetter<string>) {
@@ -56,10 +25,18 @@ export function useDatasetVersions(id: MaybeRefOrGetter<string>) {
 export function useDatasetPreview(
   id: MaybeRefOrGetter<string>,
   enabled: MaybeRefOrGetter<boolean>,
+  direct: MaybeRefOrGetter<boolean> = false,
 ) {
   return useQuery({
-    queryKey: computed(() => ['datasets', 'preview', toValue(id)]),
-    queryFn: () => datasetRepository.previewSaved(toValue(id)),
+    queryKey: computed(() => [
+      'datasets',
+      toValue(direct) ? 'direct-query' : 'preview',
+      toValue(id),
+    ]),
+    queryFn: () =>
+      toValue(direct)
+        ? datasetRepository.query(toValue(id))
+        : datasetRepository.previewSaved(toValue(id)),
     enabled: computed(() => !!toValue(id) && toValue(enabled)),
   })
 }
@@ -78,7 +55,6 @@ export function useDatasetActions() {
     )
   }
   return {
-    copy: useMutation({ mutationFn: datasetRepository.copy, onSuccess: done }),
     remove: useMutation({ mutationFn: datasetRepository.remove, onSuccess: done }),
     publish: useMutation({ mutationFn: datasetRepository.publish, onSuccess: done }),
     restore: useMutation({

@@ -2,7 +2,6 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { routeManifest } from './route-manifest'
 import { supportsRealRoute } from './real-capabilities'
 import { loadRouteMessages, type LocaleDomain } from './i18n'
-import { readPreference } from '@/shared/lib/preferences'
 import { sessionOptions } from '@/modules/identity'
 import { queryClient } from './query-client'
 import { ApiError } from '@/shared/api/client'
@@ -28,7 +27,6 @@ function component(path: string) {
   if (path === '/warehouse/tables') return () => import('@/pages/warehouse/TablesPage.vue')
   if (path === '/warehouse/tables/:id') return () => import('@/pages/warehouse/TableDetailPage.vue')
   if (path === '/warehouse/query') return () => import('@/pages/warehouse/QueryPage.vue')
-  if (path === '/warehouse/imports') return () => import('@/pages/warehouse/ImportsPage.vue')
   if (path === '/warehouse/exports') return () => import('@/pages/warehouse/ExportsPage.vue')
   if (path === '/governance/catalog') return () => import('@/pages/governance/CatalogPage.vue')
   if (path === '/governance/lineage') return () => import('@/pages/governance/LineagePage.vue')
@@ -51,16 +49,13 @@ function component(path: string) {
   if (path === '/403' || path === '/404') return () => import('@/pages/system/StatusPage.vue')
   throw new Error('Unmapped route: ' + path)
 }
-const children: RouteRecordRaw[] = routeManifest
-  .filter((r) => r.id !== 'P36')
-  .map((r) => ({
-    path: r.path,
-    component:
-      import.meta.env.VITE_API_MODE === 'real' && !supportsRealRoute(r.path)
-        ? () => import('@/pages/system/UnsupportedPage.vue')
-        : component(r.path),
-    meta: { ...r },
-  }))
+const children: RouteRecordRaw[] = routeManifest.map((r) => ({
+  path: r.path,
+  component: !supportsRealRoute(r.path)
+    ? () => import('@/pages/system/UnsupportedPage.vue')
+    : component(r.path),
+  meta: { ...r },
+}))
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -74,24 +69,12 @@ export const router = createRouter({
   ],
 })
 router.beforeEach(async (to) => {
-  if (
-    import.meta.env.VITE_API_MODE === 'mock' &&
-    to.path !== '/login' &&
-    readPreference('session', '') !== 'demo'
-  )
-    return { path: '/login', query: { redirect: to.fullPath } }
   if (['/login', '/403', '/404'].includes(to.path)) return true
-  const role = readPreference('role', 'developer')
   let permissions: string[]
   try {
-    permissions = (await queryClient.fetchQuery(sessionOptions(role, readPreference('user', ''))))
-      .permissions
+    permissions = (await queryClient.fetchQuery(sessionOptions())).permissions
   } catch (error) {
-    if (
-      import.meta.env.VITE_API_MODE === 'real' &&
-      error instanceof ApiError &&
-      error.status === 401
-    )
+    if (error instanceof ApiError && error.status === 401)
       return { path: '/login', query: { redirect: to.fullPath } }
     if (error instanceof ApiError && [401, 403].includes(error.status))
       return { path: '/403', query: { redirect: to.fullPath } }

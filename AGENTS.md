@@ -4,7 +4,7 @@
 
 九章是三层数仓管理平台：数据源接入 → 数据集清洗/加工/脱敏/调度 → 仓库读写服务。任务、治理、血缘、审计和权限是配套能力。
 
-当前已实现本地单机第一版真实闭环：系统账号、MySQL、数据集发布、手动执行、质量/脱敏、Doris 快照替换、只读查询/CSV 导出、审计及进程恢复；同时保留 38 路由纯 Mock 前端。浏览器仅 1280×1000；真实范围与证据见 [总体架构](docs/architecture.md) 和 [页面矩阵](docs/frontend-page-map.md)。2026-10-20 起转入客户环境投产验证（真实库 MySQL、OceanBase、JOIN 与派生字段、Cron、K8s 部署、Crest 消费），范围与日期见 [§12.6](docs/architecture.md#126-一期投产验证路线2026-10-20-确认)；增量/聚合/数据服务/多工作区及权限脱敏增强仍暂缓，真实模式不得回退 Mock。启动见 README。远端 CI/分支保护尚未验证。
+当前已实现本地单机第一版真实闭环：系统账号、MySQL、数据集发布、手动执行、质量/脱敏、Doris 快照替换、只读查询/CSV 导出、审计及进程恢复；前端开发和生产构建均连接真实 API。数据集支持选表/自定义只读 SQL，以及直连/入库两种提供方式。浏览器仅 1280×1000；真实范围与证据见 [总体架构](docs/architecture.md) 和 [页面矩阵](docs/frontend-page-map.md)。数据集操作见[快速指南](docs/dataset-quick-start.md)。2026-10-20 起转入客户环境投产验证，范围与日期见 [§12.6](docs/architecture.md#126-一期投产验证路线2026-10-20-确认)；增量/多工作区及权限脱敏增强仍暂缓。启动见 README。远端 CI/分支保护尚未验证。
 
 ## 技术栈与选型状态
 
@@ -15,7 +15,7 @@
 | 状态 | Pinia + TanStack Vue Query | 客户端跨页状态 / HTTP 资源缓存分别归属 |
 | 表单与文案 | NForm/FormRules、Vue I18n | 首期仅 zh-CN；领域校验、labelKey 有所有者 |
 | 接口 | OpenAPI 3.1、openapi-typescript、openapi-fetch | 唯一传输契约，生成文件不手改 |
-| Mock | MSW、IndexedDB/idb | 只通过 HTTP 模拟接口；统一且可重置的数据源 |
+| HTTP 测试替身 | MSW、测试夹具 | 仅用于自动化测试，不进入应用运行时或浏览器构建 |
 | 编辑器/画布/图表 | CodeMirror 6、Vue Flow、ECharts | 按页面加载，不进入默认首页依赖 |
 | 包管理与质量 | pnpm workspace、ESLint、vue-tsc、Vitest、Playwright | 本地命令已实现；根命令委托到所属包 |
 | 后端 | Java 21 + Spring Boot 3.5.16，API 与 Worker 两个进程 | 已实现；Maven Wrapper 3.9.11，精确依赖见 pom |
@@ -27,7 +27,7 @@
 ## 架构与职责
 
 - 前端：app → pages → modules → shared；app 装配，pages 处理路由和跨域协调，modules 拥有领域行为，shared 只存与业务无关的能力。
-- 请求：page → 领域 composable → repository/mapper → 统一 HTTP client → MSW/真实 API；组件不直接请求或读取 fixture/Mock DB。
+- 请求：page → 领域 composable → repository/mapper → 统一 HTTP client → 真实 API；组件不直接请求或读取测试夹具。自动化测试可在 HTTP 边界替换服务响应。
 - 模块外只用公开入口；不深路径导入其他领域，不建全项目总 barrel；跨域例外记录原因、消费者和无环验证。
 - packages/contracts 只拥有传输 schema、生成类型和虚构示例，不依赖前端、后端、ORM 或应用配置；不复制一套 DTO。
 - 后端：Controller → Application → Domain/Port；Infrastructure 实现 Port，由应用入口装配；领域不导入 Web/ORM/数据库驱动。
@@ -50,24 +50,24 @@
 - 明确缺失、null、空字符串、0、false 的不同语义；PATCH 只更新提供字段，清空必须被契约允许，不能用 truthy/falsy 丢掉有效零值。
 - ID 与超出安全整数范围的计数用字符串；高精度数据有精度/尺度定义，禁止隐式 Number 转换、截断、溢出或悄悄替换为 0。
 - 发布版本不可变；运行绑定版本；重试生成新运行并关联旧运行。取消、失败、阻断不更新成功游标，终态及恢复遵循 [架构不变量](docs/architecture.md#64-数据正确性不变量)。
-- 连接器声明的能力与真实验证匹配；Mock 的测试连接、SQL、Cron、吞吐与脱敏效果不构成真实能力或安全保证。
-- 未来数据库/驱动/迁移变更按支持矩阵验证真实引擎，覆盖新建、升级、重启/重跑；Mock 和编译不等于数据库兼容。只验证受影响且承诺支持的引擎，不照搬参考项目的全数据库要求。
+- 连接器声明的能力与真实验证匹配；测试替身的连接、SQL、Cron、吞吐与脱敏响应不构成真实能力或安全保证。
+- 未来数据库/驱动/迁移变更按支持矩阵验证真实引擎，覆盖新建、升级、重启/重跑；测试替身和编译不等于数据库兼容。只验证受影响且承诺支持的引擎，不照搬参考项目的全数据库要求。
 
 ## 安全与配置边界
 
 - 真实凭证、Token、连接串敏感部分和客户数据不进入源码、VITE_*、fixture、浏览器持久化、日志或错误详情。
-- Mock 演示身份只控制 UI；真实模式由服务端检查固定角色权限、会话、私有查询/导出、脱敏和状态迁移。逐对象授权仍规划。
+- 页面身份、会话和权限均由真实服务端校验；服务端检查私有查询/导出、脱敏和状态迁移。逐对象授权仍规划。
 - 涉及真实认证/会话变更时查适用 OWASP ASVS 与专题指南，记录版本/适用控制和失败验证；不把文档要求当作已通过认证。
 - 外部 HTTP/数据库访问只经受控适配器；查询参数绑定、标识符校验、超时、资源上限和密钥引用有统一所有者。
 - 数据转换/序列化/错误处理放在已有边界；不在业务层重复构建 HTTP client、JSON 配置、日期/数值格式或脱敏日志工具。
 
 ## 规则入口与变更路径
 
-- 产品与后端：[总体架构](docs/architecture.md)；前端：[前端设计](docs/frontend-design.md)。
+- 产品与后端：[总体架构](docs/architecture.md)；数据集操作：[快速指南](docs/dataset-quick-start.md)；前端规范：[UI 与 Vue 约定](docs/ui-conventions.md)。
 - UI 契约：[UI 与 Vue 约定](docs/ui-conventions.md)；执行协议/门禁：[AI 开发规范](docs/ai-development.md)。
 - 前端先读 [apps/web/AGENTS.md](apps/web/AGENTS.md)，契约先读 [packages/contracts/AGENTS.md](packages/contracts/AGENTS.md)。
 - 修改后端 `apps/api`、`apps/worker`、根 `modules` 或 `infra/migrations` 时，须显式阅读并遵守 [后端规则](apps/api/AGENTS.md)。该文件是后端共用规则入口，不依赖对同级目录的自动继承；后续各目录规则只补充本地差异，不复制通用规则。
-- 每次功能按契约 → Mock → repository → composable/组件 → 页面完成可验证闭环。契约变化同步生成、Mock、mapper、测试及受影响消费者。
+- 每次功能按契约 → repository → composable/组件 → 页面完成可验证闭环。契约变化同步生成、mapper、必要的 HTTP 测试替身及受影响消费者。
 - 文档优先更新已有权威文件；只有独立且长期维护的主题才新增，禁止把同一规则复制成多份。涉及第三方代码时保留实际许可与署名，仓库身份变更遵循用户明确范围。
 
 ## Git 分支、提交与合并
@@ -90,9 +90,9 @@
 
 ### 提交与同步
 
-- 采用功能块增量提交：一个功能块完成实现及对应验证后，立即在当前任务分支本地提交，不积攒到整个项目结束。功能块应是可独立审查的闭环（实现、契约/生成、Mock、必要测试和文档保持一致），不按文件数量机械拆分；未完成或验证失败的内容不得混入已完成块。
+- 采用功能块增量提交：一个功能块完成实现及对应验证后，立即在当前任务分支本地提交，不积攒到整个项目结束。功能块应是可独立审查的闭环（实现、契约/生成、必要测试和文档保持一致），不按文件数量机械拆分；未完成或验证失败的内容不得混入已完成块。
 - 用户要求“完成一块提交一块”即授权当前任务后续按此节奏执行本地提交，无需逐次询问；该授权不包含 push、创建/合并 PR、标签或发布。工作区已有大量未提交成果时，先按依赖形成可验证基线，再逐块提交后续变更，禁止夹带旧工程清理或无关修改。
-- 一个提交表达一个可审查目的，遵循 type(scope): summary，例如 feat(web): 支持数据源编辑；type 可为 feat/fix/docs/refactor/test/chore。契约变更将 schema、生成结果、Mock、mapper 与必要测试保持一致。
+- 一个提交表达一个可审查目的，遵循 type(scope): summary，例如 feat(web): 支持数据源编辑；type 可为 feat/fix/docs/refactor/test/chore。契约变更将 schema、生成结果、mapper 与必要测试保持一致。
 - 只精确暂存本任务路径或 hunks；暂存删除须逐项确认归属。禁止 git add .、git add -A 或 git commit -a 把历史清理/无关修改纳入提交。
 - 提交前检查已暂存差异、空白错误、凭证/生成文件、相关验证结果；不得修改 Git 身份、伪造作者或为通过检查跳过已启用 hooks。
 - 同步前确认目标 remote/branch。主干更新只快进；未共享的本人任务分支可在无关变更受保护且基线明确时 rebase，已共享/他人分支默认 merge，不改写他人历史。
@@ -109,7 +109,7 @@
 
 ## 验证与交付
 
-以下命令已实现并可本地执行：check:contracts、check:boundaries、check:ui、check:i18n、lint、format:check、typecheck、test:unit、test:e2e、build、build:real。根 pnpm check 串联静态检查、单元/HTTP 集成测试及两种构建；浏览器流程另执行 pnpm test:e2e。本地通过不代表远端 CI 或分支保护已启用。
+以下命令已实现并可本地执行：check:contracts、check:boundaries、check:ui、check:i18n、lint、format:check、typecheck、test:unit、test:e2e、build。根 pnpm check 串联静态检查、单元/HTTP 集成测试和前端构建；`pnpm test:e2e` 连接已启动的本地服务，执行真实 MySQL 数据集浏览器闭环。本地通过不代表远端 CI 或分支保护已启用。
 
 - 检查与风险相称，测试保护真实行为、跨模块契约和数据不变量；小改动优先扩展已有测试，不沿调用链每层复制同一组断言。
 - 独立模块变化验证独立构建；持久化变化验证真实引擎；共享 UI 变化验证实际消费者；页面交付检查浏览器中的主要成功/失败/取消路径。

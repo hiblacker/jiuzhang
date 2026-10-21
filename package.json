@@ -7,9 +7,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter @jiuzhang/web dev",
-    "dev:real": "pnpm --filter @jiuzhang/web dev:real",
     "build": "pnpm --filter @jiuzhang/web build",
-    "build:real": "pnpm --filter @jiuzhang/web build:real",
     "preview": "pnpm --filter @jiuzhang/web preview",
     "typecheck": "pnpm --filter @jiuzhang/web typecheck",
     "lint": "pnpm --filter @jiuzhang/web lint",
@@ -22,7 +20,7 @@
     "check:i18n": "node tools/check-i18n.mjs",
     "format": "pnpm --filter @jiuzhang/web exec prettier --write src tests *.json *.ts *.js",
     "format:check": "pnpm --filter @jiuzhang/web exec prettier --check src tests *.json *.ts *.js",
-    "check": "pnpm check:contracts && pnpm check:boundaries && pnpm check:ui && pnpm check:i18n && pnpm check:lint && pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:unit && pnpm build && pnpm build:real",
+    "check": "pnpm check:contracts && pnpm check:boundaries && pnpm check:ui && pnpm check:i18n && pnpm check:lint && pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:unit && pnpm build",
     "check:lint": "node tools/check-lint.mjs"
   }
 }

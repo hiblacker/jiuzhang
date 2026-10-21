@@ -198,15 +198,9 @@ importers:
       echarts:
         specifier: 6.0.0
         version: 6.0.0
-      idb:
-        specifier: 8.0.4
-        version: 8.0.4
       lucide-vue-next:
         specifier: 1.0.0
         version: 1.0.0(vue@3.5.44(typescript@5.9.3))
-      msw:
-        specifier: 3.0.3
-        version: 3.0.3(@types/node@22.19.0)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.4(@types/node@22.19.0))
       naive-ui:
         specifier: 2.45.3
         version: 2.45.3(vue@3.5.44(typescript@5.9.3))
@@ -262,6 +256,12 @@ importers:
       fake-indexeddb:
         specifier: 6.2.4
         version: 6.2.4
+      idb:
+        specifier: 8.0.4
+        version: 8.0.4
+      msw:
+        specifier: 3.0.3
+        version: 3.0.3(@types/node@22.19.0)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.4(@types/node@22.19.0))
       prettier:
         specifier: 3.9.10
         version: 3.9.10

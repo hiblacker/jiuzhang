@@ -4,10 +4,11 @@ import { IDBObjectStore } from 'fake-indexeddb'
 import Ajv2020 from 'ajv/dist/2020'
 import addFormats from 'ajv-formats'
 import contractText from '../../../../packages/contracts/openapi.yaml?raw'
-import { handlers } from '../../src/mocks/handlers'
-import { resetState, readState, transact } from '../../src/mocks/db'
-import { advanceQueries, advanceTransfers } from '../../src/mocks/handlers/warehouse'
-import { createRun, advanceRuns } from '../../src/mocks/handlers/jobs'
+import { handlers } from '../support/mocks/handlers'
+import { resetState, readState, transact } from '../support/mocks/db'
+import { advanceQueries, advanceTransfers } from '../support/mocks/handlers/warehouse'
+import { createRun, advanceRuns } from '../support/mocks/handlers/jobs'
+import { resetTestOutcomes, testOutcomes } from '../support/mocks/fixtures/outcomes'
 
 const server = setupServer(...handlers)
 const contract = JSON.parse(contractText)
@@ -22,6 +23,7 @@ beforeAll(() => {
   server.listen({ onUnhandledFrame: 'error' })
 })
 beforeEach(async () => {
+  resetTestOutcomes()
   await resetState()
 })
 afterEach(() => vi.restoreAllMocks())
@@ -49,6 +51,7 @@ async function request(
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   const data = await response.json()
+  if (path.startsWith('/_test/')) return { status: response.status, body: data }
   const templates = Object.keys(contract.paths).filter(
     (template) => contract.paths[template][method.toLowerCase()],
   )
@@ -475,12 +478,12 @@ describe('HTTP contract and persistence', () => {
     await transact((state) => {
       state.tables = state.tables.filter((item) => item.id !== table.id)
     })
-    expect((await request('/demo/tick', 'POST', { advanceSeconds: 3 })).status).toBe(200)
+    expect((await request('/_test/clock', 'POST', { advanceSeconds: 3 })).status).toBe(200)
     expect(
       (await request('/queries/' + queryId, 'GET', undefined, 'viewer', undefined, '8003')).body
         .data.status,
     ).toBe('failed')
-    await request('/demo/tick', 'POST', { advanceSeconds: 3 })
+    await request('/_test/clock', 'POST', { advanceSeconds: 3 })
     const entries = (await readState()).audit.filter(
       (entry) => entry.resource === 'queries' && entry.resourceId === queryId,
     )
@@ -497,7 +500,7 @@ describe('HTTP contract and persistence', () => {
   it('audits observed run stages once and keeps terminal failures separate from publication', async () => {
     const start = Date.parse('2026-10-16T00:00:00.000Z')
     vi.spyOn(Date, 'now').mockReturnValue(start)
-    const created = await request('/datasets/2001/runs', 'POST', { outcome: 'succeeded' })
+    const created = await request('/datasets/2001/runs', 'POST', {})
     expect(created.status).toBe(201)
     const id = created.body.data.id
     for (const seconds of [2, 4, 6, 8])
@@ -515,7 +518,8 @@ describe('HTTP contract and persistence', () => {
       'running',
     ])
     expect(entries.every((entry) => entry.actor === 'worker-demo')).toBe(true)
-    const failed = await request('/datasets/2002/runs', 'POST', { outcome: 'failed' })
+    testOutcomes.run = 'failed'
+    const failed = await request('/datasets/2002/runs', 'POST', {})
     expect(failed.status).toBe(201)
     await transact((state) => {
       advanceRuns(state, start + 6000)
@@ -536,6 +540,7 @@ describe('HTTP contract and persistence', () => {
     const start = Date.parse('2026-10-16T00:00:00.000Z')
     vi.spyOn(Date, 'now').mockReturnValue(start)
     for (const outcome of ['succeeded', 'failed'] as const) {
+      testOutcomes.import = outcome
       const created = await request('/imports', 'POST', {
         name: 'audit-' + outcome,
         tableName: 'audit_' + outcome,
@@ -545,7 +550,6 @@ describe('HTTP contract and persistence', () => {
           { source: 'id', target: 'id' },
           { source: 'value', target: 'value' },
         ],
-        outcome,
       })
       expect(created.status).toBe(201)
       await transact((state) => {
@@ -567,10 +571,10 @@ describe('HTTP contract and persistence', () => {
     expect(query.status).toBe(201)
     await transact((state) => advanceQueries(state, start + 3000))
     for (const outcome of ['ready', 'failed'] as const) {
+      testOutcomes.export = outcome
       const created = await request('/exports', 'POST', {
         queryId: query.body.data.id,
         format: 'csv',
-        outcome,
       })
       expect(created.status).toBe(201)
       await transact((state) => {
@@ -614,7 +618,7 @@ describe('HTTP contract and persistence', () => {
       const created = await request(
         '/datasets/' + dataset.id + '/runs',
         'POST',
-        { outcome: 'succeeded' },
+        {},
         'admin',
         'write-mode-run',
       )
@@ -623,12 +627,12 @@ describe('HTTP contract and persistence', () => {
       const repeated = await request(
         '/datasets/' + dataset.id + '/runs',
         'POST',
-        { outcome: 'succeeded' },
+        {},
         'admin',
         'write-mode-run',
       )
       expect(repeated.body.data.id).toBe(runId)
-      await request('/demo/tick', 'POST', { advanceSeconds: 8 })
+      await request('/_test/clock', 'POST', { advanceSeconds: 8 })
       const run = (await request('/runs/' + runId)).body.data
       expect(run).toMatchObject({
         status: 'succeeded',
@@ -769,7 +773,7 @@ describe('HTTP contract and persistence', () => {
 
   it('uses the advanced demo clock for queries, transfers, expiration and quality samples', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-16T00:00:00.000Z'))
-    await request('/demo/tick', 'POST', { advanceSeconds: 3600 })
+    await request('/_test/clock', 'POST', { advanceSeconds: 3600 })
     const table = (await request('/warehouse/tables/4001')).body.data
     const query = (
       await request('/queries', 'POST', { sql: 'SELECT * FROM ' + table.name + ' LIMIT 100' })
@@ -786,7 +790,7 @@ describe('HTTP contract and persistence', () => {
         ],
       })
     ).body.data
-    await request('/demo/tick', 'POST', { advanceSeconds: 3 })
+    await request('/_test/clock', 'POST', { advanceSeconds: 3 })
     const advanced = await readState()
     expect(advanced.queries.find((item) => item.id === query.id)?.status).toBe('succeeded')
     expect(advanced.imports.find((item) => item.id === imported.id)?.status).toBe('succeeded')
@@ -796,12 +800,12 @@ describe('HTTP contract and persistence', () => {
     ).toMatchObject({ status: 'succeeded', progress: 100 })
     const exported = (await request('/exports', 'POST', { queryId: query.id, format: 'csv' })).body
       .data
-    await request('/demo/tick', 'POST', { advanceSeconds: 2 })
+    await request('/_test/clock', 'POST', { advanceSeconds: 2 })
     expect((await request('/exports/' + exported.id)).body.data).toMatchObject({
       status: 'ready',
       progress: 100,
     })
-    const clock = (await request('/demo/tick', 'POST', { advanceSeconds: 86400 })).body.data
+    const clock = (await request('/_test/clock', 'POST', { advanceSeconds: 86400 })).body.data
     expect((await readState()).exports.find((item) => item.id === exported.id)).toMatchObject({
       status: 'expired',
       content: '',
@@ -814,23 +818,18 @@ describe('HTTP contract and persistence', () => {
       clock.now.slice(0, 10),
     )
     expect((await request('/overview')).body.data.trend.at(-1).date).toBe(clock.now.slice(0, 10))
-    const quality = (
-      await request('/governance/quality/5005/evaluate', 'POST', { scenario: 'pass' })
-    ).body.data
-    expect(quality.result).toBe('PASS')
-    expect(Date.parse(quality.rows[0].updated_at)).toBeGreaterThanOrEqual(Date.parse(clock.now))
   })
 
-  it('advances the browser demo clock without accumulating idempotency entries', async () => {
+  it('advances the isolated test clock without accumulating idempotency entries', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-16T00:00:00.000Z'))
-    const first = await request('/demo/tick', 'POST', { advanceSeconds: 10 })
-    const second = await request('/demo/tick', 'POST', { advanceSeconds: 10 })
+    const first = await request('/_test/clock', 'POST', { advanceSeconds: 10 })
+    const second = await request('/_test/clock', 'POST', { advanceSeconds: 10 })
     expect(first.status).toBe(200)
     expect(second.status).toBe(200)
     expect(second.body.data.changed).toBeTypeOf('boolean')
     expect(Date.parse(second.body.data.now) - Date.parse(first.body.data.now)).toBe(10000)
     expect((await readState()).idempotency).toEqual({})
-    expect((await request('/demo/tick', 'POST', { advanceSeconds: 86401 })).status).toBe(422)
+    expect((await request('/_test/clock', 'POST', { advanceSeconds: 86401 })).status).toBe(422)
   })
 
   it('isolates catalog favorites by user and preserves old shared favorites only for the demo administrator', async () => {
@@ -1265,7 +1264,7 @@ describe('HTTP contract and persistence', () => {
     ).toEqual([])
   }, 10000)
   it('creates dated backfills once, preserves queue state and keeps the date on retry', async () => {
-    const input = { from: '2026-10-13', to: '2026-10-15', outcome: 'succeeded' }
+    const input = { from: '2026-10-13', to: '2026-10-15' }
     const result = await request(
       '/tasks/3001/backfills',
       'POST',
@@ -1302,7 +1301,7 @@ describe('HTTP contract and persistence', () => {
     expect((await request('/runs?trigger=backfill&taskId=3001')).body.meta.total).toBe(3)
     const queued = result.body.data[1]
     await request('/runs/' + queued.id + '/cancel', 'POST')
-    const retry = await request('/runs/' + queued.id + '/retry', 'POST', { outcome: 'succeeded' })
+    const retry = await request('/runs/' + queued.id + '/retry', 'POST', {})
     expect(retry.body.data).toMatchObject({
       retryOf: queued.id,
       businessDate: queued.businessDate,
@@ -1314,34 +1313,20 @@ describe('HTTP contract and persistence', () => {
       { from: '2026-10-15', to: '2026-10-13' },
       { from: '2026-01-01', to: '2026-10-15' },
     ])
-      expect(
-        (await request('/tasks/3001/backfills', 'POST', { ...dates, outcome: 'succeeded' })).status,
-      ).toBe(422)
+      expect((await request('/tasks/3001/backfills', 'POST', { ...dates })).status).toBe(422)
   }, 10000)
-  it('uses the same parameter-driven masking for preview and saved policies', async () => {
+  it('rejects invalid masking parameters without changing the saved policy', async () => {
     const original = (await request('/governance/masking/6001')).body.data
     expect((await request('/governance/masking/6001', 'PATCH', { parameter: '-1,4' })).status).toBe(
       422,
     )
     expect((await request('/governance/masking/6001')).body.data.version).toBe(original.version)
-    await request('/governance/masking/6001', 'PATCH', { parameter: '1,1' })
-    expect(
-      (await request('/governance/masking/6001/preview', 'POST', { sample: 'phone' })).body.data
-        .masked,
-    ).toBe('1*********1')
-    await request('/governance/masking/6001', 'PATCH', { enabled: false })
-    expect(
-      (await request('/governance/masking/6001/preview', 'POST', { sample: 'phone' })).body.data,
-    ).toMatchObject({ masked: '13800000001', enabled: false, removed: false })
-    expect(
-      (await request('/governance/masking/6002/preview', 'POST', { sample: 'email' })).body.data,
-    ).toMatchObject({ masked: null, removed: true })
     expect((await request('/governance/masking/6003', 'PATCH', { parameter: ' ' })).status).toBe(
       422,
     )
   })
   it('rejects disabled demo identities and preserves the current administrator', async () => {
-    expect((await request('/session/users')).body.data).toHaveLength(6)
+    expect((await request('/_test/users')).body.data).toHaveLength(6)
     expect((await request('/system/users/8001', 'PATCH', { enabled: false })).status).toBe(409)
     expect((await request('/system/users/8001', 'DELETE')).status).toBe(409)
     expect((await request('/system/users/8001', 'PATCH', { role: 'viewer' })).status).toBe(409)
@@ -1355,16 +1340,7 @@ describe('HTTP contract and persistence', () => {
       '8005',
     )
   })
-  it('returns calculated quality evidence and rejects invalid rule parameters', async () => {
-    const result = await request('/governance/quality/5001/evaluate', 'POST', { scenario: 'block' })
-    expect(result.body.data).toMatchObject({
-      ruleId: '5001',
-      version: 1,
-      result: 'BLOCK',
-      total: 3,
-      failed: 1,
-      failedRows: [2],
-    })
+  it('rejects invalid quality rule parameters without changing the saved rule', async () => {
     expect((await request('/governance/quality/5003', 'PATCH', { parameter: '10,1' })).status).toBe(
       422,
     )
@@ -1515,7 +1491,7 @@ it.each(['/queries', '/imports', '/exports'])(
       ['empty', 200],
     ] as const) {
       expect(
-        (await request('/demo/control', 'PATCH', { domain: 'warehouse', scenario })).status,
+        (await request('/_test/control', 'PATCH', { domain: 'warehouse', scenario })).status,
       ).toBe(200)
       const result = await request(path)
       expect(result.status).toBe(status)

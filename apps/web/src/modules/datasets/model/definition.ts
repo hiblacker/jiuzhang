@@ -1,7 +1,6 @@
 import type { DatasetInput } from '../api/dataset-repository'
 export function newDataset(): DatasetInput {
   return {
-    folderId: null,
     name: '',
     description: '',
     owner: '数据平台组',
@@ -11,7 +10,8 @@ export function newDataset(): DatasetInput {
       objectId: '',
       upstreamDatasetId: '',
       mode: 'visual',
-      sql: 'SELECT * FROM orders LIMIT 12',
+      deliveryMode: 'warehouse',
+      sql: '',
       fields: [],
       nodes: [{ id: 'input', type: 'input', label: '读取源表', x: 40, y: 80, config: '' }],
       edges: [],
@@ -23,7 +23,7 @@ export function newDataset(): DatasetInput {
         cron: '0 9 * * *',
         intervalMinutes: 60,
         timezone: 'Asia/Shanghai',
-        retries: import.meta.env.VITE_API_MODE === 'real' ? 0 : 2,
+        retries: 0,
         timeoutSeconds: 600,
         concurrency: 1,
         dependencies: [],
@@ -33,27 +33,28 @@ export function newDataset(): DatasetInput {
         layer: 'DWD',
         subjectDomain: '',
         keys: [],
-        writeMode: import.meta.env.VITE_API_MODE === 'real' ? 'replace' : 'upsert',
+        writeMode: 'replace',
       },
     },
   }
 }
 export function toInput(value: DatasetInput): DatasetInput {
+  const definition = JSON.parse(JSON.stringify(value.definition)) as DatasetInput['definition']
+  definition.deliveryMode ??= 'warehouse'
   return {
-    folderId: value.folderId ?? null,
     name: value.name,
     description: value.description,
     owner: value.owner,
     tags: [...value.tags],
-    definition: JSON.parse(JSON.stringify(value.definition)),
+    definition,
   }
 }
 
 /** Preserve MySQL decimal precision when creating the executable field mapping. */
 export function sourceFieldType(type: string): string {
-  if (import.meta.env.VITE_API_MODE !== 'real') return type
   if (/^(tinyint|smallint|mediumint|int|bigint)/i.test(type)) return 'integer'
   if (/^decimal\(\d+,\d+\)$/i.test(type)) return type.toLowerCase()
   if (type === 'date') return 'date'
+  if (/^(datetime|timestamp)/i.test(type)) return 'datetime'
   return 'string'
 }

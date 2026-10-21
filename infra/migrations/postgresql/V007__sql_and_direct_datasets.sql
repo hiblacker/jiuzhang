@@ -1,0 +1,2 @@
+ALTER TABLE dataset ALTER COLUMN object_id DROP NOT NULL;
+ALTER TABLE dataset ALTER COLUMN target_name DROP NOT NULL;

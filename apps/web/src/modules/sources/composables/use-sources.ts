@@ -61,13 +61,11 @@ export function useSourceEditor(id: MaybeRefOrGetter<string>) {
   function input() {
     const value = toSourceInput(draft.value)
     if (
-      import.meta.env.VITE_API_MODE === 'real' &&
       !credentials.value.password &&
       (!toValue(id) || credentials.value.username !== savedUsername.value)
     )
       throw new ApiError('SOURCE_CREDENTIALS_REQUIRED', 422, '')
-    if (import.meta.env.VITE_API_MODE === 'real' && credentials.value.password)
-      value.credentials = { ...credentials.value }
+    if (credentials.value.password) value.credentials = { ...credentials.value }
     return value
   }
   watch(

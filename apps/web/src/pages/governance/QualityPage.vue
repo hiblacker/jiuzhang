@@ -6,7 +6,6 @@ import { useI18n as useUiI18n } from 'vue-i18n'
 const { t: uiText } = useUiI18n()
 
 const canWrite = useCan('write')
-const real = import.meta.env.VITE_API_MODE === 'real'
 import { computed, h, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -65,8 +64,6 @@ const draft = ref<Model<'QualityInput'>>({
 const current = computed(() => detail.data.value)
 const parameterHint = computed(() => {
   if (draft.value.kind === 'range') return uiText('quality.rangeHint')
-  if (draft.value.kind === 'enum') return uiText('quality.enumHint')
-  if (draft.value.kind === 'freshness') return uiText('quality.freshnessHint')
   return uiText('quality.noParameter')
 })
 const form = ref<FormInst | null>(null)
@@ -125,14 +122,6 @@ async function save() {
       body: JSON.parse(JSON.stringify(draft.value)),
     })
     open.value = false
-    actions.evaluate.reset()
-  } catch {}
-}
-async function evaluate(scenario: 'pass' | 'warn' | 'block') {
-  if (actions.evaluate.isPending.value) return
-  actions.evaluate.reset()
-  try {
-    await actions.evaluate.mutateAsync({ id: id.value, scenario })
   } catch {}
 }
 const columns = [
@@ -170,9 +159,6 @@ const columns = [
   <PageHeader
     :title="id ? (current?.name ?? uiText('ui.quality_a9f00e88')) : uiText('ui.quality_e974beee')"
     :description="uiText('ui.quality_c4dfb475')"
-    ><NButton v-if="!real" @click="router.push('/governance/catalog')">{{
-      uiText('ui.quality_3c41d918')
-    }}</NButton
     ><NButton
       type="primary"
       :disabled="readonly || (!!id && !current)"
@@ -228,45 +214,7 @@ const columns = [
           current?.enabled ? uiText('ui.quality_d4e9ca3d') : uiText('ui.quality_d989e551')
         }}</NDescriptionsItem></NDescriptions
       >
-      <NAlert v-if="real" type="info" class="mb">{{ uiText('quality.realEvaluationHint') }}</NAlert>
-      <template v-else>
-        <h3>{{ uiText('ui.quality_06b0cc31') }}</h3>
-        <NAlert type="info" class="mb">{{ uiText('datasets.sampleHint') }}</NAlert>
-        <NAlert type="info" class="mb">{{ uiText('quality.sampleSeverityHint') }}</NAlert>
-        <div class="query-toolbar">
-          <NButton
-            v-for="scenario in ['pass', 'warn', 'block'] as const"
-            :key="scenario"
-            :loading="actions.evaluate.isPending.value"
-            @click="evaluate(scenario)"
-            >{{ scenario.toUpperCase() }}</NButton
-          >
-        </div>
-        <NAlert
-          v-if="actions.evaluate.data.value"
-          :type="actions.evaluate.data.value.result === 'PASS' ? 'success' : 'warning'"
-          >{{ actions.evaluate.data.value.result }} ·
-          {{ actions.evaluate.data.value.message }}</NAlert
-        >
-        <template v-if="actions.evaluate.data.value">
-          <NDescriptions :column="3" bordered class="mb">
-            <NDescriptionsItem :label="uiText('datasets.sampleCount')">{{
-              actions.evaluate.data.value.total
-            }}</NDescriptionsItem>
-            <NDescriptionsItem :label="uiText('datasets.failureCount')">{{
-              actions.evaluate.data.value.failed
-            }}</NDescriptionsItem>
-            <NDescriptionsItem :label="uiText('datasets.passRate')"
-              >{{ actions.evaluate.data.value.passRate.toFixed(1) }}%</NDescriptionsItem
-            >
-          </NDescriptions>
-          <NDataTable
-            :data="actions.evaluate.data.value.rows"
-            :columns="[{ title: current?.field ?? '', key: current?.field ?? '' }]"
-            :bordered="false"
-          />
-        </template>
-      </template>
+      <NAlert type="info" class="mb">{{ uiText('quality.realEvaluationHint') }}</NAlert>
       <h3>{{ uiText('ui.quality_1d27e3e2') }}</h3>
       <RelatedDatasets
         :relation="{ qualityRuleId: id }"
@@ -301,18 +249,13 @@ const columns = [
             v-select-trigger-name="uiText('ui.quality_e4e46c72')"
             :options="[
               { label: uiText('ui.quality_32945d3e'), value: 'required' },
-              { label: uiText('ui.quality_e805014a'), value: 'unique', disabled: real },
               { label: uiText('ui.quality_785b52eb'), value: 'range' },
-              { label: uiText('ui.quality_d7f83126'), value: 'enum', disabled: real },
-              { label: uiText('ui.quality_17bb0cbf'), value: 'freshness', disabled: real },
             ]" /></NFormItem
         ><NFormItem path="field" :label="uiText('ui.quality_77a49f2c')"
           ><NInput
             v-model:value="draft.field"
             :input-props="{ 'aria-label': uiText('ui.quality_77a49f2c') }" /></NFormItem
-        ><NFormItem
-          v-if="!['required', 'unique'].includes(draft.kind)"
-          :label="uiText('ui.quality_749d7652')"
+        ><NFormItem v-if="draft.kind !== 'required'" :label="uiText('ui.quality_749d7652')"
           ><NInput
             v-model:value="draft.parameter"
             :input-props="{ 'aria-label': uiText('ui.quality_749d7652') }"

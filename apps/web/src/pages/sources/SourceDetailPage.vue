@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { NButton, NCard, NTag, NAlert, NEllipsis, NSplit } from 'naive-ui'
-import { connectorRegistry, useSource, useSourceObjects, SourceObjectList } from '@/modules/sources'
+import { useSource, useSourceObjects, SourceObjectList } from '@/modules/sources'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { CopyButton } from '@/shared/ui/copy-button'
@@ -18,9 +18,7 @@ const source = useSource(id),
   objects = useSourceObjects(id)
 const sourceDatabase = computed(() => {
   const current = source.data.value
-  return current && connectorRegistry[current.type].kind === 'database'
-    ? current.settings.database
-    : ''
+  return current?.settings.database ?? ''
 })
 const catalogSize = ref(0.3)
 const selected = computed(() =>

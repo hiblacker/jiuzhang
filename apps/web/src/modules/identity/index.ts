@@ -11,5 +11,4 @@ export {
 
 export { useUiStore } from './model/ui-store'
 
-export { useDemoUsers } from './composables/use-system'
 export { default as PasswordChangeDrawer } from './components/PasswordChangeDrawer.vue'

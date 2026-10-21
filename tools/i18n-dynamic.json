@@ -2,15 +2,12 @@
   "modules/governance/components/GovernanceBindingSelect.vue": {
     "errorKey(error)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -19,15 +16,12 @@
   "modules/jobs/components/TaskDependencySelect.vue": {
     "errorKey(error)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -79,7 +73,6 @@
       "routes.P17",
       "routes.P18",
       "routes.P19",
-      "routes.P20",
       "routes.P21",
       "routes.P22",
       "routes.P23",
@@ -95,7 +88,6 @@
       "routes.P33",
       "routes.P34",
       "routes.P35",
-      "routes.P36",
       "routes.P37",
       "routes.P38"
     ]
@@ -103,15 +95,12 @@
   "modules/jobs/components/RunTrigger.vue": {
     "errorKey(run.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -127,15 +116,12 @@
   "modules/sources/components/SourcePicker.vue": {
     "errorKey(error)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -172,15 +158,12 @@
   "pages/datasets/DatasetDetailPage.vue": {
     "errorKey(actions.publish.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -189,30 +172,24 @@
   "pages/datasets/DatasetEditorPage.vue": {
     "errorKey(save.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
     ],
     "errorKey(upstreamVersion.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -221,30 +198,24 @@
   "pages/datasets/DatasetListPage.vue": {
     "errorKey(actions.copy.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
     ],
     "errorKey(actions.remove.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -337,30 +308,24 @@
     ],
     "errorKey(save.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
     ],
     "errorKey(test.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -374,30 +339,24 @@
     ],
     "errorKey(query.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
     ],
     "errorKey(remove.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -406,15 +365,12 @@
   "pages/warehouse/ExportsPage.vue": {
     "errorKey(error)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -423,15 +379,12 @@
   "shared/ui/async-state/AsyncState.vue": {
     "errorKey(error)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -457,15 +410,12 @@
     ],
     "errorKey(actions.restore.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -487,67 +437,15 @@
       "jobs.invalidDependencies"
     ]
   },
-  "modules/datasets/components/DatasetFolderPanel.vue": {
-    "errorKey(error)": [
-      "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
-      "errors.FORBIDDEN",
-      "errors.NOT_FOUND",
-      "errors.DEPENDENCY_CONFLICT",
-      "errors.DUPLICATE_NAME",
-      "errors.VALIDATION_ERROR",
-      "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
-      "errors.IDEMPOTENCY_CONFLICT",
-      "errors.NOT_IMPLEMENTED",
-      "errors.UNKNOWN"
-    ],
-    "errorKey(actions.save.error.value)": [
-      "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
-      "errors.FORBIDDEN",
-      "errors.NOT_FOUND",
-      "errors.DEPENDENCY_CONFLICT",
-      "errors.DUPLICATE_NAME",
-      "errors.VALIDATION_ERROR",
-      "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
-      "errors.IDEMPOTENCY_CONFLICT",
-      "errors.NOT_IMPLEMENTED",
-      "errors.UNKNOWN"
-    ]
-  },
-  "modules/datasets/components/DatasetMoveDialog.vue": {
-    "errorKey(actions.move.error.value)": [
-      "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
-      "errors.FORBIDDEN",
-      "errors.NOT_FOUND",
-      "errors.DEPENDENCY_CONFLICT",
-      "errors.DUPLICATE_NAME",
-      "errors.VALIDATION_ERROR",
-      "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
-      "errors.IDEMPOTENCY_CONFLICT",
-      "errors.NOT_IMPLEMENTED",
-      "errors.UNKNOWN"
-    ]
-  },
   "modules/warehouse/components/WarehouseTableSelect.vue": {
     "errorKey(error)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -556,15 +454,12 @@
   "pages/services/ServiceEditorPage.vue": {
     "errorKey(saveError)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -573,15 +468,12 @@
   "pages/services/ServiceDetailPage.vue": {
     "errorKey(cause)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -590,15 +482,12 @@
   "pages/governance/CatalogPage.vue": {
     "errorKey(actions.favorite.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -607,30 +496,24 @@
   "pages/governance/QualityPage.vue": {
     "errorKey(actions.evaluate.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
     ],
     "errorKey(actions.saveQuality.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -639,28 +522,15 @@
   "modules/jobs/components/RunActions.vue": {
     "errorKey(actions.cancel.error.value || actions.retry.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
-    ]
-  },
-  "pages/warehouse/ImportsPage.vue": {
-    "'csv.errors.' + e.code": [
-      "csv.errors.TRAILING_CHARACTERS",
-      "csv.errors.UNEXPECTED_QUOTE",
-      "csv.errors.UNCLOSED_QUOTE",
-      "csv.errors.MISSING_DATA",
-      "csv.errors.INVALID_HEADERS",
-      "csv.errors.COLUMN_COUNT"
     ]
   },
   "modules/jobs/components/RunHistory.vue": {
@@ -678,15 +548,12 @@
   "pages/governance/MaskingPage.vue": {
     "errorKey(actions.saveMask.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -695,32 +562,12 @@
   "pages/system/UsersPage.vue": {
     "errorKey(actions.user.error.value)": [
       "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
       "errors.FORBIDDEN",
       "errors.NOT_FOUND",
       "errors.DEPENDENCY_CONFLICT",
       "errors.DUPLICATE_NAME",
       "errors.VALIDATION_ERROR",
       "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
-      "errors.IDEMPOTENCY_CONFLICT",
-      "errors.NOT_IMPLEMENTED",
-      "errors.UNKNOWN"
-    ]
-  },
-  "modules/datasets/components/UpstreamDatasetSelect.vue": {
-    "errorKey(error)": [
-      "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
-      "errors.FORBIDDEN",
-      "errors.NOT_FOUND",
-      "errors.DEPENDENCY_CONFLICT",
-      "errors.DUPLICATE_NAME",
-      "errors.VALIDATION_ERROR",
-      "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
       "errors.IDEMPOTENCY_CONFLICT",
       "errors.NOT_IMPLEMENTED",
       "errors.UNKNOWN"
@@ -757,52 +604,44 @@
   "pages/warehouse/QueryPage.vue": {},
   "shared/ui/error-message/ApiErrorMessageBridge.vue": {
     "errorKey(error)": [
-      "errors.NETWORK_ERROR",
-      "errors.DEMO_ERROR",
-      "errors.FORBIDDEN",
-      "errors.NOT_FOUND",
-      "errors.DEPENDENCY_CONFLICT",
-      "errors.DUPLICATE_NAME",
-      "errors.VALIDATION_ERROR",
-      "errors.INTERNAL_ERROR",
-      "errors.STORAGE_FULL",
-      "errors.STORAGE_UNAVAILABLE",
-      "errors.IDEMPOTENCY_CONFLICT",
-      "errors.NOT_IMPLEMENTED",
-      "errors.UNAUTHENTICATED",
-      "errors.INVALID_CREDENTIALS",
-      "errors.INVALID_PARAMETER",
-      "errors.LOGIN_THROTTLED",
-      "errors.CSRF_REJECTED",
-      "errors.LAST_ADMIN",
-      "errors.SOURCE_CONNECTION_FAILED",
-      "errors.SOURCE_HOST_DENIED",
-      "errors.SOURCE_CREDENTIALS_REQUIRED",
-      "errors.SOURCE_TYPE_UNSUPPORTED",
-      "errors.SOURCE_TLS_REQUIRED",
-      "errors.SERVICE_DISABLED",
-      "errors.SOURCE_KEY_REQUIRED",
       "errors.CLEANING_UNSUPPORTED",
+      "errors.CSRF_REJECTED",
       "errors.DATASET_CONVERSION_FAILED",
+      "errors.DATASET_DELIVERY_MODE_IMMUTABLE",
       "errors.DATASET_FIELDS_REQUIRED",
       "errors.DATASET_FIELD_INVALID",
       "errors.DATASET_MODE_UNSUPPORTED",
+      "errors.DATASET_NOT_DIRECT",
       "errors.DATASET_NOT_PUBLISHED",
+      "errors.DATASET_NOT_RUNNABLE",
       "errors.DATASET_NULL_NOT_ALLOWED",
       "errors.DATASET_RUN_ACTIVE",
+      "errors.DATASET_SQL_TIMEOUT",
       "errors.DATASET_TYPE_UNSUPPORTED",
+      "errors.DEPENDENCY_CONFLICT",
       "errors.DRAFT_CHANGED",
+      "errors.DUPLICATE_NAME",
       "errors.EMPTY_SNAPSHOT_BLOCKED",
       "errors.EXPORT_FORMAT_UNSUPPORTED",
       "errors.FILTER_INVALID",
       "errors.FOLDERS_UNSUPPORTED",
+      "errors.FORBIDDEN",
       "errors.GRAPH_INVALID",
       "errors.GRAPH_UNSUPPORTED",
+      "errors.IDEMPOTENCY_CONFLICT",
       "errors.IDEMPOTENCY_KEY_REQUIRED",
+      "errors.INTERNAL_ERROR",
+      "errors.INVALID_CREDENTIALS",
       "errors.INVALID_IDENTIFIER",
+      "errors.INVALID_PARAMETER",
+      "errors.LAST_ADMIN",
+      "errors.LOGIN_THROTTLED",
       "errors.MASK_KIND_UNSUPPORTED",
       "errors.MASK_PARAMETER_INVALID",
       "errors.MASK_POLICY_INVALID",
+      "errors.NETWORK_ERROR",
+      "errors.NOT_FOUND",
+      "errors.NOT_IMPLEMENTED",
       "errors.OBJECTS_NOT_CONFIGURED",
       "errors.OBJECTS_UNAVAILABLE",
       "errors.OUTPUT_UNSUPPORTED",
@@ -829,24 +668,34 @@
       "errors.SCHEDULE_UNSUPPORTED",
       "errors.SCHEMA_CHANGED",
       "errors.SENSITIVE_FIELD_MASK_REQUIRED",
+      "errors.SERVICE_DISABLED",
       "errors.SNAPSHOT_NOT_FOUND",
+      "errors.SOURCE_CONNECTION_FAILED",
+      "errors.SOURCE_CREDENTIALS_REQUIRED",
       "errors.SOURCE_ENGINE_UNSUPPORTED",
       "errors.SOURCE_FIELD_MISSING",
+      "errors.SOURCE_HOST_DENIED",
+      "errors.SOURCE_KEY_REQUIRED",
       "errors.SOURCE_SCAN_LIMIT",
       "errors.SOURCE_TABLE_MISSING",
+      "errors.SOURCE_TLS_REQUIRED",
+      "errors.SOURCE_TYPE_UNSUPPORTED",
       "errors.SOURCE_VALUE_LIMIT",
+      "errors.SQL_COLUMNS_INVALID",
+      "errors.SQL_EXECUTION_FAILED",
       "errors.TARGET_NAME_IMMUTABLE",
       "errors.TIMEOUT_LIMIT",
+      "errors.UNAUTHENTICATED",
+      "errors.UNKNOWN",
       "errors.UNSUPPORTED_SQL",
+      "errors.VALIDATION_ERROR",
       "errors.VERSION_NOT_FOUND",
       "errors.WAREHOUSE_NOT_CONFIGURED",
       "errors.WAREHOUSE_PRECISION_LIMIT",
       "errors.WAREHOUSE_ROW_COUNT_MISMATCH",
       "errors.WAREHOUSE_UNAVAILABLE",
       "errors.WAREHOUSE_VALUE_LIMIT",
-      "errors.WORKER_LOST",
-      "errors.NETWORK_ERROR",
-      "errors.UNKNOWN"
+      "errors.WORKER_LOST"
     ]
   }
 }

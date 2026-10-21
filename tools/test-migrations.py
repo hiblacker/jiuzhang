@@ -27,14 +27,14 @@ def main():
                    'org.springframework.boot.loader.launch.PropertiesLauncher']
         subprocess.run(command, env=env, check=True)
         versions = sql('SELECT version FROM flyway_schema_history WHERE success ORDER BY installed_rank', database)
-        assert [int(version) for version in versions.splitlines()] == [1, 2, 3, 4, 5, 6], versions
+        assert [int(version) for version in versions.splitlines()] == list(range(1, 8)), versions
         sql("INSERT INTO account(username,display_name,password_hash,role) VALUES('migration_probe','synthetic','not-a-login-hash','viewer')", database)
         before = sql("SELECT (SELECT count(*) FROM pg_indexes WHERE schemaname='public'), (SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace)", database)
         subprocess.run(command, env=env, check=True)
-        assert sql('SELECT count(*) FROM flyway_schema_history WHERE success', database) == '6'
+        assert sql('SELECT count(*) FROM flyway_schema_history WHERE success', database) == '7'
         assert sql("SELECT count(*) FROM account WHERE username='migration_probe'", database) == '1'
         assert sql("SELECT (SELECT count(*) FROM pg_indexes WHERE schemaname='public'), (SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace)", database) == before
-        print('PASS PostgreSQL empty database V001-V006, repeated Flyway migration, data/index/constraint preservation')
+        print('PASS PostgreSQL empty database V001-V007, repeated Flyway migration, data/index/constraint preservation')
     finally:
         sql('DROP DATABASE ' + database)
 

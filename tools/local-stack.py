@@ -149,7 +149,7 @@ def start(role):
     if role=='worker' and unowned_worker():raise RuntimeError('An unowned Worker is running; stop its terminal before managed startup')
     LOCAL.mkdir(exist_ok=True)
     logs=LOCAL/'logs';logs.mkdir(exist_ok=True)
-    command=['pnpm','dev:real'] if role=='web' else ['bash','tools/backend.sh',role]
+    command=['pnpm','dev'] if role=='web' else ['bash','tools/backend.sh',role]
     with (logs/(role+'.log')).open('wb') as log:
         process=subprocess.Popen(command,cwd=ROOT,env=environment(),stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
     record={'pid':process.pid,'start':identity(process.pid),'root':str(ROOT),'role':role,'artifact':artifact}

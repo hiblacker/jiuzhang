@@ -12,7 +12,6 @@ import { connectionIssue } from '../model/graph'
 import { notifyUiError } from '@/shared/ui/error-message'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
-const real = import.meta.env.VITE_API_MODE === 'real'
 const nodes = defineModel<Model<'Node'>[]>('nodes', { required: true })
 const edges = defineModel<Model<'Edge'>[]>('edges', { required: true })
 const props = defineProps<{ readonly?: boolean }>()
@@ -136,7 +135,7 @@ function remove() {
         Object.entries(labels).map(([value, label]) => ({
           value,
           label,
-          disabled: real && !['filter', 'fields'].includes(value),
+          disabled: !['filter', 'fields'].includes(value),
         }))
       "
     /><NButton :disabled="readonly" @click="add">{{ uiText('ui.dataset_graph_56ba925f') }}</NButton

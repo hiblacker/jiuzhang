@@ -25,7 +25,6 @@ import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { useDisplayTime } from '@/shared/composables/use-display-time'
 const dateTime = useDisplayTime()
-const real = import.meta.env.VITE_API_MODE === 'real'
 import type { Model } from '@/shared/api/types'
 const TrendChart = defineAsyncComponent(() => import('@/shared/charts/TrendChart.vue'))
 const query = useOverview(),
@@ -147,16 +146,14 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
           /></NButton>
         </div>
         <div class="metric-foot">
-          {{ real ? t('identity.realMode') : t('mock') }} · {{ t('workspace') }}
+          {{ t('workspace') }}
         </div></NCard
       >
     </div>
     <div class="dashboard-grid">
       <NCard :title="t('overview.trend')" :bordered="false"
         ><template #header-extra
-          ><span class="muted">{{
-            t(real ? 'overview.realTrendHint' : 'overview.trendHint')
-          }}</span></template
+          ><span class="muted">{{ t('overview.realTrendHint') }}</span></template
         ><TrendChart
           :labels="[t('states.succeeded'), t('overview.failedOrBlocked')]"
           :points="query.data.value?.trend ?? []" /></NCard
@@ -204,7 +201,7 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
       <section :aria-label="t('overview.pending')">
         <NCard :title="t('overview.pending')" :bordered="false">
           <p class="attention-hint">
-            {{ t(real ? 'overview.realPendingHint' : 'overview.pendingHint') }}
+            {{ t('overview.realPendingHint') }}
           </p>
           <NEmpty
             v-if="attention.every((item) => item.count === 0)"

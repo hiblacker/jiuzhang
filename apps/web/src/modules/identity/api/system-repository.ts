@@ -1,9 +1,6 @@
 import { api, unwrap, setCsrfToken } from '@/shared/api/client'
 import type { Model } from '@/shared/api/types'
 export const systemRepository = {
-  async demoUsers() {
-    return unwrap(await api.GET('/session/users')).data
-  },
   async session() {
     const session = unwrap(await api.GET('/session')).data
     setCsrfToken(session.csrfToken ?? '')

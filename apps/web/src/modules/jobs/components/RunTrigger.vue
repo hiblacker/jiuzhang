@@ -1,28 +1,21 @@
 <script setup lang="ts">
-import { useI18n as useUiI18n } from 'vue-i18n'
-const { t: uiText } = useUiI18n()
-
 const canWrite = useCan('write')
 const canApproveEmpty = useCan('system')
-const real = import.meta.env.VITE_API_MODE === 'real'
 const allowEmpty = ref(false)
 const confirmEmpty = ref(false)
 const requestKey = ref(crypto.randomUUID())
 import { ref } from 'vue'
-import { NButton, NSelect, NCheckbox } from 'naive-ui'
+import { NButton, NCheckbox } from 'naive-ui'
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
-import type { Model } from '@/shared/api/types'
 import { useJobActions } from '../composables/use-jobs'
 import { useCan } from '@/shared/security/permissions'
-import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useI18n } from 'vue-i18n'
 const props = defineProps<{ datasetId: string; disabled?: boolean }>()
 const emit = defineEmits<{ started: [id: string] }>()
-const outcome = ref<Model<'RunOutcome'>>('succeeded'),
-  { run } = useJobActions(),
+const { run } = useJobActions(),
   { t } = useI18n()
 async function start(approved = false) {
-  if (real && allowEmpty.value && !approved) {
+  if (allowEmpty.value && !approved) {
     confirmEmpty.value = true
     return
   }
@@ -30,7 +23,6 @@ async function start(approved = false) {
   try {
     const result = await run.mutateAsync({
       datasetId: props.datasetId,
-      outcome: outcome.value,
       allowEmptySnapshot: allowEmpty.value,
       key: requestKey.value,
     })
@@ -43,28 +35,16 @@ async function start(approved = false) {
 </script>
 <template>
   <div class="run-trigger">
-    <NSelect
-      v-if="!real"
-      v-model:value="outcome"
-      v-select-trigger-name="t('jobs.runOutcome', { id: datasetId })"
-      :disabled="disabled || !canWrite || run.isPending.value"
-      size="small"
-      style="width: 130px"
-      :options="[
-        { label: uiText('ui.run_trigger_b791a1f7'), value: 'succeeded' },
-        { label: uiText('ui.run_trigger_4857620b'), value: 'failed' },
-        { label: uiText('ui.run_trigger_d6e418e3'), value: 'blocked' },
-      ]"
-    /><NButton
+    <NButton
       type="primary"
       size="small"
       :disabled="disabled || !canWrite"
       :loading="run.isPending.value"
       @click="start(false)"
-      >{{ uiText('ui.run_trigger_0c3acd44') }}</NButton
+      >{{ t('ui.run_trigger_0c3acd44') }}</NButton
     >
     <NCheckbox
-      v-if="real && canApproveEmpty"
+      v-if="canApproveEmpty"
       v-model:checked="allowEmpty"
       :disabled="run.isPending.value"
       >{{ t('jobs.allowEmpty') }}</NCheckbox

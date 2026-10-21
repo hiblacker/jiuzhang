@@ -24,7 +24,6 @@ import { QueryToolbar } from '@/shared/ui/query-toolbar'
 import { AsyncState } from '@/shared/ui/async-state'
 import { downloadText } from '@/shared/lib/download'
 import type { Model } from '@/shared/api/types'
-const real = import.meta.env.VITE_API_MODE === 'real'
 const router = useRouter(),
   message = useMessage(),
   { filters, update, bindPagination } = useListRoute(),
@@ -111,9 +110,7 @@ const columns: DataTableColumns<Model<'Export'>> = [
 ]
 </script>
 <template>
-  <PageHeader
-    :title="uiText('ui.exports_603a049b')"
-    :description="real ? uiText('warehouse.realExports') : uiText('ui.exports_e95d66c0')"
+  <PageHeader :title="uiText('ui.exports_603a049b')" :description="uiText('warehouse.realExports')"
     ><NButton type="primary" @click="router.push('/warehouse/query')">{{
       uiText('ui.exports_9953cdb5')
     }}</NButton></PageHeader

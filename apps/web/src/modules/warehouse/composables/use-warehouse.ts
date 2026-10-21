@@ -53,17 +53,6 @@ export function useQueryResult(id: MaybeRefOrGetter<string>) {
     refetchInterval: (query) => (query.state.data?.status === 'running' ? 500 : false),
   })
 }
-export function useImports(filters: MaybeRefOrGetter<Record<string, string>> = {}) {
-  return useQuery({
-    queryKey: computed(() => ['warehouse', 'imports', toValue(filters)]),
-    queryFn: ({ signal }) => repo.imports(toValue(filters), signal),
-    refetchInterval: (query) =>
-      query.state.data?.data.some((task) => ['queued', 'running'].includes(task.status))
-        ? 500
-        : false,
-  })
-}
-
 export function useExports(filters: MaybeRefOrGetter<Record<string, string>> = {}) {
   return useQuery({
     queryKey: computed(() => ['warehouse', 'exports', toValue(filters)]),
@@ -82,7 +71,6 @@ export function useWarehouseActions() {
   return {
     query: useMutation({ mutationFn: repo.query, onSuccess: done }),
     cancelQuery: useMutation({ mutationFn: repo.cancelQuery, onSuccess: done }),
-    import: useMutation({ mutationFn: repo.import, onSuccess: done }),
     export: useMutation({ mutationFn: repo.export, onSuccess: done }),
     download: useMutation({
       mutationFn: repo.exportDetail,

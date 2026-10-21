@@ -4,15 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --mode development",
-    "dev:real": "vite --host 127.0.0.1 --mode real",
-    "build": "vue-tsc -p tsconfig.app.json --noEmit && vite build --mode demo",
-    "build:real": "vue-tsc -p tsconfig.app.json --noEmit && vite build --mode real && node ../../tools/check-real.mjs",
+    "dev": "vite --host 127.0.0.1",
+    "build": "vue-tsc -p tsconfig.app.json --noEmit && vite build && node ../../tools/check-web-artifacts.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "typecheck": "vue-tsc -p tsconfig.app.json --noEmit",
     "lint": "eslint src tests",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "node ../../tools/test-real-datasets.mjs"
   },
   "dependencies": {
     "@codemirror/lang-sql": "6.10.0",
@@ -25,9 +23,7 @@
     "@vue-flow/core": "1.47.0",
     "codemirror": "6.0.2",
     "echarts": "6.0.0",
-    "idb": "8.0.4",
     "lucide-vue-next": "1.0.0",
-    "msw": "3.0.3",
     "naive-ui": "2.45.3",
     "openapi-fetch": "0.17.0",
     "pinia": "4.1.0",
@@ -48,6 +44,8 @@
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-vue": "10.11.1",
     "fake-indexeddb": "6.2.4",
+    "idb": "8.0.4",
+    "msw": "3.0.3",
     "prettier": "3.9.10",
     "typescript": "5.9.3",
     "typescript-eslint": "8.71.2",
@@ -55,10 +53,5 @@
     "vitest": "5.0.4",
     "vue-eslint-parser": "10.3.0",
     "vue-tsc": "3.3.13"
-  },
-  "msw": {
-    "workerDirectory": [
-      "public"
-    ]
   }
 }

@@ -15,8 +15,8 @@ public record DatasetPlan(List<Field> fields,List<Filter> filters,boolean trim,L
   final var maskList=masking;final var fieldList=fields;var targets=new HashSet<String>();
   if(fields.isEmpty()||fields.size()>200||fields.stream().noneMatch(Field::output))throw new Problem("DATASET_FIELDS_REQUIRED");
   for(var f:fields){
-   if(!f.source().matches("[a-zA-Z_][a-zA-Z0-9_]{0,63}")||!f.target().matches("[a-zA-Z_][a-zA-Z0-9_]{0,63}")||!targets.add(f.target().toLowerCase(Locale.ROOT)))throw new Problem("DATASET_FIELD_INVALID");
-   if(!Set.of("string","integer","decimal","boolean","date").contains(f.type())&&!f.type().matches("decimal\\([1-9][0-9]?,[0-9]{1,2}\\)" ))throw new Problem("DATASET_TYPE_UNSUPPORTED");
+   if(f.source().isBlank()||f.source().length()>256||f.source().indexOf(0)>=0||!f.target().matches("[a-zA-Z_][a-zA-Z0-9_]{0,63}")||!targets.add(f.target().toLowerCase(Locale.ROOT)))throw new Problem("DATASET_FIELD_INVALID");
+   if(!Set.of("string","integer","decimal","boolean","date","datetime","geo").contains(f.type())&&!f.type().matches("decimal\\([1-9][0-9]?,[0-9]{1,2}\\)" ))throw new Problem("DATASET_TYPE_UNSUPPORTED");
    if(f.type().startsWith("decimal(")){var p=f.type().substring(8,f.type().length()-1).split(",");int precision=Integer.parseInt(p[0]),scale=Integer.parseInt(p[1]);if(precision>38||scale>precision)throw new Problem("DATASET_TYPE_UNSUPPORTED");}
    if(!f.maskId().isEmpty()&&(!f.type().equals("string")||maskList.stream().noneMatch(m->m.id().equals(f.maskId())&&m.enabled())))throw new Problem("MASK_POLICY_INVALID");
   }
@@ -29,9 +29,9 @@ public record DatasetPlan(List<Field> fields,List<Filter> filters,boolean trim,L
   var result=new LinkedHashMap<String,Object>();
   for(var f:fields){if(!f.output()&&quality.stream().noneMatch(q->q.field().equals(f.target())))continue;Object value=row.get(f.source());if(value instanceof String s&&trim)value=s.strip();if(value==null&&!f.nullable())throw new Problem("DATASET_NULL_NOT_ALLOWED");
    try{if(value!=null)value=switch(f.type().startsWith("decimal(")?"decimal":f.type()){
-    case "string"->value.toString();case "integer"->new BigInteger(value.toString()).toString();case "decimal"->{var n=new BigDecimal(value.toString());if(f.type().equals("decimal")){n=n.setScale(9,java.math.RoundingMode.UNNECESSARY);if(n.precision()>38)throw new IllegalArgumentException();}if(f.type().startsWith("decimal(")){var parts=f.type().substring(8,f.type().length()-1).split(",");int precision=Integer.parseInt(parts[0]),scale=Integer.parseInt(parts[1]);if(precision>38||scale>precision)throw new IllegalArgumentException();n=n.setScale(scale,java.math.RoundingMode.UNNECESSARY);if(n.precision()>precision)throw new IllegalArgumentException();}yield n.toPlainString();}
+    case "string","geo"->value.toString();case "integer"->new BigInteger(value.toString()).toString();case "decimal"->{var n=new BigDecimal(value.toString());if(f.type().equals("decimal")){n=n.setScale(9,java.math.RoundingMode.UNNECESSARY);if(n.precision()>38)throw new IllegalArgumentException();}if(f.type().startsWith("decimal(")){var parts=f.type().substring(8,f.type().length()-1).split(",");int precision=Integer.parseInt(parts[0]),scale=Integer.parseInt(parts[1]);if(precision>38||scale>precision)throw new IllegalArgumentException();n=n.setScale(scale,java.math.RoundingMode.UNNECESSARY);if(n.precision()>precision)throw new IllegalArgumentException();}yield n.toPlainString();}
     case "boolean"->{if(value.equals(true)||value.toString().equals("1"))yield true;if(value.equals(false)||value.toString().equals("0"))yield false;throw new IllegalArgumentException();}
-    case "date"->LocalDate.parse(value.toString()).toString();default->throw new IllegalArgumentException();};
+    case "date"->LocalDate.parse(value.toString()).toString();case "datetime"->java.time.LocalDateTime.parse(value.toString().replace(' ','T')).toString().replace('T',' ');default->throw new IllegalArgumentException();};
    }catch(Exception e){throw new Problem("DATASET_CONVERSION_FAILED");}result.put(f.target(),value);
   }return result;
  }

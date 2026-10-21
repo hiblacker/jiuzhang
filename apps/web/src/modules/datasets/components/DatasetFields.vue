@@ -155,12 +155,22 @@ const columns = computed<DataTableColumns<Model<'Field'>>>(() => [
         value: row.type,
         disabled: props.readonly,
         size: 'small',
+        tag: true,
         filterable: true,
         inputProps: { 'aria-label': uiText('datasets.fieldType', { name: row.name }) },
         options: [
-          ...new Set(['string', 'integer', 'decimal(18,2)', 'boolean', 'date', row.type]),
-        ].map((value) => ({
-          label: value,
+          ...new Map([
+            ['string', uiText('datasets.fieldTypes.text')],
+            ['integer', uiText('datasets.fieldTypes.number')],
+            ['decimal(18,2)', uiText('datasets.fieldTypes.decimal')],
+            ['boolean', uiText('datasets.fieldTypes.boolean')],
+            ['date', uiText('datasets.fieldTypes.date')],
+            ['datetime', uiText('datasets.fieldTypes.datetime')],
+            ['geo', uiText('datasets.fieldTypes.geo')],
+            [row.type, row.type],
+          ]).entries(),
+        ].map(([value, label]) => ({
+          label,
           value,
         })),
         'onUpdate:value': (value) => change(index, { type: value }),

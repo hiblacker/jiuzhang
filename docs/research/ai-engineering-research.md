@@ -34,7 +34,7 @@ Dify 与 OpenHands 是 AI 产品/开源项目，它们的公开 agent 规则说�
 | controllers 处理传输，services 编排，domain 拥有策略；库保持无业务性 | api/AGENTS.md [R4] | 后端 Controller/Application/Domain/Infrastructure |
 | 有 ast-grep 与 lint 针对新模型继承的规则 | api/AGENTS.md [R4] | 规则要有可执行门禁与反例，不能只写 Markdown |
 
-Dify 禁止在真实业务表面以临时 Mock state 替代未确认接口。九章当前“全部 Mock”是用户明确阶段要求，因此不照搬该禁令；采用网络级 Mock 保持业务层仍按稳定接口工作。
+Dify 关于真实业务表面不以临时状态替代未确认接口的原则适用于九章：前端开发和生产均调用真实 API；固定数据与网络替身只供自动化测试使用。
 
 ## 4. OpenHands：仓库所有权、类型客户端与状态单写入口
 
@@ -72,7 +72,7 @@ OpenAPI TypeScript 可从 OpenAPI 3.0/3.1 生成 TypeScript 类型；这些类�
 
 MSW 使用网络级拦截，浏览器 handlers 可以与测试复用；其文档明确应 await worker.start() 再渲染，且 HTTP localhost 是 Service Worker 开发例外。[T4]
 
-因此九章应用照常发 HTTP；Mock fixture/DB 不进入页面和 repository。未处理 API 不能悄悄放行到真实网络。静态 demo 与 real build 分开，后者还要排除 public 中的 worker 文件。
+因此九章应用照常发 HTTP；测试 fixture/DB 不进入页面和 repository。未实现 API 由真实服务明确返回错误，不得在客户端伪造成功结果。开发与生产构建使用同一真实 API 路径。
 
 ### 边界工具
 

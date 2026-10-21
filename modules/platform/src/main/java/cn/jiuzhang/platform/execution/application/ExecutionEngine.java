@@ -106,12 +106,7 @@ public class ExecutionEngine {
       long[] batchBytes = {0};
       Instant deadline = Instant.now().plusSeconds(integer(map(d, "schedule"), "timeoutSeconds"));
       try (var writer = Files.newBufferedWriter(file)) {
-        connector.scan(
-            sources.connection(text(d, "sourceId")),
-            datasets.table(dataset, integer(run, "datasetVersion")),
-            datasets.columns(dataset, integer(run, "datasetVersion")),
-            new ArrayList<>(plan.usedSourceFields()),
-            row -> {
+        java.util.function.Consumer<Map<String,Object>> processRow = row -> {
               if (leaseLost.get()) throw new Failure(409, "RUN_LEASE_LOST");
               if (Instant.now().isAfter(deadline)) throw new Failure(422, "RUN_TIMEOUT");
               String line = json.write(row);
@@ -142,8 +137,19 @@ public class ExecutionEngine {
                 batch.clear();
                 batchBytes[0] = 0;
               }
-            },
-            () -> leaseLost.get() || cancelRequested.get() || Instant.now().isAfter(deadline));
+            };
+        var expectedColumns = datasets.columns(dataset, integer(run, "datasetVersion"));
+        var selectedColumns = new ArrayList<>(plan.usedSourceFields());
+        java.util.function.BooleanSupplier canceled =
+            () -> leaseLost.get() || cancelRequested.get() || Instant.now().isAfter(deadline);
+        if (text(d, "mode").equals("sql")) {
+          sources.scanSql(text(d, "sourceId"), text(d, "sql"), expectedColumns,
+              selectedColumns, 1_000_000, processRow, canceled);
+        } else {
+          connector.scan(sources.connection(text(d, "sourceId")),
+              datasets.table(dataset, integer(run, "datasetVersion")), expectedColumns,
+              selectedColumns, processRow, canceled);
+        }
       }
       if (runs.canceled(id, token)) throw new Failure(409, "RUN_CANCELED");
       warehouse.append(physical, plan.fields(), batch);

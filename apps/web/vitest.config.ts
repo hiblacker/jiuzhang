@@ -4,7 +4,11 @@ export default defineConfig({
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   test: {
     environment: 'node',
-    include: ['src/**/__tests__/*.test.ts', 'tests/integration/*.test.ts'],
+    include: [
+      'src/**/__tests__/*.test.ts',
+      'tests/support/**/__tests__/*.test.ts',
+      'tests/integration/*.test.ts',
+    ],
     setupFiles: ['tests/setup.ts'],
   },
 })

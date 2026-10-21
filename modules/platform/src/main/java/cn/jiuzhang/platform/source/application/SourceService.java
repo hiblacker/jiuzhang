@@ -70,6 +70,21 @@ public class SourceService {
         var rows=connector.preview(connection(id),object.name(),100);
         return Map.of("fields",object.columns().stream().map(SourceService::field).toList(),"rows",rows,"notes",List.of("MySQL · LIMIT 100 · UTC · Decimal/BIGINT are strings"));
     }
+    public SourceConnector.QueryResult previewSql(User user,String id,String sql){
+        IdentityService.require(user,"readSensitive");return connector.query(connection(id),sql,100);
+    }
+    public SourceConnector.QueryResult querySql(User user,String id,String sql,int limit){
+        IdentityService.require(user,"readSensitive");return connector.query(connection(id),sql,limit);
+    }
+    public void scanSql(String id,String sql,List<SourceConnector.Column> expected,List<String> selected,long maxRows,
+                        java.util.function.Consumer<Map<String,Object>> consumer,java.util.function.BooleanSupplier canceled){
+        connector.scanSql(connection(id),sql,expected,selected,maxRows,consumer,canceled);
+    }
+    public List<Map<String,Object>> queryTable(String sourceId,String table,List<SourceConnector.Column> expected,
+                                               List<String> selected,long limit,
+                                               java.util.function.BooleanSupplier canceled){
+        return connector.queryTable(connection(sourceId),table,expected,selected,(int)limit).rows();
+    }
     public Connection connection(String id){var source=store.get(id);return connection(source.settings(),new Credentials(source.username(),vault.open(id,store.secret(id))));}
     public void delete(User user,String id,String requestId){IdentityService.require(user,"write");store.transaction(()->{store.get(id);store.delete(id);identity.audit(user.id(),"delete","source",id,requestId);return null;});}
     public static Map<String,Object> field(SourceConnector.Column c){

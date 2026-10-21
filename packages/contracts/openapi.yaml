@@ -3,7 +3,7 @@
   "info": {
     "title": "九章平台传输契约",
     "version": "0.2.0",
-    "description": "前端 Mock 与真实 API 共享协议。真实能力按后端里程碑开放；不支持的功能显式返回 NOT_IMPLEMENTED，禁止回退 Mock。"
+    "description": "前后端共享的真实 API 传输契约。不支持的功能由服务端明确返回，客户端不得伪造成功结果。"
   },
   "servers": [
     {
@@ -5337,6 +5337,127 @@
         }
       }
     },
+    "/datasets/{id}/query": {
+      "post": {
+        "operationId": "post_datasets_id_query",
+        "summary": "查询已发布的直连数据集",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetQueryInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "查询结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Preview"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/datasets/{id}/publish": {
       "post": {
         "operationId": "post_datasets_id_publish",
@@ -9867,160 +9988,6 @@
         }
       }
     },
-    "/governance/quality/{id}/evaluate": {
-      "post": {
-        "operationId": "post_governance_quality_id_evaluate",
-        "summary": "/governance/quality/{id}/evaluate",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "Idempotency-Key",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "同一角色、路径、键和请求体返回同一结果；不同请求体返回409"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/QualitySampleEvaluation"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    }
-                  },
-                  "required": [
-                    "data",
-                    "meta"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "当前真实版本尚未实现此能力",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "scenario": {
-                    "type": "string",
-                    "enum": [
-                      "pass",
-                      "warn",
-                      "block"
-                    ]
-                  }
-                },
-                "required": [
-                  "scenario"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
     "/services/{id}/enable": {
       "post": {
         "operationId": "post_services_id_enable",
@@ -11135,360 +11102,6 @@
         }
       }
     },
-    "/demo/control": {
-      "get": {
-        "operationId": "get_demo_control",
-        "summary": "/demo/control",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/Control"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    }
-                  },
-                  "required": [
-                    "data",
-                    "meta"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "当前真实版本尚未实现此能力",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "operationId": "patch_demo_control",
-        "summary": "/demo/control",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/Control"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    }
-                  },
-                  "required": [
-                    "data",
-                    "meta"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "当前真实版本尚未实现此能力",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Control"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/demo/reset": {
-      "post": {
-        "operationId": "post_demo_reset",
-        "summary": "/demo/reset",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "Idempotency-Key",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "同一角色、路径、键和请求体返回同一结果；不同请求体返回409"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/Message"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    }
-                  },
-                  "required": [
-                    "data",
-                    "meta"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "当前真实版本尚未实现此能力",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/session": {
       "get": {
         "operationId": "getSession",
@@ -11943,411 +11556,12 @@
         }
       }
     },
-    "/session/users": {
-      "get": {
-        "operationId": "get_session_users",
-        "summary": "虚构演示用户选择",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/User"
-                      }
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    }
-                  },
-                  "required": [
-                    "data",
-                    "meta"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "当前真实版本尚未实现此能力",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/governance/masking/{id}/preview": {
-      "post": {
-        "operationId": "post_governance_masking_id_preview",
-        "summary": "合成样本脱敏预览",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "Idempotency-Key",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "同一角色、路径、键和请求体返回同一结果；不同请求体返回409"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/MaskingPreview"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    }
-                  },
-                  "required": [
-                    "data",
-                    "meta"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "当前真实版本尚未实现此能力",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "sample": {
-                    "type": "string",
-                    "enum": [
-                      "phone",
-                      "email",
-                      "text",
-                      "amount"
-                    ]
-                  }
-                },
-                "required": [
-                  "sample"
-                ]
-              },
-              "example": {
-                "sample": "phone"
-              }
-            }
-          }
-        }
-      }
-    },
     "/dataset-folders": {
       "get": {
         "operationId": "get_dataset_folders",
         "summary": "/dataset-folders",
         "parameters": [],
         "responses": {
-          "400": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "FORBIDDEN",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "NOT_FOUND",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "DEPENDENCY_CONFLICT",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "VALIDATION_ERROR",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
           "200": {
             "description": "成功",
             "content": {
@@ -12387,23 +11601,6 @@
               }
             }
           },
-          "501": {
-            "description": "当前真实版本尚未实现此能力",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "post_dataset_folders",
-        "summary": "/dataset-folders",
-        "parameters": [],
-        "responses": {
           "400": {
             "description": "明确的错误响应",
             "content": {
@@ -12414,7 +11611,7 @@
                 "example": {
                   "error": {
                     "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
+                    "message": "请求失败",
                     "requestId": "demo-request",
                     "details": []
                   }
@@ -12432,7 +11629,7 @@
                 "example": {
                   "error": {
                     "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
+                    "message": "请求失败",
                     "requestId": "demo-request",
                     "details": []
                   }
@@ -12450,7 +11647,7 @@
                 "example": {
                   "error": {
                     "code": "FORBIDDEN",
-                    "message": "演示请求失败",
+                    "message": "请求失败",
                     "requestId": "demo-request",
                     "details": []
                   }
@@ -12468,7 +11665,7 @@
                 "example": {
                   "error": {
                     "code": "NOT_FOUND",
-                    "message": "演示请求失败",
+                    "message": "请求失败",
                     "requestId": "demo-request",
                     "details": []
                   }
@@ -12486,7 +11683,7 @@
                 "example": {
                   "error": {
                     "code": "DEPENDENCY_CONFLICT",
-                    "message": "演示请求失败",
+                    "message": "请求失败",
                     "requestId": "demo-request",
                     "details": []
                   }
@@ -12504,7 +11701,7 @@
                 "example": {
                   "error": {
                     "code": "VALIDATION_ERROR",
-                    "message": "演示请求失败",
+                    "message": "请求失败",
                     "requestId": "demo-request",
                     "details": []
                   }
@@ -12522,7 +11719,7 @@
                 "example": {
                   "error": {
                     "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
+                    "message": "请求失败",
                     "requestId": "demo-request",
                     "details": []
                   }
@@ -12530,6 +11727,23 @@
               }
             }
           },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_dataset_folders",
+        "summary": "/dataset-folders",
+        "parameters": [],
+        "responses": {
           "201": {
             "description": "成功",
             "content": {
@@ -12559,6 +11773,132 @@
                   },
                   "meta": {
                     "requestId": "demo-request"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "REQUEST_FAILED",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "REQUEST_FAILED",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "DEPENDENCY_CONFLICT",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "REQUEST_FAILED",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
                   }
                 }
               }
@@ -12607,132 +11947,6 @@
           }
         ],
         "responses": {
-          "400": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "FORBIDDEN",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "NOT_FOUND",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "DEPENDENCY_CONFLICT",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "VALIDATION_ERROR",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
           "200": {
             "description": "成功",
             "content": {
@@ -12762,6 +11976,132 @@
                   },
                   "meta": {
                     "requestId": "demo-request"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "REQUEST_FAILED",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "REQUEST_FAILED",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "DEPENDENCY_CONFLICT",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "REQUEST_FAILED",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
                   }
                 }
               }
@@ -12808,132 +12148,6 @@
           }
         ],
         "responses": {
-          "400": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "FORBIDDEN",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "NOT_FOUND",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "DEPENDENCY_CONFLICT",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "VALIDATION_ERROR",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
           "200": {
             "description": "成功",
             "content": {
@@ -12974,6 +12188,132 @@
               }
             }
           },
+          "400": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "REQUEST_FAILED",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "REQUEST_FAILED",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "DEPENDENCY_CONFLICT",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "REQUEST_FAILED",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
+                }
+              }
+            }
+          },
           "501": {
             "description": "当前真实版本尚未实现此能力",
             "content": {
@@ -12993,132 +12333,6 @@
         "summary": "/warehouse/subject-domains",
         "parameters": [],
         "responses": {
-          "400": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "FORBIDDEN",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "NOT_FOUND",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "DEPENDENCY_CONFLICT",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "VALIDATION_ERROR",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "明确的错误响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                },
-                "example": {
-                  "error": {
-                    "code": "REQUEST_FAILED",
-                    "message": "演示请求失败",
-                    "requestId": "demo-request",
-                    "details": []
-                  }
-                }
-              }
-            }
-          },
           "200": {
             "description": "成功",
             "content": {
@@ -13155,75 +12369,20 @@
               }
             }
           },
-          "501": {
-            "description": "当前真实版本尚未实现此能力",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/demo/tick": {
-      "post": {
-        "operationId": "tick_demo_clock",
-        "summary": "Advance the browser-only demo scheduler; zero seconds ticks current time",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "Idempotency-Key",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "同一角色、路径、键和请求体返回同一结果；不同请求体返回409"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/DemoClock"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    }
-                  },
-                  "required": [
-                    "data",
-                    "meta"
-                  ]
-                },
-                "example": {
-                  "data": {
-                    "now": "2026-10-16T01:00:00.000Z",
-                    "scheduledRuns": 1,
-                    "retryRuns": 0,
-                    "changed": true
-                  },
-                  "meta": {
-                    "requestId": "demo-tick"
-                  }
-                }
-              }
-            }
-          },
           "400": {
             "description": "明确的错误响应",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "REQUEST_FAILED",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
                 }
               }
             }
@@ -13234,6 +12393,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "REQUEST_FAILED",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
                 }
               }
             }
@@ -13244,6 +12411,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "FORBIDDEN",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
                 }
               }
             }
@@ -13254,6 +12429,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "NOT_FOUND",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
                 }
               }
             }
@@ -13264,6 +12447,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "DEPENDENCY_CONFLICT",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
                 }
               }
             }
@@ -13274,6 +12465,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
                 }
               }
             }
@@ -13284,6 +12483,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "REQUEST_FAILED",
+                    "message": "请求失败",
+                    "requestId": "demo-request",
+                    "details": []
+                  }
                 }
               }
             }
@@ -13294,28 +12501,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DemoClockInput"
-              },
-              "examples": {
-                "tick": {
-                  "value": {
-                    "advanceSeconds": 0
-                  }
-                },
-                "advance": {
-                  "value": {
-                    "advanceSeconds": 60
-                  }
                 }
               }
             }
@@ -13426,7 +12611,7 @@
               }
             }
           },
-          "500": {
+          "429": {
             "description": "明确的错误响应",
             "content": {
               "application/json": {
@@ -13436,7 +12621,7 @@
               }
             }
           },
-          "429": {
+          "500": {
             "description": "明确的错误响应",
             "content": {
               "application/json": {
@@ -13548,7 +12733,7 @@
               }
             }
           },
-          "500": {
+          "429": {
             "description": "明确的错误响应",
             "content": {
               "application/json": {
@@ -13558,7 +12743,7 @@
               }
             }
           },
-          "429": {
+          "500": {
             "description": "明确的错误响应",
             "content": {
               "application/json": {
@@ -13684,7 +12869,7 @@
               }
             }
           },
-          "500": {
+          "429": {
             "description": "明确的错误响应",
             "content": {
               "application/json": {
@@ -13694,7 +12879,7 @@
               }
             }
           },
-          "429": {
+          "500": {
             "description": "明确的错误响应",
             "content": {
               "application/json": {
@@ -14212,7 +13397,7 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 10,
-            "description": "Maximum additional automatic attempts for a failed run; BLOCK/canceled never retry automatically. Mock uses a fixed five-second retry delay."
+            "description": "Maximum additional automatic attempts for a failed run; BLOCK/canceled never retry automatically."
           },
           "timeoutSeconds": {
             "type": "integer",
@@ -14306,6 +13491,14 @@
               "visual",
               "sql"
             ]
+          },
+          "deliveryMode": {
+            "type": "string",
+            "enum": [
+              "direct",
+              "warehouse"
+            ],
+            "description": "数据集提供方式；省略时按 warehouse 兼容历史版本。"
           },
           "sql": {
             "type": "string"
@@ -14413,6 +13606,18 @@
           "tags",
           "definition"
         ]
+      },
+      "DatasetQueryInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100
+          }
+        }
       },
       "Dataset": {
         "type": "object",
@@ -14654,7 +13859,7 @@
             ],
             "format": "date-time",
             "readOnly": true,
-            "description": "Next scheduled UTC instant; null for manual/paused schedules. Mock skips missed slots and dispatches one due run when resumed."
+            "description": "Next scheduled UTC instant; null for manual/paused schedules."
           }
         },
         "required": [
@@ -14696,10 +13901,6 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "outcome": {
-            "$ref": "#/components/schemas/RunOutcome",
-            "description": "仅 Mock 演示使用；真实服务根据执行结果决定，真实请求不得提供。"
-          },
           "allowEmptySnapshot": {
             "type": "boolean",
             "description": "仅本次运行批准空结果替换已有非空快照；要求管理员权限，不绕过读取/质量失败。"
@@ -14718,15 +13919,11 @@
           "to": {
             "type": "string",
             "format": "date"
-          },
-          "outcome": {
-            "$ref": "#/components/schemas/RunOutcome"
           }
         },
         "required": [
           "from",
-          "to",
-          "outcome"
+          "to"
         ]
       },
       "Run": {
@@ -15120,15 +14317,6 @@
               ]
             }
           },
-          "outcome": {
-            "type": "string",
-            "enum": [
-              "succeeded",
-              "failed"
-            ],
-            "default": "succeeded",
-            "description": "显式演示场景"
-          },
           "subjectDomain": {
             "type": "string",
             "maxLength": 60,
@@ -15206,14 +14394,6 @@
               "csv",
               "json"
             ]
-          },
-          "outcome": {
-            "type": "string",
-            "enum": [
-              "ready",
-              "failed"
-            ],
-            "description": "显式演示场景"
           }
         },
         "required": [
@@ -15798,7 +14978,7 @@
           },
           "username": {
             "type": "string",
-            "description": "System account login name; absent in historical Mock records."
+            "description": "System account login name; empty when not set."
           }
         },
         "required": [
@@ -16046,7 +15226,7 @@
           "attentionCounts": {
             "type": "object",
             "additionalProperties": false,
-            "description": "Counts across the same complete resource snapshot, independent of list pagination. Drafts include unpublished edits to previously published datasets. Source states are Mock metadata, not real connectivity checks.",
+            "description": "Counts across the same complete resource snapshot, independent of list pagination. Drafts include unpublished edits to previously published datasets. Source status reflects the last recorded connection check.",
             "properties": {
               "draftDatasets": {
                 "type": "integer",
@@ -16131,41 +15311,6 @@
           "trend",
           "layerCounts",
           "recentAudit"
-        ]
-      },
-      "Control": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "domain": {
-            "type": "string",
-            "enum": [
-              "all",
-              "sources",
-              "datasets",
-              "tasks",
-              "runs",
-              "warehouse",
-              "governance",
-              "services",
-              "system",
-              "overview"
-            ]
-          },
-          "scenario": {
-            "type": "string",
-            "enum": [
-              "normal",
-              "empty",
-              "error",
-              "slow",
-              "forbidden"
-            ]
-          }
-        },
-        "required": [
-          "domain",
-          "scenario"
         ]
       },
       "Message": {
@@ -16577,67 +15722,6 @@
           "failedRows"
         ]
       },
-      "QualitySampleEvaluation": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "ruleId": {
-            "type": "string",
-            "pattern": "^[0-9]+$"
-          },
-          "version": {
-            "type": "integer"
-          },
-          "result": {
-            "type": "string",
-            "enum": [
-              "PASS",
-              "WARN",
-              "BLOCK"
-            ]
-          },
-          "message": {
-            "type": "string"
-          },
-          "total": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "failed": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "passRate": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 100
-          },
-          "failedRows": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "minimum": 1
-            }
-          },
-          "rows": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Row"
-            }
-          }
-        },
-        "required": [
-          "ruleId",
-          "version",
-          "result",
-          "message",
-          "total",
-          "failed",
-          "passRate",
-          "failedRows",
-          "rows"
-        ]
-      },
       "WarehouseMetrics": {
         "type": "object",
         "additionalProperties": false,
@@ -16753,37 +15837,6 @@
           "trend"
         ]
       },
-      "MaskingPreview": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "original": {
-            "type": "string"
-          },
-          "masked": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "removed": {
-            "type": "boolean"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "version": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "original",
-          "masked",
-          "removed",
-          "enabled",
-          "version"
-        ]
-      },
       "DatasetFolderInput": {
         "type": "object",
         "additionalProperties": false,
@@ -16874,47 +15927,6 @@
           "object"
         ],
         "description": "源对象结构快照；仅保存元数据，不包含连接配置、凭证或源端数据备份。"
-      },
-      "DemoClockInput": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "advanceSeconds": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 86400
-          }
-        },
-        "required": [
-          "advanceSeconds"
-        ]
-      },
-      "DemoClock": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "now": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "scheduledRuns": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "retryRuns": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "changed": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "now",
-          "scheduledRuns",
-          "retryRuns",
-          "changed"
-        ]
       },
       "LoginInput": {
         "type": "object",

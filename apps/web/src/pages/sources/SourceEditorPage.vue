@@ -14,7 +14,6 @@ const { t } = useI18n(),
   message = useMessage()
 const id = computed(() => String(route.params.id ?? ''))
 const { query, draft, credentials, dirty, changes, save, test } = useSourceEditor(id)
-const real = import.meta.env.VITE_API_MODE === 'real'
 const differenceRows = computed(() =>
   changes.value.map((change) => ({
     field: t(change.labelKey),
@@ -47,7 +46,7 @@ async function testConnection() {
   if (test.isPending.value || save.isPending.value) return
   try {
     const result = await test.mutateAsync()
-    if (result.success) message.success(real ? t('sources.realTestPass') : t('sources.testPass'))
+    if (result.success) message.success(t('sources.realTestPass'))
     else message.error(t('sources.testFail'))
   } catch {}
 }
@@ -85,7 +84,7 @@ useEditGuard(dirty, () => save.isPending.value || test.isPending.value)
           :loading="test.isPending.value"
           :disabled="save.isPending.value"
           @click="testConnection"
-          >{{ real ? t('sources.realTest') : t('sources.test') }}</NButton
+          >{{ t('sources.realTest') }}</NButton
         ></NSpace
       >
       <section v-if="id" :aria-label="t('sources.configurationDiff')" class="configuration-diff">

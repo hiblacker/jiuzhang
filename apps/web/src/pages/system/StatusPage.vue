@@ -30,17 +30,6 @@ function back() {
   if (window.history.length > 1 && (previousRoute || previousDocument)) router.back()
   else void router.push('/overview')
 }
-function switchRole() {
-  const target = route.query.redirect
-  const redirect =
-    typeof target === 'string' &&
-    target.startsWith('/') &&
-    !target.startsWith('//') &&
-    !['/login', '/403', '/404'].some((path) => target.startsWith(path))
-      ? target
-      : '/overview'
-  void router.push({ path: '/login', query: { redirect } })
-}
 function retry() {
   const target = String(route.query.redirect ?? '/overview')
   void router.push(target.startsWith('/') && !target.startsWith('//') ? target : '/overview')
@@ -55,7 +44,6 @@ function retry() {
     ><template #footer
       ><div class="status-actions">
         <NButton @click="back">{{ t('previousPage') }}</NButton
-        ><NButton v-if="route.path === '/403'" @click="switchRole">{{ t('switchRole') }}</NButton
         ><NButton v-if="route.query.reason === 'unavailable'" @click="retry">{{
           t('retry')
         }}</NButton

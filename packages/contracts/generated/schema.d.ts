@@ -379,6 +379,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/datasets/{id}/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 查询已发布的直连数据集 */
+        post: operations["post_datasets_id_query"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/datasets/{id}/publish": {
         parameters: {
             query?: never;
@@ -842,23 +859,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/governance/quality/{id}/evaluate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** /governance/quality/{id}/evaluate */
-        post: operations["post_governance_quality_id_evaluate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/services/{id}/enable": {
         parameters: {
             query?: never;
@@ -979,41 +979,6 @@ export interface paths {
         patch: operations["patch_system_settings"];
         trace?: never;
     };
-    "/demo/control": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** /demo/control */
-        get: operations["get_demo_control"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** /demo/control */
-        patch: operations["patch_demo_control"];
-        trace?: never;
-    };
-    "/demo/reset": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** /demo/reset */
-        post: operations["post_demo_reset"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/session": {
         parameters: {
             query?: never;
@@ -1059,40 +1024,6 @@ export interface paths {
         get: operations["get_warehouse_metrics"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/session/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 虚构演示用户选择 */
-        get: operations["get_session_users"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/governance/masking/{id}/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 合成样本脱敏预览 */
-        post: operations["post_governance_masking_id_preview"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1146,23 +1077,6 @@ export interface paths {
         get: operations["get_warehouse_subject_domains"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/demo/tick": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Advance the browser-only demo scheduler; zero seconds ticks current time */
-        post: operations["tick_demo_clock"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1341,7 +1255,7 @@ export interface components {
             cron: string;
             intervalMinutes: number;
             timezone: string;
-            /** @description Maximum additional automatic attempts for a failed run; BLOCK/canceled never retry automatically. Mock uses a fixed five-second retry delay. */
+            /** @description Maximum additional automatic attempts for a failed run; BLOCK/canceled never retry automatically. */
             retries: number;
             timeoutSeconds: number;
             concurrency: number;
@@ -1363,6 +1277,11 @@ export interface components {
             upstreamDatasetId: string;
             /** @enum {string} */
             mode: "visual" | "sql";
+            /**
+             * @description 数据集提供方式；省略时按 warehouse 兼容历史版本。
+             * @enum {string}
+             */
+            deliveryMode?: "direct" | "warehouse";
             sql: string;
             fields: components["schemas"]["Field"][];
             nodes: components["schemas"]["Node"][];
@@ -1380,6 +1299,10 @@ export interface components {
             tags: string[];
             definition: components["schemas"]["DatasetDefinition"];
             folderId?: string | null;
+        };
+        DatasetQueryInput: {
+            /** @default 100 */
+            limit: number;
         };
         Dataset: {
             id: string;
@@ -1439,7 +1362,7 @@ export interface components {
             lastSuccessAt: string | null;
             /**
              * Format: date-time
-             * @description Next scheduled UTC instant; null for manual/paused schedules. Mock skips missed slots and dispatches one due run when resumed.
+             * @description Next scheduled UTC instant; null for manual/paused schedules.
              */
             readonly nextRunAt?: string | null;
         };
@@ -1448,8 +1371,6 @@ export interface components {
         /** @enum {string} */
         RunStatus: "queued" | "running" | "validating" | "publishing" | "succeeded" | "failed" | "blocked" | "canceled";
         RunInput: {
-            /** @description 仅 Mock 演示使用；真实服务根据执行结果决定，真实请求不得提供。 */
-            outcome?: components["schemas"]["RunOutcome"];
             /** @description 仅本次运行批准空结果替换已有非空快照；要求管理员权限，不绕过读取/质量失败。 */
             allowEmptySnapshot?: boolean;
         };
@@ -1458,7 +1379,6 @@ export interface components {
             from: string;
             /** Format: date */
             to: string;
-            outcome: components["schemas"]["RunOutcome"];
         };
         Run: {
             id: string;
@@ -1561,12 +1481,6 @@ export interface components {
                 source: string;
                 target: string;
             }[];
-            /**
-             * @description 显式演示场景
-             * @default succeeded
-             * @enum {string}
-             */
-            outcome: "succeeded" | "failed";
             /** @description 业务主题域，与 ODS/DWD/DWS/ADS 技术分层独立；空字符串表示未分类。 */
             subjectDomain?: string;
         };
@@ -1586,11 +1500,6 @@ export interface components {
             queryId: string;
             /** @enum {string} */
             format: "csv" | "json";
-            /**
-             * @description 显式演示场景
-             * @enum {string}
-             */
-            outcome?: "ready" | "failed";
         };
         Export: {
             id: string;
@@ -1726,7 +1635,7 @@ export interface components {
             enabled: boolean;
             /** Format: date-time */
             updatedAt: string;
-            /** @description System account login name; absent in historical Mock records. */
+            /** @description System account login name; empty when not set. */
             username?: string;
         };
         Role: {
@@ -1784,7 +1693,7 @@ export interface components {
             recentRuns: components["schemas"]["Run"][];
             /** @description Latest failed or blocked runs by startedAt descending, filtered before limiting independently of recentRuns. */
             recentFailures: components["schemas"]["Run"][];
-            /** @description Counts across the same complete resource snapshot, independent of list pagination. Drafts include unpublished edits to previously published datasets. Source states are Mock metadata, not real connectivity checks. */
+            /** @description Counts across the same complete resource snapshot, independent of list pagination. Drafts include unpublished edits to previously published datasets. Source status reflects the last recorded connection check. */
             attentionCounts: {
                 draftDatasets: number;
                 warningSources: number;
@@ -1800,12 +1709,6 @@ export interface components {
                 tables: number;
             }[];
             recentAudit: components["schemas"]["Audit"][];
-        };
-        Control: {
-            /** @enum {string} */
-            domain: "all" | "sources" | "datasets" | "tasks" | "runs" | "warehouse" | "governance" | "services" | "system" | "overview";
-            /** @enum {string} */
-            scenario: "normal" | "empty" | "error" | "slow" | "forbidden";
         };
         Message: {
             message: string;
@@ -1913,18 +1816,6 @@ export interface components {
             passRate: number;
             failedRows: number[];
         };
-        QualitySampleEvaluation: {
-            ruleId: string;
-            version: number;
-            /** @enum {string} */
-            result: "PASS" | "WARN" | "BLOCK";
-            message: string;
-            total: number;
-            failed: number;
-            passRate: number;
-            failedRows: number[];
-            rows: components["schemas"]["Row"][];
-        };
         WarehouseMetrics: {
             /** @description 按 ODS、DWD、DWS、ADS 顺序返回当前统计范围内全部表的分层汇总，不受列表分页限制；tableId 提供时仅统计该表。空层仍返回零值，行数以十进制字符串无损传输。 */
             layers: {
@@ -1949,13 +1840,6 @@ export interface components {
                 tables: number;
             }[];
         };
-        MaskingPreview: {
-            original: string;
-            masked: string | null;
-            removed: boolean;
-            enabled: boolean;
-            version: number;
-        };
         DatasetFolderInput: {
             name: string;
             parentId: string | null;
@@ -1975,16 +1859,6 @@ export interface components {
         SourceSchemaSnapshot: {
             sourceName: string;
             object: components["schemas"]["SourceObject"];
-        };
-        DemoClockInput: {
-            advanceSeconds: number;
-        };
-        DemoClock: {
-            /** Format: date-time */
-            now: string;
-            scheduledRuns: number;
-            retryRuns: number;
-            changed: boolean;
         };
         LoginInput: {
             username: string;
@@ -5947,6 +5821,98 @@ export interface operations {
             };
         };
     };
+    post_datasets_id_query: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DatasetQueryInput"];
+            };
+        };
+        responses: {
+            /** @description 查询结果 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Preview"];
+                        meta: components["schemas"]["Meta"];
+                    };
+                };
+            };
+            /** @description 明确的错误响应 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     post_datasets_id_publish: {
         parameters: {
             query?: never;
@@ -9114,113 +9080,6 @@ export interface operations {
             };
         };
     };
-    post_governance_quality_id_evaluate: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 同一角色、路径、键和请求体返回同一结果；不同请求体返回409 */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @enum {string} */
-                    scenario: "pass" | "warn" | "block";
-                };
-            };
-        };
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["QualitySampleEvaluation"];
-                        meta: components["schemas"]["Meta"];
-                    };
-                };
-            };
-            /** @description 明确的错误响应 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 当前真实版本尚未实现此能力 */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     post_services_id_enable: {
         parameters: {
             query?: never;
@@ -10027,298 +9886,6 @@ export interface operations {
             };
         };
     };
-    get_demo_control: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["Control"];
-                        meta: components["schemas"]["Meta"];
-                    };
-                };
-            };
-            /** @description 明确的错误响应 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 当前真实版本尚未实现此能力 */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    patch_demo_control: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Control"];
-            };
-        };
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["Control"];
-                        meta: components["schemas"]["Meta"];
-                    };
-                };
-            };
-            /** @description 明确的错误响应 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 当前真实版本尚未实现此能力 */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    post_demo_reset: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 同一角色、路径、键和请求体返回同一结果；不同请求体返回409 */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["Message"];
-                        meta: components["schemas"]["Meta"];
-                    };
-                };
-            };
-            /** @description 明确的错误响应 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 当前真实版本尚未实现此能力 */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     getSession: {
         parameters: {
             query?: never;
@@ -10623,213 +10190,6 @@ export interface operations {
             };
         };
     };
-    get_session_users: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["User"][];
-                        meta: components["schemas"]["Meta"];
-                    };
-                };
-            };
-            /** @description 明确的错误响应 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 当前真实版本尚未实现此能力 */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    post_governance_masking_id_preview: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 同一角色、路径、键和请求体返回同一结果；不同请求体返回409 */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "sample": "phone"
-                 *     }
-                 */
-                "application/json": {
-                    /** @enum {string} */
-                    sample: "phone" | "email" | "text" | "amount";
-                };
-            };
-        };
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["MaskingPreview"];
-                        meta: components["schemas"]["Meta"];
-                    };
-                };
-            };
-            /** @description 明确的错误响应 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 当前真实版本尚未实现此能力 */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
     get_dataset_folders: {
         parameters: {
             query?: never;
@@ -10876,7 +10236,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -10895,7 +10255,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -10914,7 +10274,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "FORBIDDEN",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -10933,7 +10293,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "NOT_FOUND",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -10952,7 +10312,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "DEPENDENCY_CONFLICT",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -10971,7 +10331,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "VALIDATION_ERROR",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -10990,7 +10350,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11064,7 +10424,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11083,7 +10443,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11102,7 +10462,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "FORBIDDEN",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11121,7 +10481,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "NOT_FOUND",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11140,7 +10500,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "DEPENDENCY_CONFLICT",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11159,7 +10519,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "VALIDATION_ERROR",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11178,7 +10538,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11243,7 +10603,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11262,7 +10622,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11281,7 +10641,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "FORBIDDEN",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11300,7 +10660,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "NOT_FOUND",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11319,7 +10679,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "DEPENDENCY_CONFLICT",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11338,7 +10698,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "VALIDATION_ERROR",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11357,7 +10717,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11433,7 +10793,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11452,7 +10812,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11471,7 +10831,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "FORBIDDEN",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11490,7 +10850,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "NOT_FOUND",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11509,7 +10869,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "DEPENDENCY_CONFLICT",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11528,7 +10888,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "VALIDATION_ERROR",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11547,7 +10907,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11610,7 +10970,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11629,7 +10989,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11648,7 +11008,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "FORBIDDEN",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11667,7 +11027,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "NOT_FOUND",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11686,7 +11046,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "DEPENDENCY_CONFLICT",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11705,7 +11065,7 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "VALIDATION_ERROR",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
@@ -11724,127 +11084,12 @@ export interface operations {
                      * @example {
                      *       "error": {
                      *         "code": "REQUEST_FAILED",
-                     *         "message": "演示请求失败",
+                     *         "message": "请求失败",
                      *         "requestId": "demo-request",
                      *         "details": []
                      *       }
                      *     }
                      */
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 当前真实版本尚未实现此能力 */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    tick_demo_clock: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 同一角色、路径、键和请求体返回同一结果；不同请求体返回409 */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DemoClockInput"];
-            };
-        };
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "data": {
-                     *         "now": "2026-10-16T01:00:00.000Z",
-                     *         "scheduledRuns": 1,
-                     *         "retryRuns": 0,
-                     *         "changed": true
-                     *       },
-                     *       "meta": {
-                     *         "requestId": "demo-tick"
-                     *       }
-                     *     }
-                     */
-                    "application/json": {
-                        data: components["schemas"]["DemoClock"];
-                        meta: components["schemas"]["Meta"];
-                    };
-                };
-            };
-            /** @description 明确的错误响应 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description 明确的错误响应 */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
                     "application/json": components["schemas"]["Error"];
                 };
             };

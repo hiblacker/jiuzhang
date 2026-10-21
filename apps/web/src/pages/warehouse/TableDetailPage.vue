@@ -1,5 +1,4 @@
 <script setup lang="ts">
-const real = import.meta.env.VITE_API_MODE === 'real'
 import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
 import { useRouteTab } from '@/shared/composables/use-route-tab'
 import { DataPreview } from '@/shared/ui/data-preview'
@@ -128,10 +127,6 @@ const route = useRoute(),
               query.data.value?.updatedAt
             }}</NDescriptionsItem></NDescriptions
           ></NTabPane
-        ><NTabPane v-if="!real" name="lineage" :tab="uiText('ui.table_detail_34c5a283')"
-          ><NButton @click="router.push('/governance/lineage?resource=table-' + id)">{{
-            uiText('ui.table_detail_4647e967')
-          }}</NButton></NTabPane
         ><NTabPane name="stats" :tab="uiText('ui.table_detail_d194d5e1')"
           ><AsyncState
             :loading="metrics.isLoading.value"
