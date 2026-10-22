@@ -36,6 +36,8 @@ try {
  await call('GET','/sources/{id}/objects/{objectId}/fields','/sources/'+source.id+'/objects/'+source.objectId+'/fields')
  await call('POST','/sources/{id}/preview','/sources/'+source.id+'/preview',{objectId:source.objectId})
  await call('GET','/datasets/{id}','/datasets/'+dataset.id)
+ await call('GET','/tasks')
+ await call('GET','/tasks/{id}','/tasks/'+dataset.sqlWarehouseId)
  await call('GET','/datasets/{id}/versions','/datasets/'+dataset.id+'/versions')
  await call('GET','/datasets/{id}/versions/{version}','/datasets/'+dataset.id+'/versions/1')
  await call('POST','/datasets/{id}/validate','/datasets/'+dataset.id+'/validate')

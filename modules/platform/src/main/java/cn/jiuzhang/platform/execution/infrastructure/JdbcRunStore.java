@@ -87,6 +87,31 @@ public class JdbcRunStore implements RunStore {
     return get(id, false);
   }
 
+  @Override
+  public Map<String, Object> createScheduled(
+      String dataset, int version, String user, String key, String hash, String taskId) {
+    var active =
+        db.queryForList(
+            "SELECT id FROM dataset_run WHERE dataset_id=? AND status IN"
+                + " ('queued','running','validating','publishing')",
+            n(dataset));
+    if (!active.isEmpty()) throw new Failure(409, "DATASET_RUN_ACTIVE");
+    String id =
+        db.queryForObject(
+                "INSERT INTO dataset_run(dataset_id,dataset_version,requested_by,idempotency_key,request_hash,task_id,trigger,logs)"
+                    + " VALUES (?,?,?,?,?,?, 'schedule',?::jsonb) RETURNING id",
+                Long.class,
+                n(dataset),
+                version,
+                n(user),
+                key,
+                hash,
+                n(taskId),
+                json.write(List.of("RUN_QUEUED", "RUN_SCHEDULED")))
+            .toString();
+    return get(id, false);
+  }
+
   public void cancel(String id) {
     db.update("UPDATE dataset_run SET cancel_requested=true WHERE id=?", n(id));
     db.update(
@@ -248,6 +273,11 @@ public class JdbcRunStore implements RunStore {
             + " status='succeeded',finished_at=now(),error_code='',logs=logs||'[\"RUN_SUCCEEDED\"]'::jsonb"
             + " WHERE id=?",
         n(id));
+    db.update(
+        "UPDATE dataset_schedule SET last_success_run_id=?,last_success_at=now(),updated_at=now()"
+            + " WHERE dataset_id=?",
+        n(id),
+        n(dataset));
   }
 
   public Map<String, Object> current(String dataset) {
@@ -323,6 +353,9 @@ public class JdbcRunStore implements RunStore {
     for (String key : List.of("id", "datasetId", "requestedBy", "rowCount"))
       m.put(key, m.get(key).toString());
     m.put("retryOf", r.get("retry_of") == null ? "" : r.get("retry_of").toString());
+    m.put("taskId", r.get("task_id") == null ? "" : r.get("task_id").toString());
+    m.put("trigger", r.get("trigger") == null ? "manual" : r.get("trigger").toString());
+    m.put("businessDate", r.get("business_date") == null ? null : r.get("business_date").toString());
     m.put("rawObjectKey", r.get("raw_object_key"));
     m.put("leaseToken", r.get("lease_token"));
     m.put("leaseUntil", instant(r.get("lease_until")));

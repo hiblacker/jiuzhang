@@ -28,7 +28,7 @@ export default {
       processingStatus: '处理结果',
       verified: '已预览确认',
       publishHint:
-        '保存只更新草稿。发布后直连数据集可查询，入库数据集还需手动运行。预览使用受限样本，发布与运行继续执行完整校验。',
+        '保存只更新草稿。发布后直连数据集可查询，入库数据集可手动运行或按任务计划自动运行。预览使用受限样本，发布与运行继续执行完整校验。',
       previous: '上一步',
       nextProcessing: '确认取数，下一步',
       nextDelivery: '确认处理，下一步',
@@ -49,7 +49,7 @@ export default {
     realOutput:
       '完整读取、质量检查与脱敏后发布独立快照；成功后替换当前数据，失败不影响旧快照。旧快照最多保留 3 份且不超过 7 天。',
     realScope:
-      'MySQL 数据集支持单表或只读 SQL；可选择实时直连，或手动全量快照入库。入库目标表必须独占，首次发布后固定。',
+      'MySQL 数据集支持单表或只读 SQL；可选择实时直连，或全量快照入库并按任务计划自动运行。入库目标表必须独占，首次发布后固定。',
     related: {
       title: '关联数据集',
       states: { draft: '草稿', published: '已发布', blocked: '已阻断' },
@@ -87,8 +87,9 @@ export default {
     directHelp: '发布后通过平台查询接口实时读取数据源，不生成仓库快照，也不创建运行任务。',
     directPublishedOutput:
       '发布后，平台查询接口会按此版本定义读取源库并返回经过字段处理与脱敏的结果。',
-    warehouseHelp: '发布后可手动运行，将处理结果写入数仓目标表并替换当前快照。',
-    scheduleUnsupported: '第一版仅支持手动运行，定时调度暂未开放。',
+    warehouseHelp:
+      '发布后可手动运行，也可在任务中心配置 Cron 或固定间隔，将处理结果写入数仓目标表并替换当前快照。',
+    scheduleUnsupported: '定时计划在任务中心配置；数据集发布后才会按计划运行。',
     output: {
       summary: '输出写入配置',
       mode: '写入语义',

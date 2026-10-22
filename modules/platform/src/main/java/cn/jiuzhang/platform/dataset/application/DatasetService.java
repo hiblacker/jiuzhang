@@ -8,6 +8,7 @@ import cn.jiuzhang.platform.shared.application.Failure;
 import cn.jiuzhang.platform.shared.application.JsonWriter;
 import cn.jiuzhang.platform.source.application.SourceService;
 import cn.jiuzhang.platform.source.domain.SourceConnector;
+import cn.jiuzhang.platform.task.domain.ScheduleCalculator;
 import java.time.Instant;
 import java.util.*;
 import org.springframework.stereotype.Service;
@@ -393,10 +394,14 @@ public class DatasetService {
       if (mode.equals("sql") && (text(d, "sql").isBlank() || text(d, "sql").length() > 8192))
         throw new Failure(422, "UNSUPPORTED_SQL");
       var s = map(d, "schedule");
-      if (!text(s, "mode").equals("manual")
-          || integer(s, "retries") != 0
+      try {
+        ScheduleCalculator.validate(s);
+      } catch (IllegalArgumentException e) {
+        throw new Failure(422, "SCHEDULE_INVALID");
+      }
+      if (integer(s, "retries") != 0
           || integer(s, "concurrency") != 1
-          || !strings(s, "dependencies").isEmpty()) throw new Failure(422, "SCHEDULE_UNSUPPORTED");
+          || !strings(s, "dependencies").isEmpty()) throw new Failure(422, "SCHEDULE_FEATURE_UNSUPPORTED");
       int timeout = integer(s, "timeoutSeconds");
       if (timeout < 1 || timeout > 600) throw new Failure(422, "TIMEOUT_LIMIT");
       var o = map(d, "output");

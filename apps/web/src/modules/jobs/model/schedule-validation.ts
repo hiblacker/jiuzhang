@@ -22,5 +22,9 @@ export function scheduleIssue(schedule: Model<'Schedule'>, field: keyof Model<'S
     new Set(schedule.dependencies).size !== schedule.dependencies.length
   )
     return 'jobs.invalidDependencies'
+  if (field === 'retries' && schedule.retries !== 0) return 'jobs.unsupportedSchedule'
+  if (field === 'concurrency' && schedule.concurrency !== 1) return 'jobs.unsupportedSchedule'
+  if (field === 'dependencies' && schedule.dependencies.length > 0)
+    return 'jobs.unsupportedSchedule'
   return null
 }

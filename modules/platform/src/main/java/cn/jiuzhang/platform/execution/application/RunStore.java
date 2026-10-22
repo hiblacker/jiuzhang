@@ -23,6 +23,14 @@ public interface RunStore {
       boolean allow,
       String retryOf);
 
+  Map<String, Object> createScheduled(
+      String dataset,
+      int version,
+      String user,
+      String key,
+      String hash,
+      String taskId);
+
   void cancel(String id);
 
   Map<String, Object> claim();

@@ -76,6 +76,7 @@ def main():
  queries=[
   ('WITH chosen AS (SELECT id, amount FROM orders) SELECT * FROM chosen',3),
   ('SELECT a.id, b.amount FROM orders a JOIN orders b ON a.id=b.id',3),
+  ("SELECT id, amount * 2 AS double_amount, CASE WHEN amount > 100 THEN 'high' ELSE 'low' END AS bucket FROM orders",3),
   ('SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS position FROM orders',3),
   ('SELECT id FROM orders WHERE id IN (SELECT id FROM orders)',3),
   ('SELECT COUNT(*) AS total, SUM(amount) AS amount FROM orders',1),

@@ -24,11 +24,13 @@ export default {
     runOutcome: '数据集 {id} 的运行结果',
     runTimeRange: '运行开始日期范围',
     runActions: '运行操作',
-    scheduleHelp: '当前版本仅支持手动运行，定时调度、自动重试和补数暂未开放。',
+    scheduleHelp:
+      '支持手动、Cron 和固定间隔计划；计划只运行已发布的入库数据集。自动重试、依赖和补数暂未开放。',
     invalidCron: '请输入合法的五字段数字 Cron（分 时 日 月 周），不支持 Quartz 扩展。',
     invalidTimezone: '请选择有效的 IANA 时区。',
     invalidNumber: '请填写允许范围内的整数。',
     invalidDependencies: '依赖任务不能重复。',
+    unsupportedSchedule: '当前仅支持单任务串行运行；自动重试、并发和任务依赖暂未开放。',
     waitingDependencies: '等待上游成功；补数要求相同业务日期的上游运行成功。',
     waitingConcurrency: '等待当前任务的并发名额。',
     dependencyPolicy:
@@ -54,7 +56,7 @@ export default {
     manual: '手动触发',
     unsupported: '八年内无匹配时刻',
     nextRuns: '未来三次计划',
-    unsupportedCron: '定时调度暂未开放。',
+    unsupportedCron: '计划语法暂未得到支持，请检查时区、Cron 或间隔设置。',
     noCronMatch: '配置有效，但从当前时间起八年内没有匹配时刻，请检查日期和星期限制。',
     automaticRetryPending: '自动重试等待中：{time}',
     automaticRetryPaused: '自动重试已暂停：请恢复任务后继续',
