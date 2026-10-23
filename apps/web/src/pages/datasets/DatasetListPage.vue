@@ -14,7 +14,7 @@ import {
   NTag,
   type DataTableColumns,
 } from 'naive-ui'
-import { Layers, Plus } from 'lucide-vue-next'
+import { Layers, Plus, Search, RefreshCw } from 'lucide-vue-next'
 import { useDatasets, useDatasetActions } from '@/modules/datasets'
 import { RunTrigger } from '@/modules/jobs'
 import { PageHeader } from '@/shared/ui/page-header'
@@ -56,7 +56,7 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
   {
     title: uiText('ui.dataset_list_fc2b4735'),
     key: 'name',
-    width: 260,
+    width: 230,
     render: (dataset) =>
       h(
         NButton,
@@ -76,7 +76,7 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
   {
     title: uiText('ui.dataset_list_62e951a6'),
     key: 'status',
-    width: 110,
+    width: 100,
     render: (dataset) =>
       h(
         NTag,
@@ -94,7 +94,7 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
   {
     title: t('datasets.deliveryMode'),
     key: 'deliveryMode',
-    width: 140,
+    width: 120,
     render: (dataset) =>
       h(NTag, { size: 'small', bordered: false }, () =>
         dataset.definition.deliveryMode === 'direct'
@@ -105,13 +105,13 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
   {
     title: uiText('ui.dataset_list_c789c17a'),
     key: 'publishedVersion',
-    width: 100,
+    width: 85,
     render: (dataset) => (dataset.publishedVersion ? 'v' + dataset.publishedVersion : '—'),
   },
   {
     title: uiText('ui.dataset_list_974d383f'),
     key: 'owner',
-    width: 140,
+    width: 130,
     render: (dataset) =>
       h(
         NEllipsis,
@@ -131,9 +131,10 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
   {
     title: uiText('ui.dataset_list_f3ea6d34'),
     key: 'actions',
-    width: 360,
+    width: 240,
+    fixed: 'right',
     render: (dataset) =>
-      h(NSpace, { align: 'center' }, () => [
+      h(NSpace, { align: 'center', wrap: false, size: 4 }, () => [
         h(
           NButton,
           {
@@ -163,6 +164,7 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
           : [
               h(RunTrigger, {
                 datasetId: dataset.id,
+                compact: true,
                 disabled: !dataset.publishedVersion,
                 onStarted: (id: string) => router.push('/runs/' + id),
               }),
@@ -186,10 +188,12 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
     <QueryToolbar>
       <NInput
         :value="filters.q"
+        :input-props="{ 'aria-label': t('search') }"
         clearable
         :placeholder="t('search')"
         @update:value="update({ q: $event, page: 1 })"
-      />
+        ><template #prefix><Search :size="16" /></template
+      ></NInput>
       <NSelect
         :value="filters.status || null"
         v-select-trigger-name="uiText('ui.dataset_list_62e951a6')"
@@ -210,6 +214,22 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
         ]"
         @update:value="update({ sort: $event, page: 1 })"
       />
+      <template #actions>
+        <NButton
+          v-if="filters.q || filters.status"
+          quaternary
+          size="small"
+          @click="update({ q: '', status: '', page: 1 })"
+          >{{ t('resetFilters') }}</NButton
+        >
+        <NButton
+          quaternary
+          :aria-label="t('refresh')"
+          :loading="query.isFetching.value"
+          @click="query.refetch()"
+          ><RefreshCw :size="16"
+        /></NButton>
+      </template>
     </QueryToolbar>
     <AsyncState
       :loading="query.isLoading.value"
@@ -221,7 +241,7 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
         :columns="columns"
         :data="query.data.value?.data ?? []"
         :row-key="(dataset) => dataset.id"
-        :scroll-x="1080"
+        :scroll-x="905"
         :bordered="false"
         table-layout="fixed"
       />

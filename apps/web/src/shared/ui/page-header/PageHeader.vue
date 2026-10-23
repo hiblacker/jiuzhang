@@ -19,8 +19,9 @@ defineProps<{ title: string; description?: string }>()
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 28px;
+  gap: 20px;
+  margin-bottom: 24px;
+  padding-bottom: 2px;
 }
 .page-heading {
   flex: 1 1 240px;
@@ -30,13 +31,13 @@ defineProps<{ title: string; description?: string }>()
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 7px;
+  gap: 14px;
+  margin-bottom: 6px;
 }
 .page-title-row h1 {
-  font-size: 26px;
-  font-weight: 650;
-  letter-spacing: -0.6px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
   margin: 0;
   overflow-wrap: anywhere;
 }
@@ -48,6 +49,7 @@ defineProps<{ title: string; description?: string }>()
   margin: 0;
   color: var(--textSecondary);
   font-size: 13px;
+  line-height: 1.6;
 }
 .page-actions {
   display: flex;

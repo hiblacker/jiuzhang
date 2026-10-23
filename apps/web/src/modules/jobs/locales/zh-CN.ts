@@ -3,6 +3,7 @@ import ui from './ui.zh-CN.json'
 export default {
   ui,
   jobs: {
+    runOptions: '运行选项',
     allowEmpty: '允许本次空结果覆盖',
     allowEmptyWarning:
       '若本次完整读取与质量检查通过但结果为零行，将用空快照替换当前非空数据。只对本次运行生效，历史快照按保留策略清理。确认继续？',

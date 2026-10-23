@@ -93,6 +93,14 @@ Page -> domain composable -> repository/mapper -> shared HTTP client -> API
 - 映射按源字段名保留设置与顺序，新字段追加，移除字段提醒。SQL 表名使用源目录的实际标识符大小写；MySQL 在大小写敏感部署中会拒绝错误大小写，消息提示从目录插入准确名称。不将错误改写为猜测性数据库匹配。
 - 复用评审：新增 `DatasetProcessingSettings` 领域组件承载数据集详情的字段/规则/画布配置，既有 `DatasetFields`、`DatasetGraph` 和 `DatasetDeliverySettings` 继续负责各自控件；`DatasetPreviewPanel` 复用 `DataPreview`，不请求、不弹消息。未增加依赖或后端/协议。
 
+### 6.2 工作台视觉与列表交互（2026-10-23）
+
+- 采用低饱和蓝灰配色与清晰的信息层级。`shared/theme/tokens.ts` 拥有明暗语义色，`App.vue` 同时装配 Naive UI 的菜单、卡片、表格、按钮和输入框；页面不维护另一套颜色。
+- `WorkspaceLayout` 拥有品牌导航、可通过键盘收起/展开的导航按钮、当前页面面包屑和真实账号菜单。数据集全屏编辑器继续复用同一主题和身份上下文。
+- 复用并扩展 `PageHeader`、`QueryToolbar`、`AsyncState`：统一标题/说明与操作层级，工具栏增加可选 actions slot，失败态提供明确的加载失败提示与重试。数据源和数据集列表在 URL 中保留搜索/筛选，提供重置和手动刷新。
+- 复用 `modules/jobs/components/RunTrigger.vue` 的运行、权限和确认行为。列表通过可选 `compact` 将空结果覆盖选项收进弹层；选中后按钮显示警示状态，运行仍需二次确认。详情页保留原有内联选项；未增加依赖、协议或服务能力。
+- 浏览器验收固定 1280×1000，`tools/test-real-workspace.mjs` 覆盖导航键盘操作、明暗主题、列表搜索/重置/刷新及运行选项的确认/取消。SQL 编辑器、表单失败/取消沿用既有真实浏览器验收脚本。
+
 ## 7. 验证与本地运行
 
 `pnpm check` 执行契约生成、依赖边界、UI/i18n、lint、格式、类型、单元/HTTP 集成测试和构建。`pnpm test:e2e` 需要已经启动的本地真实服务，并运行数据集浏览器闭环；完整本地引擎验收使用 `bash tools/local.sh verify`。不把测试网络替身的结果当作真实 API 或引擎验证。

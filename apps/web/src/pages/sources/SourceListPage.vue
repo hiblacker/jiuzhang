@@ -44,6 +44,7 @@ async function confirm() {
     ><QueryToolbar
       ><NInput
         :value="filters.q"
+        :input-props="{ 'aria-label': t('search') }"
         clearable
         :placeholder="t('search')"
         @update:value="update({ q: $event, page: 1 })"
@@ -60,11 +61,20 @@ async function confirm() {
         :placeholder="t('status')"
         clearable
         :options="['connected', 'warning', 'offline'].map((value) => ({ value, label: t(value) }))"
-        @update:value="update({ status: $event, page: 1 })" /><NButton
-        quaternary
-        :aria-label="t('refresh')"
-        @click="query.refetch()"
-        ><RefreshCw :size="16" /></NButton></QueryToolbar
+        @update:value="update({ status: $event, page: 1 })" />
+      <template #actions
+        ><NButton
+          v-if="filters.q || filters.type || filters.status"
+          quaternary
+          size="small"
+          @click="update({ q: '', type: '', status: '', page: 1 })"
+          >{{ t('resetFilters') }}</NButton
+        ><NButton
+          quaternary
+          :aria-label="t('refresh')"
+          :loading="query.isFetching.value"
+          @click="query.refetch()"
+          ><RefreshCw :size="16" /></NButton></template></QueryToolbar
     ><AsyncState
       :loading="query.isLoading.value"
       :error="query.data.value ? undefined : query.error.value"

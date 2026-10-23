@@ -12,6 +12,7 @@ export default {
     managedAccounts: '系统账号由管理员维护；停用或修改权限会使已有会话失效。',
     password: '密码',
     signIn: '登录',
+    loginHint: '使用工作区账号登录，开始管理你的数据。',
     signOut: '退出登录',
     realMode: '真实服务',
     realHint: '使用系统账号登录；权限由服务端校验。',

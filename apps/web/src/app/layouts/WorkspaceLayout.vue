@@ -28,8 +28,12 @@ import {
   Moon,
   Sun,
   ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Workflow,
 } from 'lucide-vue-next'
 import { navigation } from '../navigation'
+import { routeManifest } from '../route-manifest'
 import { useUiStore } from '../stores'
 import {
   useSession,
@@ -98,6 +102,10 @@ const menu = computed(() =>
   }),
 )
 const section = computed(() => String(route.meta.section ?? 'overview'))
+const pageTitle = computed(() => {
+  const entry = routeManifest.find((item) => item.id === route.meta.id)
+  return entry ? t(entry.labelKey) : t('workspace')
+})
 const activeMenu = computed(() => {
   const candidates = navigation
     .flatMap((group) => group.entries)
@@ -118,34 +126,54 @@ async function logout() {
   <NLayout has-sider class="app-shell"
     ><NLayoutSider
       v-if="!route.meta.fullscreen"
-      :width="224"
+      :width="220"
       :collapsed-width="72"
       :collapsed="ui.collapsed"
       collapse-mode="width"
       bordered
-      show-trigger="bar"
       @update:collapsed="ui.collapsed = $event"
-      ><RouterLink to="/overview" class="brand"
-        ><div class="brand-mark">{{ uiText('ui.workspace_layout_27a2b9f1') }}</div>
-        <div v-if="!ui.collapsed">
-          <strong>{{ t('brand') }}</strong
-          ><small>JIUZHANG DATA</small>
-        </div></RouterLink
-      >
-      <div v-if="!ui.collapsed" class="nav-caption">{{ t('workspace') }}</div>
-      <NMenu
-        :value="activeMenu"
-        :default-expanded-keys="[section]"
-        :options="menu"
-        :collapsed="ui.collapsed"
-        :collapsed-width="72"
-        :indent="20"
-      /> </NLayoutSider
+      ><div class="sidebar-content">
+        <RouterLink to="/overview" class="brand" :class="{ 'brand--collapsed': ui.collapsed }"
+          ><div class="brand-mark">{{ uiText('ui.workspace_layout_27a2b9f1') }}</div>
+          <div v-if="!ui.collapsed">
+            <strong>{{ t('brand') }}</strong
+            ><small>JIUZHANG DATA</small>
+          </div></RouterLink
+        >
+        <div v-if="!ui.collapsed" class="nav-caption">{{ t('navigationLabel') }}</div>
+        <nav class="workspace-navigation" :aria-label="t('navigationLabel')">
+          <NMenu
+            :value="activeMenu"
+            :default-expanded-keys="[section]"
+            :options="menu"
+            :collapsed="ui.collapsed"
+            :collapsed-width="72"
+            :indent="20"
+          />
+        </nav>
+        <div v-if="!ui.collapsed" class="sidebar-footer">
+          <Workflow :size="18" />
+          <div>
+            <strong>{{ t('subtitle') }}</strong
+            ><span>{{ t('workspaceHint') }}</span>
+          </div>
+        </div>
+      </div></NLayoutSider
     ><NLayout class="workspace-main"
       ><NLayoutHeader bordered class="topbar" v-if="!route.meta.fullscreen"
-        ><div class="breadcrumb">
-          <span>{{ t('workspace') }}</span
-          ><ChevronRight :size="13" /><strong>{{ t('nav.' + section) }}</strong>
+        ><div class="topbar-leading">
+          <NButton
+            quaternary
+            circle
+            :aria-label="ui.collapsed ? t('expandNavigation') : t('collapseNavigation')"
+            :aria-expanded="!ui.collapsed"
+            @click="ui.collapsed = !ui.collapsed"
+            ><PanelLeftOpen v-if="ui.collapsed" :size="18" /><PanelLeftClose v-else :size="18"
+          /></NButton>
+          <div class="breadcrumb">
+            <RouterLink to="/overview">{{ t('workspace') }}</RouterLink
+            ><ChevronRight :size="13" /><strong>{{ pageTitle }}</strong>
+          </div>
         </div>
         <div class="topbar-actions">
           <NButton quaternary circle :aria-label="t('theme')" @click="ui.toggleDarkMode"
@@ -158,10 +186,13 @@ async function logout() {
             @select="accountAction"
             ><NButton
               quaternary
-              circle
+              class="account-button"
               :aria-label="t('identity.signOut')"
               :loading="authentication.logout.isPending.value"
-              ><NAvatar round :size="30">{{ t('brand').slice(0, 1) }}</NAvatar></NButton
+              ><NAvatar round :size="28">{{
+                (session.data.value?.user.name || t('brand')).slice(0, 1)
+              }}</NAvatar
+              ><span class="account-name">{{ session.data.value?.user.name }}</span></NButton
             ></NDropdown
           >
         </div></NLayoutHeader
@@ -197,8 +228,45 @@ async function logout() {
   min-width: 0;
   overflow: hidden;
 }
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--surfaceRaised);
+}
+.workspace-navigation {
+  flex: 1;
+}
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 24px 16px 18px;
+  padding: 14px 12px;
+  color: var(--textSecondary);
+  background: var(--surfaceInset);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.sidebar-footer svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+.sidebar-footer strong,
+.sidebar-footer span {
+  display: block;
+  font-size: 11px;
+}
+.sidebar-footer strong {
+  margin-bottom: 4px;
+  color: var(--textPrimary);
+  font-weight: 600;
+}
+.sidebar-footer span {
+  font-size: 10px;
+}
 .brand {
-  height: 92px;
+  height: 84px;
   padding: 0 22px;
   display: flex;
   align-items: center;
@@ -209,13 +277,19 @@ async function logout() {
 .brand-mark {
   width: 38px;
   height: 38px;
-  border-radius: 11px;
+  border-radius: 12px;
   background: var(--accent);
   color: var(--surfaceRaised);
   display: grid;
   place-items: center;
   font-size: 23px;
   font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.brand--collapsed {
+  padding: 0;
+  justify-content: center;
 }
 .brand strong {
   font-size: 21px;
@@ -230,20 +304,35 @@ async function logout() {
 .nav-caption {
   font-size: 10px;
   color: var(--textSecondary);
-  padding: 18px 28px 10px;
+  padding: 16px 28px 9px;
   letter-spacing: 1px;
 }
 .topbar {
-  height: 68px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
+  padding: 0 28px;
+  background: var(--surfaceRaised);
+  box-shadow: 0 1px 0 var(--border);
+}
+.topbar-leading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.breadcrumb a {
+  color: var(--textSecondary);
+  text-decoration: none;
+}
+.breadcrumb a:hover {
+  color: var(--accent);
 }
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-size: 12px;
   color: var(--textSecondary);
 }
@@ -254,12 +343,28 @@ async function logout() {
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
+}
+.account-button :deep(.n-button__content) {
+  gap: 9px;
+}
+.account-button :deep(.n-avatar) {
+  background: var(--accentSoft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.account-name {
+  display: block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
 }
 .main-content {
-  padding: 30px 32px 72px;
+  padding: 28px 32px 72px;
   background: var(--surface);
-  height: calc(100vh - 68px);
+  height: calc(100vh - 64px);
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior-y: contain;

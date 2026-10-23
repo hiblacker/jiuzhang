@@ -22,7 +22,12 @@ function render() {
   const color = (name: string) => style.getPropertyValue('--' + name).trim()
   chart?.setOption({
     textStyle: { color: color('textSecondary') },
-    tooltip: { trigger: 'axis' },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: color('surfaceRaised'),
+      borderColor: color('border'),
+      textStyle: { color: color('textPrimary'), fontSize: 12 },
+    },
     grid: { left: 30, right: 20, top: 25, bottom: 25 },
     xAxis: {
       type: 'category',
@@ -42,19 +47,22 @@ function render() {
       {
         name: props.labels[0],
         type: 'line',
-        smooth: true,
+        smooth: false,
         data: props.points.map((p) => p.succeeded),
-        symbolSize: 7,
-        lineStyle: { color: color('accent'), width: 3 },
+        symbolSize: 6,
+        showSymbol: false,
+        lineStyle: { color: color('accent'), width: 2 },
         itemStyle: { color: color('accent') },
         areaStyle: { color: color('accentSoft') },
       },
       {
         name: props.labels[1],
         type: 'line',
-        smooth: true,
+        smooth: false,
         data: props.points.map((p) => p.failed),
         symbolSize: 5,
+        showSymbol: false,
+        lineStyle: { color: color('warning'), width: 2 },
         itemStyle: { color: color('warning') },
       },
     ],

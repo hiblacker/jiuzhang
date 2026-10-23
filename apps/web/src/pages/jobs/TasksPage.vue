@@ -94,9 +94,10 @@ const columns = computed<DataTableColumns<Model<'Task'>>>(() => [
   {
     title: uiText('ui.tasks_f3ea6d34'),
     key: 'actions',
-    width: 400,
+    width: 240,
+    fixed: 'right',
     render: (t) =>
-      h(NSpace, { align: 'center' }, () => [
+      h(NSpace, { align: 'center', wrap: false, size: 4 }, () => [
         h(
           NButton,
           {
@@ -119,6 +120,7 @@ const columns = computed<DataTableColumns<Model<'Task'>>>(() => [
         ),
         h(RunTrigger, {
           datasetId: t.datasetId,
+          compact: true,
           onStarted: (id: string) => router.push('/runs/' + id),
         }),
       ]),

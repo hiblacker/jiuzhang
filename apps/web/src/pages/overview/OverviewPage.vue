@@ -19,6 +19,7 @@ import {
   Activity,
   ShieldAlert,
   ArrowRight,
+  Warehouse,
 } from 'lucide-vue-next'
 import { useOverview } from '@/modules/overview'
 import { PageHeader } from '@/shared/ui/page-header'
@@ -129,8 +130,17 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
         /></NButton>
       </div>
       <div class="flow-art" aria-hidden="true">
-        <Database :size="30" /><span>····</span><Layers :size="34" /><span>····</span
-        ><Activity :size="30" />
+        <div>
+          <Database :size="23" /><small>{{ t('nav.sources') }}</small>
+        </div>
+        <span>→</span>
+        <div>
+          <Layers :size="23" /><small>{{ t('nav.datasets') }}</small>
+        </div>
+        <span>→</span>
+        <div>
+          <Warehouse :size="23" /><small>{{ t('nav.warehouse') }}</small>
+        </div>
       </div>
     </section>
     <div class="metric-grid">
@@ -145,16 +155,18 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
             ><ArrowUpRight :size="18"
           /></NButton>
         </div>
-        <div class="metric-foot">
-          {{ t('workspace') }}
-        </div></NCard
-      >
+      </NCard>
     </div>
     <div class="dashboard-grid">
       <NCard :title="t('overview.trend')" :bordered="false"
         ><template #header-extra
           ><span class="muted">{{ t('overview.realTrendHint') }}</span></template
-        ><TrendChart
+        >
+        <div class="trend-legend">
+          <span><i class="legend-success" />{{ t('states.succeeded') }}</span
+          ><span><i class="legend-warning" />{{ t('overview.failedOrBlocked') }}</span>
+        </div>
+        <TrendChart
           :labels="[t('states.succeeded'), t('overview.failedOrBlocked')]"
           :points="query.data.value?.trend ?? []" /></NCard
       ><NCard :title="t('overview.governance')" :bordered="false"
@@ -249,11 +261,13 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
 </template>
 <style scoped>
 .welcome-banner {
-  padding: 28px 32px;
+  position: relative;
+  overflow: hidden;
+  padding: 30px 32px;
   border: 1px solid var(--border);
-  background: var(--accentSoft);
-  border-radius: 14px;
-  margin-bottom: 24px;
+  background: linear-gradient(120deg, var(--accentSoft), var(--accentTint));
+  border-radius: 16px;
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -265,7 +279,8 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
   font-weight: 700;
 }
 .welcome-banner h2 {
-  font-size: 23px;
+  font-size: 24px;
+  letter-spacing: -0.5px;
   margin: 10px 0;
 }
 .welcome-banner p {
@@ -276,15 +291,70 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
 .flow-art {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 12px;
   color: var(--accent);
   padding: 20px;
+}
+.flow-art > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 66px;
+  padding: 14px 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surfaceRaised) 70%, transparent);
+}
+.flow-art small {
+  color: var(--textSecondary);
+  font-size: 11px;
+}
+.trend-legend,
+.trend-legend > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.trend-legend {
+  gap: 18px;
+  color: var(--textSecondary);
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+.trend-legend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.legend-success {
+  background: var(--accent);
+}
+.legend-warning {
+  background: var(--warning);
 }
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.metric-card {
+  position: relative;
+  overflow: hidden;
+}
+.metric-card::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  content: '';
+  background: var(--accent);
+}
+.metric-card:nth-child(3)::before {
+  background: var(--success);
+}
+.metric-card:nth-child(4)::before {
+  background: var(--warning);
 }
 .metric-top {
   display: flex;
@@ -299,18 +369,14 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 36px;
-  font-weight: 650;
-  line-height: 1.7;
-}
-.metric-foot {
-  color: var(--textSecondary);
-  font-size: 11px;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.55;
 }
 .dashboard-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 24px;
+  gap: 18px;
 }
 .dashboard-grid > * {
   min-width: 0;
@@ -335,7 +401,7 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
   padding: 24px 0;
 }
 .layer-row {
-  margin: 16px 0 28px;
+  margin: 14px 0 22px;
 }
 .layer-row > div {
   display: flex;

@@ -87,6 +87,7 @@ async function screenshot(name) {
   await page.screenshot({
     path: new URL("../.local/dataset-" + name + "-1280.png", import.meta.url)
       .pathname,
+    animations: "disabled",
   });
 }
 async function checkViewport() {
