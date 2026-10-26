@@ -17,6 +17,37 @@ class ReadOnlySqlTest {
   }
 
   @Test
+  void resolvesUnquotedAndQuotedTableNamesWithoutCaseSensitivity() throws Exception {
+    var tables = java.util.List.of("Story", "orders");
+    assertThat(CaseInsensitiveSqlTables.canonicalize("select * from story", tables))
+        .isEqualTo("select * from Story");
+    assertThat(CaseInsensitiveSqlTables.canonicalize("SELECT * FROM `STORY`", tables))
+        .isEqualTo("SELECT * FROM `Story`");
+    assertThat(
+            CaseInsensitiveSqlTables.canonicalize(
+                "select /*+ MAX_EXECUTION_TIME(1000) */ '故事' as note from sToRy -- keep comment",
+                tables))
+        .isEqualTo(
+            "select /*+ MAX_EXECUTION_TIME(1000) */ '故事' as note from Story -- keep comment");
+    assertThat(
+            CaseInsensitiveSqlTables.canonicalize(
+                "WITH recent AS (select * from sToRy) select * from recent", tables))
+        .isEqualTo("WITH recent AS (select * from Story) select * from recent");
+  }
+
+  @Test
+  void preservesUnknownAndAmbiguousTableNames() throws Exception {
+    assertThat(
+            CaseInsensitiveSqlTables.canonicalize(
+                "select * from unknown_table", java.util.List.of("Story")))
+        .contains("unknown_table");
+    assertThat(
+            CaseInsensitiveSqlTables.canonicalize(
+                "select * from story", java.util.List.of("Story", "story")))
+        .contains("story");
+  }
+
+  @Test
   void acceptsSetOperationsWindowsSubqueriesAndLiteralKeywords() {
     for (var sql : new String[] {
       "SELECT id FROM orders UNION ALL SELECT id FROM orders",

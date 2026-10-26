@@ -41,7 +41,7 @@ def main():
  c.call('PATCH','/datasets/'+did,{'description':'','tags':[]});c.call('POST','/datasets/'+did+'/versions/1/restore')
  bad=json.loads(json.dumps(body));bad['name']='bad_'+suffix;bad['definition']['schedule']['retries']=2;c.call('POST','/datasets',bad,expected=422)
  sql_body=json.loads(json.dumps(body));sql_body['name']='direct_sql_'+suffix
- sql_body['definition'].update({'mode':'sql','deliveryMode':'direct','objectId':'','sql':'SELECT id, amount, phone FROM orders','fields':[]})
+ sql_body['definition'].update({'mode':'sql','deliveryMode':'direct','objectId':'','sql':'select id, amount, phone from orders','fields':[]})
  # Running SQL is independent of dataset save metadata, including the target table.
  unnamed=json.loads(json.dumps(sql_body));unnamed.update(name='',owner='')
  unnamed['definition']['output']['table']=''
@@ -83,6 +83,7 @@ def main():
   ('SELECT id FROM orders UNION ALL SELECT id FROM orders',6),
   ("SELECT 'INTO' AS label, 'SLEEP(5)' AS description FROM orders LIMIT 1",1),
  ]
+ queries.extend([('select * from ORDERS',3),('select * from orders',3)])
  for sql,count in queries:
   probe['definition']['sql']=sql
   result,_=c.call('POST','/datasets/preview',probe)
@@ -97,6 +98,7 @@ def main():
   assert rejected['error']['code']=='UNSUPPORTED_SQL',sql
  # SQL mappings are applied during full Doris snapshot execution, including masking.
  warehouse_sql=json.loads(json.dumps(sql_body));warehouse_sql['name']='warehouse_sql_'+suffix
+ warehouse_sql['definition']['sql']='select id, amount, phone from ORDERS'
  warehouse_sql['definition']['deliveryMode']='warehouse'
  warehouse_sql['definition']['output']['table']='sql_'+suffix
  next(f for f in warehouse_sql['definition']['fields'] if f['name']=='amount')['target']='revenue'

@@ -283,7 +283,7 @@ try {
 
   await page.goto("http://localhost:5175/datasets/new?sourceId=" + source.id);
   await setMode();
-  // The reported STORY/story failure is reproduced with the local synthetic orders table.
+  // SQL keywords and table names accept either letter case.
   const objectCatalog = page.getByRole("complementary", {
     name: "对象目录",
     exact: true,
@@ -292,16 +292,11 @@ try {
   await objectCatalog
     .getByRole("button", { name: "orders", exact: true })
     .click();
-  const wrongCase = await runSql("SELECT * from ORDERS");
-  if (wrongCase.status() !== 422)
-    throw new Error(
-      "Expected the case-sensitive local MySQL to reject the wrong table case",
-    );
-  await expect(
-    page
-      .locator(".n-message")
-      .filter({ hasText: "表名大小写须与左侧目录一致" }),
-  ).toHaveCount(1);
+  const lowerCaseSql = await successful(await runSql("select * from ORDERS"));
+  const lowerCaseResult = await lowerCaseSql.json();
+  expect(lowerCaseResult.data.rows).toHaveLength(3);
+  await editor().fill("select * from orders");
+  await successful(await preview("运行 SQL"));
   await editor().fill("");
   await page
     .getByRole("button", {

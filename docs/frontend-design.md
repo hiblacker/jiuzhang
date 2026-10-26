@@ -90,7 +90,7 @@ Page -> domain composable -> repository/mapper -> shared HTTP client -> API
 - SQL 复用 `shared/editors/SqlEditor`、`DataPreview`、`CopyButton` 与 Naive UI `NSplit`。`DatasetSqlWorkspace` 拥有编辑/结果联合布局；页面基于已加载的源目录提供 MySQL 表/字段补全及插入操作。共享编辑器增加可选方言/schema、运行快捷键和插入 API；保持仓库 SQL 调用方默认语言行为。选择背景采用独立主题 token。
 - `useDatasetDraftPreview` 继续分开拥有取数结果、处理结果及其有效性。取数执行发送去掉清洗、图加工和治理配置的副本；详情处理预览使用当前完整配置。原始取数仍要求服务端 `readSensitive` 权限；样本处理预览不承诺全量治理检查。
 - 修改 SQL/来源会使取数定义失效；字段/规则/画布变动仅清空处理结果。独立修订号阻止过期响应写回；同步互斥防止重复请求。详情页保存处理配置与创建页编辑基本定义均基于脱离 Query cache 的草稿；编辑基本定义保留处理配置。
-- 映射按源字段名保留设置与顺序，新字段追加，移除字段提醒。SQL 表名使用源目录的实际标识符大小写；MySQL 在大小写敏感部署中会拒绝错误大小写，消息提示从目录插入准确名称。不将错误改写为猜测性数据库匹配。
+- 映射按源字段名保留设置与顺序，新字段追加，移除字段提醒。自定义 SQL 关键字和未限定表名大小写不敏感。执行前将唯一匹配的表名转换为当前数据源目录中的实际写法；存在仅大小写不同的多个表时保留原表名，避免猜测。标识符补全与目录插入仍使用实际名称。
 - 复用评审：新增 `DatasetProcessingSettings` 领域组件承载数据集详情的字段/规则/画布配置，既有 `DatasetFields`、`DatasetGraph` 和 `DatasetDeliverySettings` 继续负责各自控件；`DatasetPreviewPanel` 复用 `DataPreview`，不请求、不弹消息。未增加依赖或后端/协议。
 
 ### 6.2 工作台视觉与列表交互（2026-10-23）

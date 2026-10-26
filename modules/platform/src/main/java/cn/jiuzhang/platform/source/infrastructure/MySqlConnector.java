@@ -47,6 +47,7 @@ public class MySqlConnector implements SourceConnector {
         String statement=ReadOnlySql.validate(sql);
         try(var c=open(config)){
             beginReadOnly(c);
+            statement=resolveTableNames(c,config.database(),statement);
             try(var s=c.prepareStatement(statement,ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY)){
             s.setMaxRows(limit);s.setFetchSize(Math.min(limit,500));s.setQueryTimeout(30);
             try(var r=s.executeQuery()){
@@ -97,6 +98,7 @@ public class MySqlConnector implements SourceConnector {
         try(var c=open(config)){
             c.setTransactionIsolation(java.sql.Connection.TRANSACTION_REPEATABLE_READ);c.setAutoCommit(false);
             try(var s=c.createStatement()){s.execute("START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY");}
+            statement=resolveTableNames(c,config.database(),statement);
             try(var s=c.prepareStatement(statement,ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY)){
                 s.setFetchSize(500);s.setQueryTimeout(300);s.setMaxRows((int)maxRows+1);
                 var cancelPoll=java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
@@ -209,6 +211,15 @@ public class MySqlConnector implements SourceConnector {
             s.setString(1,database);s.setString(2,table);s.setQueryTimeout(15);
             try(var r=s.executeQuery()){while(r.next())columns.add(new Column(r.getString(1),r.getString(2),r.getLong(3),r.getInt(4),r.getLong(5),r.getString(6).equals("YES"),r.getString(7)));}
         }if(columns.isEmpty())throw new Failure(404,"SOURCE_TABLE_MISSING");Failure.require(columns.size()<=200,"SOURCE_CATALOG_LIMIT");return columns;
+    }
+    private String resolveTableNames(java.sql.Connection c,String database,String sql)throws SQLException{
+        var names=new ArrayList<String>();
+        try(var s=c.prepareStatement("SELECT table_name FROM information_schema.tables WHERE table_schema=?")){
+            s.setString(1,database);s.setQueryTimeout(15);
+            try(var r=s.executeQuery()){while(r.next())names.add(r.getString(1));}
+        }
+        try{return CaseInsensitiveSqlTables.canonicalize(sql,names);}
+        catch(net.sf.jsqlparser.JSQLParserException e){throw new Failure(422,"UNSUPPORTED_SQL");}
     }
     private void beginReadOnly(java.sql.Connection connection)throws SQLException{
         connection.setTransactionIsolation(java.sql.Connection.TRANSACTION_REPEATABLE_READ);
