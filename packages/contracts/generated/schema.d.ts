@@ -1383,6 +1383,8 @@ export interface components {
         Run: {
             id: string;
             datasetId: string;
+            /** @description 数据集当前名称；运行绑定关系仍以 datasetId 和 datasetVersion 为准。 */
+            datasetName: string;
             datasetVersion: number;
             taskId: string;
             retryOf: string;

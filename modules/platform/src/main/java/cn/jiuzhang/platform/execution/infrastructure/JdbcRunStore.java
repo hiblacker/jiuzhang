@@ -34,13 +34,19 @@ public class JdbcRunStore implements RunStore {
   public Map<String, Object> get(String id, boolean lock) {
     var rows =
         db.queryForList(
-            "SELECT * FROM dataset_run WHERE id=?" + (lock ? " FOR UPDATE" : ""), n(id));
+            "SELECT r.*, d.name AS dataset_name FROM dataset_run r"
+                + " JOIN dataset d ON d.id=r.dataset_id WHERE r.id=?"
+                + (lock ? " FOR UPDATE OF r" : ""),
+            n(id));
     if (rows.isEmpty()) throw new Failure(404, "RUN_NOT_FOUND");
     return run(rows.getFirst());
   }
 
   public List<Map<String, Object>> list() {
-    return db.queryForList("SELECT * FROM dataset_run ORDER BY id DESC LIMIT 10000").stream()
+    return db.queryForList(
+            "SELECT r.*, d.name AS dataset_name FROM dataset_run r"
+                + " JOIN dataset d ON d.id=r.dataset_id ORDER BY r.id DESC LIMIT 10000")
+        .stream()
         .map(this::run)
         .toList();
   }
@@ -48,7 +54,9 @@ public class JdbcRunStore implements RunStore {
   public Map<String, Object> existing(String user, String id, String key) {
     var rows =
         db.queryForList(
-            "SELECT * FROM dataset_run WHERE requested_by=? AND dataset_id=? AND idempotency_key=?",
+            "SELECT r.*, d.name AS dataset_name FROM dataset_run r"
+                + " JOIN dataset d ON d.id=r.dataset_id"
+                + " WHERE r.requested_by=? AND r.dataset_id=? AND r.idempotency_key=?",
             n(user),
             n(id),
             key);
@@ -349,6 +357,7 @@ public class JdbcRunStore implements RunStore {
         Map.ofEntries(
                 Map.entry("id", "id"),
                 Map.entry("dataset_id", "datasetId"),
+                Map.entry("dataset_name", "datasetName"),
                 Map.entry("dataset_version", "datasetVersion"),
                 Map.entry("requested_by", "requestedBy"),
                 Map.entry("idempotency_key", "idempotencyKey"),

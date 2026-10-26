@@ -76,6 +76,29 @@ async function request(
 }
 
 describe('HTTP contract and persistence', () => {
+  it('returns dataset names in run lists and details while preserving dataset IDs after rename', async () => {
+    const state = await readState()
+    const run = state.runs[0]!
+    const dataset = state.datasets.find((item) => item.id === run.datasetId)!
+    const list = await request('/runs?datasetId=' + dataset.id)
+    const listed = list.body.data.find((item: { id: string }) => item.id === run.id)
+    expect(listed).toMatchObject({ datasetId: dataset.id, datasetName: dataset.name })
+    const detail = await request('/runs/' + run.id)
+    expect(detail.body.data).toMatchObject({ datasetId: dataset.id, datasetName: dataset.name })
+
+    const name = 'renamed_run_dataset'
+    await transact((current) => {
+      current.datasets.find((item) => item.id === dataset.id)!.name = name
+    })
+    const renamedList = await request('/runs?datasetId=' + dataset.id)
+    expect(renamedList.body.data.find((item: { id: string }) => item.id === run.id)).toMatchObject({
+      datasetId: dataset.id,
+      datasetName: name,
+    })
+    const renamedDetail = await request('/runs/' + run.id)
+    expect(renamedDetail.body.data).toMatchObject({ datasetId: dataset.id, datasetName: name })
+  })
+
   it('aggregates overview attention across all resources and filters failures before limiting', async () => {
     await transact((state) => {
       state.tasks.forEach((task) => {

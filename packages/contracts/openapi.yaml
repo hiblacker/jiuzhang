@@ -13938,6 +13938,11 @@
             "type": "string",
             "pattern": "^[0-9]+$"
           },
+          "datasetName": {
+            "type": "string",
+            "minLength": 1,
+            "description": "数据集当前名称；运行绑定关系仍以 datasetId 和 datasetVersion 为准。"
+          },
           "datasetVersion": {
             "type": "integer"
           },
@@ -14088,6 +14093,7 @@
         "required": [
           "id",
           "datasetId",
+          "datasetName",
           "datasetVersion",
           "taskId",
           "retryOf",

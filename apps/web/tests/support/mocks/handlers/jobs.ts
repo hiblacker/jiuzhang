@@ -211,6 +211,7 @@ export function createRun(
   const run: Model<'Run'> = {
     id: nextId(state),
     datasetId: d.id,
+    datasetName: d.name,
     datasetVersion: version,
     taskId: task?.id ?? '',
     retryOf,

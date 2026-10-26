@@ -34,6 +34,8 @@ export function visibleRun(state: MockState, run: Model<'Run'>) {
   const task = state.tasks.find((candidate) => candidate.id === run.taskId)
   return {
     ...run,
+    datasetName:
+      state.datasets.find((dataset) => dataset.id === run.datasetId)?.name ?? run.datasetName,
     retryRunId,
     retryPaused: Boolean(run.retryAt && !retryRunId && task && !task.enabled),
   }

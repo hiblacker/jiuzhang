@@ -52,12 +52,14 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
   },
   {
     title: uiText('ui.runs_fc2b4735'),
-    key: 'datasetId',
+    key: 'datasetName',
+    width: 180,
+    ellipsis: { tooltip: true },
     render: (r) =>
       h(
         NButton,
         { text: true, onClick: () => router.push('/datasets/' + r.datasetId) },
-        () => r.datasetId,
+        () => r.datasetName,
       ),
   },
   {

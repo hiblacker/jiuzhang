@@ -328,6 +328,7 @@ export function createSeed(): MockState {
     return {
       id: String(9001 + i),
       datasetId: datasets[i % 12]!.id,
+      datasetName: datasets[i % 12]!.name,
       datasetVersion: 1,
       taskId: tasks[i % 12]!.id,
       retryOf: '',

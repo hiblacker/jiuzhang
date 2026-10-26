@@ -36,7 +36,7 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
       ),
   },
   { title: t('status'), key: 'status', width: 100, render: (run) => t('states.' + run.status) },
-  { title: t('jobs.dataset'), key: 'datasetId', width: 110 },
+  { title: t('jobs.dataset'), key: 'datasetName', width: 180, ellipsis: { tooltip: true } },
   {
     title: t('jobs.runVersion'),
     key: 'datasetVersion',
@@ -63,7 +63,7 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
         :columns="columns"
         :data="query.data.value?.data ?? []"
         :row-key="(run) => run.id"
-        :scroll-x="630"
+        :scroll-x="700"
         :bordered="false"
       />
     </AsyncState>

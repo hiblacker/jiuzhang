@@ -16,7 +16,7 @@ export default {
     qualityRunTotal: '共 {total} 次运行',
 
     history: '运行历史',
-    dataset: '数据集 ID',
+    dataset: '数据集',
     runVersion: '运行绑定版本',
     startedAt: '开始时间',
     cancelRun: '取消运行 {id}',

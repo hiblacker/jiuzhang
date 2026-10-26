@@ -71,7 +71,7 @@ const retryable = computed(() =>
             text
             type="primary"
             @click="router.push('/datasets/' + query.data.value?.datasetId)"
-            >{{ query.data.value?.datasetId }}</NButton
+            >{{ query.data.value?.datasetName }}</NButton
           ></NDescriptionsItem
         ><NDescriptionsItem :label="uiText('ui.run_detail_fa854c5a')"
           ><NButton

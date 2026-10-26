@@ -127,6 +127,7 @@ public class RunService {
         List.of(
             "id",
             "datasetId",
+            "datasetName",
             "datasetVersion",
             "retryOf",
             "status",
