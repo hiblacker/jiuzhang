@@ -4,6 +4,7 @@ export function supportsRealRoute(path: string): boolean {
     '/overview',
     '/sources',
     '/datasets',
+    '/tasks',
     '/runs',
     '/warehouse/overview',
     '/warehouse/tables',

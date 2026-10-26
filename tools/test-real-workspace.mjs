@@ -156,6 +156,27 @@ try {
     dataset.name.startsWith("warehouse_sql_") && dataset.owner === "test",
     "Expected synthetic acceptance dataset",
   );
+  await page.goto(base + "/tasks?q=" + encodeURIComponent(dataset.name));
+  await page.getByRole("table").waitFor();
+  const taskRow = page
+    .getByRole("row")
+    .filter({
+      has: page.getByRole("button", { name: dataset.name, exact: true }),
+    });
+  await expect(taskRow).toHaveCount(1);
+  await taskRow.getByRole("button", { name: "配置", exact: true }).click();
+  await page.waitForURL("**/tasks/" + dataset.id + "/edit");
+  await expect(
+    page.getByText("支持手动、Cron 和固定间隔计划", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "调度方式", exact: true }),
+  ).toBeVisible();
+  await page.goto(base + "/datasets/" + dataset.id + "?tab=schedule");
+  await page
+    .getByRole("button", { name: "进入任务中心", exact: true })
+    .click();
+  await page.waitForURL("**/tasks/" + dataset.id + "/edit");
   await page.goto(base + "/datasets?q=" + encodeURIComponent(dataset.name));
   const row = page
     .getByRole("row")

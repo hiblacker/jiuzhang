@@ -271,11 +271,18 @@ async function publish() {
             ></NDescriptions
           ></NTabPane
         ><NTabPane name="schedule" :tab="uiText('ui.dataset_detail_36019dc2')"
-          ><NAlert type="info">{{
-            query.data.value?.definition.deliveryMode === 'direct'
-              ? t('datasets.directHelp')
-              : t('datasets.scheduleUnsupported')
-          }}</NAlert></NTabPane
+          ><template v-if="query.data.value?.definition.deliveryMode === 'direct'"
+            ><NAlert type="info">{{ t('datasets.directHelp') }}</NAlert></template
+          ><template v-else-if="query.data.value?.status === 'published'"
+            ><NAlert type="info" class="mb">{{ t('datasets.scheduleUnsupported') }}</NAlert
+            ><NButton
+              type="primary"
+              :disabled="readonly"
+              @click="router.push('/tasks/' + id + '/edit')"
+              >{{ uiText('ui.dataset_detail_d1d5bfef') }}</NButton
+            ></template
+          ><NAlert v-else type="warning" class="mb">{{ t('datasets.scheduleUnsupported') }}</NAlert
+        ></NTabPane
         ><NTabPane name="versions" :tab="uiText('ui.dataset_detail_989d1aff')"
           ><AsyncState
             :loading="versions.isLoading.value"

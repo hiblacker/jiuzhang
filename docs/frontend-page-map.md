@@ -9,7 +9,8 @@
 |---|---|---|---|
 | 工作台 | `/overview` | 服务端汇总数据源、数据集、运行和仓库状态 | `tools/test-overview.py`、`tools/test-real-overview.mjs` |
 | 数据源列表/新建/编辑/详情 | `/sources`、`/sources/new`、`/sources/:id/edit`、`/sources/:id` | MySQL 连接测试、保存、平铺表名列表和搜索；选表后展示字段结构与说明，不展示样本预览 | `tools/test-sources.py`、`tools/test-real-sources.mjs` |
-| 数据集列表/新建/编辑/详情/版本 | `/datasets`、`/datasets/new`、`/datasets/:id/edit`、`/datasets/:id`、`/datasets/:id/versions/:version` | 可视化选表或只读 SQL；字段映射、预览、质量、脱敏；直连或手动快照入库；发布与版本恢复 | `tools/test-datasets.py`、`tools/test-real-datasets.mjs` |
+| 数据集列表/新建/编辑/详情/版本 | `/datasets`、`/datasets/new`、`/datasets/:id/edit`、`/datasets/:id`、`/datasets/:id/versions/:version` | 可视化选表或只读 SQL；字段映射、预览、质量、脱敏；直连或手动/计划快照入库；发布与版本恢复 | `tools/test-datasets.py`、`tools/test-real-datasets.mjs` |
+| 任务中心/任务详情 | `/tasks`、`/tasks/:id`、`/tasks/:id/edit` | 查看已发布入库数据集任务，配置手动、Cron 或固定间隔计划，暂停/恢复和手动运行 | `tools/test-real-workspace.mjs` |
 | 运行列表/详情 | `/runs`、`/runs/:id` | 已发布入库数据集的手动运行、状态、阶段日志、取消和重试 | `tools/test-execution.py`、`tools/test-real-execution.mjs` |
 | 数仓概览/表/SQL/导出 | `/warehouse/overview`、`/warehouse/tables`、`/warehouse/query`、`/warehouse/exports` | Doris 当前快照、受限查询和本人 CSV 导出 | `tools/test-warehouse.py`、`tools/test-real-execution.mjs` |
 | 质量规则/脱敏策略 | `/governance/quality`、`/governance/masking` | 创建和维护首版支持的质量与脱敏策略 | `tools/test-execution-rules.py`、`tools/test-real-datasets.mjs` |
@@ -24,7 +25,7 @@
 - 数据集可视化定义支持单表、等值过滤、字段选择/改名/类型映射、trim、质量和脱敏。复杂关联、聚合和窗口计算使用自定义单条只读 SQL。
 - SQL 查询在所选 MySQL 数据源内执行，支持 CTE、JOIN、子查询、聚合、窗口函数和计算表达式；通过服务端只读连接、查询时限、行数/字节上限和副作用语法拒绝规则约束。创建页左侧选择定义方式、数据源和对象，右侧编辑 SQL 并查看取数结果；支持表名搜索、数据库字段补全、目录插入及最多 20 条数据源的远端搜索。表名大小写遵循源数据库规则。取数不依赖名称、目标表或下游规则；失败保留输入，兼容字段配置按源字段名保留。数据集保存后从详情页单独编辑处理和脱敏配置。
 - 直连数据集发布后按查询请求读取源库，不创建 Doris 快照或运行。入库数据集首版手动全量运行，以快照替换其独占目标表；发布时目标表配置必填，预览和保存草稿不依赖目标表。
-- 自动调度、增量同步、多数据源关联、数据服务、目录/血缘、逐对象授权和生产集群部署仍在后续计划中。
+- 增量同步、多数据源关联、数据服务、目录/血缘、逐对象授权和生产集群部署仍在后续计划中；已发布入库数据集支持在任务中心配置持久化 Cron 或固定间隔计划。
 
 ## 验收命令
 
