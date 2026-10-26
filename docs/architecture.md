@@ -88,7 +88,7 @@ flowchart LR
 | 前端 | Vue 3、TypeScript strict、Pinia、Naive UI、Vite、Vue Router/Vue Query | 开发及生产均连接 API；页面按真实能力开放；版本见 manifest/lockfile |
 | 接口 | OpenAPI 3.1、openapi-typescript/openapi-fetch | 唯一协议；测试可在 HTTP 边界替换网络响应 |
 | 后端/构建 | Java 21、Spring Boot 3.5.16、Maven Wrapper 3.9.11 | API/Worker 两进程，共用 platform；精确依赖见 pom |
-| 元数据库 | PostgreSQL 17.6、Spring JDBC、Flyway V001–V007 | 单元数据库，显式受控迁移；普通进程不自动升级 |
+| 元数据库 | PostgreSQL 17.6、Spring JDBC、Flyway V001–V009 | 单元数据库，显式受控迁移；普通进程不自动升级 |
 | 对象存储 | SeaweedFS 3.97、S3 API/AWS SDK | 私有原始所选源字段 NDJSON；未实现 Parquet、生产加密 |
 | 分析仓库 | Doris 3.0.8 | 不可变物理表＋稳定逻辑 VIEW；本地单 BE 验证 |
 | 执行 | PostgreSQL 运行状态/幂等/租约、Worker 轮询与持久化 Cron/间隔计划 | 任务计划已落地；依赖编排、自动重试和补数仍暂缓 |

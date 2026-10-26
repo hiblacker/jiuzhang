@@ -62,7 +62,8 @@ public class JdbcRunStore implements RunStore {
       String key,
       String hash,
       boolean allow,
-      String retry) {
+      String retry,
+      Map<String, Object> scheduleSnapshot) {
     var active =
         db.queryForList(
             "SELECT id FROM dataset_run WHERE dataset_id=? AND status IN"
@@ -72,8 +73,8 @@ public class JdbcRunStore implements RunStore {
     String id =
         db.queryForObject(
                 "INSERT INTO"
-                    + " dataset_run(dataset_id,dataset_version,requested_by,idempotency_key,request_hash,allow_empty,retry_of,logs)"
-                    + " VALUES (?,?,?,?,?,?,?,?::jsonb) RETURNING id",
+                    + " dataset_run(dataset_id,dataset_version,requested_by,idempotency_key,request_hash,allow_empty,retry_of,schedule_snapshot,logs)"
+                    + " VALUES (?,?,?,?,?,?,?,?::jsonb,?::jsonb) RETURNING id",
                 Long.class,
                 n(dataset),
                 version,
@@ -82,6 +83,7 @@ public class JdbcRunStore implements RunStore {
                 hash,
                 allow,
                 retry == null ? null : n(retry),
+                json.write(scheduleSnapshot),
                 json.write(List.of("RUN_QUEUED")))
             .toString();
     return get(id, false);
@@ -89,7 +91,13 @@ public class JdbcRunStore implements RunStore {
 
   @Override
   public Map<String, Object> createScheduled(
-      String dataset, int version, String user, String key, String hash, String taskId) {
+      String dataset,
+      int version,
+      String user,
+      String key,
+      String hash,
+      String taskId,
+      Map<String, Object> scheduleSnapshot) {
     var active =
         db.queryForList(
             "SELECT id FROM dataset_run WHERE dataset_id=? AND status IN"
@@ -98,8 +106,8 @@ public class JdbcRunStore implements RunStore {
     if (!active.isEmpty()) throw new Failure(409, "DATASET_RUN_ACTIVE");
     String id =
         db.queryForObject(
-                "INSERT INTO dataset_run(dataset_id,dataset_version,requested_by,idempotency_key,request_hash,task_id,trigger,logs)"
-                    + " VALUES (?,?,?,?,?,?, 'schedule',?::jsonb) RETURNING id",
+                "INSERT INTO dataset_run(dataset_id,dataset_version,requested_by,idempotency_key,request_hash,task_id,trigger,schedule_snapshot,logs)"
+                    + " VALUES (?,?,?,?,?,?, 'schedule',?::jsonb,?::jsonb) RETURNING id",
                 Long.class,
                 n(dataset),
                 version,
@@ -107,6 +115,7 @@ public class JdbcRunStore implements RunStore {
                 key,
                 hash,
                 n(taskId),
+                json.write(scheduleSnapshot),
                 json.write(List.of("RUN_QUEUED", "RUN_SCHEDULED")))
             .toString();
     return get(id, false);
@@ -372,6 +381,7 @@ public class JdbcRunStore implements RunStore {
         json.read(
             r.get("quality_results").toString(),
             new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {}));
+    m.put("scheduleSnapshot", json.object(r.get("schedule_snapshot")));
     return m;
   }
 

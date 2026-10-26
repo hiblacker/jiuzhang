@@ -26,7 +26,7 @@ export default {
     runTimeRange: '运行开始日期范围',
     runActions: '运行操作',
     scheduleHelp:
-      '支持手动、Cron 和固定间隔计划；计划只运行已发布的入库数据集。自动重试、依赖和补数暂未开放。',
+      '计划只运行已发布的入库数据集，支持手动、Cron 和固定间隔；任务串行运行，自动重试、依赖和补数暂未开放。',
     invalidCron: '请输入合法的五字段数字 Cron（分 时 日 月 周），不支持 Quartz 扩展。',
     invalidTimezone: '请选择有效的 IANA 时区。',
     invalidNumber: '请填写允许范围内的整数。',
@@ -53,6 +53,7 @@ export default {
     backfillFrom: '补数开始日期',
     backfillTo: '补数结束日期',
     nextRun: '下次计划',
+    intervalSummary: '每 {minutes} 分钟',
     paused: '已暂停',
     manual: '手动触发',
     unsupported: '八年内无匹配时刻',

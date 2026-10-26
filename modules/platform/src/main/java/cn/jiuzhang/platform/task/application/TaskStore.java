@@ -15,5 +15,5 @@ public interface TaskStore {
 
   List<Map<String, Object>> claimDue(Instant now, int limit);
 
-  void reschedule(String id, Instant next);
+  void reschedule(String id, Instant expectedNext, Map<String, Object> expectedSchedule, Instant next);
 }

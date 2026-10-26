@@ -104,7 +104,8 @@ public class ExecutionEngine {
       long[] failures = new long[plan.quality().size()];
       var batch = new ArrayList<Map<String, Object>>();
       long[] batchBytes = {0};
-      Instant deadline = Instant.now().plusSeconds(integer(map(d, "schedule"), "timeoutSeconds"));
+      Instant deadline =
+          Instant.now().plusSeconds(integer(map(run, "scheduleSnapshot"), "timeoutSeconds"));
       try (var writer = Files.newBufferedWriter(file)) {
         java.util.function.Consumer<Map<String,Object>> processRow = row -> {
               if (leaseLost.get()) throw new Failure(409, "RUN_LEASE_LOST");

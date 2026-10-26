@@ -13402,7 +13402,7 @@
           "timeoutSeconds": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 86400
+            "maximum": 600
           },
           "concurrency": {
             "type": "integer",

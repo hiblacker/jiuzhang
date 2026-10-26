@@ -23,6 +23,10 @@ it('expands cron lists, ranges and steps in order', () => {
       3,
     ).dates,
   ).toEqual(['2026-01-01T09:00:00.000Z', '2026-01-01T09:20:00.000Z', '2026-01-01T09:40:00.000Z'])
+  expect(
+    nextScheduleTimes({ ...schedule, cron: '5/10 9 * * *' }, Date.parse('2026-01-01T08:59:00Z'), 3)
+      .dates,
+  ).toEqual(['2026-01-01T09:05:00.000Z', '2026-01-01T09:15:00.000Z', '2026-01-01T09:25:00.000Z'])
 })
 
 it('uses cron day-of-month and weekday OR rules when both are restricted', () => {

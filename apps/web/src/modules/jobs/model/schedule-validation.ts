@@ -6,7 +6,7 @@ export function scheduleIssue(schedule: Model<'Schedule'>, field: keyof Model<'S
   const limits = {
     intervalMinutes: [1, 525600],
     retries: [0, 10],
-    timeoutSeconds: [1, 86400],
+    timeoutSeconds: [1, 600],
     concurrency: [1, 10],
   } as const
   if (field in limits) {

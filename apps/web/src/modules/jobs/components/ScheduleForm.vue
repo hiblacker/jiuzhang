@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  NFormItem,
   NSelect,
   NInput,
   NInputNumber,
@@ -16,13 +15,10 @@ import { dateTime } from '@/shared/lib/datetime'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { previewSchedule } from '../model/schedule-preview'
 import { scheduleIssue } from '../model/schedule-validation'
-import TaskDependencySelect from './TaskDependencySelect.vue'
 const model = defineModel<Model<'Schedule'>>({ required: true })
 const props = withDefaults(
   defineProps<{
     readonly?: boolean
-    excludedTaskId?: string
-    excludedDatasetId?: string
     path?: string
   }>(),
   { path: 'schedule' },
@@ -95,20 +91,6 @@ function rule(field: keyof Model<'Schedule'>): FormItemRule {
       />
     </NFormItemGi>
     <NFormItemGi
-      :label="t('ui.schedule_form_11b03b3f')"
-      :path="props.path + '.retries'"
-      :rule="rule('retries')"
-    >
-      <NInputNumber
-        v-model:value="model.retries"
-        :disabled="readonly"
-        :input-props="{ 'aria-label': t('ui.schedule_form_11b03b3f') }"
-        :min="0"
-        :max="10"
-        :precision="0"
-      />
-    </NFormItemGi>
-    <NFormItemGi
       :label="t('ui.schedule_form_2c38c10e')"
       :path="props.path + '.timeoutSeconds'"
       :rule="rule('timeoutSeconds')"
@@ -118,38 +100,11 @@ function rule(field: keyof Model<'Schedule'>): FormItemRule {
         :disabled="readonly"
         :input-props="{ 'aria-label': t('ui.schedule_form_2c38c10e') }"
         :min="1"
-        :max="86400"
-        :precision="0"
-      />
-    </NFormItemGi>
-    <NFormItemGi
-      :label="t('ui.schedule_form_3bd2de2f')"
-      :path="props.path + '.concurrency'"
-      :rule="rule('concurrency')"
-    >
-      <NInputNumber
-        v-model:value="model.concurrency"
-        :disabled="readonly"
-        :input-props="{ 'aria-label': t('ui.schedule_form_3bd2de2f') }"
-        :min="1"
-        :max="10"
+        :max="600"
         :precision="0"
       />
     </NFormItemGi>
   </NGrid>
-  <NFormItem
-    :label="t('ui.schedule_form_8a88d05f')"
-    :path="props.path + '.dependencies'"
-    :rule="rule('dependencies')"
-  >
-    <TaskDependencySelect
-      v-model:value="model.dependencies"
-      :disabled="readonly"
-      :excluded-task-id="excludedTaskId"
-      :excluded-dataset-id="excludedDatasetId"
-    />
-  </NFormItem>
-  <NAlert type="info" class="mb">{{ t('jobs.dependencyPolicy') }}</NAlert>
   <NAlert v-if="!preview.supported" type="warning">{{ t('jobs.unsupportedCron') }}</NAlert>
   <NAlert v-else-if="model.mode === 'cron' && !preview.dates.length" type="warning">
     {{ t('jobs.noCronMatch') }}

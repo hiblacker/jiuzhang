@@ -32,4 +32,13 @@ class ScheduleCalculatorTest {
     assertThat(ScheduleCalculator.next(schedule("cron", "0 9 * * *", 60), Instant.parse("2026-10-21T23:30:00Z")))
         .isEqualTo(Instant.parse("2026-10-22T01:00:00Z"));
   }
+
+  @Test
+  void numericCronStepsContinueThroughTheRemainderOfTheirField() {
+    var stepped = schedule("cron", "5/10 9 * * *", 60);
+    assertThat(ScheduleCalculator.next(stepped, Instant.parse("2026-10-22T00:59:00Z")))
+        .isEqualTo(Instant.parse("2026-10-22T01:05:00Z"));
+    assertThat(ScheduleCalculator.next(stepped, Instant.parse("2026-10-22T01:05:00Z")))
+        .isEqualTo(Instant.parse("2026-10-22T01:15:00Z"));
+  }
 }

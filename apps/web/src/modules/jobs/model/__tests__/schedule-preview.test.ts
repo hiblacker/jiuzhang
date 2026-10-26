@@ -48,6 +48,9 @@ it('rejects invalid syntax and zones without crashing preview while distinguishi
   for (const cron of ['0 9 * * *', '*/15 9-17 * * 1-5', '0,30 */2 1,15 1-12 *', '0\t9 * * *'])
     expect(validCron(cron), cron).toBe(true)
   expect(scheduleIssue({ ...schedule, concurrency: 1.5 }, 'concurrency')).toBe('jobs.invalidNumber')
+  expect(scheduleIssue({ ...schedule, timeoutSeconds: 601 }, 'timeoutSeconds')).toBe(
+    'jobs.invalidNumber',
+  )
   expect(scheduleIssue({ ...schedule, retries: 0 }, 'retries')).toBe(null)
   expect(previewSchedule({ ...schedule, timezone: 'Not/AZone' }).supported).toBe(false)
   expect(scheduleIssue({ ...schedule, cron: '*/15 9-17 * * 1-5' }, 'cron')).toBe(null)

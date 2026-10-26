@@ -21,7 +21,8 @@ public interface RunStore {
       String key,
       String hash,
       boolean allow,
-      String retryOf);
+      String retryOf,
+      Map<String, Object> scheduleSnapshot);
 
   Map<String, Object> createScheduled(
       String dataset,
@@ -29,7 +30,8 @@ public interface RunStore {
       String user,
       String key,
       String hash,
-      String taskId);
+      String taskId,
+      Map<String, Object> scheduleSnapshot);
 
   void cancel(String id);
 

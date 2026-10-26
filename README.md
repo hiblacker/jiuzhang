@@ -68,7 +68,7 @@ pnpm --filter @jiuzhang/web exec playwright install chromium
 bash tools/local.sh verify
 ~~~
 
-verify 先在独立临时 PostgreSQL 库验证空库 V001–V007 与重复迁移，再按依赖创建合成源/数据集，验证真实接口/引擎/桌面流程，生成 .local/*-test.json；不能对生产运行。
+verify 先在独立临时 PostgreSQL 库验证空库 V001–V009 与重复迁移，再按依赖创建合成源/数据集，验证真实接口/引擎/桌面流程，生成 .local/*-test.json；不能对生产运行。
 
 本地完整重启验收会停止/重启受管应用并重新构建；存储故障验收会短暂停止本项目 S3 与 Doris FE，仅在没有其他运行时单独执行：
 

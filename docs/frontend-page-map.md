@@ -10,7 +10,7 @@
 | 工作台 | `/overview` | 服务端汇总数据源、数据集、运行和仓库状态 | `tools/test-overview.py`、`tools/test-real-overview.mjs` |
 | 数据源列表/新建/编辑/详情 | `/sources`、`/sources/new`、`/sources/:id/edit`、`/sources/:id` | MySQL 连接测试、保存、平铺表名列表和搜索；选表后展示字段结构与说明，不展示样本预览 | `tools/test-sources.py`、`tools/test-real-sources.mjs` |
 | 数据集列表/新建/编辑/详情/版本 | `/datasets`、`/datasets/new`、`/datasets/:id/edit`、`/datasets/:id`、`/datasets/:id/versions/:version` | 可视化选表或只读 SQL；字段映射、预览、质量、脱敏；直连或手动/计划快照入库；发布与版本恢复 | `tools/test-datasets.py`、`tools/test-real-datasets.mjs` |
-| 任务中心/任务详情 | `/tasks`、`/tasks/:id`、`/tasks/:id/edit` | 查看已发布入库数据集任务，配置手动、Cron 或固定间隔计划，暂停/恢复和手动运行 | `tools/test-real-workspace.mjs` |
+| 任务中心/任务详情 | `/tasks`、`/tasks/:id`、`/tasks/:id/edit` | 查看已发布入库数据集任务，配置手动、Cron 或固定间隔计划，暂停/恢复和手动运行 | `tools/test-scheduling-ui.mjs` |
 | 运行列表/详情 | `/runs`、`/runs/:id` | 已发布入库数据集的手动运行、状态、阶段日志、取消和重试 | `tools/test-execution.py`、`tools/test-real-execution.mjs` |
 | 数仓概览/表/SQL/导出 | `/warehouse/overview`、`/warehouse/tables`、`/warehouse/query`、`/warehouse/exports` | Doris 当前快照、受限查询和本人 CSV 导出 | `tools/test-warehouse.py`、`tools/test-real-execution.mjs` |
 | 质量规则/脱敏策略 | `/governance/quality`、`/governance/masking` | 创建和维护首版支持的质量与脱敏策略 | `tools/test-execution-rules.py`、`tools/test-real-datasets.mjs` |

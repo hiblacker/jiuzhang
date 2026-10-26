@@ -1,6 +1,7 @@
 package cn.jiuzhang.platform.task.domain;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashSet;
@@ -30,7 +31,8 @@ public final class ScheduleCalculator {
       if (minutes < 1 || minutes > 525600) throw invalid();
     }
     if (mode.equals("cron")) parseCron(text(schedule, "cron"));
-    if (schedule.get("dependencies") instanceof List<?> deps && deps.stream().anyMatch(x -> !(x instanceof String)))
+    if (!(schedule.get("dependencies") instanceof List<?> deps)
+        || deps.stream().anyMatch(x -> !(x instanceof String)))
       throw invalid();
   }
 
@@ -38,7 +40,8 @@ public final class ScheduleCalculator {
     validate(schedule);
     String mode = text(schedule, "mode");
     if (mode.equals("manual")) return null;
-    if (mode.equals("interval")) return after.plusSeconds(integer(schedule, "intervalMinutes") * 60L);
+    if (mode.equals("interval"))
+      return after.plusSeconds(integer(schedule, "intervalMinutes") * 60L).truncatedTo(ChronoUnit.MICROS);
     ZoneId zone = ZoneId.of(text(schedule, "timezone"));
     Cron cron = parseCron(text(schedule, "cron"));
     Instant cursor = Instant.ofEpochSecond((after.getEpochSecond() / 60L + 1L) * 60L);
@@ -66,7 +69,7 @@ public final class ScheduleCalculator {
 
   private static Set<Integer> expand(String expression, int min, int max) {
     Set<Integer> values = new HashSet<>();
-    for (String part : expression.split(",")) {
+    for (String part : expression.split(",", -1)) {
       String[] stepped = part.split("/", -1);
       if (stepped.length > 2 || stepped[0].isBlank()) throw invalid();
       int step = stepped.length == 2 ? number(stepped[1]) : 1;
@@ -75,7 +78,7 @@ public final class ScheduleCalculator {
       String[] bounds = range.split("-", -1);
       if (bounds.length > 2) throw invalid();
       int start = bounds[0].equals("*") ? min : number(bounds[0]);
-      int end = bounds.length == 2 ? number(bounds[1]) : (bounds[0].equals("*") ? max : start);
+      int end = bounds.length == 2 ? number(bounds[1]) : (bounds[0].equals("*") || stepped.length == 2 ? max : start);
       if (start < min || end > max || start > end) throw invalid();
       for (int value = start; value <= end; value += step) values.add(value);
     }
@@ -111,7 +114,11 @@ public final class ScheduleCalculator {
 
   private static int integer(Map<String, Object> map, String key) {
     Object value = map.get(key);
-    if (!(value instanceof Number n) || n.doubleValue() != Math.rint(n.doubleValue())) throw invalid();
+    if (!(value instanceof Number n)
+        || !Double.isFinite(n.doubleValue())
+        || n.doubleValue() != Math.rint(n.doubleValue())
+        || n.doubleValue() < Integer.MIN_VALUE
+        || n.doubleValue() > Integer.MAX_VALUE) throw invalid();
     return n.intValue();
   }
 
