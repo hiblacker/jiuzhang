@@ -182,8 +182,9 @@ def verify():
     env=environment()
     run(['python3','tools/test-backend-build.py'],env=env)
     run(['python3','tools/test-migrations.py'],env=env)
+    run(['python3','tools/test-scheduling-atomic.py'],env=env)
     for name in [
-        'identity','sources','datasets','execution','scheduling','warehouse','excel-sources','excel-storage',
+        'identity','sources','datasets','execution','scheduling','scheduling-multiworker','warehouse','excel-sources','excel-storage',
         'execution-safety','execution-rules','result-budget','overview']:
         run(['python3','tools/test-'+name+'.py'],env=env)
         if name=='sources':run(['python3','tools/test-source-snapshot.py'],env=env)
@@ -191,7 +192,7 @@ def verify():
         run(['node','tools/test-real-'+name+'.mjs'],env=env)
     run(['node','tools/test-scheduling-ui.mjs'],env=env)
     run(['node','tools/test-excel-sources-ui.mjs'],env=env)
-    print('PASS sequential real-engine/API/browser acceptance. Crash test is separate and requires exclusive Worker ownership.')
+    print('PASS sequential real-engine/API/browser acceptance, including two-Worker scheduling and dispatch SIGKILL. Read/publication crash recovery remains a separate exclusive test.')
 
 
 def main():
