@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Four real one-minute slots, two owned Workers, deterministic SIGKILL during admission."""
-from datetime import datetime, timedelta, timezone
+"""Real one-minute slots, two owned Workers, deterministic SIGKILL during admission."""
+from datetime import datetime, timedelta
 from importlib import import_module
 from pathlib import Path
 import json
+import argparse
 import os
 import shutil
 import subprocess
@@ -35,6 +36,11 @@ def worker_pids():
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--cycles', type=int, default=4, help='one-minute slots to observe (minimum 2; default 4)')
+    args = parser.parse_args()
+    if args.cycles < 2:
+        parser.error('--cycles must be at least 2 to cover admission before and during SIGKILL')
     os.chdir(local.ROOT)
     build.check('worker')
     original = local.managed('worker')
@@ -62,7 +68,7 @@ def main():
     trigger = 'jz_schedule_gate_'+suffix
     gate_key = int(suffix[:7], 16)
     gate_locked = False
-    report = {'cycles': 4, 'periodSeconds': 60, 'workers': names}
+    report = {'cycles': args.cycles, 'periodSeconds': 60, 'workers': names}
     if original:
         local.stop('worker')
     try:
@@ -90,6 +96,10 @@ def main():
             client.call('POST', '/tasks/'+task_id+'/pause')
             schedule = {**body['definition']['schedule'], 'mode': 'interval'}
             client.call('PATCH', '/tasks/'+task_id, {'schedule': schedule})
+            retention = int(local.environment().get('JIUZHANG_SCHEDULE_SLOT_RETENTION_DAYS', '30'))
+            # A terminal canary proves the actual periodic Worker cleanup is wired, without
+            # deleting runs or fabricating dispatch attempts in the observed current slots.
+            db.execute("INSERT INTO dataset_schedule_slot(dataset_id,scheduled_at,revision,dataset_version,requested_by,schedule_snapshot,expires_at,state,reason,advanced_to) SELECT s.dataset_id,clock_timestamp()-make_interval(days => ?::int),s.revision,d.published_version,s.owner_id,s.schedule,clock_timestamp()-make_interval(days => ?::int)+interval '1 minute','skipped','EXPIRED',clock_timestamp()-make_interval(days => ?::int)+interval '1 minute' FROM dataset_schedule s JOIN dataset d ON d.id=s.dataset_id WHERE s.dataset_id=?", [retention+2, retention+2, retention+2, int(task_id)])
             runtime = local.LOCAL/'runtime'
             runtime.mkdir(exist_ok=True)
             for name in names:
@@ -106,7 +116,7 @@ def main():
                     env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
             started = client.call('POST', '/tasks/'+task_id+'/resume')[0]['data']
             first = instant(started['nextRunAt'])
-            slots = [first+timedelta(minutes=index) for index in range(4)]
+            slots = [first+timedelta(minutes=index) for index in range(args.cycles)]
             crash_slot = slots[1]
             gate.execute('SELECT pg_advisory_lock(?)', [gate_key])
             gate_locked = True
@@ -119,7 +129,7 @@ def main():
             kill_time = None
             previous_next = first
             observed = set()
-            deadline = time.monotonic()+360
+            deadline = time.monotonic()+(args.cycles+2)*60
             last_api = 0
             paused = False
             while time.monotonic() < deadline:
@@ -140,8 +150,8 @@ def main():
                 for name, process in workers.items():
                     if name != killed:
                         assert process.poll() is None, 'A surviving Worker exited'
-                records = db.query('SELECT scheduled_at,state,reason,run_id,advanced_to FROM dataset_schedule_slot WHERE dataset_id=? ORDER BY scheduled_at', [int(task_id)])
-                cursor = db.query("SELECT s.next_run_at,(SELECT max(advanced_to) FROM dataset_schedule_slot WHERE dataset_id=s.dataset_id AND state IN ('enqueued','skipped')) AS ledger_next FROM dataset_schedule s WHERE s.dataset_id=?", [int(task_id)])[0]
+                records = db.query('SELECT scheduled_at,state,reason,run_id,advanced_to FROM dataset_schedule_slot WHERE dataset_id=? AND scheduled_at>=?::timestamptz ORDER BY scheduled_at', [int(task_id), first.isoformat()])
+                cursor = db.query("SELECT s.next_run_at,(SELECT max(advanced_to) FROM dataset_schedule_slot WHERE dataset_id=s.dataset_id AND scheduled_at>=?::timestamptz AND state IN ('enqueued','skipped')) AS ledger_next FROM dataset_schedule s WHERE s.dataset_id=?", [first.isoformat(), int(task_id)])[0]
                 next_value = cursor['next_run_at']
                 if next_value is not None:
                     next_at = instant(next_value)
@@ -181,8 +191,10 @@ def main():
                         break
                 time.sleep(0.1)
             else:
-                raise AssertionError('Timed out before four slots became observable')
+                raise AssertionError('Timed out before '+str(args.cycles)+' slots became observable')
             assert killed and 'takeoverSeconds' in report, 'Deterministic crash was not exercised'
+            assert int(db.scalar('SELECT count(*) FROM dataset_schedule_slot WHERE dataset_id=? AND scheduled_at<?::timestamptz', [int(task_id), first.isoformat()])) == 0, 'Periodic Worker cleanup did not remove the old terminal canary'
+            report['retentionCanaryRemoved'] = True
             runs = db.query("SELECT scheduled_at,status FROM dataset_run WHERE dataset_id=? AND trigger='schedule'", [int(task_id)])
             assert runs and all(row['status'] == 'succeeded' for row in runs), 'Scheduled dataset did not really succeed'
             for log in logs:
@@ -196,7 +208,7 @@ def main():
             report['http500'] = statuses.get('500', 0)
             assert report['http500'] == 0, 'A user-visible HTTP 500 occurred'
             (local.LOCAL/'scheduling-multiworker-test.json').write_text(json.dumps(report, indent=2))
-            print('PASS two real Workers / four one-minute slots: no duplicate runs or HTTP 500, monotonic calculator-aligned time, SIGKILL takeover in '+str(report['takeoverSeconds'])+'s, observable outcomes.', flush=True)
+            print('PASS two real Workers / '+str(args.cycles)+' one-minute slots: no duplicate runs or HTTP 500, monotonic calculator-aligned time, SIGKILL takeover in '+str(report['takeoverSeconds'])+'s, observable outcomes, periodic terminal cleanup.', flush=True)
     finally:
         if task_id:
             try: client.call('POST', '/tasks/'+task_id+'/pause')
