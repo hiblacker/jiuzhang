@@ -694,6 +694,7 @@
       "errors.SQL_COLUMNS_INVALID",
       "errors.SQL_EXECUTION_FAILED",
       "errors.TARGET_NAME_IMMUTABLE",
+      "errors.TARGET_NAME_INVALID",
       "errors.TIMEOUT_LIMIT",
       "errors.UNAUTHENTICATED",
       "errors.UNKNOWN",

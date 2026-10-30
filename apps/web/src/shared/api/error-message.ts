@@ -85,6 +85,7 @@ export function errorKey(error: unknown) {
     'SQL_COLUMNS_INVALID',
     'SQL_EXECUTION_FAILED',
     'TARGET_NAME_IMMUTABLE',
+    'TARGET_NAME_INVALID',
     'TIMEOUT_LIMIT',
     'UNSUPPORTED_SQL',
     'VERSION_NOT_FOUND',

@@ -107,7 +107,7 @@ public class DatasetService {
   public Map<String, Object> validate(User u, String id) {
     try {
       var d = map(get(u, id), "definition");
-      plan(d, snapshots(d, "quality"), snapshots(d, "masking"), false);
+      plan(d, snapshots(d, "quality"), snapshots(d, "masking"));
       validateSource(d, sourceColumns(u, d));
       return Map.of("valid", true, "issues", List.of());
     } catch (Failure e) {
@@ -406,9 +406,11 @@ public class DatasetService {
       if (timeout < 1 || timeout > 600) throw new Failure(422, "TIMEOUT_LIMIT");
       var o = map(d, "output");
       if (requireWarehouseOutput && delivery.equals("warehouse")) {
-        if (!text(o, "writeMode").equals("replace")
-            || !text(o, "table").matches("[a-zA-Z_][a-zA-Z0-9_]{0,55}")
-            || text(o, "table").startsWith("jz_")) throw new Failure(422, "OUTPUT_UNSUPPORTED");
+        if (!text(o, "writeMode").equals("replace"))
+          throw new Failure(422, "OUTPUT_UNSUPPORTED");
+        if (!text(o, "table").matches("[a-zA-Z_][a-zA-Z0-9_]{0,55}")
+            || text(o, "table").startsWith("jz_"))
+          throw new Failure(422, "TARGET_NAME_INVALID");
         if (!Set.of("ODS", "DWD", "DWS", "ADS").contains(text(o, "layer")))
           throw new Failure(422, "VALIDATION_ERROR");
       }

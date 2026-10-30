@@ -167,7 +167,7 @@ export default {
     MASK_POLICY_INVALID: '脱敏策略配置无效',
     OBJECTS_NOT_CONFIGURED: '原始批次存储未配置',
     OBJECTS_UNAVAILABLE: '原始批次存储不可用',
-    OUTPUT_UNSUPPORTED: '入库数据集仅支持独占目标表的快照替换',
+    OUTPUT_UNSUPPORTED: '入库数据集当前仅支持全量快照替换',
     PUBLICATION_UNCONFIRMED: '发布状态待对账，请查看运行记录',
     PUBLISHED_DATASET_REFERENCED: '已发布数据集存在版本或运行记录，不能删除',
     QUALITY_BLOCKED: '质量规则阻断，本次数据未替换当前快照',
@@ -204,6 +204,8 @@ export default {
     SQL_EXECUTION_FAILED:
       'SQL 执行失败，请检查语法、表名和字段名；表名按数据源目录匹配，忽略大小写',
     TARGET_NAME_IMMUTABLE: '数据集首次发布后不可修改目标表名',
+    TARGET_NAME_INVALID:
+      '请填写合法的目标表名：以字母或下划线开头，仅含字母、数字和下划线，且不能以 jz_ 开头',
     DATASET_DELIVERY_MODE_IMMUTABLE: '数据集首次发布后不可更改提供方式',
     TIMEOUT_LIMIT: '运行超时配置超出允许范围',
     UNSUPPORTED_SQL: '仅支持单条只读 SELECT 查询，请检查 SQL',

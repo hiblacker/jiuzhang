@@ -26,7 +26,8 @@ def main():
  assert any(r['id']=='9007199254740993' and r['amount']=='12345.6700' for r in preview_without_target['data']['rows'])
  # Blank-target drafts can be saved and edited before their first publication.
  dataset,_=c.call('POST','/datasets',body,expected=201);did=dataset['data']['id']
- c.call('POST','/datasets/'+did+'/publish',expected=422,extra_headers={'Idempotency-Key':str(uuid.uuid4())})
+ validation,_=c.call('POST','/datasets/'+did+'/validate');assert validation['data']=={'valid':False,'issues':['TARGET_NAME_INVALID']}
+ rejected,_=c.call('POST','/datasets/'+did+'/publish',expected=422,extra_headers={'Idempotency-Key':str(uuid.uuid4())});assert rejected['error']['code']=='TARGET_NAME_INVALID'
  for mode in [None,'','invalid',False]:
   invalid=json.loads(json.dumps(body));invalid['definition']['deliveryMode']=mode
   c.call('PATCH','/datasets/'+did,invalid,expected=422)
