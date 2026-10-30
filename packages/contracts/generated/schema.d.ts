@@ -1134,6 +1134,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sources/excel-files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload an immutable Excel source file (.xls or .xlsx, at most 20 MiB)
+         * @description Requires write permission. Returns sheet names without raw rows. Does not evaluate formulas or external references. Uploaded files unused for 24 hours are eligible for cleanup.
+         */
+        post: operations["upload_excel_file"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sources/excel-files/{id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a selected worksheet/header before saving (readSensitive permission) */
+        post: operations["preview_excel_file"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sources/excel-files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read uploaded workbook metadata */
+        get: operations["get_excel_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1153,27 +1207,32 @@ export interface components {
             };
         };
         /** @enum {string} */
-        SourceType: "MySQL" | "PostgreSQL" | "SQL Server" | "Oracle" | "Doris" | "ClickHouse" | "REST API" | "CSV";
+        SourceType: "MySQL" | "PostgreSQL" | "SQL Server" | "Oracle" | "Doris" | "ClickHouse" | "REST API" | "CSV" | "Excel";
+        /** @description MySQL uses database connection settings; Excel uses an immutable uploaded fileId, sheet and one-based headerRow. fileName is set by the server. */
         SourceSettings: {
-            host: string;
-            port: number;
-            database: string;
-            schema: string;
-            tls: boolean;
+            host?: string;
+            port?: number;
+            database?: string;
+            schema?: string;
+            tls?: boolean;
             /** @enum {string} */
-            method: "GET" | "POST";
-            baseUrl: string;
-            path: string;
-            headers: string;
-            query: string;
-            body: string;
+            method?: "GET" | "POST";
+            baseUrl?: string;
+            path?: string;
+            headers?: string;
+            query?: string;
+            body?: string;
             /** @enum {string} */
-            authType: "none" | "bearer" | "basic";
+            authType?: "none" | "bearer" | "basic";
             /** @enum {string} */
-            pagination: "none" | "page" | "cursor";
-            dataPath: string;
-            incrementalField: string;
-            rateLimit: number;
+            pagination?: "none" | "page" | "cursor";
+            dataPath?: string;
+            incrementalField?: string;
+            rateLimit?: number;
+            fileId?: string;
+            fileName?: string;
+            sheet?: string;
+            headerRow?: number;
         };
         SourceInput: {
             name: string;
@@ -1184,7 +1243,7 @@ export interface components {
             settings: components["schemas"]["SourceSettings"];
             /** @description Real MySQL credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser. */
             credentials?: components["schemas"]["SourceCredentials"];
-        };
+        } & unknown;
         Source: {
             id: string;
             name: string;
@@ -1200,7 +1259,7 @@ export interface components {
             objectCount: number;
             connectionUsername?: string;
             credentialConfigured?: boolean;
-        };
+        } & unknown;
         Field: {
             name: string;
             target: string;
@@ -1334,6 +1393,8 @@ export interface components {
             sourceSnapshotOrigin: "published" | "migrated";
             /** Format: date-time */
             sourceSnapshotCapturedAt: string;
+            /** @description Excel only: immutable file and worksheet settings captured at publication; retained while this version exists. */
+            sourceFileSnapshot?: components["schemas"]["SourceSettings"];
         };
         Validation: {
             valid: boolean;
@@ -1886,6 +1947,16 @@ export interface components {
             /** @description Test only: retain saved credentials while validating edited connection settings. */
             credentialSourceId?: string;
         };
+        ExcelFile: {
+            id: string;
+            fileName: string;
+            size: string;
+            sheets: string[];
+        };
+        ExcelFilePreviewInput: {
+            sheet: string;
+            headerRow: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -2094,6 +2165,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_sources: {
@@ -2196,6 +2276,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_sources_id_: {
@@ -2286,6 +2375,15 @@ export interface operations {
             };
             /** @description 当前真实版本尚未实现此能力 */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2491,6 +2589,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_datasets: {
@@ -2607,6 +2714,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_datasets: {
@@ -2709,6 +2825,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_datasets_id_: {
@@ -2799,6 +2924,15 @@ export interface operations {
             };
             /** @description 当前真实版本尚未实现此能力 */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2997,6 +3131,15 @@ export interface operations {
             };
             /** @description 当前真实版本尚未实现此能力 */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5118,6 +5261,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_sources_id_test: {
@@ -5211,6 +5363,15 @@ export interface operations {
             };
             /** @description 当前真实版本尚未实现此能力 */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5315,6 +5476,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_sources_id_objects_objectId_fields: {
@@ -5406,6 +5576,15 @@ export interface operations {
             };
             /** @description 当前真实版本尚未实现此能力 */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5519,6 +5698,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_datasets_id_validate: {
@@ -5619,6 +5807,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_datasets_id_preview: {
@@ -5712,6 +5909,15 @@ export interface operations {
             };
             /** @description 当前真实版本尚未实现此能力 */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5821,6 +6027,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_datasets_id_query: {
@@ -5906,6 +6121,15 @@ export interface operations {
             };
             /** @description 明确的错误响应 */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6013,6 +6237,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_datasets_id_copy: {
@@ -6106,6 +6339,15 @@ export interface operations {
             };
             /** @description 当前真实版本尚未实现此能力 */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6210,6 +6452,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     get_datasets_id_versions_version_: {
@@ -6301,6 +6552,15 @@ export interface operations {
             };
             /** @description 当前真实版本尚未实现此能力 */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6409,6 +6669,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     post_datasets_id_runs: {
@@ -6506,6 +6775,15 @@ export interface operations {
             };
             /** @description 当前真实版本尚未实现此能力 */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11429,6 +11707,354 @@ export interface operations {
             };
             /** @description 当前真实版本尚未实现此能力 */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    upload_excel_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ExcelFile"];
+                        meta: components["schemas"]["Meta"];
+                    };
+                };
+            };
+            /** @description 明确的错误响应 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    preview_excel_file: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 同一角色、路径、键和请求体返回同一结果；不同请求体返回409 */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExcelFilePreviewInput"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Preview"];
+                        meta: components["schemas"]["Meta"];
+                    };
+                };
+            };
+            /** @description 明确的错误响应 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get_excel_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ExcelFile"];
+                        meta: components["schemas"]["Meta"];
+                    };
+                };
+            };
+            /** @description 明确的错误响应 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 明确的错误响应 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 当前真实版本尚未实现此能力 */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 依赖的私有对象存储暂不可用 */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

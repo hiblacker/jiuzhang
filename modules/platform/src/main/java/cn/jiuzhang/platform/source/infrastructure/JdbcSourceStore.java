@@ -20,11 +20,11 @@ public class JdbcSourceStore implements SourceStore {
     public <T>T transaction(Supplier<T> work){return tx.execute(s->work.get());}
     public List<Source> list(){return db.queryForList("SELECT * FROM source_connection ORDER BY id DESC").stream().map(this::source).toList();}
     public Source get(String id){var rows=db.queryForList("SELECT * FROM source_connection WHERE id=?",IdentityService.numericId(id));if(rows.isEmpty())throw new Failure(404,"NOT_FOUND");return source(rows.getFirst());}
-    public Source create(String name,String description,String owner,List<String> tags,Map<String,Object> settings,String username,String creator){
-        var id=db.queryForObject("INSERT INTO source_connection(name,description,owner_label,tags,settings,connection_username,created_by) VALUES (?,?,?,?::jsonb,?::jsonb,?,?) RETURNING id",Long.class,name,description,owner,write(tags),write(settings),username,IdentityService.numericId(creator));return get(id.toString());
+    public Source create(String name,String description,String owner,List<String> tags,String type,Map<String,Object> settings,String username,String creator){
+        var id=db.queryForObject("INSERT INTO source_connection(name,description,owner_label,tags,source_type,settings,connection_username,created_by,file_id) VALUES (?,?,?,?::jsonb,?,?::jsonb,?,?,?) RETURNING id",Long.class,name,description,owner,write(tags),type,write(settings),username,IdentityService.numericId(creator),fileId(type,settings));return get(id.toString());
     }
-    public Source update(String id,String name,String description,String owner,List<String> tags,Map<String,Object> settings,String username){
-        db.update("UPDATE source_connection SET name=?,description=?,owner_label=?,tags=?::jsonb,settings=?::jsonb,connection_username=?,status='offline',updated_at=now() WHERE id=?",name,description,owner,write(tags),write(settings),username,IdentityService.numericId(id));return get(id);
+    public Source update(String id,String name,String description,String owner,List<String> tags,String type,Map<String,Object> settings,String username){
+        db.update("UPDATE source_connection SET name=?,description=?,owner_label=?,tags=?::jsonb,source_type=?,settings=?::jsonb,connection_username=?,file_id=?,status='offline',updated_at=now() WHERE id=?",name,description,owner,write(tags),type,write(settings),username,fileId(type,settings),IdentityService.numericId(id));return get(id);
     }
     public void secret(String id,String encrypted){db.update("INSERT INTO source_secret(source_id,ciphertext) VALUES (?,?) ON CONFLICT(source_id) DO UPDATE SET ciphertext=excluded.ciphertext",IdentityService.numericId(id),encrypted);}
     public String secret(String id){return db.queryForObject("SELECT ciphertext FROM source_secret WHERE source_id=?",String.class,IdentityService.numericId(id));}
@@ -32,7 +32,8 @@ public class JdbcSourceStore implements SourceStore {
     public List<SourceObject> objects(String id){return db.queryForList("SELECT * FROM source_object WHERE source_id=? ORDER BY name",IdentityService.numericId(id)).stream().map(r->new SourceObject(r.get("id").toString(),id,(String)r.get("name"),read(r.get("schema_contract").toString(),new TypeReference<List<Column>>(){}))).toList();}
     public void object(String id,String name,List<Column> columns){db.update("INSERT INTO source_object(source_id,name,schema_contract) VALUES (?,?,?::jsonb) ON CONFLICT(source_id,name) DO UPDATE SET schema_contract=excluded.schema_contract,discovered_at=now()",IdentityService.numericId(id),name,write(columns));}
     public void delete(String id){db.update("DELETE FROM source_connection WHERE id=?",IdentityService.numericId(id));}
-    private Source source(Map<String,Object> r){return new Source(r.get("id").toString(),(String)r.get("name"),(String)r.get("description"),(String)r.get("owner_label"),read(r.get("tags").toString(),new TypeReference<List<String>>(){}),read(r.get("settings").toString(),new TypeReference<Map<String,Object>>(){}),(String)r.get("connection_username"),(String)r.get("status"),(Integer)r.get("object_count"),((java.sql.Timestamp)r.get("updated_at")).toInstant());}
+    private Source source(Map<String,Object> r){return new Source(r.get("id").toString(),(String)r.get("name"),(String)r.get("description"),(String)r.get("owner_label"),read(r.get("tags").toString(),new TypeReference<List<String>>(){}),(String)r.get("source_type"),read(r.get("settings").toString(),new TypeReference<Map<String,Object>>(){}),(String)r.get("connection_username"),(String)r.get("status"),(Integer)r.get("object_count"),((java.sql.Timestamp)r.get("updated_at")).toInstant());}
+    private Long fileId(String type,Map<String,Object> settings){return type.equals("Excel")?IdentityService.numericId(settings.get("fileId").toString()):null;}
     private String write(Object value){try{return json.writeValueAsString(value);}catch(Exception e){throw new IllegalStateException("Metadata serialization failed");}}
     private <T>T read(String value,TypeReference<T> type){try{return json.readValue(value,type);}catch(Exception e){throw new IllegalStateException("Metadata decoding failed");}}
 }

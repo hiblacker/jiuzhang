@@ -87,6 +87,13 @@ watch(
     referenceId.value = ''
   },
 )
+// File sources expose worksheets, so selecting one leaves the SQL editor mode.
+watch(
+  () => source.data.value?.type,
+  (type) => {
+    if (type === 'Excel' && draft.value.definition.mode === 'sql') selectDefinitionMode('visual')
+  },
+)
 watch(
   [
     () => objects.data.value,
@@ -195,7 +202,11 @@ useEditGuard(dirty, busy)
                 v-select-trigger-name="t('datasets.definitionMode')"
                 :options="[
                   { label: t('datasets.tableMode'), value: 'visual' },
-                  { label: t('datasets.sqlMode'), value: 'sql' },
+                  {
+                    label: t('datasets.sqlMode'),
+                    value: 'sql',
+                    disabled: source.data.value?.type === 'Excel',
+                  },
                 ]"
                 @update:value="selectDefinitionMode"
               />

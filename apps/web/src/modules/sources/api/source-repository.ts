@@ -2,6 +2,7 @@ import { api, unwrap } from '@/shared/api/client'
 import type { Model } from '@/shared/api/types'
 export type Source = Model<'Source'>
 export type SourceInput = Model<'SourceInput'>
+export type ExcelFile = Model<'ExcelFile'>
 export interface SourceFilters {
   q: string
   type: string
@@ -11,6 +12,27 @@ export interface SourceFilters {
   sort: string
 }
 export const sourceRepository = {
+  async fileInfo(id: string) {
+    return unwrap(await api.GET('/sources/excel-files/{id}', { params: { path: { id } } })).data
+  },
+  async upload(file: File) {
+    const body = new FormData()
+    body.append('file', file)
+    return unwrap(
+      await api.POST('/sources/excel-files', {
+        body: { file: '' },
+        bodySerializer: () => body,
+      }),
+    ).data
+  },
+  async previewFile(id: string, sheet: string, headerRow: number) {
+    return unwrap(
+      await api.POST('/sources/excel-files/{id}/preview', {
+        params: { path: { id } },
+        body: { sheet, headerRow },
+      }),
+    ).data
+  },
   async list(filters: SourceFilters, signal?: AbortSignal) {
     return unwrap(
       await api.GET('/sources', {

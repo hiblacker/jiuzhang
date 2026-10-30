@@ -305,6 +305,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -418,6 +428,16 @@
           },
           "501": {
             "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
             "content": {
               "application/json": {
                 "schema": {
@@ -556,6 +576,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -668,6 +698,16 @@
           },
           "501": {
             "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
             "content": {
               "application/json": {
                 "schema": {
@@ -1034,6 +1074,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -1147,6 +1197,16 @@
           },
           "501": {
             "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
             "content": {
               "application/json": {
                 "schema": {
@@ -1285,6 +1345,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -1397,6 +1467,16 @@
           },
           "501": {
             "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
             "content": {
               "application/json": {
                 "schema": {
@@ -4395,6 +4475,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -4535,6 +4625,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -4652,6 +4752,16 @@
           },
           "501": {
             "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
             "content": {
               "application/json": {
                 "schema": {
@@ -4791,6 +4901,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -4914,6 +5034,16 @@
           },
           "501": {
             "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
             "content": {
               "application/json": {
                 "schema": {
@@ -5071,6 +5201,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -5201,6 +5341,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -5316,6 +5466,16 @@
           },
           "501": {
             "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
             "content": {
               "application/json": {
                 "schema": {
@@ -5454,6 +5614,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -5577,6 +5747,16 @@
           },
           "501": {
             "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
             "content": {
               "application/json": {
                 "schema": {
@@ -5714,6 +5894,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -5831,6 +6021,16 @@
           },
           "501": {
             "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
             "content": {
               "application/json": {
                 "schema": {
@@ -5960,6 +6160,16 @@
           },
           "501": {
             "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
             "content": {
               "application/json": {
                 "schema": {
@@ -6105,6 +6315,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -6228,6 +6448,16 @@
           },
           "501": {
             "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
             "content": {
               "application/json": {
                 "schema": {
@@ -12901,6 +13131,448 @@
           }
         }
       }
+    },
+    "/sources/excel-files": {
+      "post": {
+        "operationId": "upload_excel_file",
+        "summary": "Upload an immutable Excel source file (.xls or .xlsx, at most 20 MiB)",
+        "description": "Requires write permission. Returns sheet names without raw rows. Does not evaluate formulas or external references. Uploaded files unused for 24 hours are eligible for cleanup.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ExcelFile"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sources/excel-files/{id}/preview": {
+      "post": {
+        "operationId": "preview_excel_file",
+        "summary": "Preview a selected worksheet/header before saving (readSensitive permission)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "同一角色、路径、键和请求体返回同一结果；不同请求体返回409"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Preview"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExcelFilePreviewInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sources/excel-files/{id}": {
+      "get": {
+        "operationId": "get_excel_file",
+        "summary": "Read uploaded workbook metadata",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "当前真实版本尚未实现此能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "明确的错误响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "依赖的私有对象存储暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ExcelFile"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -12972,7 +13644,8 @@
           "Doris",
           "ClickHouse",
           "REST API",
-          "CSV"
+          "CSV",
+          "Excel"
         ]
       },
       "SourceSettings": {
@@ -13040,26 +13713,27 @@
           },
           "rateLimit": {
             "type": "integer"
+          },
+          "fileId": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "fileName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "sheet": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 31
+          },
+          "headerRow": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
           }
         },
-        "required": [
-          "host",
-          "port",
-          "database",
-          "schema",
-          "tls",
-          "method",
-          "baseUrl",
-          "path",
-          "headers",
-          "query",
-          "body",
-          "authType",
-          "pagination",
-          "dataPath",
-          "incrementalField",
-          "rateLimit"
-        ]
+        "description": "MySQL uses database connection settings; Excel uses an immutable uploaded fileId, sheet and one-based headerRow. fileName is set by the server."
       },
       "SourceInput": {
         "type": "object",
@@ -13099,6 +13773,43 @@
           "tags",
           "type",
           "settings"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "Excel"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "required": [
+                    "fileId",
+                    "sheet",
+                    "headerRow"
+                  ]
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "settings": {
+                  "required": [
+                    "host",
+                    "port",
+                    "database",
+                    "tls"
+                  ]
+                }
+              }
+            }
+          }
         ]
       },
       "Source": {
@@ -13163,6 +13874,43 @@
           "settings",
           "status",
           "objectCount"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "Excel"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "required": [
+                    "fileId",
+                    "sheet",
+                    "headerRow"
+                  ]
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "settings": {
+                  "required": [
+                    "host",
+                    "port",
+                    "database",
+                    "tls"
+                  ]
+                }
+              }
+            }
+          }
         ]
       },
       "Field": {
@@ -13738,6 +14486,10 @@
           "sourceSnapshotCapturedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "sourceFileSnapshot": {
+            "$ref": "#/components/schemas/SourceSettings",
+            "description": "Excel only: immutable file and worksheet settings captured at publication; retained while this version exists."
           }
         },
         "required": [
@@ -16037,6 +16789,54 @@
           "tags",
           "type",
           "settings"
+        ]
+      },
+      "ExcelFile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "sheets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "fileName",
+          "size",
+          "sheets"
+        ]
+      },
+      "ExcelFilePreviewInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sheet": {
+            "type": "string",
+            "minLength": 1
+          },
+          "headerRow": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "sheet",
+          "headerRow"
         ]
       }
     }

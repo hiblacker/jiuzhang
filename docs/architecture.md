@@ -1,7 +1,7 @@
 # 九章数据仓库设计方案
 
 > 状态：第一版本地单机真实闭环已实现；前端仅使用真实 API；数据集支持表/SQL 定义与直连/入库两种提供方式。2026-10-20 起转入客户环境投产验证（§12.6）
-> 更新时间：2026-10-21
+> 更新时间：2026-10-30
 > 参考：Crest 的数据源、数据集、同步任务、字段和执行日志资源模型。新方案只借鉴资源边界，不复用 Crest 的 BI 展示层。
 > 当前进度与下一步以 [§12 分阶段交付](#12-分阶段交付) 为统一入口；前端逐页证据见 [页面矩阵](frontend-page-map.md)，数据集操作见[快速指南](dataset-quick-start.md)。[UI 与 Vue 规范](ui-conventions.md) · [AI 开发规范](ai-development.md)。new-api 组件规范的适配依据见 [对照研究](research/new-api-adaptation.md)；当前首版与长期目标的差异以 §12 和 §14 为准。
 
@@ -172,6 +172,8 @@ transaction           是否支持一致性快照
 默认所有源端连接均为只读。写回源端必须单独开启，并使用独立连接器能力。
 
 ### 3.2 Connector SPI
+
+2026-10-30 已新增 Excel 文件接入：上传不可变 `.xls` / `.xlsx` 文件到现有私有 S3，选择工作表与表头，接入现有数据集和执行流程。文件能力由 `ExcelReader` / `SourceFileContent` Port 表达，不伪装成 JDBC 连接。新增 Apache POI 6.0.0 解析依赖，填补现有 Java 依赖无法读取 Excel 的缺口；兼容 Java 21，增加 API/Worker 打包依赖，不增加前端依赖或独立服务。版本与 API 依据 [Apache POI 官方发布页](https://poi.apache.org/download.cgi)与[读取指南](https://poi.apache.org/components/spreadsheet/quick-guide.html)。操作、容量和公式边界由[快速指南](dataset-quick-start.md#excel-数据源)统一维护；真实验收见 §14.14。
 
 ~~~java
 interface SourceConnector {
@@ -956,3 +958,17 @@ Vue 3 管理端
 - 实际执行 `pnpm check` 退出码 0：契约、边界、UI/i18n/lint、格式、类型、16 文件 101 项单元/HTTP 测试及构建通过。HTTP 集成覆盖先取数后加工、下游规则隔离、空结果、字段结构更新、双阶段失效、失败单次消息/恢复、重复请求和过期响应。
 - 实际执行 `pnpm test:e2e` 退出码 0：真实 MySQL/API、1280×1000 全屏选表/SQL、步骤门禁、原始与处理结果区别、字段改名/精确数值/手机号脱敏、SQL 两类错误及恢复、表搜索、明暗主题与键盘调整高度、直连/入库发布、直连查询、编辑保存、发布锁和退出取消/放弃草稿。已人工查看明暗 SQL、字段处理及输出页截图。浏览器没有执行小屏专项。
 - 操作指南与页面矩阵同步。此次仅前端交互及测试/文档变更，未重跑 Maven、完整引擎验收、客户环境或生产专项。
+
+### 14.14 Excel 数据源（2026-10-30）
+
+- OpenAPI 新增 Excel 上传、文件元数据及工作表预览端点，数据源配置支持文件引用；生成类型、repository、composable、表单和数据集消费者同步。复用 `SourceConnectionForm` 的基本信息/表单、`DataPreview`、对象目录、数据集创建与处理流程；新增 `ExcelSourceForm` 只拥有现有组件缺少的文件上传与工作表配置行为。
+- 文件存入现有私有 S3；`V010` 增加文件元数据、数据源类型与发布版本文件引用，`V011` 持久化待删除对象。发布时从同一文件配置捕获字段与文件引用，直连和 Worker 均按发布版本读取。替换后重发才生效；历史文件受外键和引用保护，未引用文件满 24 小时回收，删除失败继续重试。
+- 新增 POI 解析适配器，不执行公式/宏/外部引用；读取缓存值并保留数字精度、文本编号、日期、false/null。中文列名保留显示名称并生成合法输出名，取数预览保留服务端默认输出名。错误、大小和原始预览权限由服务端校验，复用错误展示与统一 JSON 边界。
+- 真实上传发现 SeaweedFS 保存了 AWS streaming 签名分块标记，导致 Excel 字节改变；现有 S3 适配器改用固定长度载荷和必要时校验和配置。配置依据 [AWS SDK 官方校验和说明](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/s3-checksums.html)。实际验证 Excel 和执行 NDJSON 的上传/读回字节一致，未复制第二套 S3 client 配置。
+- 实际通过 Maven verify（29 项测试）、`pnpm check`（16 文件 102 项测试、契约/边界/UI/i18n/lint/格式/类型及生产构建）。修复已有 `DatasetDetailPage.vue` 格式问题，使总检查恢复通过。
+- 实际通过 `tools/test-sources.py`、`tools/test-datasets.py`、`tools/test-execution.py`、`tools/test-source-snapshot.py`：原有 MySQL 读取、SQL/直连/入库、精度、脱敏、发布/恢复、运行和一致性快照未退化。
+- 实际通过 `tools/test-excel-sources.py`、`tools/test-excel-storage.py`：上传/认证/CSRF/角色、工作表/表头错误、中文字段、精度/null/false、替换文件后的旧版直连与 Worker 隔离、新版本 Doris 快照替换、脱敏、私有存储及回收失败/重试。`.xls` 缓存公式和日期等解析边界由 POI 单元用例覆盖，真实 API/浏览器上传使用 `.xlsx`。
+- 实际通过 `tools/test-migrations.py`：直连配置的 PostgreSQL，在独立临时库验证 V001–V011 空库迁移、V009 升级保留 MySQL/密钥、重复迁移；不再假定 Docker CLI 连接的容器就是 API 使用的数据库。
+- 停止并重启 API/Worker 后实际通过 `tools/test-excel-sources.py --retained`：文件目录、旧版直连结果和最新 Doris 快照均保留。
+- 实际通过 `tools/test-real-sources.mjs`、`pnpm test:e2e`、`tools/test-excel-sources-ui.mjs`、`tools/test-real-contracts.mjs`：1280×1000 的 MySQL/Excel 成功与错误重试、取消草稿、单次保存、明暗主题、数据集发布和真实响应 schema；已人工检查 Excel 明暗页面截图。
+- 本轮未运行完整 `local.sh verify`、SIGKILL/存储停机专项、客户文件/客户环境、生产 Kubernetes 或负载压测；本地通过不扩大原有生产支持边界。

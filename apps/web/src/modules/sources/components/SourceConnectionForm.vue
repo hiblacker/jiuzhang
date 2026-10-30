@@ -10,43 +10,71 @@ import {
   NInput,
   NInputNumber,
   NSwitch,
+  NSelect,
   type FormInst,
   type FormRules,
 } from 'naive-ui'
 import { TagEditor } from '@/shared/ui/tag-editor'
 import type { SourceInput } from '../api/source-repository'
+import { connectorOptions } from '../model/connectors'
+import ExcelSourceForm from './ExcelSourceForm.vue'
+import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 
 const draft = defineModel<SourceInput>({ required: true })
 const credentials = defineModel<{ username: string; password: string }>('credentials', {
   default: () => ({ username: '', password: '' }),
 })
-defineProps<{ disabled?: boolean }>()
+defineProps<{ disabled?: boolean; editing?: boolean }>()
+const emit = defineEmits<{ busy: [value: boolean] }>()
 const form = ref<FormInst>()
 const { t } = useI18n()
 const rules = computed<FormRules>(() => ({
   name: { required: true, whitespace: true, message: t('sources.required'), trigger: 'blur' },
   owner: { required: true, whitespace: true, message: t('sources.required'), trigger: 'blur' },
-  'settings.host': {
-    required: true,
-    whitespace: true,
-    message: t('sources.required'),
-    trigger: 'blur',
-  },
-  'settings.database': {
-    required: true,
-    whitespace: true,
-    message: t('sources.required'),
-    trigger: 'blur',
-  },
-  'settings.port': {
-    trigger: ['blur', 'change'],
-    validator: () =>
-      Number.isInteger(draft.value.settings.port) &&
-      draft.value.settings.port >= 1 &&
-      draft.value.settings.port <= 65535
-        ? true
-        : new Error(t('sources.invalidPort')),
-  },
+  ...(draft.value.type === 'Excel'
+    ? {
+        'settings.fileId': {
+          required: true,
+          message: t('sources.excelRequired'),
+          trigger: 'change',
+        },
+        'settings.sheet': {
+          required: true,
+          message: t('sources.excelRequired'),
+          trigger: 'change',
+        },
+        'settings.headerRow': {
+          type: 'number' as const,
+          required: true,
+          min: 1,
+          max: 1000,
+          message: t('sources.excelHeaderInvalid'),
+          trigger: ['blur', 'change'],
+        },
+      }
+    : {
+        'settings.host': {
+          required: true,
+          whitespace: true,
+          message: t('sources.required'),
+          trigger: 'blur',
+        },
+        'settings.database': {
+          required: true,
+          whitespace: true,
+          message: t('sources.required'),
+          trigger: 'blur',
+        },
+        'settings.port': {
+          trigger: ['blur', 'change'],
+          validator: () =>
+            Number.isInteger(draft.value.settings.port) &&
+            (draft.value.settings.port ?? 0) >= 1 &&
+            (draft.value.settings.port ?? 0) <= 65535
+              ? true
+              : new Error(t('sources.invalidPort')),
+        },
+      }),
 }))
 defineExpose({ validate: () => form.value?.validate() })
 </script>
@@ -63,7 +91,13 @@ defineExpose({ validate: () => form.value?.validate() })
         />
       </NFormItemGi>
       <NFormItemGi :label="t('type')">
-        <NInput :value="draft.type" disabled :input-props="{ 'aria-label': t('type') }" />
+        <NSelect
+          v-model:value="draft.type"
+          v-select-trigger-name="t('type')"
+          :options="connectorOptions"
+          :disabled="disabled || editing"
+          :input-props="{ 'aria-label': t('type') }"
+        />
       </NFormItemGi>
       <NFormItemGi :label="t('owner')" path="owner">
         <NInput v-model:value="draft.owner" :input-props="{ 'aria-label': t('owner') }" />
@@ -80,47 +114,55 @@ defineExpose({ validate: () => form.value?.validate() })
         :rows="2"
       />
     </NFormItem>
-    <h3>{{ t('sources.connection') }}</h3>
-    <NAlert type="info" class="form-note">{{ t('sources.realCredentialHint') }}</NAlert>
-    <NGrid cols="1 640:2" responsive="self" :x-gap="24">
-      <NFormItemGi :label="t('sources.realHost')" path="settings.host">
-        <NInput
-          v-model:value="draft.settings.host"
-          :input-props="{ 'aria-label': t('sources.realHost') }"
-        />
-      </NFormItemGi>
-      <NFormItemGi :label="t('sources.port')" path="settings.port">
-        <NInputNumber
-          v-model:value="draft.settings.port"
-          :input-props="{ 'aria-label': t('sources.port') }"
-          :min="1"
-          :max="65535"
-        />
-      </NFormItemGi>
-      <NFormItemGi :label="t('sources.database')" path="settings.database">
-        <NInput
-          v-model:value="draft.settings.database"
-          :input-props="{ 'aria-label': t('sources.database') }"
-        />
-      </NFormItemGi>
-      <NFormItemGi :label="t('sources.username')">
-        <NInput
-          v-model:value="credentials.username"
-          :input-props="{ 'aria-label': t('sources.username'), autocomplete: 'off' }"
-        />
-      </NFormItemGi>
-      <NFormItemGi :label="t('sources.password')">
-        <NInput
-          v-model:value="credentials.password"
-          type="password"
-          show-password-on="click"
-          :input-props="{ 'aria-label': t('sources.password'), autocomplete: 'new-password' }"
-        />
-      </NFormItemGi>
-      <NFormItemGi :label="t('sources.tls')">
-        <NSwitch v-model:value="draft.settings.tls" :aria-label="t('sources.tls')" />
-      </NFormItemGi>
-    </NGrid>
+    <ExcelSourceForm
+      v-if="draft.type === 'Excel'"
+      v-model="draft"
+      :disabled="disabled"
+      @busy="emit('busy', $event)"
+    />
+    <template v-else>
+      <h3>{{ t('sources.connection') }}</h3>
+      <NAlert type="info" class="form-note">{{ t('sources.realCredentialHint') }}</NAlert>
+      <NGrid cols="1 640:2" responsive="self" :x-gap="24">
+        <NFormItemGi :label="t('sources.realHost')" path="settings.host">
+          <NInput
+            v-model:value="draft.settings.host"
+            :input-props="{ 'aria-label': t('sources.realHost') }"
+          />
+        </NFormItemGi>
+        <NFormItemGi :label="t('sources.port')" path="settings.port">
+          <NInputNumber
+            v-model:value="draft.settings.port"
+            :input-props="{ 'aria-label': t('sources.port') }"
+            :min="1"
+            :max="65535"
+          />
+        </NFormItemGi>
+        <NFormItemGi :label="t('sources.database')" path="settings.database">
+          <NInput
+            v-model:value="draft.settings.database"
+            :input-props="{ 'aria-label': t('sources.database') }"
+          />
+        </NFormItemGi>
+        <NFormItemGi :label="t('sources.username')">
+          <NInput
+            v-model:value="credentials.username"
+            :input-props="{ 'aria-label': t('sources.username'), autocomplete: 'off' }"
+          />
+        </NFormItemGi>
+        <NFormItemGi :label="t('sources.password')">
+          <NInput
+            v-model:value="credentials.password"
+            type="password"
+            show-password-on="click"
+            :input-props="{ 'aria-label': t('sources.password'), autocomplete: 'new-password' }"
+          />
+        </NFormItemGi>
+        <NFormItemGi :label="t('sources.tls')">
+          <NSwitch v-model:value="draft.settings.tls" :aria-label="t('sources.tls')" />
+        </NFormItemGi>
+      </NGrid>
+    </template>
   </NForm>
 </template>
 

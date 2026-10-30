@@ -1,6 +1,9 @@
 import type { SourceInput } from '../api/source-repository'
 
-export const connectorOptions = [{ label: 'MySQL', value: 'MySQL' as const }]
+export const connectorOptions = [
+  { label: 'MySQL', value: 'MySQL' as const },
+  { label: 'Excel', value: 'Excel' as const },
+]
 
 export function newSource(): SourceInput {
   return {
@@ -36,7 +39,7 @@ export function toSourceInput(source: SourceInput): SourceInput {
     description: source.description,
     owner: source.owner,
     tags: [...source.tags],
-    type: 'MySQL',
+    type: source.type,
     settings: { ...source.settings },
   }
 }

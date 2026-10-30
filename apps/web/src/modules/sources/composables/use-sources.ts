@@ -54,6 +54,7 @@ export function useSourceEditor(id: MaybeRefOrGetter<string>) {
   const savedUsername = ref('')
   function input() {
     const value = toSourceInput(draft.value)
+    if (value.type === 'Excel') return value
     if (
       !credentials.value.password &&
       (!toValue(id) || credentials.value.username !== savedUsername.value)

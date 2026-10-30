@@ -13,6 +13,9 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 public class ApiErrors {
     @ExceptionHandler(Failure.class) ResponseEntity<?> failure(Failure error,HttpServletRequest request) { return response(error.status,error.code,request); }
     @ExceptionHandler(DuplicateKeyException.class) ResponseEntity<?> duplicate(HttpServletRequest request) { return response(409,"DUPLICATE_NAME",request); }
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class) ResponseEntity<?> uploadLimit(HttpServletRequest request) { return response(413,"EXCEL_LIMIT",request); }
+    @ExceptionHandler({org.springframework.web.multipart.MultipartException.class,org.springframework.web.multipart.support.MissingServletRequestPartException.class}) ResponseEntity<?> malformedUpload(HttpServletRequest request) { return response(422,"EXCEL_FILE_INVALID",request); }
+    @ExceptionHandler({org.springframework.web.bind.MissingServletRequestParameterException.class,org.springframework.web.HttpMediaTypeNotSupportedException.class}) ResponseEntity<?> invalidInput(HttpServletRequest request) { return response(422,"VALIDATION_ERROR",request); }
     @ExceptionHandler({HttpMessageNotReadableException.class, org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
     ResponseEntity<?> malformed(HttpServletRequest request) { return response(422,"VALIDATION_ERROR",request); }
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class) ResponseEntity<?> referenced(HttpServletRequest request) { return response(409,"RESOURCE_REFERENCED",request); }

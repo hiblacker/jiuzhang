@@ -281,8 +281,9 @@ async function publish() {
               @click="router.push('/tasks/' + id + '/edit')"
               >{{ uiText('ui.dataset_detail_d1d5bfef') }}</NButton
             ></template
-          ><NAlert v-else type="warning" class="mb">{{ t('datasets.scheduleUnsupported') }}</NAlert
-        ></NTabPane
+          ><NAlert v-else type="warning" class="mb">{{
+            t('datasets.scheduleUnsupported')
+          }}</NAlert></NTabPane
         ><NTabPane name="versions" :tab="uiText('ui.dataset_detail_989d1aff')"
           ><AsyncState
             :loading="versions.isLoading.value"

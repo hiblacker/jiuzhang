@@ -1,42 +1,24 @@
 #!/usr/bin/env python3
-"""Initialize and remigrate a uniquely owned temporary PostgreSQL database."""
+"""Validate empty/upgrade/repeated migrations against the configured PostgreSQL endpoint."""
 from importlib import import_module
+from pathlib import Path
 import os
 import subprocess
-import uuid
+import tempfile
+import zipfile
 
 
 def main():
     local = import_module('local-stack')
     os.chdir(local.ROOT)
-    database = 'jz_migration_' + uuid.uuid4().hex[:12]
-    compose = ['docker', 'compose', '--env-file', '.env', '-f', 'infra/compose.yaml',
-               'exec', '-T', 'metadata', 'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'jiuzhang']
-
-    def sql(statement, name='jiuzhang'):
-        result = subprocess.run(compose + ['-d', name, '-At', '-c', statement],
-                                check=True, capture_output=True, text=True)
-        return result.stdout.strip()
-
-    sql('CREATE DATABASE ' + database)
-    try:
-        env = local.environment()
-        env['METADATA_URL'] = 'jdbc:postgresql://127.0.0.1:15432/' + database
-        command = ['java', '-Dloader.main=cn.jiuzhang.platform.migration.Migrate', '-cp',
-                   'apps/api/target/api-0.1.0-SNAPSHOT.jar',
-                   'org.springframework.boot.loader.launch.PropertiesLauncher']
-        subprocess.run(command, env=env, check=True)
-        versions = sql('SELECT version FROM flyway_schema_history WHERE success ORDER BY installed_rank', database)
-        assert [int(version) for version in versions.splitlines()] == list(range(1, 10)), versions
-        sql("INSERT INTO account(username,display_name,password_hash,role) VALUES('migration_probe','synthetic','not-a-login-hash','viewer')", database)
-        before = sql("SELECT (SELECT count(*) FROM pg_indexes WHERE schemaname='public'), (SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace)", database)
-        subprocess.run(command, env=env, check=True)
-        assert sql('SELECT count(*) FROM flyway_schema_history WHERE success', database) == '9'
-        assert sql("SELECT count(*) FROM account WHERE username='migration_probe'", database) == '1'
-        assert sql("SELECT (SELECT count(*) FROM pg_indexes WHERE schemaname='public'), (SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace)", database) == before
-        print('PASS PostgreSQL empty database V001-V009, repeated Flyway migration, data/index/constraint preservation')
-    finally:
-        sql('DROP DATABASE ' + database)
+    with tempfile.TemporaryDirectory(prefix='migration-', dir=local.LOCAL) as directory:
+        with zipfile.ZipFile('apps/api/target/api-0.1.0-SNAPSHOT.jar') as archive:
+            for item in archive.infolist():
+                if item.filename.startswith('BOOT-INF/lib/') and item.filename.endswith('.jar'):
+                    (Path(directory) / Path(item.filename).name).write_bytes(archive.read(item))
+        classpath = str(local.ROOT / 'modules/platform/target/classes') + os.pathsep + directory + '/*'
+        subprocess.run(['java', '-cp', classpath, 'tools/java/MigrationAcceptance.java'],
+                       check=True, env=local.environment(), timeout=90)
 
 
 if __name__ == '__main__':

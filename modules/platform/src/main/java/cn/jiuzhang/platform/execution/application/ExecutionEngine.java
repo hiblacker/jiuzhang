@@ -11,7 +11,6 @@ import cn.jiuzhang.platform.identity.application.IdentityService;
 import cn.jiuzhang.platform.shared.application.Failure;
 import cn.jiuzhang.platform.shared.application.JsonWriter;
 import cn.jiuzhang.platform.source.application.SourceService;
-import cn.jiuzhang.platform.source.domain.SourceConnector;
 import java.io.*;
 import java.nio.file.*;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -27,7 +26,6 @@ public class ExecutionEngine {
   private final DatasetStore datasets;
   private final DatasetService service;
   private final SourceService sources;
-  private final SourceConnector connector;
   private final WarehousePort warehouse;
   private final ObjectPort objects;
   private final IdentityService identity;
@@ -38,7 +36,6 @@ public class ExecutionEngine {
       DatasetStore datasets,
       DatasetService service,
       SourceService sources,
-      SourceConnector connector,
       WarehousePort warehouse,
       ObjectPort objects,
       IdentityService identity,
@@ -47,7 +44,6 @@ public class ExecutionEngine {
     this.datasets = datasets;
     this.service = service;
     this.sources = sources;
-    this.connector = connector;
     this.warehouse = warehouse;
     this.objects = objects;
     this.identity = identity;
@@ -147,9 +143,10 @@ public class ExecutionEngine {
           sources.scanSql(text(d, "sourceId"), text(d, "sql"), expectedColumns,
               selectedColumns, 1_000_000, processRow, canceled);
         } else {
-          connector.scan(sources.connection(text(d, "sourceId")),
+          sources.scan(text(d, "sourceId"),
               datasets.table(dataset, integer(run, "datasetVersion")), expectedColumns,
-              selectedColumns, processRow, canceled);
+              selectedColumns, processRow, canceled,
+              version.containsKey("sourceFileSnapshot") ? map(version,"sourceFileSnapshot") : null);
         }
       }
       if (runs.canceled(id, token)) throw new Failure(409, "RUN_CANCELED");

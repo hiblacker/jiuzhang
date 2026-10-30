@@ -134,12 +134,12 @@ public class DatasetService {
     var quality = snapshots(d, "quality");
     var masking = snapshots(d, "masking");
     plan(d, quality, masking, true);
-    var columns = sourceColumns(u, d);
-    validateSource(d, columns);
     var source = sources.get(u, text(d, "sourceId"));
     var object = text(d, "mode").equals("visual")
-        ? sources.object(u, text(d, "sourceId"), text(d, "objectId"))
+        ? sources.publicationObject(u, source, text(d, "objectId"))
         : null;
+    var columns = object == null ? sourceColumns(u, d) : object.columns();
+    validateSource(d, columns);
     return store.transaction(
         () -> {
           var current = store.get(id, true);
@@ -160,6 +160,7 @@ public class DatasetService {
           body.put("createdAt", now);
           body.put("name", current.get("name"));
           body.put("definition", d);
+          if (source.type().equals("Excel")) body.put("sourceFileSnapshot", source.settings());
           body.put("qualitySnapshot", quality);
           body.put("maskingSnapshot", masking);
           body.put("upstreamVersion", 0);
@@ -206,6 +207,8 @@ public class DatasetService {
         throw new Failure(422, e.code);
       }
     }
+    if (json.write(rows).getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 10 * 1024 * 1024)
+      throw new Failure(422, "QUERY_RESULT_LIMIT");
     return Map.of(
         "fields",
         objects(d, "fields").stream().filter(x -> bool(x, "output")).toList(),
@@ -241,7 +244,8 @@ public class DatasetService {
       actualColumns = store.columns(id, ((Number) version.get("version")).intValue());
       sourceRows = sources.queryTable(text(definition, "sourceId"),
           store.table(id, ((Number) version.get("version")).intValue()), actualColumns,
-          new ArrayList<>(plan.usedSourceFields()), limit, () -> false);
+          new ArrayList<>(plan.usedSourceFields()), limit, () -> false,
+          version.containsKey("sourceFileSnapshot") ? map(version,"sourceFileSnapshot") : null);
     }
     var rows = new ArrayList<Map<String,Object>>();
     long warnings = 0;

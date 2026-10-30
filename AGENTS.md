@@ -8,6 +8,8 @@
 
 ## 技术栈与选型状态
 
+2026-10-30 新增 Excel 文件数据源：复用现有数据集、执行和仓库闭环，发布版本绑定不可变文件；操作与限制见[快速指南](docs/dataset-quick-start.md#excel-数据源)，实现与验收记录见总体架构 §14.14。
+
 | 范围 | 项目决策 | 状态与边界 |
 |---|---|---|
 | 前端 | Vue 3、TypeScript strict、Vite、Vue Router | 已实现基础应用；使用 Composition API / script setup |

@@ -25,6 +25,10 @@ const settingLabels = {
   dataPath: 'sources.dataPath',
   incrementalField: 'sources.incremental',
   rateLimit: 'sources.rateLimit',
+  fileId: 'sources.excelFile',
+  fileName: 'sources.excelFile',
+  sheet: 'sources.excelSheet',
+  headerRow: 'sources.excelHeaderRow',
 } satisfies Record<keyof SourceInput['settings'], string>
 
 export interface SourceConfigurationChange {
@@ -47,8 +51,8 @@ export function compareSourceConfiguration(
       changes.push({ key, labelKey: sourceLabels[key], before: previous, after: next })
   }
   for (const key of Object.keys(settingLabels) as (keyof typeof settingLabels)[]) {
-    const previous = JSON.stringify(before.settings[key])
-    const next = JSON.stringify(after.settings[key])
+    const previous = JSON.stringify(before.settings[key]) ?? ''
+    const next = JSON.stringify(after.settings[key]) ?? ''
     if (previous !== next)
       changes.push({
         key: 'settings.' + key,

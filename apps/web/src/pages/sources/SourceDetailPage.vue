@@ -18,7 +18,9 @@ const source = useSource(id),
   objects = useSourceObjects(id)
 const sourceDatabase = computed(() => {
   const current = source.data.value
-  return current?.settings.database ?? ''
+  return current?.type === 'Excel'
+    ? (current.settings.fileName ?? '')
+    : (current?.settings.database ?? '')
 })
 const catalogSize = ref(0.3)
 const selected = computed(() =>

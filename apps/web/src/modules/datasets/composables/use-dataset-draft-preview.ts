@@ -124,7 +124,7 @@ export function useDatasetDraftPreview(draft: Ref<DatasetInput>, id: MaybeRefOrG
         ? []
         : sourceFields.map((field) => ({
             ...field,
-            target: field.name,
+            target: field.target,
             type: sourceFieldType(field.type),
             output: true,
             sensitive: false,
