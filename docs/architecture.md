@@ -33,7 +33,7 @@ flowchart LR
       API[平台 API]
       META[(PostgreSQL 元数据库)]
       SEC[密钥与权限]
-      SCH[Quartz 调度器]
+      SCH[Worker 持久计划派发]
     end
 
     subgraph EX[执行面]
@@ -88,13 +88,13 @@ flowchart LR
 | 前端 | Vue 3、TypeScript strict、Pinia、Naive UI、Vite、Vue Router/Vue Query | 开发及生产均连接 API；页面按真实能力开放；版本见 manifest/lockfile |
 | 接口 | OpenAPI 3.1、openapi-typescript/openapi-fetch | 唯一协议；测试可在 HTTP 边界替换网络响应 |
 | 后端/构建 | Java 21、Spring Boot 3.5.16、Maven Wrapper 3.9.11 | API/Worker 两进程，共用 platform；精确依赖见 pom |
-| 元数据库 | PostgreSQL 17.6、Spring JDBC、Flyway V001–V009 | 单元数据库，显式受控迁移；普通进程不自动升级 |
+| 元数据库 | PostgreSQL 17.6、Spring JDBC、Flyway V001–V012 | 单元数据库，显式受控迁移；普通进程不自动升级 |
 | 对象存储 | SeaweedFS 3.97、S3 API/AWS SDK | 私有原始所选源字段 NDJSON；未实现 Parquet、生产加密 |
 | 分析仓库 | Doris 3.0.8 | 不可变物理表＋稳定逻辑 VIEW；本地单 BE 验证 |
-| 执行 | PostgreSQL 运行状态/幂等/租约、Worker 轮询与持久化 Cron/间隔计划 | 任务计划已落地；依赖编排、自动重试和补数仍暂缓 |
+| 执行 | PostgreSQL 运行状态/幂等/租约、Worker 轮询与持久化 Cron/间隔计划 | 原子派发与双 Worker 崩溃接续已本地实测；依赖编排、自动重试和补数仍暂缓 |
 | 序列化/验证 | Spring JSON codec、JsonWriter Port、JUnit/AssertJ、ArchUnit | 应用层不依赖 infrastructure/JDBC，Domain 不依赖 JSON/框架 |
 | 真实验收 | Compose＋Python/Playwright/AJV | PostgreSQL/MySQL/Doris/S3 实测；Testcontainers 尚未引入 |
-| 未来扩展 | Quartz、Redis、OpenTelemetry/Prometheus/Grafana | 规划，不是已完成能力 |
+| 未来扩展 | Redis、OpenTelemetry/Prometheus/Grafana | 规划，不是已完成能力；调度沿用 PostgreSQL，不引入 Quartz |
 
 镜像摘要见 Compose，前后端版本分别由 wrapper/pom 与 manifest/lockfile 锁定。已验证本地组合不代表全版本兼容、生产安全或性能承诺。
 
@@ -451,7 +451,7 @@ interface WarehouseAdapter {
 
 ## 6. 调度、运行和失败恢复
 
-支持手动、一次性、Cron、固定间隔、上游成功触发、时间范围补数和第二阶段的 API 事件触发。
+当前实现手动、Cron 和固定间隔；一次性、上游成功触发、时间范围补数与 API 事件触发属于后续设计。多实例的当前实现见 §6.5。
 
 ### 6.1 运行与尝试
 
@@ -503,6 +503,31 @@ Worker 使用租约/心跳和单调 fencing token；接管时确认旧 Worker �
 | 隔离与审计完整 | 越权不能查询/导出；敏感值不进入日志；修改与审计关联 requestId/runId |
 
 这些是实现验收要求，单元或网络替身测试不能证明分布式保证；通过真实引擎及确定性故障注入验证。
+
+### 6.5 多实例调度语义
+
+2026-10-30 起，多个 Worker 可竞争同一 PostgreSQL 中的到期计划，不设全局调度主节点，不引入 Quartz。以下保证适用于 V012 及之后的新派发；本地真实双 Worker 验收见 §14.15，客户集群和负载仍须另验。
+
+**事务与唯一性。** 每次 Poll 只读取最多 20 个候选 ID；每个槽位各用一个短事务，依次对数据集、计划行执行 `FOR UPDATE SKIP LOCKED`。在同一 PostgreSQL 事务中读取数据库时间、复核计划、冻结槽位的发布版本/请求人/计划快照、创建 `dataset_run`、写槽位终态并推进 `dataset_schedule.next_run_at`。事务不包含源读取、S3 或 Doris 操作。提交前崩溃或插入/游标更新失败，运行记录、槽位变化和时间推进全部回滚；其他 Worker 仍能看到原来的到期时间。提交后崩溃，已入队运行由原有租约/恢复流程处理。
+
+派发尝试可以重复（至少一次尝试，受下述过期期限约束）；每个 `(dataset_id, scheduled_at)` **最多创建一个定时运行**，由槽位主键、`dataset_run` 部分唯一索引及原有幂等键共同约束。正常入队为一个槽位对应一条运行；显式 skipped 可对应零条。此保证不表示端到端执行恰好一次，也不表示每个历史时刻都会追跑。`scheduled_at` 是计划时刻，不是实际开始时间。
+
+**忙碌、过期与可查询留痕。** 每数据集仍只允许一个活动运行。遇到活动运行，当前槽保留 `pending`、`DATASET_RUN_ACTIVE` 原因与尝试次数，时间不前进，下次 Poll 再试；首次持久认领后，即使重新发布，槽位仍使用已冻结的版本。`expires_at = ScheduleCalculator.next(snapshot, scheduled_at)`；到期超过下一个计划时刻后，记为 `skipped / EXPIRED`，记录 `advanced_to` 并跳到未来第一个槽。`[scheduled_at, advanced_to)` 表示本次放弃的过期范围，不逐个生成历史运行或槽位，不做通用 backfill。固定间隔直接计算跳数，Cron 从当前数据库时间查下一个匹配时刻；每个数据集每轮最多处理一个当前槽。
+
+用户改计划或暂停与派发受同一计划行锁串行化。旧的 pending 槽或已到期尚未入队槽在修改事务中记为 `skipped / SCHEDULE_CHANGED` 或 `PAUSED`；防御性条件变化记 `CONDITION_CHANGED`，幂等参数冲突记 `IDEMPOTENCY_CONFLICT`。不再使用事务外的静默 reschedule CAS。事务内游标防御条件若未更新一行，会抛错、记录脱敏告警并回滚，原槽仍到期待重试。状态保存在 `dataset_schedule_slot`，包含版本、快照、原因、尝试数、运行关联及推进目标；本轮不增加前端或公开 API 状态。运维可用只读 SQL 对账：
+
+~~~sql
+SELECT dataset_id, scheduled_at, state, reason, dataset_version,
+       expires_at, attempts, run_id, advanced_to, updated_at
+FROM dataset_schedule_slot
+ORDER BY dataset_id, scheduled_at;
+~~~
+
+**时间与并发。** 到期判断统一使用 PostgreSQL `clock_timestamp()`；持久时刻为 `timestamptz`，Java/API 使用 UTC Instant，精度对齐 PostgreSQL 微秒。Cron 为现有五字段表达式，按计划配置的 IANA 时区解释，沿用 `ScheduleCalculator.next` 的夏令时行为；固定间隔按已持久化的槽时刻加分钟数，Poll 延迟不改变相位。`concurrency=1` 及活动运行唯一索引保持不变：当前入库为整表快照替换，同一数据集的并发发布不具备已验证的顺序语义。增加 Worker 只允许不同数据集并行推进，不能放开该约束；`retries` 仍只接受 0，派发重试不等于运行失败自动重试。
+
+**Worker 数量与 Poll。** 每个 Worker 默认每 1000ms 派发一次（`JIUZHANG_SCHEDULER_INTERVAL_MS`，fixed delay），批量上限 20；锁繁忙的槽跳过，由后续 Poll 竞争。单槽事务设置 5s statement timeout、1s lock timeout。每个 Worker 使用独立的单线程派发调度器，避免长时间源读取阻塞派发；执行轮询仍为单线程、500ms fixed delay。增加实例会增加数据库扫描、连接与锁竞争，不能推定吞吐线性提升，也不能把 1s Poll 当作准点 SLA；需按槽位积压、事务耗时和执行资源实测调整。两个 Worker 争抢同一槽不会各创建一条运行。
+
+**升级边界。** 停止旧 API/Worker，显式运行 V012，再以同一新构建启动实例；不混跑旧版非原子派发器。V012 新增槽位表、计划 revision 和运行 scheduled_at 及唯一约束；既有定时运行保留 `scheduled_at=NULL`，仍可完成，不凭幂等字符串反推历史槽位，也不补跑升级前的缺失历史。
 
 ## 7. 权限、审计和血缘
 
@@ -725,7 +750,7 @@ pnpm workspace 路径配置和 Maven reactor/依赖排序按官方机制实施�
 
 ### 11.4 生产部署
 
-API、Worker、Web 可独立部署，任务状态与检查点外置；重启恢复不能依赖进程内缓存。Quartz 使用持久 JobStore，跨节点调度、失效接管和重复触发须真实验证；对象存储和 Doris 按目标可用性部署；密钥外置。元数据库、原始对象、仓库数据和发布记录均纳入备份/恢复演练。
+API、Worker、Web 可独立部署，任务状态与检查点外置；重启恢复不能依赖进程内缓存。调度使用 PostgreSQL 原子派发与槽位记录（§6.5），不引入 Quartz；跨节点失效接管仍按客户目标环境验收。对象存储和 Doris 按目标可用性部署；密钥外置。元数据库、原始对象、仓库数据和发布记录均纳入备份/恢复演练。
 
 生产编排根据部署规模决定，不以引入 Kubernetes 作为项目完成的前置条件。
 
@@ -814,7 +839,7 @@ README 拥有启动和验证入口；本节维护范围/状态；§14 记录实�
 四项技术取舍：
 
 1. 可视化画布保持单表和逐行转换，不新增聚合节点。2026-10-21 已按用户确认开放自定义只读 SQL，允许源端 `GROUP BY`、JOIN、子查询及窗口计算；SQL 输出字段以 JDBC 结果元数据发现，再绑定字段映射、质量与脱敏。聚合结果的精度、null 和字段类型必须按实际返回值验证，不套用原始表结构。P4b 的公共报表口径仍可放在 Doris ADS 视图中；受治理的 DWS 指标层放入二期。此处替代 10-20 的“数据集不做 GROUP BY”限制。
-2. 调度不引入 Quartz。使用 PostgreSQL 行锁（`FOR UPDATE SKIP LOCKED`）选举单实例调度者并持久化 next_fire_at，复用现有运行状态与租约机制；避免第二套状态机和 JobStore 运维，多节点调度留到有真实压力时。
+2. 调度不引入 Quartz。使用 PostgreSQL 行锁（`FOR UPDATE SKIP LOCKED`）按槽位竞争，运行入队、槽位结果与 `next_run_at` 在同一事务提交，复用现有运行状态与租约机制。2026-10-30 已补双 Worker 竞争及派发中崩溃接续的本地验收（§6.5、§14.15），客户多节点部署仍须实测。
 3. Crest 走 Doris 直连视图，不走受控查询 API。视图名 `ads_<主题>_<粒度>` 稳定，版本只换底层表；ADS 只暴露基础类型（BIGINT/DECIMAL/VARCHAR/DATE/DATETIME），列注释即报表字段名；Crest 查询走独立 workload group 限流，防止报表压垮替换任务；不给 Crest 直连源库。
 4. 有状态组件不进集群。PostgreSQL、Doris、SeaweedFS 使用环境既有实例，集群内只跑无状态进程；Worker 一期单副本。
 
@@ -839,14 +864,14 @@ README 拥有启动和验证入口；本节维护范围/状态；§14 记录实�
 
 ## 14. 核心决策
 
-前端运行时只连接真实 API；测试网络替身限定在自动化测试目录。当前实现组合如下，具体版本与证据见本节记录；Quartz 等后续能力未实现：
+前端运行时只连接真实 API；测试网络替身限定在自动化测试目录。当前实现组合如下，具体版本与证据见本节记录；调度使用 PostgreSQL，不引入 Quartz：
 
 ~~~text
 Spring Boot API + Java Worker
 PostgreSQL 元数据库
 SeaweedFS S3 原始区
 Apache Doris 仓库
-持久运行记录与租约，手动触发
+持久运行记录与租约，手动/Cron/固定间隔触发
 Vue 3 管理端
 ~~~
 
@@ -909,7 +934,7 @@ Vue 3 管理端
 - `test-local-lifecycle.py` 实际完整停止→up→再次 start，API/Worker/Web 就绪，账号、数据集、版本、运行、当前快照指针与源订单数据保持不变。`test-migrations.py` 当日在独占临时 PostgreSQL 数据库执行 V001–V006，再重复迁移，验证数据/索引/约束保留；结束删除该临时库，不清当前库。V007 的本轮验证见 §14.11。
 - `test-execution-rules.py` 真实验证首次零行、质量 BLOCK/WARN、冻结规则重试、Decimal 收窄溢出，以及已使用字段长度/可空性/删除变化；失败或阻断保留当前快照。
 - `test-storage-recovery.py` 真实停止/恢复 S3 与 Doris FE，故障运行失败且旧快照不变，恢复就绪后新运行重试成功；仅将合成历史记录的替换时间推进到八天前，验证定期清理实际 Doris 表与 S3 原始对象，同时保留当前快照与对象。没有等待真实七个自然日，也不据此声称生产集群故障矩阵已覆盖。
-- `bash tools/local.sh verify` 顺序验收真实迁移、身份、MySQL、数据集、执行/安全/规则、Doris 查询/CSV、完整首页汇总、34 个 OpenAPI 响应与 1280×1000 浏览器流程。真实 Worker SIGKILL 测试为 §14.6 的独占入口，不混入常规 verify。
+- `bash tools/local.sh verify` 顺序验收真实迁移、身份、MySQL、数据集、执行/安全/规则、Doris 查询/CSV、完整首页汇总、34 个 OpenAPI 响应与 1280×1000 浏览器流程。该历史版本的 Worker SIGKILL 测试为 §14.6 的独占入口；2026-10-30 起派发事务 SIGKILL 已纳入常规 verify，见 §14.15，读取/发布崩溃专项仍独立执行。
 - 2026-10-19 基线 `pnpm check` 通过：14 文件 93 项单元/HTTP 测试、契约/边界/UI/i18n/lint/格式/类型及当时的两种构建；本轮变更后需要重新验证当前命令。Maven 基线与浏览器证据记录于当日验收日志。
 - 质量结果来自真实数据集运行；合成质量结果入口已移除。非管理员不自动请求原始预览；未实现的同步、血缘和目录入口仍需按实际能力隐藏或说明。
 - 本地执行日志属于临时证据；复现依赖仓库脚本。远端 CI/分支保护、生产 TLS/加密/备份、多 Worker/容量压测未验证。
@@ -972,3 +997,13 @@ Vue 3 管理端
 - 停止并重启 API/Worker 后实际通过 `tools/test-excel-sources.py --retained`：文件目录、旧版直连结果和最新 Doris 快照均保留。
 - 实际通过 `tools/test-real-sources.mjs`、`pnpm test:e2e`、`tools/test-excel-sources-ui.mjs`、`tools/test-real-contracts.mjs`：1280×1000 的 MySQL/Excel 成功与错误重试、取消草稿、单次保存、明暗主题、数据集发布和真实响应 schema；已人工检查 Excel 明暗页面截图。
 - 本轮未运行完整 `local.sh verify`、SIGKILL/存储停机专项、客户文件/客户环境、生产 Kubernetes 或负载压测；本地通过不扩大原有生产支持边界。
+
+### 14.15 多实例调度修复与验收（2026-10-30）
+
+- 先在旧实现运行失败回归：Worker 单测出现两项失败；真实 PostgreSQL V011 临时库复现“入队失败后 next_run_at 已前进”和“计划变化后 reschedule 条件未命中却静默返回”。原始输出保留在本地 `.local/scheduling-red-unit.log`、`.local/scheduling-red-postgresql.log`，修复前未把编译通过当作复现。
+- 按 §6.5 将认领、入队、槽位结果和时间推进合为一个 PostgreSQL 事务；V012 增加槽位状态与唯一约束。取消事务外 reschedule，计划变更/暂停显式关闭旧槽；活动运行导致的等待冻结原发布版本，超过一个周期只留 skipped 范围，不追补历史。未修改前端、Excel 或数据集既有定义/发布语义，并发仍为 1。
+- 实际通过 Maven verify（platform 31 项、Worker 3 项，共 34 项）；Worker 单测覆盖入队异常回滚不推进时间、计划变更留痕、活动运行等待及版本冻结。`tools/test-scheduling-atomic.py` 在独立真实 PostgreSQL 17.6 库验证插入失败及游标更新零行后的整体回滚、计划变化/暂停 skipped、版本冻结、重复派发去重，以及过期范围跳过。
+- `tools/test-migrations.py` 实际通过空库 V001–V012、V009/V011 升级和重复迁移，保留旧源/密钥、旧定时运行和索引约束；旧定时运行的 scheduled_at 保持 NULL，仍可完成。普通进程不执行并发迁移。
+- `tools/test-scheduling-multiworker.py` 使用真实 MySQL 入库数据集及两个独立 Worker，连续四个一分钟周期；在第二槽的真实 PostgreSQL INSERT 触发器处等待可查询的锁状态，定向 SIGKILL 事务所属 Worker，再释放测试门闩。断言每槽一条定时运行、实际运行成功、活动数不超过 1、无 HTTP 500 或未处理的唯一键冲突、游标单调并匹配实际 `ScheduleCalculator.next`，以及故障槽有运行或 skipped 记录。独立执行接续耗时 0.978s，完整 verify 中再次执行为 0.126s，均小于两个周期；本轮四槽均实际成功执行。报告为 `.local/scheduling-multiworker-test.json`，测试专用触发器和进程自动清理，原受管 Worker 已恢复。
+- 已将原子性和多 Worker 脚本纳入 `bash tools/local.sh verify`，整套实际退出码 0：迁移、身份、MySQL 一致性、数据集、定时、Doris、Excel、存储回收、执行安全/规则、大结果预算、工作台、39 个 OpenAPI 响应校验及 1280×1000 浏览器流程全部通过。`pnpm check` 实际退出码 0，16 文件 102 项单元/HTTP 测试、静态门禁和前端生产构建通过。
+- 上述为本机真实引擎及双进程验收；未验证客户多节点集群、容量/高负载、远端 CI 或分支保护。本轮没有重跑独立的读取/发布 SIGKILL 与基础存储停机专项，不能把派发接续结果外推为这些故障矩阵均已复验。例会待办 #1 已完成并移除。

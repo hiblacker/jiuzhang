@@ -69,7 +69,15 @@ pnpm --filter @jiuzhang/web exec playwright install chromium
 bash tools/local.sh verify
 ~~~
 
-verify 先在独立临时 PostgreSQL 库验证空库 V001–V011、V009 升级与重复迁移，再按依赖创建合成源/数据集，验证真实接口/引擎/桌面流程，生成 .local/*-test.json；包含 Excel 文件、版本隔离、存储回收和桌面流程，不能对生产运行。
+verify 先在独立临时 PostgreSQL 库验证空库 V001–V012、V009/V011 升级与重复迁移，并验证调度入队/游标回滚，再按依赖创建合成源/数据集，验证真实接口/引擎/桌面流程。包含 Excel 文件、版本隔离、存储回收，以及双 Worker 的四个一分钟槽位和派发中 SIGKILL（约四分钟）；生成 .local/*-test.json，不能对生产运行。双 Worker 脚本会检查进程归属、暂停受管 Worker、自建两个实例，结束后恢复原受管 Worker；发现未归属 Worker 或已有活动运行则拒绝停止进程。调度语义见[总体架构 §6.5](docs/architecture.md#65-多实例调度语义)。
+
+已启动本地栈、完成 `tools/test-sources.py` 后，可单独复现调度验收：
+
+~~~bash
+set -a; source .env; set +a
+python3 tools/test-scheduling-atomic.py
+python3 tools/test-scheduling-multiworker.py
+~~~
 
 本地完整重启验收会停止/重启受管应用并重新构建；存储故障验收会短暂停止本项目 S3 与 Doris FE，仅在没有其他运行时单独执行：
 
@@ -89,7 +97,7 @@ bash tools/local.sh start worker
 
 覆盖 MySQL 等待读取时 SIGKILL，以及 Doris VIEW 已更新而 PostgreSQL 成功事务未提交时 SIGKILL；结束移除专用触发器并停止自建 Worker。
 
-2026-10-19 的基线验证记录见[总体架构 §14.7–§14.10](docs/architecture.md#147-本地交付与最终验收2026-10-19)。本轮变更后的实际验证结果将在此更新；远端 CI/main 保护仍需单独核实，不据本地检查推断生产性能。
+2026-10-30 多实例调度修复后的 Maven verify、pnpm check 和完整 local.sh verify 均实际通过；四个一分钟槽位各成功执行一次，派发中 SIGKILL 后在 0.126s 接续，详见[总体架构 §14.15](docs/architecture.md#1415-多实例调度修复与验收2026-10-30)。2026-10-19 基线记录保留在 §14.7–§14.10；远端 CI/main 保护仍需单独核实，不据本地检查推断生产性能。
 
 ## 工程入口
 

@@ -22,7 +22,7 @@
 | 包管理与质量 | pnpm workspace、ESLint、vue-tsc、Vitest、Playwright | 本地命令已实现；根命令委托到所属包 |
 | 后端 | Java 21 + Spring Boot 3.5.16，API 与 Worker 两个进程 | 已实现；Maven Wrapper 3.9.11，精确依赖见 pom |
 | 存储 | PostgreSQL 17.6、SeaweedFS 3.97 S3、Doris 3.0.8 | 已验证本地单机；镜像与摘要见 Compose，不代表生产兼容矩阵 |
-| 执行与验证 | 持久运行/租约、Flyway、JUnit/ArchUnit、真实引擎验收脚本 | 已实现；Quartz/Testcontainers 仍规划，首版仅手动运行 |
+| 执行与验证 | 持久运行/租约、Flyway、JUnit/ArchUnit、真实引擎验收脚本 | 手动/Cron/间隔及 PostgreSQL 原子派发已实现，双 Worker 崩溃接续已本地实测；不引入 Quartz，Testcontainers 尚未引入 |
 
 前端精确版本以实际 package.json、.node-version 和 pnpm-lock.yaml 为准；后端以 pom/wrapper 为准，CI 执行状态以实际记录为准。参考项目只贡献适用原则，不自动迁移语言、工具链或其专用规则。
 
