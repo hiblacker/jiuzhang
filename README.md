@@ -94,4 +94,4 @@ bash tools/local.sh start worker
 
 apps/web 前端；apps/api HTTP；apps/worker 执行；modules/platform 后端库；packages/contracts/openapi.yaml 唯一协议；infra/migrations/postgresql 迁移。pnpm/Maven 独立构建。
 
-[总体架构](docs/architecture.md) · [页面矩阵](docs/frontend-page-map.md) · [开发规范](AGENTS.md) · [AI 规范](docs/ai-development.md)。
+[总体架构](docs/architecture.md) · [页面矩阵](docs/frontend-page-map.md) · [开发规范](AGENTS.md) · [AI 规范](docs/ai-development.md) · [例会待办](docs/meeting-todos.md)。
