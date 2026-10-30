@@ -88,7 +88,7 @@ flowchart LR
 | 前端 | Vue 3、TypeScript strict、Pinia、Naive UI、Vite、Vue Router/Vue Query | 开发及生产均连接 API；页面按真实能力开放；版本见 manifest/lockfile |
 | 接口 | OpenAPI 3.1、openapi-typescript/openapi-fetch | 唯一协议；测试可在 HTTP 边界替换网络响应 |
 | 后端/构建 | Java 21、Spring Boot 3.5.16、Maven Wrapper 3.9.11 | API/Worker 两进程，共用 platform；精确依赖见 pom |
-| 元数据库 | PostgreSQL 17.6、Spring JDBC、Flyway V001–V012 | 单元数据库，显式受控迁移；普通进程不自动升级 |
+| 元数据库 | PostgreSQL 17.6、Spring JDBC、Flyway V001–V013 | 单元数据库，显式受控迁移；普通进程不自动升级 |
 | 对象存储 | SeaweedFS 3.97、S3 API/AWS SDK | 私有原始所选源字段 NDJSON；未实现 Parquet、生产加密 |
 | 分析仓库 | Doris 3.0.8 | 不可变物理表＋稳定逻辑 VIEW；本地单 BE 验证 |
 | 执行 | PostgreSQL 运行状态/幂等/租约、Worker 轮询与持久化 Cron/间隔计划 | 原子派发与双 Worker 崩溃接续已本地实测；依赖编排、自动重试和补数仍暂缓 |
@@ -512,7 +512,7 @@ Worker 使用租约/心跳和单调 fencing token；接管时确认旧 Worker �
 
 派发尝试可以重复（至少一次尝试，受下述过期期限约束）；每个 `(dataset_id, scheduled_at)` **最多创建一个定时运行**，由槽位主键、`dataset_run` 部分唯一索引及原有幂等键共同约束。正常入队为一个槽位对应一条运行；显式 skipped 可对应零条。此保证不表示端到端执行恰好一次，也不表示每个历史时刻都会追跑。`scheduled_at` 是计划时刻，不是实际开始时间。
 
-**忙碌、过期与可查询留痕。** 每数据集仍只允许一个活动运行。遇到活动运行，当前槽保留 `pending`、`DATASET_RUN_ACTIVE` 原因与尝试次数，时间不前进，下次 Poll 再试；首次持久认领后，即使重新发布，槽位仍使用已冻结的版本。`expires_at = ScheduleCalculator.next(snapshot, scheduled_at)`；到期超过下一个计划时刻后，记为 `skipped / EXPIRED`，记录 `advanced_to` 并跳到未来第一个槽。`[scheduled_at, advanced_to)` 表示本次放弃的过期范围，不逐个生成历史运行或槽位，不做通用 backfill。固定间隔直接计算跳数，Cron 从当前数据库时间查下一个匹配时刻；每个数据集每轮最多处理一个当前槽。
+**忙碌、过期与可查询留痕。** 每数据集仍只允许一个活动运行。遇到活动运行，当前槽保留 `pending`、`DATASET_RUN_ACTIVE` 原因与尝试次数，时间不前进。V013 起，以持久化的槽位 `updated_at` 为锚点，默认 5 秒后才允许下一次实际尝试（`JIUZHANG_SCHEDULE_ACTIVE_BACKOFF_SECONDS`，正整数秒）；候选查询与持锁后的派发均检查窗口，避免多 Worker 使用旧候选重复增加 attempts。窗口内不入队、不递增 attempts、不刷新更新时间；窗口到期可再次尝试。所有实例应使用一致配置。首次持久认领后，即使重新发布，槽位仍使用已冻结的版本。`expires_at = ScheduleCalculator.next(snapshot, scheduled_at)`；到期超过下一个计划时刻后，过期判断优先于退避窗口，记为 `skipped / EXPIRED`，记录 `advanced_to` 并跳到未来第一个槽。`[scheduled_at, advanced_to)` 表示本次放弃的过期范围，不逐个生成历史运行或槽位，不做通用 backfill。固定间隔直接计算跳数，Cron 从当前数据库时间查下一个匹配时刻；每个数据集每轮最多处理一个当前槽。
 
 用户改计划或暂停与派发受同一计划行锁串行化。旧的 pending 槽或已到期尚未入队槽在修改事务中记为 `skipped / SCHEDULE_CHANGED` 或 `PAUSED`；防御性条件变化记 `CONDITION_CHANGED`，幂等参数冲突记 `IDEMPOTENCY_CONFLICT`。不再使用事务外的静默 reschedule CAS。事务内游标防御条件若未更新一行，会抛错、记录脱敏告警并回滚，原槽仍到期待重试。状态保存在 `dataset_schedule_slot`，包含版本、快照、原因、尝试数、运行关联及推进目标；本轮不增加前端或公开 API 状态。运维可用只读 SQL 对账：
 
@@ -527,7 +527,9 @@ ORDER BY dataset_id, scheduled_at;
 
 **Worker 数量与 Poll。** 每个 Worker 默认每 1000ms 派发一次（`JIUZHANG_SCHEDULER_INTERVAL_MS`，fixed delay），批量上限 20；锁繁忙的槽跳过，由后续 Poll 竞争。单槽事务设置 5s statement timeout、1s lock timeout。每个 Worker 使用独立的单线程派发调度器，避免长时间源读取阻塞派发；执行轮询仍为单线程、500ms fixed delay。增加实例会增加数据库扫描、连接与锁竞争，不能推定吞吐线性提升，也不能把 1s Poll 当作准点 SLA；需按槽位积压、事务耗时和执行资源实测调整。两个 Worker 争抢同一槽不会各创建一条运行。
 
-**升级边界。** 停止旧 API/Worker，显式运行 V012，再以同一新构建启动实例；不混跑旧版非原子派发器。V012 新增槽位表、计划 revision 和运行 scheduled_at 及唯一约束；既有定时运行保留 `scheduled_at=NULL`，仍可完成，不凭幂等字符串反推历史槽位，也不补跑升级前的缺失历史。
+**保留与归属。** V013 为槽位到 `dataset_schedule` 的外键及到 `dataset_version` 的复合外键补充 `ON DELETE CASCADE`，账号/运行外键保持原约束，并新增 `(state, advanced_to)` 清理索引。复用 Worker 每 60 秒的定期清理，每次以一个 SQL 事务锁定并删除最多 500 个 `enqueued/skipped` 且 advanced_to 早于 N 天的槽位，`FOR UPDATE SKIP LOCKED` 跳过其他实例占用的记录，不循环清空积压。N 来自 `JIUZHANG_SCHEDULE_SLOT_RETENTION_DAYS`，默认 30、必须为正整数；以数据库时间计算。保留清理永不删除 pending，advanced_to 为 NULL 的终态保留；归属对象删除仍按上述外键级联，运行及 scheduled_at 唯一约束不受保留清理影响。清理后只对保留期内的槽位提供完整派发状态对账，不把槽位表作为永久审计档案。
+
+**升级边界。** 停止旧 API/Worker，显式运行迁移至 V013，再以同一新构建启动实例；不混跑旧版非原子派发器。V012 新增槽位表、计划 revision 和运行 scheduled_at 及唯一约束，V013 调整槽位归属与清理索引，保留既有 pending/终态记录；既有定时运行保留 `scheduled_at=NULL`，仍可完成，不凭幂等字符串反推历史槽位，也不补跑升级前的缺失历史。
 
 ## 7. 权限、审计和血缘
 
@@ -1007,3 +1009,13 @@ Vue 3 管理端
 - `tools/test-scheduling-multiworker.py` 使用真实 MySQL 入库数据集及两个独立 Worker，连续四个一分钟周期；在第二槽的真实 PostgreSQL INSERT 触发器处等待可查询的锁状态，定向 SIGKILL 事务所属 Worker，再释放测试门闩。断言每槽一条定时运行、实际运行成功、活动数不超过 1、无 HTTP 500 或未处理的唯一键冲突、游标单调并匹配实际 `ScheduleCalculator.next`，以及故障槽有运行或 skipped 记录。独立执行接续耗时 0.978s，完整 verify 中再次执行为 0.126s，均小于两个周期；本轮四槽均实际成功执行。报告为 `.local/scheduling-multiworker-test.json`，测试专用触发器和进程自动清理，原受管 Worker 已恢复。
 - 已将原子性和多 Worker 脚本纳入 `bash tools/local.sh verify`，整套实际退出码 0：迁移、身份、MySQL 一致性、数据集、定时、Doris、Excel、存储回收、执行安全/规则、大结果预算、工作台、39 个 OpenAPI 响应校验及 1280×1000 浏览器流程全部通过。`pnpm check` 实际退出码 0，16 文件 102 项单元/HTTP 测试、静态门禁和前端生产构建通过。
 - 上述为本机真实引擎及双进程验收；未验证客户多节点集群、容量/高负载、远端 CI 或分支保护。本轮没有重跑独立的读取/发布 SIGKILL 与基础存储停机专项，不能把派发接续结果外推为这些故障矩阵均已复验。例会待办 #1 已完成并移除。
+
+### 14.16 调度槽位生命周期收口 V013（2026-10-30）
+
+- V013 为槽位到计划、槽位到数据集版本的两个归属外键补 `ON DELETE CASCADE`，新增 `(state, advanced_to)` 索引；账号/运行外键保持原约束。`tools/test-migrations.py` 实际通过空库 V001–V013、V009/V011/V012 升级和重复迁移；V012 已有 pending 槽位的状态、原因与尝试次数保留，旧定时运行仍可完成。
+- 槽位保留复用 Worker 现有定期清理，默认 30 天，每批最多 500 条，只删除符合 advanced_to 期限的 enqueued/skipped，跳过其他事务持有的行锁。保留清理不删除 pending、推进时间为空的终态或运行记录；配置与完整语义见 §6.5 及 README。
+- 先在旧实现确认新增单测和真实 PostgreSQL 回归均失败，证明活动运行期间重复 Poll 会在退避窗口内再次递增 attempts；输出保留在 `.local/scheduling-v013-red-unit.log`、`.local/scheduling-v013-red-postgresql.log`。现以数据库更新时间实现默认 5 秒的跨进程退避，候选过滤与持锁重检共同约束，过期优先处理。
+- 实际通过 Maven verify：platform 31 项、Worker 5 项，共 36 项。真实 PostgreSQL 验收覆盖默认窗口抑制重试、旧候选重检、1 秒配置生效、窗口到期重试、过期绕过退避；清理验证超过单批上限的 502 个旧终态、真实行锁跳过和释放后接续、pending/NULL 推进时间保留、7 天配置及两个归属对象删除的实际级联。
+- `tools/test-scheduling-multiworker.py --cycles` 默认 4、最少 2，超时与报告按周期数计算；非法参数在管理进程之前拒绝。verify 使用 3，包含正常槽、派发中崩溃槽与接续后的后续槽。脚本还验证 Worker 定期清理删除专属过期终态，报告 `retentionCanaryRemoved=true`。本轮真实三周期全部成功、每槽恰好一条运行、HTTP 500 为零，SIGKILL 后接续为 0.973s；README 用约 0.1–1s 的本地实测范围说明，不承诺生产时延。
+- 已在启动中的本地栈实际通过完整 `bash tools/local.sh verify`，退出码 0，覆盖迁移、原子性/退避/保留、多 Worker、MySQL/Doris/S3/Excel、执行安全/规则、39 个 OpenAPI 响应及 1280×1000 浏览器流程。V013 已实际迁移，API/Worker/Web 就绪、原受管 Worker 已恢复，测试触发器无遗留。
+- 本轮未改前端、Excel 或数据集既有语义，未重跑未受影响的 `pnpm check`；客户多节点、负载、独立读取/发布 SIGKILL 与存储停机专项、远端 CI/分支保护仍未在本轮验证。
