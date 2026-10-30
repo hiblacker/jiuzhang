@@ -53,6 +53,18 @@ public final class ScheduleCalculator {
     return null;
   }
 
+  /** Skip a missed range in bounded time, retaining the interval's persisted phase. */
+  public static Instant firstFuture(Map<String,Object> schedule, Instant slot, Instant now) {
+    validate(schedule);
+    if (slot.isAfter(now)) return slot;
+    if ("interval".equals(schedule.get("mode"))) {
+      long period = integer(schedule,"intervalMinutes") * 60L;
+      long steps = java.time.Duration.between(slot,now).getSeconds() / period + 1;
+      return slot.plusSeconds(Math.multiplyExact(steps,period)).truncatedTo(ChronoUnit.MICROS);
+    }
+    return next(schedule,now);
+  }
+
   private static Cron parseCron(String expression) {
     if (expression == null || expression.isBlank()) throw invalid();
     String[] fields = expression.trim().split("\\s+");

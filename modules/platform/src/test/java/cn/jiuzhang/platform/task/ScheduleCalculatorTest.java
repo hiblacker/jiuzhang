@@ -41,4 +41,20 @@ class ScheduleCalculatorTest {
     assertThat(ScheduleCalculator.next(stepped, Instant.parse("2026-10-22T01:05:00Z")))
         .isEqualTo(Instant.parse("2026-10-22T01:15:00Z"));
   }
+
+  @Test
+  void skipsAnExpiredIntervalRangeWithoutDriftingItsOriginalPhase() {
+    var slot=Instant.parse("2026-10-30T00:00:00.123456Z");
+    assertThat(ScheduleCalculator.firstFuture(schedule("interval","* * * * *",1),slot,slot.plusSeconds(185)))
+        .isEqualTo(slot.plusSeconds(240));
+    assertThat(ScheduleCalculator.firstFuture(schedule("interval","* * * * *",1),slot,slot.plusSeconds(60)))
+        .isEqualTo(slot.plusSeconds(120));
+  }
+
+  @Test
+  void skipsCronToTheFirstFutureInstantInItsTimezone() {
+    assertThat(ScheduleCalculator.firstFuture(schedule("cron","0 9 * * *",60),
+        Instant.parse("2026-10-20T01:00:00Z"),Instant.parse("2026-10-30T00:30:00Z")))
+        .isEqualTo(Instant.parse("2026-10-30T01:00:00Z"));
+  }
 }

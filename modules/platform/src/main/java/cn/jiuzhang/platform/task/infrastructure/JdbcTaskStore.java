@@ -5,12 +5,14 @@ import cn.jiuzhang.platform.shared.application.Failure;
 import cn.jiuzhang.platform.shared.infrastructure.MetadataJson;
 import cn.jiuzhang.platform.task.application.TaskStore;
 import cn.jiuzhang.platform.task.domain.ScheduleCalculator;
+import cn.jiuzhang.platform.task.domain.ScheduleSlot;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -88,18 +90,21 @@ public class JdbcTaskStore implements TaskStore {
           List<String> tags =
               strings(input.containsKey("tags") ? input.get("tags") : current.get("tags"));
           boolean enabled = Boolean.TRUE.equals(current.get("enabled"));
-          Instant next = schedule.equals(current.get("schedule"))
+          boolean changed = !Boolean.TRUE.equals(db.queryForObject("SELECT ?::jsonb = ?::jsonb",Boolean.class,json.write(schedule),json.write(current.get("schedule"))));
+          Instant now = clock();
+          Instant next = !changed
               ? parseInstant(current.get("nextRunAt"))
-              : nextRun(schedule, enabled, Instant.now());
+              : nextRun(schedule, enabled, now);
+          if (changed) skipCurrent(current,"SCHEDULE_CHANGED",now,next);
           db.update(
-              "UPDATE dataset_schedule SET owner_id=?,name=?,description=?,owner_label=?,tags=?::jsonb,schedule=?::jsonb,next_run_at=?,updated_at=now() WHERE dataset_id=?",
+              "UPDATE dataset_schedule SET owner_id=?,name=?,description=?,owner_label=?,tags=?::jsonb,schedule=?::jsonb,next_run_at=?,revision=revision+?,updated_at=now() WHERE dataset_id=?",
               n(ownerId),
               name,
               description,
               owner,
               json.write(tags),
               json.write(schedule),
-              next == null ? null : java.sql.Timestamp.from(next), n(id));
+              next == null ? null : java.sql.Timestamp.from(next), changed ? 1 : 0, n(id));
           return get(id);
         });
   }
@@ -109,58 +114,107 @@ public class JdbcTaskStore implements TaskStore {
     return tx.execute(
         status -> {
           var current = read(id, true);
+          boolean changed = enabled != Boolean.TRUE.equals(current.get("enabled"));
+          Instant now = clock();
           Instant next = !enabled ? null
               : Boolean.TRUE.equals(current.get("enabled"))
                   ? parseInstant(current.get("nextRunAt"))
-                  : nextRun(cast(current.get("schedule")), true, Instant.now());
+                  : nextRun(cast(current.get("schedule")), true, now);
+          if(changed)skipCurrent(current,enabled?"RESUMED":"PAUSED",now,next);
           db.update(
-              "UPDATE dataset_schedule SET enabled=?,next_run_at=?,updated_at=now() WHERE dataset_id=?",
+              "UPDATE dataset_schedule SET enabled=?,next_run_at=?,revision=revision+?,updated_at=now() WHERE dataset_id=?",
               enabled,
               next == null ? null : java.sql.Timestamp.from(next),
+              changed ? 1 : 0,
               n(id));
           return get(id);
         });
   }
 
   @Override
-  public List<Map<String, Object>> claimDue(Instant now, int limit) {
-    return tx.execute(
-        status -> {
-          ensureRows();
-          var rows =
-              db.queryForList(
-                  baseSql()
-                      + " WHERE "
-                      + warehouseDatasetClause()
-                      + " AND d.published_version>0 AND s.enabled AND s.next_run_at IS NOT NULL AND s.next_run_at<=?"
-                      + " AND (s.schedule->>'mode') IN ('cron','interval')"
-                      + " ORDER BY s.next_run_at,d.id FOR UPDATE OF s SKIP LOCKED LIMIT ?",
-                  java.sql.Timestamp.from(now),
-                  limit);
-          var claimed = new ArrayList<Map<String, Object>>();
-          for (var row : rows) {
-            var schedule = cast(row.get("schedule_json"));
-            Instant scheduledAt = ((java.sql.Timestamp) row.get("next_run_at")).toInstant();
-            Instant next = ScheduleCalculator.next(schedule, now);
-            db.update("UPDATE dataset_schedule SET next_run_at=?,updated_at=now() WHERE dataset_id=?", next == null ? null : java.sql.Timestamp.from(next), n(row.get("dataset_id").toString()));
-            var claimedTask = task(row);
-            claimedTask.put("_scheduledAt", scheduledAt.toString());
-            claimedTask.put("_claimedNextRunAt", next);
-            claimed.add(claimedTask);
-          }
-          return claimed;
-        });
+  public List<String> due(int limit) {
+    if(limit<1||limit>20)throw new IllegalArgumentException("Dispatch batch must be between 1 and 20");
+    ensureRows();
+    return db.queryForList("SELECT s.dataset_id FROM dataset_schedule s JOIN dataset d ON d.id=s.dataset_id WHERE "
+        + warehouseDatasetClause()+" AND d.published_version>0 AND s.enabled AND s.next_run_at<=clock_timestamp()"
+        + " AND (s.schedule->>'mode') IN ('cron','interval') ORDER BY s.next_run_at,s.dataset_id LIMIT ?",limit)
+        .stream().map(row->row.get("dataset_id").toString()).toList();
   }
 
   @Override
-  public void reschedule(String id, Instant expectedNext, Map<String, Object> expectedSchedule, Instant next) {
-    db.update(
-        "UPDATE dataset_schedule SET next_run_at=?,updated_at=now() WHERE dataset_id=? AND enabled AND next_run_at IS NOT DISTINCT FROM ? AND schedule=?::jsonb",
-        next == null ? null : java.sql.Timestamp.from(next),
-        n(id),
-        expectedNext == null ? null : java.sql.Timestamp.from(expectedNext),
-        json.write(expectedSchedule));
+  public void dispatch(String id, Function<ScheduleSlot,String> enqueue) {
+    tx.executeWithoutResult(status->{
+      db.execute("SET LOCAL statement_timeout='5s'");
+      db.execute("SET LOCAL lock_timeout='1s'");
+      // Manual admission also locks dataset first. Never lock an active run here: completion
+      // locks its run before updating last_success on the schedule.
+      if(db.queryForList("SELECT id FROM dataset WHERE id=? FOR UPDATE SKIP LOCKED",n(id)).isEmpty())return;
+      var rows=db.queryForList(baseSql()+" WHERE d.id=? FOR UPDATE OF s SKIP LOCKED",n(id));
+      if(rows.isEmpty())return;
+      var current=task(rows.getFirst());
+      Instant now=clock(),at=parseInstant(current.get("nextRunAt"));
+      if(!Boolean.TRUE.equals(current.get("enabled"))||at==null||at.isAfter(now))return;
+      var schedule=cast(current.get("schedule"));
+      long revision=((Number)current.get("_revision")).longValue();
+      var stale=db.queryForList("SELECT scheduled_at FROM dataset_schedule_slot WHERE dataset_id=? AND state='pending' AND (scheduled_at<>? OR revision<>?)",n(id),ts(at),revision);
+      if(!stale.isEmpty())db.update("UPDATE dataset_schedule_slot SET state='skipped',reason='CONDITION_CHANGED',advanced_to=?,updated_at=now() WHERE dataset_id=? AND state='pending'",ts(at),n(id));
+      var recorded=db.queryForList("SELECT * FROM dataset_schedule_slot WHERE dataset_id=? AND scheduled_at=?",n(id),ts(at));
+      if(!recorded.isEmpty()&&!recorded.getFirst().get("state").equals("pending")) {
+        updateCursor(current,at,ScheduleCalculator.firstFuture(schedule,at,now));return;
+      }
+      if(recorded.isEmpty()) {
+        insertSlot(current,at,"pending","",null);
+        recorded=db.queryForList("SELECT * FROM dataset_schedule_slot WHERE dataset_id=? AND scheduled_at=?",n(id),ts(at));
+      }
+      var record=recorded.getFirst();
+      var slot=new ScheduleSlot(id,((Number)record.get("dataset_version")).intValue(),record.get("requested_by").toString(),
+          ((Number)record.get("revision")).longValue(),at,((java.sql.Timestamp)record.get("expires_at")).toInstant(),cast(record.get("schedule_snapshot")));
+      if(now.isAfter(slot.expiresAt())) {
+        Instant next=ScheduleCalculator.firstFuture(slot.schedule(),at,now);
+        skipSlot(id,at,"EXPIRED",next);updateCursor(current,at,next);return;
+      }
+      String runId;
+      try {runId=enqueue.apply(slot);}
+      catch(Failure failure) {
+        if(failure.code.equals("DATASET_RUN_ACTIVE")) {
+          db.update("UPDATE dataset_schedule_slot SET reason='DATASET_RUN_ACTIVE',attempts=attempts+1,updated_at=now() WHERE dataset_id=? AND scheduled_at=?",n(id),ts(at));return;
+        }
+        if(!failure.code.equals("IDEMPOTENCY_CONFLICT"))throw failure;
+        skipSlot(id,at,"IDEMPOTENCY_CONFLICT",slot.expiresAt());updateCursor(current,at,slot.expiresAt());return;
+      }
+      int changed=db.update("UPDATE dataset_schedule_slot SET state='enqueued',reason='',run_id=?,advanced_to=?,attempts=attempts+1,updated_at=now() WHERE dataset_id=? AND scheduled_at=? AND state='pending'",n(runId),ts(slot.expiresAt()),n(id),ts(at));
+      if(changed!=1)throw new IllegalStateException("Schedule slot changed inside admission transaction");
+      updateCursor(current,at,slot.expiresAt());
+    });
   }
+
+  private void updateCursor(Map<String,Object> current,Instant at,Instant next) {
+    int changed=db.update("UPDATE dataset_schedule SET next_run_at=?,updated_at=now() WHERE dataset_id=? AND revision=? AND next_run_at IS NOT DISTINCT FROM ?",
+        ts(next),n(current.get("id").toString()),current.get("_revision"),ts(at));
+    if(changed!=1)throw new IllegalStateException("Schedule cursor changed inside admission transaction");
+  }
+
+  private void insertSlot(Map<String,Object> current,Instant at,String state,String reason,Instant advanced) {
+    var schedule=cast(current.get("schedule"));
+    Instant expires=ScheduleCalculator.next(schedule,at);
+    if(expires==null)throw new Failure(422,"SCHEDULE_INVALID");
+    db.update("INSERT INTO dataset_schedule_slot(dataset_id,scheduled_at,revision,dataset_version,requested_by,schedule_snapshot,expires_at,state,reason,advanced_to) VALUES (?,?,?,?,?,?::jsonb,?,?,?,?) ON CONFLICT(dataset_id,scheduled_at) DO NOTHING",
+        n(current.get("id").toString()),ts(at),current.get("_revision"),current.get("datasetVersion"),n(current.get("ownerId").toString()),json.write(schedule),ts(expires),state,reason,ts(advanced));
+  }
+
+  private void skipSlot(String id,Instant at,String reason,Instant next) {
+    int changed=db.update("UPDATE dataset_schedule_slot SET state='skipped',reason=?,advanced_to=?,updated_at=now() WHERE dataset_id=? AND scheduled_at=? AND state='pending'",reason,ts(next),n(id),ts(at));
+    if(changed!=1)throw new IllegalStateException("Pending schedule slot changed inside transaction");
+  }
+
+  private void skipCurrent(Map<String,Object> current,String reason,Instant now,Instant next) {
+    int changed=db.update("UPDATE dataset_schedule_slot SET state='skipped',reason=?,advanced_to=?,updated_at=now() WHERE dataset_id=? AND state='pending'",reason,ts(next),n(current.get("id").toString()));
+    Instant at=parseInstant(current.get("nextRunAt"));
+    if(changed==0&&Boolean.TRUE.equals(current.get("enabled"))&&at!=null&&!at.isAfter(now))insertSlot(current,at,"skipped",reason,next);
+  }
+
+  private Instant clock(){return db.queryForObject("SELECT clock_timestamp()",java.sql.Timestamp.class).toInstant();}
+  private java.sql.Timestamp ts(Instant value){return value==null?null:java.sql.Timestamp.from(value);}
 
   private void ensureRows() {
     db.update(
@@ -172,7 +226,7 @@ public class JdbcTaskStore implements TaskStore {
             + warehouseDatasetClause()
             + " AND d.published_version>0 AND NOT EXISTS (SELECT 1 FROM dataset_schedule s WHERE s.dataset_id=d.id)"
             + " ON CONFLICT (dataset_id) DO NOTHING");
-    Instant now = Instant.now();
+    Instant now = clock();
     var rows =
         db.queryForList(
             "SELECT s.dataset_id,s.schedule FROM dataset_schedule s JOIN dataset d ON d.id=s.dataset_id"
@@ -191,7 +245,7 @@ public class JdbcTaskStore implements TaskStore {
   }
 
   private String baseSql() {
-    return "SELECT d.id AS dataset_id,d.name AS dataset_name,d.description AS dataset_description,d.owner_label AS dataset_owner,d.tags AS dataset_tags,d.published_version,s.owner_id,s.enabled,s.name,s.description,s.owner_label,s.tags,s.schedule AS schedule_json,s.next_run_at,s.last_success_run_id,s.last_success_at,s.updated_at FROM dataset d JOIN dataset_schedule s ON s.dataset_id=d.id";
+    return "SELECT d.id AS dataset_id,d.name AS dataset_name,d.description AS dataset_description,d.owner_label AS dataset_owner,d.tags AS dataset_tags,d.published_version,s.owner_id,s.enabled,s.name,s.description,s.owner_label,s.tags,s.schedule AS schedule_json,s.next_run_at,s.last_success_run_id,s.last_success_at,s.updated_at,s.revision FROM dataset d JOIN dataset_schedule s ON s.dataset_id=d.id";
   }
 
   private String warehouseDatasetClause() {
@@ -218,6 +272,7 @@ public class JdbcTaskStore implements TaskStore {
     m.put("lastSuccessAt", instant(row.get("last_success_at")));
     m.put("nextRunAt", instant(row.get("next_run_at")));
     m.put("datasetVersion", row.get("published_version"));
+    m.put("_revision", row.get("revision"));
     m.put("ownerId", row.get("owner_id") == null ? "" : row.get("owner_id").toString());
     return m;
   }

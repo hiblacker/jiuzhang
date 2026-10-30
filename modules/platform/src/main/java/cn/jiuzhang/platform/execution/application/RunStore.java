@@ -31,7 +31,8 @@ public interface RunStore {
       String key,
       String hash,
       String taskId,
-      Map<String, Object> scheduleSnapshot);
+      Map<String, Object> scheduleSnapshot,
+      java.time.Instant scheduledAt);
 
   void cancel(String id);
 

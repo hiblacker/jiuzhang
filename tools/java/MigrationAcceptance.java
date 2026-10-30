@@ -24,25 +24,36 @@ class MigrationAcceptance {
     String query=configured.contains("?")?configured.substring(configured.indexOf('?')):"";
     String prefix=base.substring(0,base.lastIndexOf('/')+1);
     try(var admin=DriverManager.getConnection(configured,USER,PASSWORD)) {
-      for(boolean upgrade:new boolean[]{false,true}) {
+      for(String previous:new String[]{null,"9","11"}) {
+        boolean upgrade=previous!=null;
         String database="jz_migration_"+UUID.randomUUID().toString().replace("-","").substring(0,12);
         String url=prefix+database+query;
         execute(admin,"CREATE DATABASE "+database);
         try {
           if(upgrade) {
-            migration(url,"9").migrate();
+            migration(url,previous).migrate();
             try(var c=DriverManager.getConnection(url,USER,PASSWORD)) {
               execute(c,"INSERT INTO account(username,display_name,password_hash,role) VALUES('upgrade_probe','synthetic','not-a-login-hash','viewer')");
               execute(c,"INSERT INTO source_connection(name,owner_label,created_by,settings,connection_username) SELECT 'upgrade_mysql','test',id,'{}','reader' FROM account WHERE username='upgrade_probe'");
               execute(c,"INSERT INTO source_secret(source_id,ciphertext) SELECT id,'synthetic-ciphertext' FROM source_connection");
+              if(previous.equals("11")) {
+                execute(c,"INSERT INTO source_object(source_id,name,schema_contract) VALUES(1,'legacy','[]')");
+                execute(c,"INSERT INTO dataset(source_id,object_id,name,owner_label,definition,target_name,published_version) VALUES(1,1,'legacy','test','{}','legacy',1)");
+                execute(c,"INSERT INTO dataset_version(dataset_id,version,body,source_table,source_columns) VALUES(1,1,'{}','legacy','[]')");
+                execute(c,"INSERT INTO dataset_run(dataset_id,dataset_version,requested_by,idempotency_key,request_hash,trigger,schedule_snapshot) VALUES(1,1,1,'legacy-scheduled','synthetic','schedule','{}')");
+              }
             }
           }
           migration(url,null).migrate();
           try(var c=DriverManager.getConnection(url,USER,PASSWORD)) {
-            require(scalar(c,"SELECT count(*) FROM flyway_schema_history WHERE success").equals("11"),"Expected V001-V011");
+            require(scalar(c,"SELECT count(*) FROM flyway_schema_history WHERE success").equals("12"),"Expected V001-V012");
             if(upgrade) {
               require(scalar(c,"SELECT source_type||':'||connection_username FROM source_connection WHERE name='upgrade_mysql'").equals("MySQL:reader"),"Upgrade changed MySQL source");
               require(scalar(c,"SELECT ciphertext FROM source_secret").equals("synthetic-ciphertext"),"Upgrade changed credentials");
+              if(previous.equals("11")) {
+                require(scalar(c,"SELECT count(*) FROM dataset_run WHERE trigger='schedule' AND scheduled_at IS NULL").equals("1"),"Upgrade changed legacy scheduled runs");
+                execute(c,"UPDATE dataset_run SET status='succeeded',finished_at=now()");
+              }
             }
             String before=scalar(c,"SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace");
             migration(url,null).migrate();
@@ -51,6 +62,6 @@ class MigrationAcceptance {
         } finally { execute(admin,"DROP DATABASE "+database); }
       }
     }
-    System.out.println("PASS PostgreSQL empty V001-V011, V009 upgrade preserving MySQL and secrets, repeated migration");
+    System.out.println("PASS PostgreSQL empty V001-V012, V009/V011 upgrades preserving MySQL/secrets/legacy scheduled runs, repeated migration");
   }
 }

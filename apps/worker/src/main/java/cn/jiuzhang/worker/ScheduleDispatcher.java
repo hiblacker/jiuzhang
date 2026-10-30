@@ -1,46 +1,33 @@
 package cn.jiuzhang.worker;
 
 import cn.jiuzhang.platform.execution.application.RunStore;
-import cn.jiuzhang.platform.shared.application.Failure;
+import cn.jiuzhang.platform.identity.application.IdentityService;
 import cn.jiuzhang.platform.task.application.TaskStore;
-import java.time.Instant;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ScheduleDispatcher {
+  private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ScheduleDispatcher.class);
   private final TaskStore tasks;
   private final RunStore runs;
 
-  public ScheduleDispatcher(TaskStore tasks, RunStore runs) {
-    this.tasks = tasks;
-    this.runs = runs;
-  }
+  public ScheduleDispatcher(TaskStore tasks, RunStore runs) { this.tasks = tasks; this.runs = runs; }
 
-  @SuppressWarnings("unchecked")
-  @Scheduled(fixedDelayString = "${JIUZHANG_SCHEDULER_INTERVAL_MS:1000}")
+  @Scheduled(fixedDelayString = "${JIUZHANG_SCHEDULER_INTERVAL_MS:1000}", scheduler = "datasetScheduleScheduler")
   public void dispatch() {
-    for (var task : tasks.claimDue(Instant.now(), 20)) {
-      String dataset = task.get("datasetId").toString();
-      String scheduledAt = task.getOrDefault("_scheduledAt", Instant.now().toString()).toString();
-      Instant claimedNext = (Instant) task.get("_claimedNextRunAt");
-      var schedule = (java.util.Map<String, Object>) task.get("schedule");
-      String key = "schedule:" + dataset + ":" + scheduledAt;
+    java.util.List<String> due;
+    try { due = tasks.due(20); }
+    catch (RuntimeException failure) { LOG.warn("Schedule poll failed ({})",failure.getClass().getSimpleName()); return; }
+    for (String dataset : due) {
       try {
-        runs.createScheduled(
-            dataset,
-            ((Number) task.get("datasetVersion")).intValue(),
-            task.get("ownerId").toString(),
-            key,
-            dataset + ":" + scheduledAt,
-            task.get("id").toString(),
-            schedule);
-      } catch (Failure failure) {
-        // A running dataset cannot accept a second snapshot. Retry the same slot soon;
-        // idempotency keeps a crash between enqueue and this catch from duplicating work.
-        tasks.reschedule(dataset, claimedNext, schedule, Instant.now().plusSeconds(30));
+        tasks.dispatch(dataset, slot -> runs.createScheduled(
+            slot.datasetId(), slot.datasetVersion(), slot.requestedBy(), slot.key(),
+            IdentityService.hash(slot.key()+":"+slot.datasetVersion()+":"+slot.revision()),
+            slot.datasetId(), slot.schedule(), slot.scheduledAt()).get("id").toString());
       } catch (RuntimeException failure) {
-        tasks.reschedule(dataset, claimedNext, schedule, Instant.now().plusSeconds(60));
+        // The whole claim transaction rolled back. The persisted slot remains due.
+        LOG.warn("Schedule admission rolled back for dataset {} ({})", dataset, failure.getClass().getSimpleName());
       }
     }
   }

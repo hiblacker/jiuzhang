@@ -105,7 +105,16 @@ public class JdbcRunStore implements RunStore {
       String key,
       String hash,
       String taskId,
-      Map<String, Object> scheduleSnapshot) {
+      Map<String, Object> scheduleSnapshot,
+      java.time.Instant scheduledAt) {
+    if (!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())
+      throw new IllegalStateException("Scheduled admission requires the claim transaction");
+    var existing = db.queryForList("SELECT id,dataset_version FROM dataset_run WHERE dataset_id=? AND trigger='schedule' AND scheduled_at=?",n(dataset),java.sql.Timestamp.from(scheduledAt));
+    if (!existing.isEmpty()) {
+      if (((Number)existing.getFirst().get("dataset_version")).intValue()!=version) throw new Failure(409,"IDEMPOTENCY_CONFLICT");
+      return get(existing.getFirst().get("id").toString(),false);
+    }
+    if (existing(user,dataset,key)!=null) throw new Failure(409,"IDEMPOTENCY_CONFLICT");
     var active =
         db.queryForList(
             "SELECT id FROM dataset_run WHERE dataset_id=? AND status IN"
@@ -114,8 +123,8 @@ public class JdbcRunStore implements RunStore {
     if (!active.isEmpty()) throw new Failure(409, "DATASET_RUN_ACTIVE");
     String id =
         db.queryForObject(
-                "INSERT INTO dataset_run(dataset_id,dataset_version,requested_by,idempotency_key,request_hash,task_id,trigger,schedule_snapshot,logs)"
-                    + " VALUES (?,?,?,?,?,?, 'schedule',?::jsonb,?::jsonb) RETURNING id",
+                "INSERT INTO dataset_run(dataset_id,dataset_version,requested_by,idempotency_key,request_hash,task_id,trigger,schedule_snapshot,logs,scheduled_at)"
+                    + " VALUES (?,?,?,?,?,?, 'schedule',?::jsonb,?::jsonb,?) RETURNING id",
                 Long.class,
                 n(dataset),
                 version,
@@ -124,7 +133,8 @@ public class JdbcRunStore implements RunStore {
                 hash,
                 n(taskId),
                 json.write(scheduleSnapshot),
-                json.write(List.of("RUN_QUEUED", "RUN_SCHEDULED")))
+                json.write(List.of("RUN_QUEUED", "RUN_SCHEDULED")),
+                java.sql.Timestamp.from(scheduledAt))
             .toString();
     return get(id, false);
   }
