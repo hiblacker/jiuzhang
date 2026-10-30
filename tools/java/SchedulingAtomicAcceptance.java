@@ -33,7 +33,7 @@ class SchedulingAtomicAcceptance {
         var dataSource=new DriverManagerDataSource(url,user,password);
         var db=new JdbcTemplate(dataSource);
         var tx=new TransactionTemplate(new DataSourceTransactionManager(dataSource));
-        var tasks=new JdbcTaskStore(db,tx,JSON);
+        var tasks=new JdbcTaskStore(db,tx,JSON,5,30);
         var runs=new JdbcRunStore(db,tx,JSON);
         var dispatcher=new ScheduleDispatcher(tasks,runs);
         db.update("INSERT INTO account(username,display_name,password_hash,role) VALUES('schedule_probe','synthetic','not-a-login-hash','admin')");
@@ -71,6 +71,17 @@ class SchedulingAtomicAcceptance {
         var manual=tx.execute(status->runs.create("1",1,"1","manual-probe","0".repeat(64),false,null,schedule(1)));
         dispatcher.dispatch();
         require("pending".equals(db.queryForObject("SELECT state FROM dataset_schedule_slot WHERE scheduled_at=?",String.class,Timestamp.from(second))),"active run did not retain its pending slot");
+        dispatcher.dispatch();
+        if(db.queryForObject("SELECT attempts FROM dataset_schedule_slot WHERE scheduled_at=?",Integer.class,Timestamp.from(second))!=1)
+          failures.add("BACKOFF: repeated Poll incremented attempts inside the active-run window");
+        require(tasks.due(20).isEmpty(),"busy slot remained a polling candidate inside backoff");
+        tasks.dispatch("1",slot -> {throw new AssertionError("stale candidate ignored backoff");});
+        db.update("UPDATE dataset_schedule_slot SET updated_at=clock_timestamp()-interval '2 seconds' WHERE scheduled_at=?",Timestamp.from(second));
+        var fastTasks=new JdbcTaskStore(db,tx,JSON,1,30);
+        require(fastTasks.due(20).equals(List.of("1")),"configured shorter backoff was ignored");
+        new ScheduleDispatcher(fastTasks,runs).dispatch();
+        require(db.queryForObject("SELECT attempts FROM dataset_schedule_slot WHERE scheduled_at=?",Integer.class,Timestamp.from(second))==2,"elapsed backoff did not permit one retry");
+        db.update("UPDATE dataset_schedule_slot SET updated_at=clock_timestamp()-interval '6 seconds' WHERE scheduled_at=?",Timestamp.from(second));
         db.update("INSERT INTO dataset_version(dataset_id,version,body,source_table,source_columns) VALUES(1,2,?::jsonb,'synthetic','[]')",JSON.write(Map.of("definition",definition)));
         db.update("UPDATE dataset SET published_version=2 WHERE id=1");
         db.update("UPDATE dataset_run SET status='succeeded',finished_at=now() WHERE id=?",Long.parseLong(manual.get("id").toString()));
@@ -91,9 +102,54 @@ class SchedulingAtomicAcceptance {
         dispatcher.dispatch();
         require("skipped:EXPIRED".equals(db.queryForObject("SELECT state||':'||reason FROM dataset_schedule_slot WHERE scheduled_at=?",String.class,Timestamp.from(expired))),"expired slot was not recorded");
         require(db.queryForObject("SELECT next_run_at FROM dataset_schedule",Timestamp.class).toInstant().equals(expired.plusSeconds(240)),"skipped range drifted off its interval phase");
+        // Even a backoff longer than the remaining period cannot delay expiry.
+        Instant expiring=db.queryForObject("SELECT clock_timestamp()-interval '61 seconds'",Timestamp.class).toInstant();
+        db.update("UPDATE dataset_schedule SET next_run_at=? WHERE dataset_id=1",Timestamp.from(expiring));
+        db.update("INSERT INTO dataset_schedule_slot(dataset_id,scheduled_at,revision,dataset_version,requested_by,schedule_snapshot,expires_at,state,reason,attempts) SELECT 1,?,revision,1,1,schedule,?,'pending','DATASET_RUN_ACTIVE',1 FROM dataset_schedule WHERE dataset_id=1",Timestamp.from(expiring),Timestamp.from(expiring.plusSeconds(60)));
+        require(tasks.due(20).equals(List.of("1")),"backoff hid an expired slot from polling");
+        dispatcher.dispatch();
+        require("skipped:EXPIRED".equals(db.queryForObject("SELECT state||':'||reason FROM dataset_schedule_slot WHERE scheduled_at=?",String.class,Timestamp.from(expiring))),"backoff postponed expiry");
+        retentionAndCascade(db,tx,tasks,user,password,url);
         if(!failures.isEmpty())throw new AssertionError(String.join("\n",failures));
-        System.out.println("PASS real PostgreSQL: admission/cursor rollback, plan-change/pause outcomes, frozen version, replay deduplication and bounded expired-range skip");
+        System.out.println("PASS real PostgreSQL: atomic admission, frozen versions, persisted backoff/expiry priority, bounded skip, terminal retention/SKIP LOCKED and ownership cascades");
       } finally {statement.execute("DROP DATABASE "+database);}
     }
+  }
+
+  static void retentionAndCascade(JdbcTemplate db,TransactionTemplate tx,JdbcTaskStore tasks,String user,String password,String url) throws Exception {
+    Instant old=db.queryForObject("SELECT clock_timestamp()-interval '40 days'",Timestamp.class).toInstant();
+    // 501 old skipped slots plus one old enqueued slot exceed a single cleanup batch.
+    db.update("INSERT INTO dataset_schedule_slot(dataset_id,scheduled_at,revision,dataset_version,requested_by,schedule_snapshot,expires_at,state,reason,advanced_to) SELECT 1,?::timestamptz-g*interval '1 second',1,1,1,schedule,?::timestamptz+interval '60 seconds','skipped','EXPIRED',?::timestamptz+interval '60 seconds' FROM dataset_schedule CROSS JOIN generate_series(1,501) g WHERE dataset_id=1",Timestamp.from(old),Timestamp.from(old),Timestamp.from(old));
+    Long run=db.queryForObject("INSERT INTO dataset_run(dataset_id,dataset_version,requested_by,idempotency_key,request_hash,trigger,status,scheduled_at,schedule_snapshot) VALUES(1,1,1,'retention-probe',?,'schedule','succeeded',?,?::jsonb) RETURNING id",Long.class,"0".repeat(64),Timestamp.from(old),JSON.write(schedule(1)));
+    db.update("INSERT INTO dataset_schedule_slot(dataset_id,scheduled_at,revision,dataset_version,requested_by,schedule_snapshot,expires_at,state,run_id,advanced_to) SELECT 1,?,1,1,1,schedule,?,'enqueued',?,? FROM dataset_schedule WHERE dataset_id=1",Timestamp.from(old),Timestamp.from(old.plusSeconds(60)),run,Timestamp.from(old.plusSeconds(60)));
+    db.update("INSERT INTO dataset_schedule_slot(dataset_id,scheduled_at,revision,dataset_version,requested_by,schedule_snapshot,expires_at,state,reason,advanced_to) SELECT 1,clock_timestamp()-interval '50 days',1,1,1,schedule,clock_timestamp()-interval '49 days','pending','DATASET_RUN_ACTIVE',clock_timestamp()-interval '49 days' FROM dataset_schedule WHERE dataset_id=1");
+    db.update("INSERT INTO dataset_schedule_slot(dataset_id,scheduled_at,revision,dataset_version,requested_by,schedule_snapshot,expires_at,state,reason,advanced_to) SELECT 1,clock_timestamp()-interval '29 days',1,1,1,schedule,clock_timestamp()-interval '28 days','skipped','EXPIRED',clock_timestamp()-interval '28 days' FROM dataset_schedule WHERE dataset_id=1");
+    db.update("INSERT INTO dataset_schedule_slot(dataset_id,scheduled_at,revision,dataset_version,requested_by,schedule_snapshot,expires_at,state,reason) SELECT 1,clock_timestamp()-interval '60 days',1,1,1,schedule,clock_timestamp()-interval '59 days','skipped','PAUSED' FROM dataset_schedule WHERE dataset_id=1");
+    try(var lock=DriverManager.getConnection(url,user,password)) {
+      lock.setAutoCommit(false);
+      try(var statement=lock.prepareStatement("SELECT scheduled_at FROM dataset_schedule_slot WHERE dataset_id=1 AND scheduled_at=? FOR UPDATE")) {
+        statement.setTimestamp(1,Timestamp.from(old));statement.executeQuery().close();
+      }
+      require(tasks.cleanupSlots()==500,"terminal cleanup did not enforce its 500-row batch");
+      require(tasks.cleanupSlots()==1,"cleanup did not skip the locked terminal slot");
+      lock.rollback();
+    }
+    require(tasks.cleanupSlots()==1&&tasks.cleanupSlots()==0,"unlocked terminal slot was not cleaned exactly once");
+    require(db.queryForObject("SELECT count(*) FROM dataset_run WHERE id=?",Integer.class,run)==1,"slot cleanup removed its run");
+    require(db.queryForObject("SELECT count(*) FROM dataset_schedule_slot WHERE state='pending'",Integer.class)==1,"cleanup removed pending");
+    require(db.queryForObject("SELECT count(*) FROM dataset_schedule_slot WHERE state='skipped' AND advanced_to IS NULL AND scheduled_at<?",Integer.class,Timestamp.from(old))==1,"cleanup removed a null-advance slot");
+    var shortRetention=new JdbcTaskStore(db,tx,JSON,5,7);
+    require(shortRetention.cleanupSlots()==1,"configured seven-day retention was ignored");
+    require(db.queryForObject("SELECT count(*) FROM dataset_schedule_slot WHERE state='pending'",Integer.class)==1,"short retention removed pending");
+    db.update("INSERT INTO dataset_version(dataset_id,version,body,source_table,source_columns) VALUES(1,3,'{}','synthetic','[]')");
+    db.update("INSERT INTO dataset_schedule_slot(dataset_id,scheduled_at,revision,dataset_version,requested_by,schedule_snapshot,expires_at,state,reason) SELECT 1,clock_timestamp()+interval '1 day',1,3,1,schedule,clock_timestamp()+interval '2 days','skipped','SCHEDULE_CHANGED' FROM dataset_schedule WHERE dataset_id=1");
+    db.update("DELETE FROM dataset_version WHERE dataset_id=1 AND version=3");
+    require(db.queryForObject("SELECT count(*) FROM dataset_schedule_slot WHERE dataset_version=3",Integer.class)==0,"version deletion did not cascade slots");
+    db.update("INSERT INTO dataset(source_id,object_id,name,owner_label,definition,target_name,published_version) VALUES(1,1,'cascade_probe','test','{}','cascade_probe',1)");
+    db.update("INSERT INTO dataset_version(dataset_id,version,body,source_table,source_columns) VALUES(2,1,'{}','synthetic','[]')");
+    db.update("INSERT INTO dataset_schedule(dataset_id,owner_id,name,schedule) VALUES(2,1,'cascade_probe',?::jsonb)",JSON.write(schedule(1)));
+    db.update("INSERT INTO dataset_schedule_slot(dataset_id,scheduled_at,revision,dataset_version,requested_by,schedule_snapshot,expires_at,state) SELECT 2,clock_timestamp(),1,1,1,schedule,clock_timestamp()+interval '1 minute','pending' FROM dataset_schedule WHERE dataset_id=2");
+    db.update("DELETE FROM dataset_schedule WHERE dataset_id=2");
+    require(db.queryForObject("SELECT count(*) FROM dataset_schedule_slot WHERE dataset_id=2",Integer.class)==0,"plan deletion did not cascade slots");
   }
 }

@@ -8,11 +8,11 @@ import cn.jiuzhang.platform.task.domain.ScheduleCalculator;
 import cn.jiuzhang.platform.task.domain.ScheduleSlot;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -22,11 +22,20 @@ public class JdbcTaskStore implements TaskStore {
   private final JdbcTemplate db;
   private final TransactionTemplate tx;
   private final MetadataJson json;
+  private final int activeBackoffSeconds;
+  private final int slotRetentionDays;
+  private static final int SLOT_CLEANUP_BATCH = 500;
 
-  public JdbcTaskStore(JdbcTemplate db, TransactionTemplate tx, MetadataJson json) {
+  public JdbcTaskStore(JdbcTemplate db, TransactionTemplate tx, MetadataJson json,
+      @Value("${JIUZHANG_SCHEDULE_ACTIVE_BACKOFF_SECONDS:5}") int activeBackoffSeconds,
+      @Value("${JIUZHANG_SCHEDULE_SLOT_RETENTION_DAYS:30}") int slotRetentionDays) {
+    if (activeBackoffSeconds < 1 || slotRetentionDays < 1)
+      throw new IllegalArgumentException("Schedule backoff seconds and slot retention days must be positive");
     this.db = db;
     this.tx = tx;
     this.json = json;
+    this.activeBackoffSeconds = activeBackoffSeconds;
+    this.slotRetentionDays = slotRetentionDays;
   }
 
   @Override
@@ -137,7 +146,11 @@ public class JdbcTaskStore implements TaskStore {
     ensureRows();
     return db.queryForList("SELECT s.dataset_id FROM dataset_schedule s JOIN dataset d ON d.id=s.dataset_id WHERE "
         + warehouseDatasetClause()+" AND d.published_version>0 AND s.enabled AND s.next_run_at<=clock_timestamp()"
-        + " AND (s.schedule->>'mode') IN ('cron','interval') ORDER BY s.next_run_at,s.dataset_id LIMIT ?",limit)
+        + " AND (s.schedule->>'mode') IN ('cron','interval')"
+        + " AND NOT EXISTS (SELECT 1 FROM dataset_schedule_slot p WHERE p.dataset_id=s.dataset_id"
+        + " AND p.scheduled_at=s.next_run_at AND p.state='pending' AND p.reason='DATASET_RUN_ACTIVE'"
+        + " AND p.updated_at>clock_timestamp()-make_interval(secs => ?) AND p.expires_at>=clock_timestamp())"
+        + " ORDER BY s.next_run_at,s.dataset_id LIMIT ?",activeBackoffSeconds,limit)
         .stream().map(row->row.get("dataset_id").toString()).toList();
   }
 
@@ -173,11 +186,16 @@ public class JdbcTaskStore implements TaskStore {
         Instant next=ScheduleCalculator.firstFuture(slot.schedule(),at,now);
         skipSlot(id,at,"EXPIRED",next);updateCursor(current,at,next);return;
       }
+      // Recheck under the plan lock: another Worker may hold a candidate selected before
+      // the previous busy attempt committed. Expiry above always takes priority over backoff.
+      if ("DATASET_RUN_ACTIVE".equals(record.get("reason"))
+          && ((java.sql.Timestamp)record.get("updated_at")).toInstant()
+              .plusSeconds(activeBackoffSeconds).isAfter(now)) return;
       String runId;
       try {runId=enqueue.apply(slot);}
       catch(Failure failure) {
         if(failure.code.equals("DATASET_RUN_ACTIVE")) {
-          db.update("UPDATE dataset_schedule_slot SET reason='DATASET_RUN_ACTIVE',attempts=attempts+1,updated_at=now() WHERE dataset_id=? AND scheduled_at=?",n(id),ts(at));return;
+          db.update("UPDATE dataset_schedule_slot SET reason='DATASET_RUN_ACTIVE',attempts=attempts+1,updated_at=clock_timestamp() WHERE dataset_id=? AND scheduled_at=?",n(id),ts(at));return;
         }
         if(!failure.code.equals("IDEMPOTENCY_CONFLICT"))throw failure;
         skipSlot(id,at,"IDEMPOTENCY_CONFLICT",slot.expiresAt());updateCursor(current,at,slot.expiresAt());return;
@@ -186,6 +204,15 @@ public class JdbcTaskStore implements TaskStore {
       if(changed!=1)throw new IllegalStateException("Schedule slot changed inside admission transaction");
       updateCursor(current,at,slot.expiresAt());
     });
+  }
+
+  @Override
+  public int cleanupSlots() {
+    return db.update("WITH expired AS (SELECT dataset_id,scheduled_at FROM dataset_schedule_slot"
+        + " WHERE state IN ('enqueued','skipped') AND advanced_to<clock_timestamp()-make_interval(days => ?)"
+        + " ORDER BY advanced_to,dataset_id,scheduled_at LIMIT ? FOR UPDATE SKIP LOCKED)"
+        + " DELETE FROM dataset_schedule_slot s USING expired e"
+        + " WHERE s.dataset_id=e.dataset_id AND s.scheduled_at=e.scheduled_at",slotRetentionDays,SLOT_CLEANUP_BATCH);
   }
 
   private void updateCursor(Map<String,Object> current,Instant at,Instant next) {

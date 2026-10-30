@@ -18,4 +18,7 @@ public interface TaskStore {
 
   /** Executes enqueue inside the same PostgreSQL transaction as the claim and cursor update. */
   void dispatch(String id, Function<ScheduleSlot,String> enqueue);
+
+  /** Deletes one bounded batch of old terminal slots; pending slots are never eligible. */
+  int cleanupSlots();
 }
