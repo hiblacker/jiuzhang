@@ -1207,7 +1207,7 @@ export interface components {
             };
         };
         /** @enum {string} */
-        SourceType: "MySQL" | "PostgreSQL" | "SQL Server" | "Oracle" | "Doris" | "ClickHouse" | "REST API" | "CSV" | "Excel";
+        SourceType: "MySQL" | "OceanBase" | "PostgreSQL" | "SQL Server" | "Oracle" | "Doris" | "ClickHouse" | "REST API" | "CSV" | "Excel";
         /** @description MySQL uses database connection settings; Excel uses an immutable uploaded fileId, sheet and one-based headerRow. fileName is set by the server. */
         SourceSettings: {
             host?: string;

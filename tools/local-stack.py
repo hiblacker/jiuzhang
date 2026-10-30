@@ -184,7 +184,7 @@ def verify():
     run(['python3','tools/test-migrations.py'],env=env)
     run(['python3','tools/test-scheduling-atomic.py'],env=env)
     for name in [
-        'identity','sources','datasets','execution','scheduling','scheduling-multiworker','warehouse','excel-sources','excel-storage',
+        'identity','sources','oceanbase','datasets','execution','scheduling','scheduling-multiworker','warehouse','excel-sources','excel-storage',
         'execution-safety','execution-rules','result-budget','overview']:
         command=['python3','tools/test-'+name+'.py']
         if name=='scheduling-multiworker':command+=['--cycles','3']
@@ -194,6 +194,7 @@ def verify():
         run(['node','tools/test-real-'+name+'.mjs'],env=env)
     run(['node','tools/test-scheduling-ui.mjs'],env=env)
     run(['node','tools/test-excel-sources-ui.mjs'],env=env)
+    run(['node','tools/test-oceanbase-ui.mjs'],env=env)
     print('PASS sequential real-engine/API/browser acceptance, including two-Worker scheduling and dispatch SIGKILL. Read/publication crash recovery remains a separate exclusive test.')
 
 

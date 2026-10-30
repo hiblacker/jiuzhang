@@ -16,7 +16,7 @@ import {
 } from 'naive-ui'
 import { TagEditor } from '@/shared/ui/tag-editor'
 import type { SourceInput } from '../api/source-repository'
-import { connectorOptions } from '../model/connectors'
+import { connectorOptions, defaultSourcePort } from '../model/connectors'
 import ExcelSourceForm from './ExcelSourceForm.vue'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 
@@ -95,6 +95,7 @@ defineExpose({ validate: () => form.value?.validate() })
           v-model:value="draft.type"
           v-select-trigger-name="t('type')"
           :options="connectorOptions"
+          @update:value="draft.settings.port = defaultSourcePort(draft.type)"
           :disabled="disabled || editing"
           :input-props="{ 'aria-label': t('type') }"
         />
@@ -123,6 +124,14 @@ defineExpose({ validate: () => form.value?.validate() })
     <template v-else>
       <h3>{{ t('sources.connection') }}</h3>
       <NAlert type="info" class="form-note">{{ t('sources.realCredentialHint') }}</NAlert>
+      <NAlert v-if="draft.type === 'OceanBase'" type="info" class="form-note">
+        {{
+          t('sources.oceanbaseHint', {
+            directAccount: 'user@tenant',
+            proxyAccount: 'user@tenant#cluster',
+          })
+        }}
+      </NAlert>
       <NGrid cols="1 640:2" responsive="self" :x-gap="24">
         <NFormItemGi :label="t('sources.realHost')" path="settings.host">
           <NInput

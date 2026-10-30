@@ -88,12 +88,12 @@ flowchart LR
 | 前端 | Vue 3、TypeScript strict、Pinia、Naive UI、Vite、Vue Router/Vue Query | 开发及生产均连接 API；页面按真实能力开放；版本见 manifest/lockfile |
 | 接口 | OpenAPI 3.1、openapi-typescript/openapi-fetch | 唯一协议；测试可在 HTTP 边界替换网络响应 |
 | 后端/构建 | Java 21、Spring Boot 3.5.16、Maven Wrapper 3.9.11 | API/Worker 两进程，共用 platform；精确依赖见 pom |
-| 元数据库 | PostgreSQL 17.6、Spring JDBC、Flyway V001–V013 | 单元数据库，显式受控迁移；普通进程不自动升级 |
+| 元数据库 | PostgreSQL 17.6、Spring JDBC、Flyway V001–V014 | 单元数据库，显式受控迁移；普通进程不自动升级 |
 | 对象存储 | SeaweedFS 3.97、S3 API/AWS SDK | 私有原始所选源字段 NDJSON；未实现 Parquet、生产加密 |
 | 分析仓库 | Doris 3.0.8 | 不可变物理表＋稳定逻辑 VIEW；本地单 BE 验证 |
 | 执行 | PostgreSQL 运行状态/幂等/租约、Worker 轮询与持久化 Cron/间隔计划 | 原子派发与双 Worker 崩溃接续已本地实测；依赖编排、自动重试和补数仍暂缓 |
 | 序列化/验证 | Spring JSON codec、JsonWriter Port、JUnit/AssertJ、ArchUnit | 应用层不依赖 infrastructure/JDBC，Domain 不依赖 JSON/框架 |
-| 真实验收 | Compose＋Python/Playwright/AJV | PostgreSQL/MySQL/Doris/S3 实测；Testcontainers 尚未引入 |
+| 真实验收 | Compose＋Python/Playwright/AJV | PostgreSQL/MySQL/OceanBase MySQL/Doris/S3 本地实测；Testcontainers 尚未引入 |
 | 未来扩展 | Redis、OpenTelemetry/Prometheus/Grafana | 规划，不是已完成能力；调度沿用 PostgreSQL，不引入 Quartz |
 
 镜像摘要见 Compose，前后端版本分别由 wrapper/pom 与 manifest/lockfile 锁定。已验证本地组合不代表全版本兼容、生产安全或性能承诺。
@@ -208,7 +208,11 @@ interface SourceConnector {
 
 没有主键的表必须选择全量或配置复合业务键。
 
-MySQL 与 OceanBase MySQL 模式共用 `JdbcSourceConnector` 与方言策略（会话初始化、标识符引用、元数据查询、分页方式），不复制两份读取实现。OceanBase 上必须显式处理：读取前 `SET ob_read_consistency = STRONG`，否则弱一致读让「一致性全量」不成立；放大 `ob_query_timeout` 与 `ob_trx_timeout`（默认 10 秒 / 100 秒不足以支撑大表扫描）；`information_schema.TABLES.TABLE_ROWS` 仅为估算，不能用于行数预算或进度；分批读取使用主键或递增游标，不用深层 OFFSET；账号形态 `user@tenant#cluster` 需在凭证引用中原样保存。
+MySQL 与 OceanBase MySQL 模式共用 `JdbcSourceConnector`，两个薄适配器按类型装配，`JdbcDialect` 只拥有连接属性、会话初始化与读取策略差异；字段发现、只读 SQL、类型/精度、取消、预算和资源关闭复用同一内核，未增加驱动依赖或连接池。OceanBase 的 `ob_read_consistency` 默认已经是 `STRONG`，连接后仍显式设置作为防御；`ob_query_timeout` 默认 10 秒，本实现会话级设为 300 秒（`JIUZHANG_OCEANBASE_QUERY_TIMEOUT_SECONDS`，1–600 秒），JDBC 仍保留各操作 10/15/30/300 秒预算；`ob_trx_timeout` 默认 86400 秒，本实现不改写。默认值依据 [读一致性说明](https://docs.oceanbase.com/oceanbase-database/V4.2.1-ob_read_consistency-global) 和 [查询与事务超时说明](https://docs.oceanbase.com/oceanbase-database/V4.2.1-before-you-begin-with-oceanbase)，并已在本机 4.4.2.1 读到相同值。旧文档的“默认弱一致、事务默认 100 秒”结论已纠正。
+
+本机 OceanBase 的 `information_schema.TABLES.TABLE_ROWS` 返回 0，不能用作行数预算或进度；目录继续返回“行数未知”，不据此跳过读取。选表全量按显式主键（含复合主键、未输出的主键）每批最多 500 行递进，绑定游标值，不使用深 OFFSET；所有批次在同一可重复读快照中；游标只用于本次全量分批，不保存为下一次运行的增量位点。无显式主键的选表入库明确返回 `SOURCE_PRIMARY_KEY_REQUIRED`，可改用自定义只读 SQL。SQL 读取保留单条查询的 JDBC 前向游标，不推导任意 SQL 的主键或改写其分页。
+
+账号通过 JDBC Properties 原样传递：直连 observer 使用 `user@tenant`，经 ODP 使用 `user@tenant#cluster`，不截断、补后缀或 URL 编码后拼到连接 URL。OceanBase 不沿用 MySQL 的 `serverRSAPublicKeyFile` 公钥钉扎路径，也不允许自动拉取公钥；本机回环可使用无 TLS 的原生密码认证，外部必须 TLS，并以 `VERIFY_IDENTITY` 校验受信证书和主机名（自签 CA 通过 JVM truststore 配置）。MySQL 原有本地固定公钥与外部 TLS 行为保持。该 TLS 属性遵循 [Connector/J 安全属性](https://docs.oracle.com/cd/E17952_01/connector-j-en/connector-j-connp-props-security.html)。本轮已验证 observer 直连，ODP、外部 TLS/证书故障及客户环境尚未真实验证，不扩大兼容声明。
 
 ### 3.4 API 接入
 
@@ -294,7 +298,7 @@ dataset_run_log
 
 | 维度 | 选项 | 行为 |
 |---|---|---|
-| 定义方式 | 选择数据表 | 选择 MySQL 单表，映射源字段、输出名、类型、过滤、清洗和治理策略 |
+| 定义方式 | 选择数据表 | 选择 MySQL / OceanBase MySQL 单表，映射源字段、输出名、类型、过滤、清洗和治理策略 |
 | 定义方式 | 自定义 SQL | 在一个数据源连接内执行单条只读 SELECT；支持 CTE、JOIN、子查询、聚合、窗口函数和计算表达式 |
 | 提供方式 | 直连数据源 | 九章服务端按请求查询源库、执行字段映射/清洗/脱敏并通过受控 API 返回；不写 Doris、不创建运行 |
 | 提供方式 | 入库到数仓 | Worker 手动全量读取、校验和脱敏，写入 Doris 独占目标表并替换当前快照 |
@@ -769,6 +773,7 @@ API、Worker、Web 可独立部署，任务状态与检查点外置；重启恢�
 | 前端应用 | 已接入真实 API | 自动化测试网络替身不进入应用运行时 |
 | M0 工程/身份 | 已实现并本地验证 | Maven/API/Worker/PostgreSQL/Flyway、系统账号/会话/角色/审计 |
 | M1 MySQL | 已实现并真实验证 | 只读连接、目录/字段/预览、InnoDB 一致性读取、精度/大小/超时约束 |
+| OceanBase MySQL 模式 | 已实现，本机 CE 4.4.2.1 observer 验证通过 | 共用 JDBC、强一致会话、主键游标、直连与 Doris 入库；ODP/外部 TLS/客户环境待验 |
 | M2 数据集/执行 | 已实现并真实验证 | 可视化单表或只读 SQL、直连或独占目标快照入库、质量/脱敏、手动运行/恢复 |
 | M3 Doris/读取 | 已实现并真实验证 | 不可变表＋逻辑 VIEW 发布、空覆盖保护、历史回收、浏览/受控 SQL/私有 CSV |
 | 本地交付 | 已实现，入口见 README | 统一基础设施就绪、安装/构建/迁移、受管进程启停、顺序验收 |
@@ -1019,3 +1024,16 @@ Vue 3 管理端
 - `tools/test-scheduling-multiworker.py --cycles` 默认 4、最少 2，超时与报告按周期数计算；非法参数在管理进程之前拒绝。verify 使用 3，包含正常槽、派发中崩溃槽与接续后的后续槽。脚本还验证 Worker 定期清理删除专属过期终态，报告 `retentionCanaryRemoved=true`。本轮真实三周期全部成功、每槽恰好一条运行、HTTP 500 为零，SIGKILL 后接续为 0.973s；README 用约 0.1–1s 的本地实测范围说明，不承诺生产时延。
 - 已在启动中的本地栈实际通过完整 `bash tools/local.sh verify`，退出码 0，覆盖迁移、原子性/退避/保留、多 Worker、MySQL/Doris/S3/Excel、执行安全/规则、39 个 OpenAPI 响应及 1280×1000 浏览器流程。V013 已实际迁移，API/Worker/Web 就绪、原受管 Worker 已恢复，测试触发器无遗留。
 - 本轮未改前端、Excel 或数据集既有语义，未重跑未受影响的 `pnpm check`；客户多节点、负载、独立读取/发布 SIGKILL 与存储停机专项、远端 CI/分支保护仍未在本轮验证。
+
+### 14.17 OceanBase MySQL 模式接入（2026-10-30）
+
+- 原 SourceService 对 OceanBase 类型的失败单测先运行确认变红（`.local/oceanbase-red-unit.log`），随后将 MySqlConnector 抽成共享 JDBC 读取实现和两个薄适配器，SourceService 按类型解析 connector。复用只读 SQL、元数据与字段映射、精度、取消/超时及资源关闭；方言承担认证/会话与扫描策略差异，未增加驱动依赖或源端连接池。详细边界与三项默认值纠正见 §3。
+- OpenAPI SourceType 增加 OceanBase 并重新生成类型；SourceService 的验证/凭证/SQL 入口、SourceController 的 credentialConfigured、前端类型选项/默认端口/夹具/i18n 同步。复用 SourceConnectionForm、useSourceEditor 与 sourceRepository，新增默认端口和账号/TLS 提示，没有新增另一套表单。账号示例用 I18n 参数插值，避免 `@` 被解析为消息语法。
+- V014 放开 PostgreSQL 的 source_type 检查约束。真实迁移已覆盖空库 V001–V014、V009/V011/V012/V013 升级与重复迁移，保留旧 MySQL、密钥、运行和调度槽，新增类型与带 `@/#` 的账号可持久化；当前本地栈已迁移到 V014。
+- 实际通过 Maven verify（platform 36 项、Worker 5 项，共 41 项）和 pnpm check（16 文件 103 项单元/HTTP 测试、契约生成漂移、边界/UI/i18n/lint/格式/类型与生产构建）。单测覆盖类型路由、两种完整账号形态、OB 无 MySQL 公钥钉扎、远程明文拒绝与 TLS 身份校验属性、强一致会话、微秒超时转换/配置及复合主键 SQL 无 OFFSET。
+- 本机真实引擎为 OceanBase CE 4.4.2.1、MySQL 模式、observer 直连。`tools/test-oceanbase.py` 实际通过 discover、preview、query、选表 scan 和 scanSql；会话读到 STRONG、查询超时 300000000μs、事务超时 86400000000μs。订单表实际 4 行，TABLE_ROWS 为 0；API 仍返回行数未知，不依赖统计跳过读取。
+- 可选独立写入账号只创建/清理专属 1201 行复合主键测试表；读取始终用提供的读取账号。跨 500 行批次及隐藏主键读取保持一致快照，并发 UPDATE/INSERT 不混入本轮，后续扫描可见提交；BIGINT/Decimal/null、行数上限与取消通过。另实际验证无显式主键的预览/SQL 可用、选表全量明确拒绝。测试表均清理，不修改已有订单数据。
+- API 实际通过新建类型/缺失与错误凭证/编辑保留凭证，完整账号返回值未改写且密码不回传；选表和 SQL 两种入库均由 Worker 完成，Doris 当前快照各有 4 行，直连 SQL 查询成功。报告为 `.local/oceanbase-test.json` 与 `.local/oceanbase-connector-test.json`。
+- `tools/test-oceanbase-ui.mjs` 实际通过 1280×1000 类型选择、2881 默认端口/TLS 默认开启、完整账号、失败重试、保存、编辑空密码保留、取消草稿和明暗主题；已人工查看 `.local/oceanbase-source-{light,dark}-1280.png`。
+- 两个脚本已接入 local.sh verify；未配置 OCEANBASE_* 时明确打印“未验证”并跳过，已实际检查该分支，不将跳过算作引擎通过。本轮带真实 OceanBase 配置执行完整 `bash tools/local.sh verify`，退出码 0：包含 MySQL 1200 行快照/DDL/取消回归、OceanBase、Excel、Doris/S3、三周期双 Worker 派发 SIGKILL、执行安全、39 个 OpenAPI 响应与全部 1280×1000 浏览器流程。
+- 仅上述本机 observer 组合已真实验证；ODP 账号与外部 TLS 路径为“已实现、待真实验证”，证书失败场景、客户环境及其它 OceanBase 版本尚无真实验收结论，不宣称兼容矩阵已完成。未引入 Oracle 模式、CDC/增量、连接池或其它数据库；未在本轮重跑独立读取/发布 SIGKILL、存储停机或负载专项，远端 CI/分支保护仍未验证。

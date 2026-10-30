@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 public interface SourceConnector {
+    String type();
     record Connection(String host,int port,String database,boolean tls,String username,String password) {
         @Override public String toString() { return "Connection[REDACTED]"; }
     }

@@ -3,6 +3,14 @@ import { newSource, toSourceInput } from '../connectors'
 import { compareSourceConfiguration } from '../configuration-diff'
 
 describe('source configuration differences', () => {
+  it('uses OceanBase defaults without changing the saved custom port', () => {
+    const draft = newSource('OceanBase')
+    expect(draft.type).toBe('OceanBase')
+    expect(draft.settings.port).toBe(2881)
+    expect(draft.settings.tls).toBe(true)
+    draft.settings.port = 12883
+    expect(toSourceInput(draft).settings.port).toBe(12883)
+  })
   it('retains empty strings, false, zero and arrays without mutating the baseline', () => {
     const before = newSource()
     before.description = '虚构说明'

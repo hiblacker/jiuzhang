@@ -8,6 +8,8 @@ export default {
     password: '数据库密码',
     realCredentialHint:
       '连接器仅执行数据读取；不限制数据库账号的授权范围。凭证加密保存在服务端；编辑时密码留空保留原凭证，修改账号须同时输入密码。外部数据库必须启用 TLS。',
+    oceanbaseHint:
+      '仅支持 MySQL 模式。账号原样填写：直连使用 {directAccount}，经 ODP 使用 {proxyAccount}。默认端口 2881；外部连接必须启用 TLS 并校验证书，本机无 TLS 连接不使用 MySQL 公钥。',
     realTest: '测试连接',
     realTestPass: '数据库连接成功',
     picker: '数据源选择',
@@ -18,7 +20,7 @@ export default {
     selectedField: '当前字段：{field}',
     allFields: '查看全部字段',
     title: '数据源',
-    description: '管理 MySQL 连接与 Excel 文件，浏览数据表和工作表',
+    description: '管理 MySQL、OceanBase 连接与 Excel 文件，浏览数据表和工作表',
     excelFile: 'Excel 文件',
     excelUpload: '上传或替换 Excel',
     excelSheet: '工作表',

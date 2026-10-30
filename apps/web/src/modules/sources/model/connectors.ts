@@ -2,19 +2,24 @@ import type { SourceInput } from '../api/source-repository'
 
 export const connectorOptions = [
   { label: 'MySQL', value: 'MySQL' as const },
+  { label: 'OceanBase (MySQL)', value: 'OceanBase' as const },
   { label: 'Excel', value: 'Excel' as const },
 ]
 
-export function newSource(): SourceInput {
+export function defaultSourcePort(type: SourceInput['type']): number {
+  return type === 'OceanBase' ? 2881 : 3306
+}
+
+export function newSource(type: SourceInput['type'] = 'MySQL'): SourceInput {
   return {
     name: '',
     description: '',
     owner: '数据平台组',
     tags: [],
-    type: 'MySQL',
+    type,
     settings: {
       host: '',
-      port: 3306,
+      port: defaultSourcePort(type),
       database: '',
       schema: '',
       tls: true,

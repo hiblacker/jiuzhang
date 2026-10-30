@@ -7,14 +7,14 @@
 ## 第一版功能
 
 - 系统账号登录/改密、用户管理、固定角色权限、审计。
-- MySQL 只读连接、目录/字段发现、管理员原始预览、InnoDB 一致性全量读取。
+- MySQL / OceanBase（MySQL 模式）只读连接、目录/字段发现、管理员原始预览、一致性全量读取；OceanBase 使用主键游标，已在本机 CE 4.4.2.1 observer 跑通直连和入库。
 - Excel 文件数据源：上传 `.xls` / `.xlsx`，选择工作表与表头行，预览、保存，并复用数据集发布、处理和入库流程；操作见[快速指南](docs/dataset-quick-start.md#excel-数据源)。
 - 单源单表数据集：字段选择/改名/精确转换、等值过滤、trim、必填/范围质量、字符串部分脱敏；草稿、不可变发布版本和恢复。
 - 手动运行、日志、取消、新运行重试，同数据集最多一个活动运行。
 - Doris 完整快照替换、表浏览、受控查询、本人 CSV 导出（24 小时过期）。
 - 首次空批允许；非空→零行默认阻断，管理员可批准本次空覆盖，不能绕过读取/质量错误。当前快照保留，历史最多三份且被替换后最多七天。
 
-一期补 OceanBase（MySQL 模式）、Cron 调度、K8s 部署和 Crest 消费；暂缓 CDC/增量/upsert、依赖编排/补数、多工作区、数据服务及 OceanBase Oracle 模式。SQL 数据集支持单条只读查询，可使用 CTE、关联、聚合、窗口函数和子查询；入库数据集支持 Cron/固定间隔计划并持久化到 PostgreSQL。自动重试、任务依赖和补数仍暂缓。投产验证后另行规划面向已发布仓库数据的 AI 问数：自然语言对话生成受控 SQL、查询数据、生成图表并给出可追溯分析；当前尚未实现，也不在一期排期内。规划边界见[总体架构 §12.4](docs/architecture.md#124-暂缓能力与后续工作)。未实现入口显示说明。
+OceanBase（MySQL 模式）和 Cron/间隔调度已本地实现并验收；一期继续客户环境、K8s 部署和 Crest 消费验证。暂缓 CDC/增量/upsert、依赖编排/补数、多工作区、数据服务及 OceanBase Oracle 模式。SQL 数据集支持单条只读查询，可使用 CTE、关联、聚合、窗口函数和子查询；入库数据集支持 Cron/固定间隔计划并持久化到 PostgreSQL。自动重试、任务依赖和补数仍暂缓。投产验证后另行规划面向已发布仓库数据的 AI 问数：自然语言对话生成受控 SQL、查询数据、生成图表并给出可追溯分析；当前尚未实现，也不在一期排期内。规划边界见[总体架构 §12.4](docs/architecture.md#124-暂缓能力与后续工作)。未实现入口显示说明。
 
 ## 启动真实版本
 
@@ -69,7 +69,7 @@ pnpm --filter @jiuzhang/web exec playwright install chromium
 bash tools/local.sh verify
 ~~~
 
-verify 先在独立临时 PostgreSQL 库验证空库 V001–V013、V009/V011/V012 升级与重复迁移，并验证调度原子性、退避和有界清理，再按依赖创建合成源/数据集，验证真实接口/引擎/桌面流程。包含 Excel 文件、版本隔离、存储回收，以及双 Worker 的三个一分钟槽位和派发中 SIGKILL（该项约三分钟）；生成 .local/*-test.json，不能对生产运行。双 Worker 脚本会检查进程归属、暂停受管 Worker、自建两个实例，结束后恢复原受管 Worker；发现未归属 Worker 或已有活动运行则拒绝停止进程。调度语义见[总体架构 §6.5](docs/architecture.md#65-多实例调度语义)。
+verify 先在独立临时 PostgreSQL 库验证空库 V001–V014、V009/V011/V012/V013 升级与重复迁移，并验证调度原子性、退避和有界清理，再按依赖创建合成源/数据集，验证真实接口/引擎/桌面流程。包含 Excel 文件、版本隔离、存储回收，以及双 Worker 的三个一分钟槽位和派发中 SIGKILL（该项约三分钟）；生成 .local/*-test.json，不能对生产运行。双 Worker 脚本会检查进程归属、暂停受管 Worker、自建两个实例，结束后恢复原受管 Worker；发现未归属 Worker 或已有活动运行则拒绝停止进程。调度语义见[总体架构 §6.5](docs/architecture.md#65-多实例调度语义)。
 
 已启动本地栈、完成 `tools/test-sources.py` 后，可单独复现调度验收：
 
@@ -89,6 +89,15 @@ python3 tools/test-scheduling-multiworker.py --cycles 4
 | `JIUZHANG_SCHEDULE_ACTIVE_BACKOFF_SECONDS` | `5` | 正整数秒；活动运行阻塞当前槽位时，下一次尝试的最小间隔 |
 
 槽位清理复用每 60 秒的定期清理，单批最多 500 条，跳过被锁记录；保留清理永不删除 pending，advanced_to 为 NULL 的终态也保留。运行记录及其唯一约束保留，清理槽位不删除运行。过期 EXPIRED 判断优先于退避窗口，不延后一个周期以外的槽位处理。
+
+OceanBase 实例由部署者准备，不随默认 Compose 创建。验收读取 `OCEANBASE_HOST`、`OCEANBASE_PORT`、`OCEANBASE_DATABASE`、`OCEANBASE_USER`、`OCEANBASE_PASSWORD`（通过私有环境设置，不提交凭证），`OCEANBASE_TLS` 默认 true，本机无 TLS 实例显式设为 false。完整账号原样填写；默认表为 orders，可用 `OCEANBASE_TEST_TABLE` 指定有 id/amount 字段和显式主键的合成测试表。启动本地 API/Worker 后执行：
+
+~~~bash
+python3 tools/test-oceanbase.py
+node tools/test-oceanbase-ui.mjs
+~~~
+
+未配置时打印“未验证”并跳过；不能把 verify 中的跳过当作 OceanBase 已通过。有 `OCEANBASE_FIXTURE_USER` / `OCEANBASE_FIXTURE_PASSWORD` 时，脚本用单独测试账号创建并清理专属 1201 行复合主键表，验证跨批快照与并发更新；平台数据源始终使用上面的读取账号。只读 SQL、选表扫描和 Doris 入库均走真实连接器，不引入连接池、CDC 或 Oracle 模式。会话超时与 TLS 边界见[总体架构 §3](docs/architecture.md#3-数据源接入层)。
 
 本地完整重启验收会停止/重启受管应用并重新构建；存储故障验收会短暂停止本项目 S3 与 Doris FE，仅在没有其他运行时单独执行：
 
@@ -111,6 +120,8 @@ bash tools/local.sh start worker
 2026-10-30 多实例调度修复后的 Maven verify、pnpm check 和完整 local.sh verify 均实际通过；四个一分钟槽位各成功执行一次，派发中 SIGKILL 后本地两次实测约 0.1–1s 接续，具体记录见[总体架构 §14.15](docs/architecture.md#1415-多实例调度修复与验收2026-10-30)。接续验收上限为两个周期，实测范围不是生产时延承诺。2026-10-19 基线记录保留在 §14.7–§14.10；远端 CI/main 保护仍需单独核实，不据本地检查推断生产性能。
 
 V013 槽位收口后，Maven verify（36 项）、真实 PostgreSQL 迁移/退避/保留/级联和完整 local.sh verify 均实际通过；三周期双 Worker 验收及定期清理检查通过，记录见[总体架构 §14.16](docs/architecture.md#1416-调度槽位生命周期收口-v0132026-10-30)。
+
+OceanBase 接入后，Maven verify（41 项）、pnpm check（103 项）与带 OceanBase 配置的完整 local.sh verify 均实际通过；本机 CE 4.4.2.1 observer 已跑通发现/预览/查询、跨批扫描及选表/SQL 两种 Doris 入库。ODP、外部 TLS 和客户环境尚未真实验证，详见[总体架构 §14.17](docs/architecture.md#1417-oceanbase-mysql-模式接入2026-10-30)。
 
 ## 工程入口
 

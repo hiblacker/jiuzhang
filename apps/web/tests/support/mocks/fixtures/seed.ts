@@ -144,7 +144,12 @@ export function createSeed(): MockState {
     'ClickHouse',
     'REST API',
     'CSV',
+    'OceanBase',
   ]
+  const sourcePorts: Partial<Record<Model<'SourceType'>, number>> = {
+    OceanBase: 2881,
+    PostgreSQL: 5432,
+  }
   const sources: Model<'Source'>[] = types.map((type, i) => ({
     id: String(1001 + i),
     name: [
@@ -156,13 +161,17 @@ export function createSeed(): MockState {
       '行为事件库',
       '营销开放接口',
       '库存示例文件',
+      'OceanBase 演示库',
     ][i]!,
     description: '虚构零售演示数据，不连接真实服务',
     owner: '数据平台组',
     tags: ['演示', type],
     type,
+    ...(type === 'OceanBase'
+      ? { connectionUsername: 'reader@demo#demo-cluster', credentialConfigured: true }
+      : {}),
     status: i === 3 ? 'warning' : 'connected',
-    settings: { ...defaultSettings, port: type === 'PostgreSQL' ? 5432 : 3306 },
+    settings: { ...defaultSettings, port: sourcePorts[type] ?? 3306 },
     objectCount: 2,
     updatedAt: at,
   }))

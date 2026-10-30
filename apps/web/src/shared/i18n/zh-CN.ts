@@ -195,6 +195,7 @@ export default {
     SCHEMA_CHANGED: '使用中的源字段结构发生变化，请重新校验并发布版本',
     SENSITIVE_FIELD_MASK_REQUIRED: '敏感输出字段必须绑定启用的脱敏策略',
     SNAPSHOT_NOT_FOUND: '快照不存在',
+    SOURCE_PRIMARY_KEY_REQUIRED: 'OceanBase 选表全量读取需要显式主键；也可改用自定义只读 SQL',
     SOURCE_ENGINE_UNSUPPORTED: '一致性读取仅支持 MySQL InnoDB 表',
     SOURCE_FIELD_MISSING: '使用中的源字段不存在',
     SOURCE_SCAN_LIMIT: '源读取超过第一版行数上限',
