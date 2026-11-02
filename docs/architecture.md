@@ -88,7 +88,7 @@ flowchart LR
 | 前端 | Vue 3、TypeScript strict、Pinia、Naive UI、Vite、Vue Router/Vue Query | 开发及生产均连接 API；页面按真实能力开放；版本见 manifest/lockfile |
 | 接口 | OpenAPI 3.1、openapi-typescript/openapi-fetch | 唯一协议；测试可在 HTTP 边界替换网络响应 |
 | 后端/构建 | Java 21、Spring Boot 3.5.16、Maven Wrapper 3.9.11 | API/Worker 两进程，共用 platform；精确依赖见 pom |
-| 元数据库 | PostgreSQL 17.6、Spring JDBC、Flyway V001–V014 | 单元数据库，显式受控迁移；普通进程不自动升级 |
+| 元数据库 | PostgreSQL 17.6、Spring JDBC、Flyway V001–V015 | 单元数据库，显式受控迁移；普通进程不自动升级 |
 | 对象存储 | SeaweedFS 3.97、S3 API/AWS SDK | 私有原始所选源字段 NDJSON；未实现 Parquet、生产加密 |
 | 分析仓库 | Doris 3.0.8 | 不可变物理表＋稳定逻辑 VIEW；本地单 BE 验证 |
 | 执行 | PostgreSQL 运行状态/幂等/租约、Worker 轮询与持久化 Cron/间隔计划 | 原子派发与双 Worker 崩溃接续已本地实测；依赖编排、自动重试和补数仍暂缓 |
@@ -214,6 +214,14 @@ MySQL 与 OceanBase MySQL 模式共用 `JdbcSourceConnector`，两个薄适配�
 
 账号通过 JDBC Properties 原样传递：直连 observer 使用 `user@tenant`，经 ODP 使用 `user@tenant#cluster`，不截断、补后缀或 URL 编码后拼到连接 URL。OceanBase 不沿用 MySQL 的 `serverRSAPublicKeyFile` 公钥钉扎路径，也不允许自动拉取公钥；本机回环可使用无 TLS 的原生密码认证，外部必须 TLS，并以 `VERIFY_IDENTITY` 校验受信证书和主机名（自签 CA 通过 JVM truststore 配置）。MySQL 原有本地固定公钥与外部 TLS 行为保持。该 TLS 属性遵循 [Connector/J 安全属性](https://docs.oracle.com/cd/E17952_01/connector-j-en/connector-j-connp-props-security.html)。本轮已验证 observer 直连，ODP、外部 TLS/证书故障及客户环境尚未真实验证，不扩大兼容声明。
 
+PostgreSQL 使用独立 `PostgreSqlConnector`，通过现有 `SourceConnector` 和类型路由装配。它复用现有 pgJDBC 驱动、密钥/审计/运行/仓库链路，元数据 SQL、标识符、值转换和事务由适配器负责，不套用 MySQL 内核，也不新建连接池。每个数据源绑定 database + schema（默认 public）；目录只发现该 schema 的可访问表，选表显式使用双引号限定 schema/table。SQL 保留 PostgreSQL 原生大小写及显式 schema，设置 search_path 为 pg_catalog、配置 schema、pg_temp，不执行 MySQL 的大小写纠正。
+
+PostgreSQL 每次读取使用独立源端连接，`REPEATABLE READ + READ ONLY`；关闭自动提交，前向 ResultSet、fetchSize=500，所有扫描批次属于同一源端事务，无须主键或 OFFSET。字段查询持有 ACCESS SHARE 至事务结束，读取期间 DDL 等待；事务不跨平台元数据库、S3 或 Doris。目录继续标记行数未知。预览/查询保留 100/1000 行、30 秒及 10 MiB 上限，扫描最多 100 万行/10 分钟；全量单语句预算由 `JIUZHANG_POSTGRESQL_QUERY_TIMEOUT_SECONDS` 配置（默认 300，1–600 秒）。JDBC 配置 5 秒连接、有限 socket/cancel 超时，取消调用 Statement.cancel，超时/取消映射现有业务错误。游标前提及快照依据 [pgJDBC 游标说明](https://jdbc.postgresql.org/documentation/query/) 和 [PostgreSQL 17 事务隔离](https://www.postgresql.org/docs/17/transaction-iso.html)。
+
+PostgreSQL 整数保持字符串、布尔转换为现有规则接受的 Boolean；numeric(p,s) 归一为 decimal(p,s)，仅支持 p≤38、0≤s≤p。无约束/超出精度的 numeric、浮点、数组、bytea、范围等明确返回 SOURCE_COLUMN_TYPE_UNSUPPORTED，可用 SQL 显式转换。UUID/JSON/JSONB 作为字符串。date 与 timestamp 保留原值，timestamptz 归一为 UTC datetime；连接建立后显式设置 UTC，避免驱动启动时区覆盖选项。无限日期/时间戳拒绝。只读校验增加写入型 CTE、锁定读取、序列修改、咨询锁、文件/网络等已知副作用函数；数据库只读事务还实际阻止测试 SECURITY DEFINER 函数写表，SQL 校验不作为任意函数的完整沙箱，账号仍应按最小权限授予。
+
+PostgreSQL 默认启用 `sslmode=verify-full`，验证证书与主机名；CA 文件通过 `JIUZHANG_POSTGRESQL_SSL_ROOT_CERT` 配置（默认 pgJDBC 根证书路径），API/Worker 保持一致。凭据通过 JDBC Properties 原样传递，不进入 URL。仅本机回环可关闭 TLS。该路径依据 [pgJDBC TLS 说明](https://jdbc.postgresql.org/documentation/ssl/)，已在独立本地 17.6 源实测受信证书成功、错误 CA 与主机名不匹配失败；不将该结果外推到客户版本/证书链。
+
 ### 3.4 API 接入
 
 API 数据源至少支持：
@@ -298,7 +306,7 @@ dataset_run_log
 
 | 维度 | 选项 | 行为 |
 |---|---|---|
-| 定义方式 | 选择数据表 | 选择 MySQL / OceanBase MySQL 单表，映射源字段、输出名、类型、过滤、清洗和治理策略 |
+| 定义方式 | 选择数据表 | 选择 MySQL / OceanBase MySQL / PostgreSQL 单表，映射源字段、输出名、类型、过滤、清洗和治理策略 |
 | 定义方式 | 自定义 SQL | 在一个数据源连接内执行单条只读 SELECT；支持 CTE、JOIN、子查询、聚合、窗口函数和计算表达式 |
 | 提供方式 | 直连数据源 | 九章服务端按请求查询源库、执行字段映射/清洗/脱敏并通过受控 API 返回；不写 Doris、不创建运行 |
 | 提供方式 | 入库到数仓 | Worker 手动全量读取、校验和脱敏，写入 Doris 独占目标表并替换当前快照 |
@@ -774,6 +782,7 @@ API、Worker、Web 可独立部署，任务状态与检查点外置；重启恢�
 | M0 工程/身份 | 已实现并本地验证 | Maven/API/Worker/PostgreSQL/Flyway、系统账号/会话/角色/审计 |
 | M1 MySQL | 已实现并真实验证 | 只读连接、目录/字段/预览、InnoDB 一致性读取、精度/大小/超时约束 |
 | OceanBase MySQL 模式 | 已实现，本机 CE 4.4.2.1 observer 验证通过 | 共用 JDBC、强一致会话、主键游标、直连与 Doris 入库；ODP/外部 TLS/客户环境待验 |
+| PostgreSQL 数据源 | 已实现，本地 17.6 验证通过 | 独立适配器、schema、只读快照游标、直连与 Doris 入库、本地 TLS；客户组合待验 |
 | M2 数据集/执行 | 已实现并真实验证 | 可视化单表或只读 SQL、直连或独占目标快照入库、质量/脱敏、手动运行/恢复 |
 | M3 Doris/读取 | 已实现并真实验证 | 不可变表＋逻辑 VIEW 发布、空覆盖保护、历史回收、浏览/受控 SQL/私有 CSV |
 | 本地交付 | 已实现，入口见 README | 统一基础设施就绪、安装/构建/迁移、受管进程启停、顺序验收 |
@@ -805,13 +814,13 @@ API、Worker、Web 可独立部署，任务状态与检查点外置；重启恢�
 
 保护上限为 200 源表/200 字段，源扫描 100 万行/600 秒，原始批次 256 MiB；查询默认 100/最多 1000 行，15 秒、10 MiB，CSV 24 小时过期。运行列表及部分累计统计最多最近 10000 条，工作台聚合使用完整数据库统计。仓库容量与趋势未采集，不显示为真实零值。以上是保护上限，未进行规模/吞吐承诺。
 
-本地实际支持组合：Java 21.0.12.1、Spring Boot 3.5.16、Maven 3.9.11、PostgreSQL 17.6、MySQL 8.4.6、Doris 3.0.8、SeaweedFS 3.97。API/数据库/S3 仅回环暴露，服务间未 TLS、原始对象未服务端加密；不用于生产安全承诺。
+本地实际支持组合：Java 21.0.12.1、Spring Boot 3.5.16、Maven 3.9.11、PostgreSQL 17.6、MySQL 8.4.6、Doris 3.0.8、SeaweedFS 3.97。API/数据库/S3 仅回环暴露，本地元数据库/MySQL/Doris/S3 链路未 TLS，独立 PostgreSQL 测试源已启用本地 TLS、原始对象未服务端加密；不用于生产安全承诺。
 
 ### 12.4 暂缓能力与后续工作
 
 1. 依据首版本地使用反馈修正流程与实际故障，不恢复已清理的旧工程。
 2. 获得对应授权后验证远端 CI/main 保护，不能把本地通过当作远端通过。
-3. 一期范围已确定并按 §12.6 执行：MySQL 真实库收敛、OceanBase MySQL 模式、Cron 调度、K8s 部署与 Crest 消费。其余数据库/API 连接器与增量仍按需求排期，需补真实引擎支持矩阵、状态/契约和验收。
+3. 一期范围已确定并按 §12.6 执行：MySQL 真实库收敛、OceanBase MySQL 模式、Cron 调度、K8s 部署与 Crest 消费。PostgreSQL 源已另行接入并完成本地 17.6 验收（§14.18）；其余数据库/API 连接器与增量仍按需求排期，需补真实引擎支持矩阵、状态/契约和验收。
 4. 生产化单列密钥托管/轮换、备份恢复演练、监控、逐对象权限和容量基准；性能目标先定义再测量。
 5. 一期投产验证后单独规划 AI 问数，不占用 §12.6 的既定工期；在语义、权限、模型服务和成本边界明确前不锁定模型供应商或排实现日期。
 
@@ -1029,7 +1038,7 @@ Vue 3 管理端
 
 - 原 SourceService 对 OceanBase 类型的失败单测先运行确认变红（`.local/oceanbase-red-unit.log`），随后将 MySqlConnector 抽成共享 JDBC 读取实现和两个薄适配器，SourceService 按类型解析 connector。复用只读 SQL、元数据与字段映射、精度、取消/超时及资源关闭；方言承担认证/会话与扫描策略差异，未增加驱动依赖或源端连接池。详细边界与三项默认值纠正见 §3。
 - OpenAPI SourceType 增加 OceanBase 并重新生成类型；SourceService 的验证/凭证/SQL 入口、SourceController 的 credentialConfigured、前端类型选项/默认端口/夹具/i18n 同步。复用 SourceConnectionForm、useSourceEditor 与 sourceRepository，新增默认端口和账号/TLS 提示，没有新增另一套表单。账号示例用 I18n 参数插值，避免 `@` 被解析为消息语法。
-- V014 放开 PostgreSQL 的 source_type 检查约束。真实迁移已覆盖空库 V001–V014、V009/V011/V012/V013 升级与重复迁移，保留旧 MySQL、密钥、运行和调度槽，新增类型与带 `@/#` 的账号可持久化；当前本地栈已迁移到 V014。
+- V014 扩展元数据库的 source_type 检查约束以接受 OceanBase。真实迁移已覆盖空库 V001–V014、V009/V011/V012/V013 升级与重复迁移，保留旧 MySQL、密钥、运行和调度槽，新增类型与带 `@/#` 的账号可持久化；当前本地栈已迁移到 V014。
 - 实际通过 Maven verify（platform 36 项、Worker 5 项，共 41 项）和 pnpm check（16 文件 103 项单元/HTTP 测试、契约生成漂移、边界/UI/i18n/lint/格式/类型与生产构建）。单测覆盖类型路由、两种完整账号形态、OB 无 MySQL 公钥钉扎、远程明文拒绝与 TLS 身份校验属性、强一致会话、微秒超时转换/配置及复合主键 SQL 无 OFFSET。
 - 本机真实引擎为 OceanBase CE 4.4.2.1、MySQL 模式、observer 直连。`tools/test-oceanbase.py` 实际通过 discover、preview、query、选表 scan 和 scanSql；会话读到 STRONG、查询超时 300000000μs、事务超时 86400000000μs。订单表实际 4 行，TABLE_ROWS 为 0；API 仍返回行数未知，不依赖统计跳过读取。
 - 可选独立写入账号只创建/清理专属 1201 行复合主键测试表；读取始终用提供的读取账号。跨 500 行批次及隐藏主键读取保持一致快照，并发 UPDATE/INSERT 不混入本轮，后续扫描可见提交；BIGINT/Decimal/null、行数上限与取消通过。另实际验证无显式主键的预览/SQL 可用、选表全量明确拒绝。测试表均清理，不修改已有订单数据。
@@ -1037,3 +1046,16 @@ Vue 3 管理端
 - `tools/test-oceanbase-ui.mjs` 实际通过 1280×1000 类型选择、2881 默认端口/TLS 默认开启、完整账号、失败重试、保存、编辑空密码保留、取消草稿和明暗主题；已人工查看 `.local/oceanbase-source-{light,dark}-1280.png`。
 - 两个脚本已接入 local.sh verify；未配置 OCEANBASE_* 时明确打印“未验证”并跳过，已实际检查该分支，不将跳过算作引擎通过。本轮带真实 OceanBase 配置执行完整 `bash tools/local.sh verify`，退出码 0：包含 MySQL 1200 行快照/DDL/取消回归、OceanBase、Excel、Doris/S3、三周期双 Worker 派发 SIGKILL、执行安全、39 个 OpenAPI 响应与全部 1280×1000 浏览器流程。
 - 仅上述本机 observer 组合已真实验证；ODP 账号与外部 TLS 路径为“已实现、待真实验证”，证书失败场景、客户环境及其它 OceanBase 版本尚无真实验收结论，不宣称兼容矩阵已完成。未引入 Oracle 模式、CDC/增量、连接池或其它数据库；未在本轮重跑独立读取/发布 SIGKILL、存储停机或负载专项，远端 CI/分支保护仍未验证。
+
+
+### 14.18 PostgreSQL 数据源接入（2026-11-02）
+
+- 先运行新增用例，确认旧实现拒绝 PostgreSQL 类型，且放过 PostgreSQL 序列/咨询锁等副作用 SQL（.local/postgresql-red-unit.log）。新增独立适配器并接入原有类型路由；Connection 增加 schema，保留旧构造方法，既有 MySQL/OceanBase 调用保持兼容。具体事务、类型、时区和 TLS 边界见 §3.3。
+- V015 仅扩展 source_type 检查约束，配置沿用 JSONB，无新表/字段。真实迁移覆盖空库 V001–V015、V009/V011/V012/V013/V014 升级及重复迁移，保留 MySQL、密钥、旧运行和 pending 槽；PostgreSQL 的 Retail schema 与 OceanBase 完整账号均可持久化。
+- 前端复用 SourceConnectionForm，增加 PostgreSQL 选项、5432/public/TLS 默认值与 schema 输入；编辑保留自定义端口/凭据，取消保护原配置。SQL 工作区使用 PostgreSQL 方言和真实 schema，插入与补全对表/字段正确加双引号，避免大写 Orders 被解析为小写 orders。OpenAPI 已有类型/schema，补齐说明并实际重新生成声明。
+- 独立 PostgreSQL 17.6 合成源位于另一容器/数据卷，初始化只读账号和本地 TLS。普通启动保留已有表内容；test-postgresql.py 明确重置专用合成表后验收。1201 行跨 500 行游标读取、无主键表、非 public schema/同名表/大小写、BIGINT>2^53、numeric(20,4)、Boolean/null/JSON/UUID、UTC 与无时区时间戳均真实通过；目录行数保持未知。
+- 并发 UPDATE/INSERT 不混入本轮扫描，后续事务可见提交；DDL 实际被读取事务锁阻挡，已使用字段类型变化返回 SCHEMA_CHANGED。锁等待超时与运行取消均观察真实 PostgreSQL 等待状态后断言；只读事务阻止 SECURITY DEFINER 函数写入。TLS 会话实际开启，错误 CA、错误主机名/密码和不存在 schema 均验证失败路径。
+- 真实 API 覆盖缺失/错误凭据、保存后密码不回传、编辑留空保留凭据/schema、100 行预览、选表/SQL 两种直连查询，以及两种 1201 行 Doris 入库；落仓查询保持精确整数/Decimal。报告为 .local/postgresql-test.json 和 postgresql-connector-test.json。
+- tools/test-postgresql-ui.mjs 在 1280×1000 真实浏览器验证默认值、schema、错误重试/保存、编辑密码保留/取消、明暗主题，以及大写表的原生引用、插入、补全和 SQL 预览；已查看 .local/postgresql-source-{light,dark}-1280.png。两个 PostgreSQL 验收脚本纳入 local.sh verify。
+- 本轮实际通过 Maven verify（platform 40 项、Worker 5 项，共 45 项）、pnpm check（16 文件 104 项单元/HTTP 测试、契约/静态/格式/类型与构建）和带真实 OceanBase 配置的完整 bash tools/local.sh verify。覆盖 MySQL/OceanBase/PostgreSQL/Excel、Doris/S3、39 个 OpenAPI 响应及全部桌面浏览器流程；三周期双 Worker 的派发 SIGKILL 后接续 0.864 秒，原受管 Worker 恢复。额外用真实合成行确认普通 PostgreSQL 初始化保留已有内容。
+- 当前承诺限于实际验证的本地 PostgreSQL 17.6。客户版本、连接代理、客户 CA/证书链、高负载和生产故障矩阵仍待按目标环境验证；未扩展 CDC、增量、源连接池或目标仓库种类。
