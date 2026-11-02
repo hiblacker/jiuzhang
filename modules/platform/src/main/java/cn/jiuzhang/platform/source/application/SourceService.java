@@ -119,15 +119,20 @@ public class SourceService {
     public static Map<String,Object> field(SourceConnector.Column c){
         var f=new LinkedHashMap<String,Object>();f.put("name",c.name());f.put("target",c.name().matches("[a-zA-Z_][a-zA-Z0-9_]{0,63}")?c.name():"field_"+IdentityService.hash(c.name()).substring(0,16));f.put("type",c.type());f.put("nullable",c.nullable());f.put("output",true);f.put("sensitive",false);f.put("maskPolicyId","");f.put("description",c.description()==null?"":c.description());return f;
     }
-    private Connection connection(Map<String,Object>s,Credentials v){return new Connection((String)s.get("host"),((Number)s.get("port")).intValue(),(String)s.get("database"),(Boolean)s.get("tls"),v.username(),v.password());}
+    private Connection connection(Map<String,Object>s,Credentials v){return new Connection((String)s.get("host"),((Number)s.get("port")).intValue(),(String)s.get("database"),(Boolean)s.get("tls"),v.username(),v.password(),s.get("schema") instanceof String schema?schema:"");}
     private void validate(Draft d){
-        if(!java.util.Set.of("MySQL","OceanBase","Excel").contains(d.type()))throw new Failure(422,"SOURCE_TYPE_UNSUPPORTED");
+        if(!java.util.Set.of("MySQL","OceanBase","PostgreSQL","Excel").contains(d.type()))throw new Failure(422,"SOURCE_TYPE_UNSUPPORTED");
         Failure.require(d.name()!=null&&!d.name().isBlank()&&d.name().length()<=120,"VALIDATION_ERROR");
         Failure.require(d.description()!=null&&d.description().length()<=2000&&d.owner()!=null&&!d.owner().isBlank()&&d.owner().length()<=120,"VALIDATION_ERROR");
         Failure.require(d.tags()!=null&&d.tags().size()<=20&&d.tags().stream().allMatch(x->x!=null&&x.length()<=60),"VALIDATION_ERROR");
         if(d.type().equals("Excel")){Failure.require(d.settings()!=null&&d.credentials()==null,"EXCEL_SETTINGS_INVALID");return;}
         var s=d.settings();Failure.require(s!=null&&s.get("host") instanceof String&&s.get("database") instanceof String&&s.get("port") instanceof Number&&s.get("tls") instanceof Boolean,"VALIDATION_ERROR");
-        Failure.require(((String)s.get("host")).matches("[a-zA-Z0-9.-]{1,253}")&&((String)s.get("database")).matches("[a-zA-Z0-9_]{1,64}"),"VALIDATION_ERROR");
+        Failure.require(((String)s.get("host")).matches("[a-zA-Z0-9.-]{1,253}"),"VALIDATION_ERROR");
+        if(d.type().equals("PostgreSQL")){
+            String database=(String)s.get("database");
+            Failure.require(!database.isBlank()&&database.indexOf(0)<0&&database.getBytes(java.nio.charset.StandardCharsets.UTF_8).length<=63,"VALIDATION_ERROR");
+            if(s.containsKey("schema"))Failure.require(s.get("schema") instanceof String schema&&schema.indexOf(0)<0&&schema.getBytes(java.nio.charset.StandardCharsets.UTF_8).length<=63,"VALIDATION_ERROR");
+        }else Failure.require(((String)s.get("database")).matches("[a-zA-Z0-9_]{1,64}"),"VALIDATION_ERROR");
         double port=((Number)s.get("port")).doubleValue();Failure.require(port==Math.rint(port)&&port>=1&&port<=65535,"VALIDATION_ERROR");
         if(d.credentials()!=null)Failure.require(d.credentials().username()!=null&&!d.credentials().username().isBlank()&&d.credentials().username().length()<=120&&d.credentials().password()!=null&&!d.credentials().password().isEmpty()&&d.credentials().password().length()<=4096,"VALIDATION_ERROR");
     }

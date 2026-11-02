@@ -13,7 +13,8 @@ defineProps<{
   failed: boolean
   disabled: boolean
   schema?: SQLNamespace
-  database?: string
+  defaultSchema?: string
+  postgresql?: boolean
 }>()
 defineEmits<{ 'update:modelValue': [value: string]; run: [] }>()
 const { t } = useI18n()
@@ -53,10 +54,11 @@ function resize(event: KeyboardEvent) {
             :model-value="modelValue"
             :label="t('datasets.sqlEditor')"
             :readonly="pending"
-            mysql
+            :mysql="!postgresql"
+            :postgresql="postgresql"
             run-shortcut
             :schema="schema"
-            :default-schema="database"
+            :default-schema="defaultSchema"
             @update:model-value="$emit('update:modelValue', $event)"
             @run="!disabled && $emit('run')"
           />

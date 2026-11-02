@@ -170,8 +170,15 @@ export function createSeed(): MockState {
     ...(type === 'OceanBase'
       ? { connectionUsername: 'reader@demo#demo-cluster', credentialConfigured: true }
       : {}),
+    ...(type === 'PostgreSQL'
+      ? { connectionUsername: 'demo_reader', credentialConfigured: true }
+      : {}),
     status: i === 3 ? 'warning' : 'connected',
-    settings: { ...defaultSettings, port: sourcePorts[type] ?? 3306 },
+    settings: {
+      ...defaultSettings,
+      port: sourcePorts[type] ?? 3306,
+      schema: type === 'PostgreSQL' ? 'public' : '',
+    },
     objectCount: 2,
     updatedAt: at,
   }))

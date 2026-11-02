@@ -9,11 +9,12 @@ import java.util.regex.Pattern;
 
 final class ReadOnlySql {
   private static final Pattern SIDE_EFFECT_FUNCTION =
-      Pattern.compile("\\b(GET_LOCK|RELEASE_LOCK|RELEASE_ALL_LOCKS|SLEEP|BENCHMARK|LOAD_FILE)\\s*\\(", Pattern.CASE_INSENSITIVE);
+      Pattern.compile("\\b(GET_LOCK|RELEASE_LOCK|RELEASE_ALL_LOCKS|SLEEP|BENCHMARK|LOAD_FILE|NEXTVAL|SETVAL|SET_CONFIG|PG_ADVISORY_[A-Z_]*|PG_TRY_ADVISORY_[A-Z_]*|PG_SLEEP[A-Z_]*|PG_READ_[A-Z_]*|PG_WRITE_[A-Z_]*|PG_LS_[A-Z_]*|PG_STAT_FILE|PG_LOG[A-Z_]*|PG_TERMINATE_BACKEND|PG_CANCEL_BACKEND|PG_RELOAD_CONF|PG_ROTATE_LOGFILE|PG_NOTIFY|PG_EXPORT_SNAPSHOT|PG_CREATE_[A-Z_]*|PG_DROP_[A-Z_]*|PG_REPLICATION_[A-Z_]*|PG_LOGICAL_[A-Z_]*|DBLINK[A-Z_]*|LO_[A-Z_]*)\\s*\\(", Pattern.CASE_INSENSITIVE);
   private static final Pattern FILE_OUTPUT =
       Pattern.compile("\\bINTO\\b", Pattern.CASE_INSENSITIVE);
   private static final Pattern ROW_LOCK =
-      Pattern.compile("\\bFOR\\s+(UPDATE|SHARE)\\b|\\bLOCK\\s+IN\\s+SHARE\\s+MODE\\b", Pattern.CASE_INSENSITIVE);
+      Pattern.compile("\\bFOR\\s+(UPDATE|SHARE|KEY\\s+SHARE|NO\\s+KEY\\s+UPDATE)\\b|\\bLOCK\\s+IN\\s+SHARE\\s+MODE\\b", Pattern.CASE_INSENSITIVE);
+  private static final Pattern WRITE_STATEMENT = Pattern.compile("\\b(INSERT|UPDATE|DELETE|MERGE|COPY|CALL|DO|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE|EXECUTE|VACUUM)\\b",Pattern.CASE_INSENSITIVE);
   private static final Pattern USER_VARIABLE_WRITE = Pattern.compile(":=|\\bLAST_INSERT_ID\\s*\\(", Pattern.CASE_INSENSITIVE);
   private ReadOnlySql() {}
 
@@ -44,7 +45,8 @@ final class ReadOnlySql {
       if (SIDE_EFFECT_FUNCTION.matcher(syntax).find()
           || FILE_OUTPUT.matcher(syntax).find()
           || ROW_LOCK.matcher(syntax).find()
-          || USER_VARIABLE_WRITE.matcher(syntax).find())
+          || USER_VARIABLE_WRITE.matcher(syntax).find()
+          || WRITE_STATEMENT.matcher(syntax).find())
         throw new Failure(422, "UNSUPPORTED_SQL");
       var statements = CCJSqlParserUtil.parseStatements(sql).getStatements();
       if (statements.size() != 1 || !(statements.getFirst() instanceof Select select))

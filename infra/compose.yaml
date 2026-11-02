@@ -13,6 +13,28 @@ services:
       interval: 3s
       timeout: 3s
       retries: 30
+  postgresql-source:
+    image: postgres:17.6
+    profiles: ["source"]
+    environment:
+      POSTGRES_DB: demo_retail
+      POSTGRES_PASSWORD: ${POSTGRESQL_SOURCE_ADMIN_PASSWORD:?Run tools/init-postgresql-source.py first}
+    ports: ["127.0.0.1:15433:5432"]
+    volumes:
+      - postgresql-source:/var/lib/postgresql/data
+      - ../.local/postgresql-source:/fixture-certs:ro
+    command:
+      - bash
+      - -c
+      - |
+        install -o postgres -g postgres -m 600 /fixture-certs/server.key /tmp/source.key
+        install -o postgres -g postgres -m 644 /fixture-certs/server.crt /tmp/source.crt
+        exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/tmp/source.crt -c ssl_key_file=/tmp/source.key
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d demo_retail"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
   source:
     image: mysql:8.4.6
     profiles: ["source"]
@@ -29,3 +51,4 @@ services:
 volumes:
   metadata:
   source:
+  postgresql-source:

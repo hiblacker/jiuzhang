@@ -50,23 +50,37 @@ const selectedObject = computed(() =>
 const referenceObject = computed(
   () => objects.data.value?.find((o) => o.id === referenceId.value) ?? objects.data.value?.[0],
 )
-const database = computed(() => source.data.value?.settings.database ?? '')
+const sqlDefaultSchema = computed(() => {
+  const current = source.data.value
+  if (current?.type === 'PostgreSQL') return current.settings.schema || 'public'
+  return current?.settings.database ?? ''
+})
 const schema = computed(() => {
   const tables = Object.fromEntries(
     (objects.data.value ?? []).map((object) => [
-      object.name,
+      source.data.value?.type === 'PostgreSQL' ? object.name.replaceAll('.', '\\.') : object.name,
       {
-        self: { label: object.name, type: 'type', detail: t('datasets.tableMode') },
+        self: {
+          label: object.name,
+          type: 'type',
+          detail: t('datasets.tableMode'),
+          ...(source.data.value?.type === 'PostgreSQL'
+            ? { apply: quoteIdentifier(object.name) }
+            : {}),
+        },
         children: object.fields.map((field) => ({
           label: field.name,
           type: 'property',
           detail: field.type,
           info: field.description,
+          ...(source.data.value?.type === 'PostgreSQL'
+            ? { apply: quoteIdentifier(field.name) }
+            : {}),
         })),
       },
     ]),
   )
-  return database.value ? { [database.value]: tables } : tables
+  return sqlDefaultSchema.value ? { [sqlDefaultSchema.value]: tables } : tables
 })
 const definitionReady = computed(() => {
   const definition = draft.value.definition
@@ -138,7 +152,8 @@ function selectDefinitionMode(value: 'visual' | 'sql') {
   draft.value.definition.objectId = ''
 }
 function quoteIdentifier(value: string) {
-  return '`' + value.replaceAll('`', '``') + '`'
+  const quote = source.data.value?.type === 'PostgreSQL' ? '"' : '`'
+  return quote + value.replaceAll(quote, quote + quote) + quote
 }
 function insertTable() {
   if (!referenceObject.value) return
@@ -293,7 +308,8 @@ useEditGuard(dirty, busy)
             :pending="busy"
             :disabled="!canReadSensitive || !definitionReady || busy"
             :schema="schema"
-            :database="database"
+            :default-schema="sqlDefaultSchema"
+            :postgresql="source.data.value?.type === 'PostgreSQL'"
             :result="preview.definitionData.value"
             :failed="preview.definitionFailed.value"
             @run="define"

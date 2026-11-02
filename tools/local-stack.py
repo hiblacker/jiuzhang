@@ -94,6 +94,7 @@ def infrastructure():
         if not shutil.which(executable):raise RuntimeError('Missing prerequisite: '+executable)
     run(['bash','tools/local-env.sh'])
     run(['python3','tools/init-storage.py'])
+    run(['python3','tools/init-postgresql-source.py'])
     if sys.platform.startswith('linux'):
         value=Path('/proc/sys/vm/max_map_count')
         if value.exists() and int(value.read_text())<2000000:
@@ -184,7 +185,7 @@ def verify():
     run(['python3','tools/test-migrations.py'],env=env)
     run(['python3','tools/test-scheduling-atomic.py'],env=env)
     for name in [
-        'identity','sources','oceanbase','datasets','execution','scheduling','scheduling-multiworker','warehouse','excel-sources','excel-storage',
+        'identity','sources','oceanbase','postgresql','datasets','execution','scheduling','scheduling-multiworker','warehouse','excel-sources','excel-storage',
         'execution-safety','execution-rules','result-budget','overview']:
         command=['python3','tools/test-'+name+'.py']
         if name=='scheduling-multiworker':command+=['--cycles','3']
@@ -195,6 +196,7 @@ def verify():
     run(['node','tools/test-scheduling-ui.mjs'],env=env)
     run(['node','tools/test-excel-sources-ui.mjs'],env=env)
     run(['node','tools/test-oceanbase-ui.mjs'],env=env)
+    run(['node','tools/test-postgresql-ui.mjs'],env=env)
     print('PASS sequential real-engine/API/browser acceptance, including two-Worker scheduling and dispatch SIGKILL. Read/publication crash recovery remains a separate exclusive test.')
 
 

@@ -1208,7 +1208,7 @@ export interface components {
         };
         /** @enum {string} */
         SourceType: "MySQL" | "OceanBase" | "PostgreSQL" | "SQL Server" | "Oracle" | "Doris" | "ClickHouse" | "REST API" | "CSV" | "Excel";
-        /** @description MySQL uses database connection settings; Excel uses an immutable uploaded fileId, sheet and one-based headerRow. fileName is set by the server. */
+        /** @description MySQL, OceanBase and PostgreSQL use database connection settings. PostgreSQL schema defaults to public. Excel uses an immutable uploaded fileId, sheet and one-based headerRow. fileName is set by the server. */
         SourceSettings: {
             host?: string;
             port?: number;
@@ -1241,7 +1241,7 @@ export interface components {
             tags: string[];
             type: components["schemas"]["SourceType"];
             settings: components["schemas"]["SourceSettings"];
-            /** @description Real MySQL credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser. */
+            /** @description Database credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser. */
             credentials?: components["schemas"]["SourceCredentials"];
         } & unknown;
         Source: {
@@ -1784,7 +1784,7 @@ export interface components {
             tags?: string[];
             type?: components["schemas"]["SourceType"];
             settings?: components["schemas"]["SourceSettings"];
-            /** @description Real MySQL credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser. */
+            /** @description Database credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser. */
             credentials?: components["schemas"]["SourceCredentials"];
         };
         /** @description 未提供的顶层字段保持原值；提供的对象或数组完整替换该字段。null 仅在字段类型允许时清空。 */
@@ -1942,7 +1942,7 @@ export interface components {
             tags: string[];
             type: components["schemas"]["SourceType"];
             settings: components["schemas"]["SourceSettings"];
-            /** @description Real MySQL credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser. */
+            /** @description Database credential update; omitted on edit retains saved credential. Never returned, cached or persisted by browser. */
             credentials?: components["schemas"]["SourceCredentials"];
             /** @description Test only: retain saved credentials while validating edited connection settings. */
             credentialSourceId?: string;

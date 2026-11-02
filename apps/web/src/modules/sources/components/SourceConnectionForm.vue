@@ -28,6 +28,10 @@ defineProps<{ disabled?: boolean; editing?: boolean }>()
 const emit = defineEmits<{ busy: [value: boolean] }>()
 const form = ref<FormInst>()
 const { t } = useI18n()
+function resetConnectionDefaults(type: SourceInput['type']) {
+  draft.value.settings.port = defaultSourcePort(type)
+  draft.value.settings.schema = type === 'PostgreSQL' ? 'public' : ''
+}
 const rules = computed<FormRules>(() => ({
   name: { required: true, whitespace: true, message: t('sources.required'), trigger: 'blur' },
   owner: { required: true, whitespace: true, message: t('sources.required'), trigger: 'blur' },
@@ -95,7 +99,7 @@ defineExpose({ validate: () => form.value?.validate() })
           v-model:value="draft.type"
           v-select-trigger-name="t('type')"
           :options="connectorOptions"
-          @update:value="draft.settings.port = defaultSourcePort(draft.type)"
+          @update:value="resetConnectionDefaults"
           :disabled="disabled || editing"
           :input-props="{ 'aria-label': t('type') }"
         />
@@ -132,6 +136,9 @@ defineExpose({ validate: () => form.value?.validate() })
           })
         }}
       </NAlert>
+      <NAlert v-if="draft.type === 'PostgreSQL'" type="info" class="form-note">
+        {{ t('sources.postgresqlHint') }}
+      </NAlert>
       <NGrid cols="1 640:2" responsive="self" :x-gap="24">
         <NFormItemGi :label="t('sources.realHost')" path="settings.host">
           <NInput
@@ -151,6 +158,13 @@ defineExpose({ validate: () => form.value?.validate() })
           <NInput
             v-model:value="draft.settings.database"
             :input-props="{ 'aria-label': t('sources.database') }"
+          />
+        </NFormItemGi>
+        <NFormItemGi v-if="draft.type === 'PostgreSQL'" :label="t('sources.schema')">
+          <NInput
+            v-model:value="draft.settings.schema"
+            :placeholder="'public'"
+            :input-props="{ 'aria-label': t('sources.schema') }"
           />
         </NFormItemGi>
         <NFormItemGi :label="t('sources.username')">

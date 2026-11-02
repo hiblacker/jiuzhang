@@ -2,13 +2,14 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { EditorView, basicSetup } from 'codemirror'
 import { EditorState, Compartment, Prec } from '@codemirror/state'
-import { sql, MySQL, type SQLNamespace } from '@codemirror/lang-sql'
+import { sql, MySQL, PostgreSQL, type SQLNamespace } from '@codemirror/lang-sql'
 import { sqlEditorTheme, sqlHighlighting } from '@/shared/theme/sql-editor'
 const props = defineProps<{
   modelValue: string
   label: string
   readonly?: boolean
   mysql?: boolean
+  postgresql?: boolean
   schema?: SQLNamespace
   defaultSchema?: string
   runShortcut?: boolean
@@ -20,11 +21,13 @@ const editable = new Compartment()
 const theme = new Compartment()
 const language = new Compartment()
 function sqlLanguage() {
+  let dialect = props.mysql ? MySQL : undefined
+  if (props.postgresql) dialect = PostgreSQL
   return sql({
-    dialect: props.mysql ? MySQL : undefined,
+    dialect,
     schema: props.schema,
     defaultSchema: props.defaultSchema,
-    upperCaseKeywords: props.mysql,
+    upperCaseKeywords: props.mysql || props.postgresql,
   })
 }
 let themeObserver: MutationObserver | undefined
@@ -77,7 +80,7 @@ onMounted(() => {
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] })
 })
 watch(
-  () => [props.mysql, props.schema, props.defaultSchema],
+  () => [props.mysql, props.postgresql, props.schema, props.defaultSchema],
   () => view?.dispatch({ effects: language.reconfigure(sqlLanguage()) }),
 )
 watch(

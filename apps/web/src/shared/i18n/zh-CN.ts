@@ -196,6 +196,8 @@ export default {
     SENSITIVE_FIELD_MASK_REQUIRED: '敏感输出字段必须绑定启用的脱敏策略',
     SNAPSHOT_NOT_FOUND: '快照不存在',
     SOURCE_PRIMARY_KEY_REQUIRED: 'OceanBase 选表全量读取需要显式主键；也可改用自定义只读 SQL',
+    SOURCE_SCHEMA_DENIED: 'PostgreSQL Schema 不存在或当前账号没有访问权限',
+    SOURCE_COLUMN_TYPE_UNSUPPORTED: '源字段类型或精度暂不支持，请用自定义 SQL 显式转换为支持的类型',
     SOURCE_ENGINE_UNSUPPORTED: '一致性读取仅支持 MySQL InnoDB 表',
     SOURCE_FIELD_MISSING: '使用中的源字段不存在',
     SOURCE_SCAN_LIMIT: '源读取超过第一版行数上限',

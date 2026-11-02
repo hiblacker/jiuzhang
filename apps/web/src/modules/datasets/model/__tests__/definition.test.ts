@@ -35,9 +35,29 @@ describe('SQL result field reconciliation', () => {
   })
   it('maps newly discovered database and executable types without losing decimal scale', () => {
     expect(
-      ['bigint', 'integer', 'boolean', 'decimal(20,4)', 'datetime', 'date', 'varchar(40)'].map(
-        sourceFieldType,
-      ),
-    ).toEqual(['integer', 'integer', 'boolean', 'decimal(20,4)', 'datetime', 'date', 'string'])
+      [
+        'bigint',
+        'integer',
+        'boolean',
+        'decimal(20,4)',
+        'datetime',
+        'date',
+        'varchar(40)',
+        'timestamp with time zone',
+        'uuid',
+        'jsonb',
+      ].map(sourceFieldType),
+    ).toEqual([
+      'integer',
+      'integer',
+      'boolean',
+      'decimal(20,4)',
+      'datetime',
+      'date',
+      'string',
+      'datetime',
+      'string',
+      'string',
+    ])
   })
 })

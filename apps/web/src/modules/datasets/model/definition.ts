@@ -51,7 +51,7 @@ export function toInput(value: DatasetInput): DatasetInput {
   }
 }
 
-/** Preserve MySQL decimal precision when creating the executable field mapping. */
+/** Preserve connector decimal precision when creating the executable field mapping. */
 export function sourceFieldType(type: string): string {
   if (['integer', 'boolean', 'string'].includes(type)) return type
   if (/^(tinyint|smallint|mediumint|int|bigint)/i.test(type)) return 'integer'

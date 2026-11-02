@@ -3,6 +3,13 @@ import { newSource, toSourceInput } from '../connectors'
 import { compareSourceConfiguration } from '../configuration-diff'
 
 describe('source configuration differences', () => {
+  it('uses PostgreSQL defaults and retains edited schema and custom port', () => {
+    const draft = newSource('PostgreSQL')
+    expect(draft.settings).toMatchObject({ port: 5432, schema: 'public', tls: true })
+    draft.settings.schema = 'Retail'
+    draft.settings.port = 15433
+    expect(toSourceInput(draft).settings).toMatchObject({ port: 15433, schema: 'Retail' })
+  })
   it('uses OceanBase defaults without changing the saved custom port', () => {
     const draft = newSource('OceanBase')
     expect(draft.type).toBe('OceanBase')

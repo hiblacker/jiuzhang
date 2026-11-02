@@ -6,7 +6,10 @@ import java.util.function.Consumer;
 
 public interface SourceConnector {
     String type();
-    record Connection(String host,int port,String database,boolean tls,String username,String password) {
+    record Connection(String host,int port,String database,boolean tls,String username,String password,String schema) {
+        public Connection(String host,int port,String database,boolean tls,String username,String password) {
+            this(host,port,database,tls,username,password,"");
+        }
         @Override public String toString() { return "Connection[REDACTED]"; }
     }
     record Column(String name,String type,long precision,int scale,long length,boolean nullable,String description) {}

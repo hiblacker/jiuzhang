@@ -7,6 +7,16 @@ import cn.jiuzhang.platform.shared.application.Failure;
 import org.junit.jupiter.api.Test;
 
 class ReadOnlySqlTest {
+  @Test void rejectsPostgresqlWritesAndSideEffectsIncludingQuotedFunctions() {
+    for (var sql : new String[] {
+      "WITH removed AS (DELETE FROM orders RETURNING *) SELECT * FROM removed",
+      "SELECT nextval('orders_id_seq')", "SELECT pg_catalog.setval('orders_id_seq', 1)",
+      "SELECT pg_advisory_lock(1)", "SELECT pg_sleep(30)",
+      "SELECT pg_read_file('/etc/passwd')", "SELECT \"pg_advisory_lock\"(1)",
+      "SELECT id FROM orders FOR KEY SHARE", "SELECT dblink_exec('remote','DELETE FROM orders')"
+    }) assertThatThrownBy(() -> ReadOnlySql.validate(sql)).as(sql).isInstanceOf(Failure.class);
+  }
+
   @Test
   void acceptsReadOnlyQueriesWithJoinsCtesAndAggregates() {
     assertThat(ReadOnlySql.validate("WITH recent AS (SELECT id FROM orders) SELECT id FROM recent"))
