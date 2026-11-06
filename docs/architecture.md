@@ -1056,8 +1056,12 @@ Vue 3 管理端
 
 ### 14.19 数据集页内配置与追加写入（2026-11-06）
 
-新建／编辑页迁入名称、提供方式和入库配置，原保存表单弹窗移除；更多信息页内展开，原双栏 SQL 工作区及详情处理流程保留。默认全量替换，追加模式与定义方式独立。任务读取当前发布版本的方式，运行读取其绑定版本，编辑／发布切换有明确提示。复用 `DatasetDeliverySettings`、草稿 composable、`DatasetOutputSummary`、`ConfirmDialog` 和运行组件；扩展配置组件的 identity／metadata slots 来组合页内表单，不另建表单状态或依赖。
+新建／编辑页迁入名称、提供方式和入库配置，原保存表单弹窗移除；更多信息页内展开，原双栏 SQL 工作区及详情处理流程保留。默认全量替换，追加模式与定义方式独立。任务读取当前发布版本的方式，运行读取其绑定版本，编辑／发布切换有明确提示。复用 `DatasetDeliverySettings`、草稿 composable、`DatasetOutputSummary`、`ConfirmDialog` 和运行组件；初版通过配置组件的 identity／metadata slots 组合页内表单；后续布局修订见下段，不另建领域草稿状态或依赖。
 
 追加执行和限制见 §4.5。真实验收入口为 `python3 tools/test-dataset-append.py` 与 `node tools/test-dataset-append-ui.mjs`；前者需要已初始化的 `.local/source-test.json`，后者还读取前者生成的 `.local/append-test.json`。数据和文件均为本地专用合成样本，不读取客户数据。
 
 当日实际通过：`bash tools/backend.sh build`（Maven verify 共 53 项）、`pnpm check`（104 项单元／HTTP 测试及契约／边界／UI／i18n／lint／格式／类型／构建）、`pnpm test:e2e`、上述两项追加验收、`node tools/test-excel-sources-ui.mjs` 和 `node tools/test-real-contracts.mjs`（39 个真实响应）。追加真实覆盖手动／调度、业务键重复、请求幂等、草稿／发布／历史版本隔离、全量切换、零行及不兼容结构阻断；浏览器只验证 1280×1000，明暗主题截图在 `.local/dataset-inline-*-1280.png`。未据此声明累计大数据量性能或新增数据库版本兼容。
+
+2026-11-06 布局收敛：取消横跨工作区的顶部配置表单，复用 `DatasetDeliverySettings` 作为左侧设置页，保留 metadata slot 并移除 identity slot。左侧维持 280px，通过现有 Naive Tabs 与 `vAccessibleTabs` 提供「取数／设置」，两页保持挂载；右侧从 64px 标题栏下方占满剩余空间。标题原位改名使用领域组件 `DatasetNameEditor`：现有配置组件拥有提供方式、输出及元数据，TagEditor 仅拥有标签输入，均不拥有名称编辑生命周期，因此新增名称组件组合 NForm/NInput/Pencil，负责 Enter、Esc、失焦、输入法与必填聚焦；继续绑定原草稿，不引入新依赖或接口。验收扩展现有两个数据集浏览器脚本与 Excel 消费者，检查右侧 1000×936 外框、页签／目录／SQL／结果状态、名称交互、保存错误定位、明暗主题及长名称。
+
+布局修订实际通过 `pnpm check`（104 项单元／HTTP 测试及静态／类型／构建）、`pnpm test:e2e`、`node tools/test-dataset-append-ui.mjs` 和 `node tools/test-excel-sources-ui.mjs`；检查标题必填聚焦、Enter／Esc／失焦／输入法、长名称、页签键盘切换、SQL 光标与分隔位置、左侧元数据展开、错误定位及两种主题，右侧外框在切换前后均为 1000×936。此修订只调整前端与相应文档／验收脚本，不改变传输契约或执行语义。

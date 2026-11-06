@@ -142,6 +142,16 @@ async function save(doubleClick = false) {
     .toBe(1);
   return (await saved.json()).data;
 }
+async function openSettings() {
+  await page.getByRole("tab", { name: "设置", exact: true }).click();
+  await expect(configuration()).toBeVisible();
+}
+async function rename(value) {
+  await page.getByRole("button", { name: "修改数据集名称", exact: true }).click();
+  await page.getByLabel("数据集名称", { exact: true }).fill(value);
+  await page.getByLabel("数据集名称", { exact: true }).press("Enter");
+  await expect(page.getByLabel("数据集名称", { exact: true })).toHaveCount(0);
+}
 async function publish() {
   await page.getByRole("button", { name: "发布版本", exact: true }).click();
   const response = page.waitForResponse(
@@ -251,9 +261,11 @@ try {
   await page.locator(".n-base-select-option").click();
   await expect(page.getByRole("dialog", { name: "保存数据集", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "保存草稿", exact: true }).click();
-  await configuration().getByText("请填写数据集名称", { exact: true }).waitFor();
-  await expect(configuration().getByLabel("数据集名称", { exact: true })).toBeFocused();
-  await configuration().getByLabel("数据集名称", { exact: true }).fill("browser_visual_" + stamp);
+  await page.locator(".dataset-name-editor").getByText("请填写数据集名称", { exact: true }).waitFor();
+  await expect(page.getByLabel("数据集名称", { exact: true })).toBeFocused();
+  await page.getByLabel("数据集名称", { exact: true }).fill("browser_visual_" + stamp);
+  await page.getByLabel("数据集名称", { exact: true }).press("Enter");
+  await openSettings();
   await configuration().getByLabel("目标表", { exact: true }).fill("browser_visual_" + stamp);
   await configuration().getByRole("button", { name: "更多信息", exact: true }).click();
   await configuration().getByLabel("负责人", { exact: true }).fill("inline_owner");
@@ -340,8 +352,9 @@ try {
     !resultsBox ||
     sidebar.x !== 0 ||
     workspace.x !== 280 ||
+    workspace.y !== 64 ||
     sqlBox.width < 900 ||
-    resultsBox.height < 220 ||
+    resultsBox.height < 360 ||
     resultsBox.y <= sqlBox.y
   )
     throw new Error("Two-column workspace layout is incorrect");
@@ -429,9 +442,8 @@ try {
   );
   await editor().press("Control+Enter");
   await successful(await keyboardRequest);
-  await configuration()
-    .getByLabel("数据集名称", { exact: true })
-    .fill("browser_sql_direct_" + stamp);
+  await rename("browser_sql_direct_" + stamp);
+  await openSettings();
   await configuration()
     .getByRole("button", { name: "提供方式", exact: true })
     .click();
@@ -516,6 +528,7 @@ try {
   await page.getByText("12345.6700", { exact: true }).waitFor();
   await page.goto(directUrl + "/edit");
   await checkViewport();
+  await openSettings();
   await expect(
     configuration().getByRole("button", { name: "提供方式", exact: true }),
   ).toBeDisabled();
@@ -530,9 +543,8 @@ try {
   await successful(
     await runSql("SELECT id, amount, phone FROM orders LIMIT 10"),
   );
-  await configuration()
-    .getByLabel("数据集名称", { exact: true })
-    .fill("browser_sql_updated_" + stamp);
+  await rename("browser_sql_updated_" + stamp);
+  await openSettings();
   const updated = await save();
   if (
     updated.definition.fields.find((f) => f.name === "amount").target !==
@@ -542,6 +554,7 @@ try {
   )
     throw new Error("Definition save discarded downstream processing");
   await page.goto(visualUrl + "/edit");
+  await openSettings();
   await expect(
     configuration().getByLabel("目标表", { exact: true }),
   ).toBeDisabled();

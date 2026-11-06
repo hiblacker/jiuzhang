@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { NAlert, NButton, NFormItem, NInput, NRadio, NRadioGroup, NSelect } from 'naive-ui'
+import {
+  NAlert,
+  NButton,
+  NFormItem,
+  NInput,
+  NRadio,
+  NRadioGroup,
+  NSelect,
+  type InputInst,
+} from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { Model } from '@/shared/api/types'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
@@ -15,6 +24,8 @@ defineProps<{
 }>()
 const { t } = useI18n()
 const more = ref(false)
+const targetInput = ref<InputInst>()
+defineExpose({ focusTarget: () => targetInput.value?.focus() })
 function updateOutput(patch: Partial<Model<'DatasetInput'>['definition']['output']>) {
   definition.value = {
     ...definition.value,
@@ -24,61 +35,18 @@ function updateOutput(patch: Partial<Model<'DatasetInput'>['definition']['output
 </script>
 <template>
   <div class="delivery-settings">
-    <div class="identity-settings">
-      <slot name="identity" />
-      <NFormItem :label="t('datasets.deliveryMode')" :show-feedback="false">
-        <NSelect
-          :value="definition.deliveryMode"
-          @update:value="definition = { ...definition, deliveryMode: $event }"
-          v-select-trigger-name="t('datasets.deliveryMode')"
-          :disabled="disabled || locked"
-          :options="[
-            { label: t('datasets.directMode'), value: 'direct' },
-            { label: t('datasets.warehouseMode'), value: 'warehouse' },
-          ]"
-        />
-      </NFormItem>
-      <NButton
-        text
-        :disabled="disabled"
-        :aria-expanded="more"
-        aria-controls="dataset-more-information"
-        @click="more = !more"
-        >{{
-          more ? t('datasets.editor.lessInformation') : t('datasets.editor.moreInformation')
-        }}</NButton
-      >
-    </div>
-    <div v-if="more" id="dataset-more-information" class="metadata-settings">
-      <slot name="metadata" />
-      <NFormItem :label="subjectDomainLabel" :show-feedback="false">
-        <NInput
-          :value="definition.output.subjectDomain"
-          @update:value="updateOutput({ subjectDomain: $event })"
-          :maxlength="60"
-          :input-props="{ 'aria-label': subjectDomainLabel }"
-          :placeholder="subjectDomainHint"
-        />
-      </NFormItem>
-      <NFormItem
-        v-if="definition.deliveryMode === 'warehouse'"
-        :label="t('datasets.output.keys')"
-        :show-feedback="false"
-      >
-        <NSelect
-          :value="definition.output.keys"
-          @update:value="updateOutput({ keys: $event })"
-          v-select-trigger-name="t('datasets.output.keys')"
-          multiple
-          clearable
-          :options="
-            definition.fields
-              .filter((f) => f.output)
-              .map((f) => ({ label: f.target, value: f.target }))
-          "
-        />
-      </NFormItem>
-    </div>
+    <NFormItem :label="t('datasets.deliveryMode')" :show-feedback="false">
+      <NSelect
+        :value="definition.deliveryMode"
+        @update:value="definition = { ...definition, deliveryMode: $event }"
+        v-select-trigger-name="t('datasets.deliveryMode')"
+        :disabled="disabled || locked"
+        :options="[
+          { label: t('datasets.directMode'), value: 'direct' },
+          { label: t('datasets.warehouseMode'), value: 'warehouse' },
+        ]"
+      />
+    </NFormItem>
     <NAlert v-if="definition.deliveryMode === 'direct'" type="info" :show-icon="false">{{
       t('datasets.directHelp')
     }}</NAlert>
@@ -93,10 +61,14 @@ function updateOutput(patch: Partial<Model<'DatasetInput'>['definition']['output
       </NFormItem>
       <NFormItem :label="t('ui.dataset_editor_442be9c4')" :show-feedback="false">
         <NInput
+          ref="targetInput"
           :value="definition.output.table"
           @update:value="updateOutput({ table: $event })"
           :disabled="disabled || locked"
-          :input-props="{ 'aria-label': t('ui.dataset_editor_442be9c4') }"
+          :input-props="{
+            'aria-label': t('ui.dataset_editor_442be9c4'),
+            title: definition.output.table,
+          }"
           placeholder="dwd_orders"
         />
       </NFormItem>
@@ -142,36 +114,69 @@ function updateOutput(patch: Partial<Model<'DatasetInput'>['definition']['output
         </p>
       </div>
     </section>
+    <NButton
+      text
+      class="more-information"
+      :disabled="disabled"
+      :aria-expanded="more"
+      aria-controls="dataset-more-information"
+      @click="more = !more"
+      >{{
+        more ? t('datasets.editor.lessInformation') : t('datasets.editor.moreInformation')
+      }}</NButton
+    >
+    <div v-if="more" id="dataset-more-information" class="metadata-settings">
+      <slot name="metadata" />
+      <NFormItem :label="subjectDomainLabel" :show-feedback="false">
+        <NInput
+          :value="definition.output.subjectDomain"
+          @update:value="updateOutput({ subjectDomain: $event })"
+          :maxlength="60"
+          :input-props="{ 'aria-label': subjectDomainLabel }"
+          :placeholder="subjectDomainHint"
+        />
+      </NFormItem>
+      <NFormItem
+        v-if="definition.deliveryMode === 'warehouse'"
+        :label="t('datasets.output.keys')"
+        :show-feedback="false"
+      >
+        <NSelect
+          :value="definition.output.keys"
+          @update:value="updateOutput({ keys: $event })"
+          v-select-trigger-name="t('datasets.output.keys')"
+          multiple
+          clearable
+          :options="
+            definition.fields
+              .filter((f) => f.output)
+              .map((f) => ({ label: f.target, value: f.target }))
+          "
+        />
+      </NFormItem>
+    </div>
   </div>
 </template>
 <style scoped>
-.delivery-settings {
+.delivery-settings,
+.metadata-settings,
+.warehouse-settings {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
-.identity-settings {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px auto;
-  gap: 20px;
-  align-items: center;
-}
-.metadata-settings {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px 20px;
-}
-.warehouse-settings {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr) 300px;
-  gap: 8px 20px;
+.more-information {
+  align-self: flex-start;
 }
 .output-explanation {
-  grid-column: 1 / -1;
   color: var(--textSecondary);
+  overflow-wrap: anywhere;
 }
 .output-explanation p {
   margin: 0;
+}
+.output-explanation p + p {
+  margin-top: 8px;
 }
 .replacement-warning {
   color: var(--warning);

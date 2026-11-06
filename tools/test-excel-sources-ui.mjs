@@ -85,8 +85,11 @@ try {
   await page.getByRole('button',{name:'读取数据',exact:true}).click()
   const readResponse=await read
   if(!readResponse.ok()) throw new Error('Excel dataset preview '+readResponse.status()+': '+JSON.stringify(await readResponse.json())+' source='+readResponse.request().postDataJSON().definition.sourceId+' savedHeader='+persisted.settings.headerRow)
+  await page.getByRole('button',{name:'修改数据集名称',exact:true}).click()
+  await page.getByLabel('数据集名称',{exact:true}).fill(name+'_dataset')
+  await page.getByLabel('数据集名称',{exact:true}).press('Enter')
+  await page.getByRole('tab',{name:'设置',exact:true}).click()
   const dialog=page.locator('.editor-settings')
-  await dialog.getByLabel('数据集名称',{exact:true}).fill(name+'_dataset')
   await dialog.getByLabel('目标表',{exact:true}).fill('browser_excel_'+Date.now())
   const datasetResponse=page.waitForResponse(r=>r.url().endsWith('/api/v1/datasets') && r.request().method()==='POST')
   await page.getByRole('button',{name:'保存草稿',exact:true}).click()

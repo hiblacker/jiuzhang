@@ -3,17 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Layers, Plus, Save } from 'lucide-vue-next'
-import {
-  NAlert,
-  NButton,
-  NForm,
-  NFormItem,
-  NInput,
-  NSelect,
-  NTag,
-  type FormInst,
-  type InputInst,
-} from 'naive-ui'
+import { NAlert, NButton, NForm, NFormItem, NInput, NSelect, NTag, NTabs, NTabPane } from 'naive-ui'
 import {
   useDatasetEditor,
   useDatasetVersion,
@@ -21,6 +11,7 @@ import {
   DatasetSqlWorkspace,
   DatasetPreviewPanel,
   DatasetDeliverySettings,
+  DatasetNameEditor,
 } from '@/modules/datasets'
 import { SourcePicker, SourceObjectList, useSource, useSourceObjects } from '@/modules/sources'
 import { AsyncState } from '@/shared/ui/async-state'
@@ -29,6 +20,8 @@ import { TagEditor } from '@/shared/ui/tag-editor'
 import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
 import { useCan } from '@/shared/security/permissions'
+import { vAccessibleTabs } from '@/shared/ui/accessible-tabs'
+import { ApiError } from '@/shared/api/client'
 
 const route = useRoute(),
   router = useRouter(),
@@ -41,8 +34,9 @@ const canReadSensitive = useCan('readSensitive')
 const submitting = ref(false)
 const requestBusy = computed(() => save.isPending.value || preview.isPending.value)
 const busy = computed(() => requestBusy.value || submitting.value)
-const form = ref<FormInst>()
-const nameInput = ref<InputInst>()
+const nameEditor = ref<InstanceType<typeof DatasetNameEditor>>()
+const deliverySettings = ref<InstanceType<typeof DatasetDeliverySettings>>()
+const sidebarTab = ref('source')
 const publishedVersion = useDatasetVersion(id, () =>
   String(query.data.value?.publishedVersion || ''),
 )
@@ -172,16 +166,29 @@ async function submit() {
   if (!definitionReady.value || busy.value) return
   submitting.value = true
   try {
-    await form.value?.validate()
+    if (!(await nameEditor.value?.commit())) {
+      submitting.value = false
+      await nameEditor.value?.focus()
+      return
+    }
     if (!preview.definitionCurrent.value && !(await define())) return
     const saved = await save.mutateAsync()
     submitting.value = false
     await router.push('/datasets/' + saved.id)
-  } catch {
-    if (!draft.value.name.trim()) {
+  } catch (error) {
+    if (
+      error instanceof ApiError &&
+      [
+        'TARGET_NAME_INVALID',
+        'TARGET_NAME_IMMUTABLE',
+        'OUTPUT_UNSUPPORTED',
+        'DATASET_DELIVERY_MODE_IMMUTABLE',
+      ].includes(error.code)
+    ) {
+      sidebarTab.value = 'settings'
       submitting.value = false
       await nextTick()
-      nameInput.value?.focus()
+      deliverySettings.value?.focusTarget()
     }
   } finally {
     submitting.value = false
@@ -194,8 +201,13 @@ useEditGuard(dirty, busy)
     <header class="editor-header">
       <div class="editor-identity">
         <Layers :size="20" aria-hidden="true" />
-        <h1>{{ id ? t('ui.dataset_editor_3dabd36c') : t('ui.dataset_editor_e78bd5fa') }}</h1>
-        <span v-if="draft.name" class="editor-name" :title="draft.name">{{ draft.name }}</span>
+        <DatasetNameEditor
+          :key="id"
+          ref="nameEditor"
+          v-model="draft.name"
+          :placeholder="t('ui.dataset_editor_e78bd5fa')"
+          :disabled="busy || (!!id && query.isLoading.value)"
+        />
         <NTag size="small" :bordered="false">{{
           dirty ? t('datasets.editor.unsaved') : t('datasets.editor.draft')
         }}</NTag>
@@ -220,141 +232,142 @@ useEditGuard(dirty, busy)
       :error="query.error.value"
       @retry="query.refetch()"
     >
-      <NForm
-        ref="form"
-        class="editor-settings"
-        :model="draft"
-        label-placement="top"
-        :disabled="busy"
-        :rules="{
-          name: {
-            required: true,
-            validator: (_rule, value: string) => !!value?.trim(),
-            message: t('ui.dataset_editor_505e9598'),
-            trigger: 'blur',
-          },
-        }"
-      >
-        <DatasetDeliverySettings
-          v-model="draft.definition"
-          :subject-domain-label="t('warehouse.subjectDomain')"
-          :subject-domain-hint="t('warehouse.domainHint')"
-          :locked="(query.data.value?.publishedVersion ?? 0) > 0"
-          :disabled="busy"
-          :published-output="publishedVersion.data.value?.definition.output"
-          :published-version="query.data.value?.publishedVersion"
-        >
-          <template #identity>
-            <NFormItem :label="t('ui.dataset_editor_5aa625bf')" path="name">
-              <NInput
-                ref="nameInput"
-                v-model:value="draft.name"
-                :input-props="{ 'aria-label': t('ui.dataset_editor_5aa625bf') }"
-              />
-            </NFormItem>
-          </template>
-          <template #metadata>
-            <NFormItem :label="t('ui.dataset_editor_974d383f')" :show-feedback="false"
-              ><NInput
-                v-model:value="draft.owner"
-                :input-props="{ 'aria-label': t('ui.dataset_editor_974d383f') }"
-            /></NFormItem>
-            <NFormItem :label="t('ui.dataset_editor_ae0a7afe')" :show-feedback="false"
-              ><TagEditor v-model="draft.tags" :disabled="busy"
-            /></NFormItem>
-            <NFormItem :label="t('ui.dataset_editor_26670dda')" :show-feedback="false"
-              ><NInput
-                v-model:value="draft.description"
-                :input-props="{ 'aria-label': t('ui.dataset_editor_26670dda') }"
-            /></NFormItem>
-          </template>
-        </DatasetDeliverySettings>
-        <NAlert v-if="publishedVersion.isError.value" type="warning" :show-icon="false"
-          >{{ t('datasets.output.activeLoadFailed') }}
-          <NButton text @click="publishedVersion.refetch()">{{ t('retry') }}</NButton></NAlert
-        >
-      </NForm>
       <main class="editor-main">
         <aside class="definition-sidebar">
-          <div class="definition-settings">
-            <NFormItem :label="t('datasets.definitionMode')">
-              <NSelect
-                :value="draft.definition.mode"
-                :disabled="busy"
-                v-select-trigger-name="t('datasets.definitionMode')"
-                :options="[
-                  { label: t('datasets.tableMode'), value: 'visual' },
-                  {
-                    label: t('datasets.sqlMode'),
-                    value: 'sql',
-                    disabled: source.data.value?.type === 'Excel',
-                  },
-                ]"
-                @update:value="selectDefinitionMode"
-              />
-            </NFormItem>
-            <NFormItem :label="t('ui.dataset_editor_a3ccf702')">
-              <SourcePicker
-                :value="draft.definition.sourceId"
-                :disabled="busy"
-                :label="t('ui.dataset_editor_a3ccf702')"
-                @update:value="selectSource"
-              />
-            </NFormItem>
-          </div>
-          <div class="object-catalog">
-            <AsyncState
-              :loading="objects.isLoading.value"
-              :error="objects.error.value"
-              @retry="objects.refetch()"
-            >
-              <SourceObjectList
-                :objects="objects.data.value ?? []"
-                :object-id="
-                  draft.definition.mode === 'sql'
-                    ? (referenceObject?.id ?? '')
-                    : draft.definition.objectId
-                "
-                @select="selectObject"
-              />
-            </AsyncState>
-          </div>
-          <section
-            v-if="draft.definition.mode === 'sql' && referenceObject"
-            class="field-reference"
-            :aria-label="t('sources.fields')"
+          <NTabs
+            v-accessible-tabs="t('datasets.editor.sidebar')"
+            v-model:value="sidebarTab"
+            class="sidebar-tabs"
+            type="line"
+            justify-content="space-evenly"
+            :animated="false"
+            :pane-wrapper-style="{ flex: '1', minHeight: '0', overflow: 'hidden' }"
+            :pane-style="{ height: '100%', minHeight: '0', padding: '0' }"
           >
-            <header>
-              <strong :title="referenceObject.name">{{ referenceObject.name }}</strong>
-              <CopyButton :value="referenceObject.name" />
-              <NButton
-                quaternary
-                size="small"
-                :disabled="busy"
-                :aria-label="t('datasets.editor.insertTable')"
-                :title="t('datasets.editor.insertTable')"
-                @click="insertTable"
-                ><template #icon><Plus :size="16" /></template
-              ></NButton>
-            </header>
-            <ul>
-              <li
-                v-for="field in referenceObject.fields"
-                :key="field.name"
-                :title="field.description"
-              >
-                <NButton
-                  text
-                  :disabled="busy"
-                  :title="t('datasets.editor.insertField', { name: field.name })"
-                  @click="sqlWorkspace?.insertText(quoteIdentifier(field.name))"
-                  >{{ field.name }}</NButton
+            <NTabPane name="source" :tab="t('datasets.editor.sourceTab')" display-directive="show">
+              <div class="source-panel">
+                <div class="definition-settings">
+                  <NFormItem :label="t('datasets.definitionMode')">
+                    <NSelect
+                      :value="draft.definition.mode"
+                      :disabled="busy"
+                      v-select-trigger-name="t('datasets.definitionMode')"
+                      :options="[
+                        { label: t('datasets.tableMode'), value: 'visual' },
+                        {
+                          label: t('datasets.sqlMode'),
+                          value: 'sql',
+                          disabled: source.data.value?.type === 'Excel',
+                        },
+                      ]"
+                      @update:value="selectDefinitionMode"
+                    />
+                  </NFormItem>
+                  <NFormItem :label="t('ui.dataset_editor_a3ccf702')">
+                    <SourcePicker
+                      :value="draft.definition.sourceId"
+                      :disabled="busy"
+                      :label="t('ui.dataset_editor_a3ccf702')"
+                      @update:value="selectSource"
+                    />
+                  </NFormItem>
+                </div>
+                <div class="object-catalog">
+                  <AsyncState
+                    :loading="objects.isLoading.value"
+                    :error="objects.error.value"
+                    @retry="objects.refetch()"
+                  >
+                    <SourceObjectList
+                      :objects="objects.data.value ?? []"
+                      :object-id="
+                        draft.definition.mode === 'sql'
+                          ? (referenceObject?.id ?? '')
+                          : draft.definition.objectId
+                      "
+                      @select="selectObject"
+                    />
+                  </AsyncState>
+                </div>
+                <section
+                  v-if="draft.definition.mode === 'sql' && referenceObject"
+                  class="field-reference"
+                  :aria-label="t('sources.fields')"
                 >
-                <small>{{ field.type }}</small
-                ><CopyButton :value="field.name" />
-              </li>
-            </ul>
-          </section>
+                  <header>
+                    <strong :title="referenceObject.name">{{ referenceObject.name }}</strong>
+                    <CopyButton :value="referenceObject.name" />
+                    <NButton
+                      quaternary
+                      size="small"
+                      :disabled="busy"
+                      :aria-label="t('datasets.editor.insertTable')"
+                      :title="t('datasets.editor.insertTable')"
+                      @click="insertTable"
+                      ><template #icon><Plus :size="16" /></template
+                    ></NButton>
+                  </header>
+                  <ul>
+                    <li
+                      v-for="field in referenceObject.fields"
+                      :key="field.name"
+                      :title="field.description"
+                    >
+                      <NButton
+                        text
+                        :disabled="busy"
+                        :title="t('datasets.editor.insertField', { name: field.name })"
+                        @click="sqlWorkspace?.insertText(quoteIdentifier(field.name))"
+                        >{{ field.name }}</NButton
+                      >
+                      <small>{{ field.type }}</small
+                      ><CopyButton :value="field.name" />
+                    </li>
+                  </ul>
+                </section>
+              </div>
+            </NTabPane>
+            <NTabPane
+              name="settings"
+              :tab="t('datasets.editor.settingsTab')"
+              display-directive="show"
+            >
+              <NForm class="editor-settings" :model="draft" label-placement="top" :disabled="busy">
+                <DatasetDeliverySettings
+                  ref="deliverySettings"
+                  v-model="draft.definition"
+                  :subject-domain-label="t('warehouse.subjectDomain')"
+                  :subject-domain-hint="t('warehouse.domainHint')"
+                  :locked="(query.data.value?.publishedVersion ?? 0) > 0"
+                  :disabled="busy"
+                  :published-output="publishedVersion.data.value?.definition.output"
+                  :published-version="query.data.value?.publishedVersion"
+                >
+                  <template #metadata>
+                    <NFormItem :label="t('ui.dataset_editor_974d383f')" :show-feedback="false"
+                      ><NInput
+                        v-model:value="draft.owner"
+                        :input-props="{ 'aria-label': t('ui.dataset_editor_974d383f') }"
+                    /></NFormItem>
+                    <NFormItem :label="t('ui.dataset_editor_ae0a7afe')" :show-feedback="false"
+                      ><TagEditor v-model="draft.tags" :disabled="busy"
+                    /></NFormItem>
+                    <NFormItem :label="t('ui.dataset_editor_26670dda')" :show-feedback="false"
+                      ><NInput
+                        v-model:value="draft.description"
+                        :input-props="{ 'aria-label': t('ui.dataset_editor_26670dda') }"
+                    /></NFormItem>
+                  </template>
+                </DatasetDeliverySettings>
+                <NAlert v-if="publishedVersion.isError.value" type="warning" :show-icon="false"
+                  >{{ t('datasets.output.activeLoadFailed') }}
+                  <NButton text @click="publishedVersion.refetch()">{{
+                    t('retry')
+                  }}</NButton></NAlert
+                >
+              </NForm>
+            </NTabPane>
+          </NTabs>
         </aside>
         <section class="definition-workspace">
           <NAlert
@@ -430,27 +443,21 @@ useEditGuard(dirty, busy)
   gap: 12px;
 }
 .editor-identity {
+  flex: 1;
   min-width: 0;
 }
-h1 {
-  font-size: 18px;
-  margin: 0;
-  white-space: nowrap;
-}
-.editor-name {
-  color: var(--textSecondary);
-  max-width: 320px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .editor-settings {
-  flex-shrink: 0;
-  max-height: 42vh;
+  height: 100%;
   overflow: auto;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surfaceRaised);
+  box-sizing: border-box;
+  padding: 20px;
+}
+.sidebar-tabs,
+.source-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 }
 .editor-main {
   display: grid;
