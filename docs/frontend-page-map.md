@@ -1,6 +1,6 @@
 # 九章前端页面与验收矩阵
 
-> 更新：2026-10-30。本文只记录当前真实 API 前端入口与交付边界。桌面浏览器验收固定为 `1280×1000`，不执行小屏幕专项。
+> 更新：2026-11-06。本文只记录当前真实 API 前端入口与交付边界。桌面浏览器验收固定为 `1280×1000`，不执行小屏幕专项。
 > [前端架构](frontend-design.md) · [数据集快速操作](dataset-quick-start.md) · [总体架构与进度](architecture.md)
 
 ## 当前可用页面
@@ -9,22 +9,22 @@
 |---|---|---|---|
 | 工作台 | `/overview` | 服务端汇总数据源、数据集、运行和仓库状态 | `tools/test-overview.py`、`tools/test-real-overview.mjs` |
 | 数据源列表/新建/编辑/详情 | `/sources`、`/sources/new`、`/sources/:id/edit`、`/sources/:id` | MySQL/OceanBase MySQL/PostgreSQL 连接测试（PostgreSQL schema）；Excel 文件上传、工作表/表头选择、预览/校验与保存；共用平铺对象目录、搜索和字段结构展示 | `tools/test-sources.py`、`tools/test-real-sources.mjs`、`tools/test-oceanbase.py`、`tools/test-oceanbase-ui.mjs`、`tools/test-postgresql.py`、`tools/test-postgresql-ui.mjs` |
-| 数据集列表/新建/编辑/详情/版本 | `/datasets`、`/datasets/new`、`/datasets/:id/edit`、`/datasets/:id`、`/datasets/:id/versions/:version` | 可视化选表或只读 SQL；字段映射、预览、质量、脱敏；直连或手动/计划快照入库；发布与版本恢复 | `tools/test-datasets.py`、`tools/test-real-datasets.mjs` |
-| 任务中心/任务详情 | `/tasks`、`/tasks/:id`、`/tasks/:id/edit` | 查看已发布入库数据集任务，配置手动、Cron 或固定间隔计划，暂停/恢复和手动运行 | `tools/test-scheduling-ui.mjs` |
-| 运行列表/详情 | `/runs`、`/runs/:id` | 已发布入库数据集的手动运行、状态、阶段日志、取消和重试；列表、详情及运行历史显示数据集当前名称，链接和版本绑定保留 ID | `tools/test-execution.py`、`tools/test-real-execution.mjs` |
+| 数据集列表/新建/编辑/详情/版本 | `/datasets`、`/datasets/new`、`/datasets/:id/edit`、`/datasets/:id`、`/datasets/:id/versions/:version` | 可视化选表或只读 SQL；字段映射、预览、质量、脱敏；页内配置全量替换／追加写入，直连或手动/计划入库；发布与版本恢复 | `tools/test-datasets.py`、`tools/test-real-datasets.mjs`、`tools/test-dataset-append.py`、`tools/test-dataset-append-ui.mjs` |
+| 任务中心/任务详情 | `/tasks`、`/tasks/:id`、`/tasks/:id/edit` | 查看已发布入库数据集任务，配置手动、Cron 或固定间隔计划，只读显示已发布写入方式，暂停/恢复和手动运行 | `tools/test-scheduling-ui.mjs`、`tools/test-dataset-append-ui.mjs` |
+| 运行列表/详情 | `/runs`、`/runs/:id` | 已发布入库数据集的手动运行、状态、阶段日志、取消和重试；列表、详情及运行历史显示数据集当前名称，链接和版本绑定保留 ID，并显示本次实际写入方式／行数 | `tools/test-execution.py`、`tools/test-real-execution.mjs` |
 | 数仓概览/表/SQL/导出 | `/warehouse/overview`、`/warehouse/tables`、`/warehouse/query`、`/warehouse/exports` | Doris 当前快照、受限查询和本人 CSV 导出 | `tools/test-warehouse.py`、`tools/test-real-execution.mjs` |
 | 质量规则/脱敏策略 | `/governance/quality`、`/governance/masking` | 创建和维护首版支持的质量与脱敏策略 | `tools/test-execution-rules.py`、`tools/test-real-datasets.mjs` |
 | 用户/审计 | `/system/users`、`/system/audit` | 固定角色账号、会话管理和审计查询 | `tools/test-identity.py`、`tools/test-real-identity.mjs` |
 | 登录/权限错误 | `/login`、`/403`、`/404` | 真实服务端会话、权限拒绝和未找到页面 | `tools/test-identity.py`、`tools/test-real-identity.mjs` |
 
-详情标签不单独计为路由。新建/编辑数据集占满浏览器可视区域，隐藏全局菜单和页头。新建页以左侧数据源/对象目录、右侧 SQL/结果的单页工作区完成取数与保存；清洗、字段和脱敏配置从数据集详情进入。
+详情标签不单独计为路由。新建/编辑数据集占满浏览器可视区域，隐藏全局菜单和页头。新建／编辑页顶部直接配置名称、提供方式及入库目标／写入方式，更多信息就地展开，保存不弹表单；下方以左侧数据源/对象目录、右侧 SQL/结果的单页工作区完成取数；清洗、字段和脱敏配置从数据集详情进入。
 
 ## 当前业务范围
 
 - 数据源支持真实 MySQL、OceanBase MySQL、PostgreSQL 和 Excel 文件；数据库凭证由服务端保护，文件保存在私有对象存储。浏览器不会连接源库。Excel 通过现有新建/编辑页上传文件、选择工作表和表头、预览/校验与保存，沿用对象目录和数据集创建入口；验收为 `tools/test-excel-sources.py`、`tools/test-excel-sources-ui.mjs`。
 - 数据集可视化定义支持单表、等值过滤、字段选择/改名/类型映射、trim、质量和脱敏。复杂关联、聚合和窗口计算使用自定义单条只读 SQL。
 - SQL 查询在所选 MySQL 数据源内执行，支持 CTE、JOIN、子查询、聚合、窗口函数和计算表达式；通过服务端只读连接、查询时限、行数/字节上限和副作用语法拒绝规则约束。创建页左侧选择定义方式、数据源和对象，右侧编辑 SQL 并查看取数结果；支持表名搜索、数据库字段补全、目录插入及最多 20 条数据源的远端搜索。SQL 关键字和未限定表名大小写不敏感，执行前按目录唯一匹配实际表名；仅大小写不同的重名表不自动猜测。取数不依赖名称、目标表或下游规则；失败保留输入，兼容字段配置按源字段名保留。数据集保存后从详情页单独编辑处理和脱敏配置。
-- 直连数据集发布后按查询请求读取源库，不创建 Doris 快照或运行。入库数据集首版手动全量运行，以快照替换其独占目标表；发布时目标表配置必填，预览和保存草稿不依赖目标表。
+- 直连数据集发布后按查询请求读取源库，不创建 Doris 快照或运行。入库数据集支持手动／计划运行，按发布版本全量替换或追加本次结果；发布时目标表配置必填，预览和保存草稿不依赖目标表。
 - 增量同步、多数据源关联、数据服务、目录/血缘、逐对象授权和生产集群部署仍在后续计划中；已发布入库数据集支持在任务中心配置持久化 Cron 或固定间隔计划。
 
 ## 验收命令

@@ -185,7 +185,7 @@ def verify():
     run(['python3','tools/test-migrations.py'],env=env)
     run(['python3','tools/test-scheduling-atomic.py'],env=env)
     for name in [
-        'identity','sources','oceanbase','postgresql','datasets','execution','scheduling','scheduling-multiworker','warehouse','excel-sources','excel-storage',
+        'identity','sources','oceanbase','postgresql','datasets','dataset-append','execution','scheduling','scheduling-multiworker','warehouse','excel-sources','excel-storage',
         'execution-safety','execution-rules','result-budget','overview']:
         command=['python3','tools/test-'+name+'.py']
         if name=='scheduling-multiworker':command+=['--cycles','3']
@@ -193,6 +193,7 @@ def verify():
         if name=='sources':run(['python3','tools/test-source-snapshot.py'],env=env)
     for name in ['contracts','identity','sources','datasets','execution','overview']:
         run(['node','tools/test-real-'+name+'.mjs'],env=env)
+    run(['node','tools/test-dataset-append-ui.mjs'],env=env)
     run(['node','tools/test-scheduling-ui.mjs'],env=env)
     run(['node','tools/test-excel-sources-ui.mjs'],env=env)
     run(['node','tools/test-oceanbase-ui.mjs'],env=env)

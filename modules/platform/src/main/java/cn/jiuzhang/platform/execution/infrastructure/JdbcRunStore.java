@@ -34,8 +34,8 @@ public class JdbcRunStore implements RunStore {
   public Map<String, Object> get(String id, boolean lock) {
     var rows =
         db.queryForList(
-            "SELECT r.*, d.name AS dataset_name FROM dataset_run r"
-                + " JOIN dataset d ON d.id=r.dataset_id WHERE r.id=?"
+            "SELECT r.*, d.name AS dataset_name, v.body #>> '{definition,output,writeMode}' AS write_mode FROM dataset_run r"
+                + " JOIN dataset d ON d.id=r.dataset_id JOIN dataset_version v ON v.dataset_id=r.dataset_id AND v.version=r.dataset_version WHERE r.id=?"
                 + (lock ? " FOR UPDATE OF r" : ""),
             n(id));
     if (rows.isEmpty()) throw new Failure(404, "RUN_NOT_FOUND");
@@ -44,8 +44,8 @@ public class JdbcRunStore implements RunStore {
 
   public List<Map<String, Object>> list() {
     return db.queryForList(
-            "SELECT r.*, d.name AS dataset_name FROM dataset_run r"
-                + " JOIN dataset d ON d.id=r.dataset_id ORDER BY r.id DESC LIMIT 10000")
+            "SELECT r.*, d.name AS dataset_name, v.body #>> '{definition,output,writeMode}' AS write_mode FROM dataset_run r"
+                + " JOIN dataset d ON d.id=r.dataset_id JOIN dataset_version v ON v.dataset_id=r.dataset_id AND v.version=r.dataset_version ORDER BY r.id DESC LIMIT 10000")
         .stream()
         .map(this::run)
         .toList();
@@ -54,8 +54,8 @@ public class JdbcRunStore implements RunStore {
   public Map<String, Object> existing(String user, String id, String key) {
     var rows =
         db.queryForList(
-            "SELECT r.*, d.name AS dataset_name FROM dataset_run r"
-                + " JOIN dataset d ON d.id=r.dataset_id"
+            "SELECT r.*, d.name AS dataset_name, v.body #>> '{definition,output,writeMode}' AS write_mode FROM dataset_run r"
+                + " JOIN dataset d ON d.id=r.dataset_id JOIN dataset_version v ON v.dataset_id=r.dataset_id AND v.version=r.dataset_version"
                 + " WHERE r.requested_by=? AND r.dataset_id=? AND r.idempotency_key=?",
             n(user),
             n(id),
@@ -380,6 +380,7 @@ public class JdbcRunStore implements RunStore {
             .entrySet()) m.put(k.getValue(), r.get(k.getKey()));
     for (String key : List.of("id", "datasetId", "requestedBy", "rowCount"))
       m.put(key, m.get(key).toString());
+    m.put("writeMode", r.get("write_mode"));
     m.put("retryOf", r.get("retry_of") == null ? "" : r.get("retry_of").toString());
     m.put("taskId", r.get("task_id") == null ? "" : r.get("task_id").toString());
     m.put("trigger", r.get("trigger") == null ? "manual" : r.get("trigger").toString());

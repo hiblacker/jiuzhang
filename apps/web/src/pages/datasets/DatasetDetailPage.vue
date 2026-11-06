@@ -25,6 +25,7 @@ import {
 import {
   useDatasetEditor,
   useDatasetVersions,
+  useDatasetVersion,
   useDatasetActions,
   useDatasetPreview,
   DatasetOutputSummary,
@@ -44,6 +45,34 @@ const route = useRoute(),
   { t } = useI18n(),
   id = computed(() => String(route.params.id))
 const { query, draft, dirty, save, preview: processing, reset } = useDatasetEditor(id)
+const published = useDatasetVersion(id, () => String(query.data.value?.publishedVersion || ''))
+const publishedOutput = computed(() => published.data.value?.definition.output)
+const publishDescription = computed(() => {
+  const dataset = query.data.value
+  if (!dataset) return ''
+  const definition = dataset.definition
+  const prefix = t('datasets.output.publishVersion', { version: dataset.publishedVersion + 1 })
+  if (definition.deliveryMode === 'direct') return prefix + t('datasets.directPublishedOutput')
+  const next = definition.output.writeMode
+  const previous = publishedOutput.value?.writeMode
+  const mode =
+    previous && previous !== next
+      ? t('datasets.output.publishChange', {
+          before:
+            previous === 'append' ? t('datasets.output.append') : t('datasets.output.replace'),
+          after: next === 'append' ? t('datasets.output.append') : t('datasets.output.replace'),
+        })
+      : t('datasets.output.publishMode', {
+          mode: next === 'append' ? t('datasets.output.append') : t('datasets.output.replace'),
+        })
+  return (
+    prefix +
+    mode +
+    t('datasets.output.publishBoundary') +
+    (previous === 'append' && next === 'replace' ? t('datasets.output.replaceWarning') : '')
+  )
+})
+const publishedReady = computed(() => !query.data.value?.publishedVersion || !!published.data.value)
 const editing = ref(false)
 const busy = computed(() => save.isPending.value || processing.isPending.value)
 const versions = useDatasetVersions(id),
@@ -81,7 +110,13 @@ async function saveProcessing() {
   } catch {}
 }
 function requestPublish() {
-  if (readonly.value || editing.value || !query.data.value || actions.publish.isPending.value)
+  if (
+    readonly.value ||
+    editing.value ||
+    !publishedReady.value ||
+    !query.data.value ||
+    actions.publish.isPending.value
+  )
     return
   actions.publish.reset()
   confirm.value = true
@@ -105,13 +140,14 @@ async function publish() {
       t('datasets.editor.configureProcessing')
     }}</NButton
     ><NButton
-      :disabled="readonly || !query.data.value || editing"
+      :disabled="readonly || !query.data.value || editing || !publishedReady"
       type="primary"
       @click="requestPublish"
       >{{ uiText('ui.dataset_detail_c789c17a') }}</NButton
     ><RunTrigger
       v-if="query.data.value?.definition.deliveryMode !== 'direct'"
       :dataset-id="id"
+      :write-mode="publishedOutput?.writeMode"
       :disabled="!query.data.value?.publishedVersion"
       @started="router.push('/runs/' + $event)" /></PageHeader
   ><AsyncState :loading="query.isLoading.value" :error="query.error.value" @retry="query.refetch()"
@@ -143,11 +179,48 @@ async function publish() {
                 ? t('datasets.directMode')
                 : query.data.value?.definition.output.table
             }}</NDescriptionsItem></ResponsiveDescriptions
-          ><DatasetOutputSummary
+          >
+          <template
             v-if="query.data.value && query.data.value.definition.deliveryMode !== 'direct'"
-            class="mt"
-            :output="query.data.value.definition.output"
-          />
+          >
+            <AsyncState
+              :loading="!!query.data.value.publishedVersion && published.isLoading.value"
+              :error="published.error.value"
+              @retry="published.refetch()"
+            >
+              <p class="mt">
+                {{
+                  publishedOutput
+                    ? t('datasets.output.published')
+                    : t('datasets.output.unpublished')
+                }}
+              </p>
+              <DatasetOutputSummary
+                :output="publishedOutput ?? query.data.value.definition.output"
+              />
+              <NAlert
+                v-if="
+                  publishedOutput &&
+                  publishedOutput.writeMode !== query.data.value.definition.output.writeMode
+                "
+                type="warning"
+                class="mt"
+              >
+                {{ t('datasets.output.pendingChange') }}：{{
+                  query.data.value.definition.output.writeMode === 'append'
+                    ? t('datasets.output.append')
+                    : t('datasets.output.replace')
+                }}
+                <span
+                  v-if="
+                    publishedOutput.writeMode === 'append' &&
+                    query.data.value.definition.output.writeMode === 'replace'
+                  "
+                  >{{ t('datasets.output.replaceWarning') }}</span
+                >
+              </NAlert>
+            </AsyncState>
+          </template>
           <NAlert type="info" style="margin-top: 24px">{{
             query.data.value?.definition.deliveryMode === 'direct'
               ? t('datasets.directHelp')
@@ -307,17 +380,11 @@ async function publish() {
   ><ConfirmDialog
     :show="confirm"
     :title="uiText('ui.dataset_detail_bbbe36d4')"
-    :description="
-      uiText('ui.dataset_detail_ef13ebf7') +
-      ((query.data.value?.publishedVersion ?? 0) + 1) +
-      (query.data.value?.definition.deliveryMode === 'direct'
-        ? t('datasets.directPublishedOutput')
-        : t('datasets.realOutput'))
-    "
+    :description="publishDescription"
     :pending="actions.publish.isPending.value"
     :confirm-text="uiText('ui.dataset_detail_221f71a4')"
     :destructive="false"
-    :disabled="readonly || !query.data.value"
+    :disabled="readonly || !query.data.value || !publishedReady"
     @confirm="publish"
     @cancel="confirm = false"
   />

@@ -1376,6 +1376,11 @@ export interface components {
             definition: components["schemas"]["DatasetDefinition"];
             publishedVersion: number;
             folderId: string | null;
+            /**
+             * @description 最新已发布版本的写入方式；未发布时不返回，与草稿的 output.writeMode 独立。
+             * @enum {string}
+             */
+            readonly publishedWriteMode?: "replace" | "append";
         };
         DatasetVersion: {
             id: string;
@@ -1426,6 +1431,13 @@ export interface components {
              * @description Next scheduled UTC instant; null for manual/paused schedules.
              */
             readonly nextRunAt?: string | null;
+            /**
+             * @description 任务使用最新发布版本的写入方式；运行使用其绑定发布版本的写入方式，不读取当前草稿。
+             * @enum {string}
+             */
+            readonly writeMode?: "replace" | "append";
+            /** @description 当前任务将使用的数据集已发布版本。 */
+            readonly datasetVersion?: number;
         };
         /** @enum {string} */
         RunOutcome: "succeeded" | "failed" | "blocked";
@@ -1494,6 +1506,11 @@ export interface components {
             readonly retryRunId?: string;
             /** @description Automatic retry is pending but the task is paused. */
             readonly retryPaused?: boolean;
+            /**
+             * @description 任务使用最新发布版本的写入方式；运行使用其绑定发布版本的写入方式，不读取当前草稿。
+             * @enum {string}
+             */
+            readonly writeMode?: "replace" | "append";
         };
         Table: {
             id: string;

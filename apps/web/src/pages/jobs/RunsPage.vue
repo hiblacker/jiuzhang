@@ -92,10 +92,23 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
         () => t('states.' + r.status),
       ),
   },
+  {
+    title: t('jobs.runWriteMode'),
+    key: 'writeMode',
+    width: 130,
+    render: (run) => {
+      if (!run.writeMode) return '—'
+      return run.writeMode === 'append' ? t('jobs.writeModes.append') : t('jobs.writeModes.replace')
+    },
+  },
   { title: uiText('ui.runs_f67f1852'), key: 'trigger' },
   { title: t('jobs.businessDate'), key: 'businessDate', render: (run) => run.businessDate ?? '—' },
   { title: uiText('ui.runs_e8868af6'), key: 'startedAt', render: (r) => dateTime(r.startedAt) },
-  { title: uiText('ui.runs_05799576'), key: 'rowCount' },
+  {
+    title: t('jobs.runRows'),
+    key: 'rowCount',
+    render: (run) => (run.status === 'succeeded' ? run.rowCount : '—'),
+  },
   {
     title: t('jobs.runActions'),
     key: 'actions',

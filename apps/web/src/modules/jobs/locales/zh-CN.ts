@@ -4,6 +4,15 @@ export default {
   ui,
   jobs: {
     runOptions: '运行选项',
+    writeModes: { append: '追加写入', replace: '全量替换' },
+    publishedWriteMode: '当前生效：{mode} · 数据集 v{version}。',
+    editDataset: '去数据集修改',
+    runWriteMode: '本次写入方式',
+    runRows: '本次写入行数',
+    processedRows: '本次处理行数',
+    appendedRows: '本次追加行数',
+    replacedRows: '本次替换后行数',
+    appendEmpty: '执行成功，无新增数据，已有数据保留。',
     allowEmpty: '允许本次空结果覆盖',
     allowEmptyWarning:
       '若本次完整读取与质量检查通过但结果为零行，将用空快照替换当前非空数据。只对本次运行生效，历史快照按保留策略清理。确认继续？',

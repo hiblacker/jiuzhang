@@ -11,10 +11,10 @@
 - Excel 文件数据源：上传 `.xls` / `.xlsx`，选择工作表与表头行，预览、保存，并复用数据集发布、处理和入库流程；操作见[快速指南](docs/dataset-quick-start.md#excel-数据源)。
 - 单源单表数据集：字段选择/改名/精确转换、等值过滤、trim、必填/范围质量、字符串部分脱敏；草稿、不可变发布版本和恢复。
 - 手动运行、日志、取消、新运行重试，同数据集最多一个活动运行。
-- Doris 完整快照替换、表浏览、受控查询、本人 CSV 导出（24 小时过期）。
-- 首次空批允许；非空→零行默认阻断，管理员可批准本次空覆盖，不能绕过读取/质量错误。当前快照保留，历史最多三份且被替换后最多七天。
+- Doris 全量替换／追加写入、表浏览、受控查询、本人 CSV 导出（24 小时过期）。
+- 全量首次空批允许，非空→零行默认阻断，管理员可批准本次空覆盖；追加零行保留已有数据。两者都不能绕过读取／质量错误。当前快照保留，历史最多三份且被替换后最多七天。
 
-OceanBase（MySQL 模式）和 Cron/间隔调度已本地实现并验收；一期继续客户环境、K8s 部署和 Crest 消费验证。暂缓 CDC/增量/upsert、依赖编排/补数、多工作区、数据服务及 OceanBase Oracle 模式。SQL 数据集支持单条只读查询，可使用 CTE、关联、聚合、窗口函数和子查询；入库数据集支持 Cron/固定间隔计划并持久化到 PostgreSQL。自动重试、任务依赖和补数仍暂缓。投产验证后另行规划面向已发布仓库数据的 AI 问数：自然语言对话生成受控 SQL、查询数据、生成图表并给出可追溯分析；当前尚未实现，也不在一期排期内。规划边界见[总体架构 §12.4](docs/architecture.md#124-暂缓能力与后续工作)。未实现入口显示说明。
+OceanBase（MySQL 模式）和 Cron/间隔调度已本地实现并验收；一期继续客户环境、K8s 部署和 Crest 消费验证。暂缓 CDC/水位增量/upsert、依赖编排/补数、多工作区、数据服务及 OceanBase Oracle 模式。SQL 数据集支持单条只读查询，可使用 CTE、关联、聚合、窗口函数和子查询；入库数据集支持 Cron/固定间隔计划并持久化到 PostgreSQL。自动重试、任务依赖和补数仍暂缓。投产验证后另行规划面向已发布仓库数据的 AI 问数：自然语言对话生成受控 SQL、查询数据、生成图表并给出可追溯分析；当前尚未实现，也不在一期排期内。规划边界见[总体架构 §12.4](docs/architecture.md#124-暂缓能力与后续工作)。未实现入口显示说明。
 
 ## 启动真实版本
 
@@ -45,7 +45,7 @@ bash tools/local.sh infra           # 单独准备基础服务
 ## 操作流程
 
 1. 新建 MySQL 源：127.0.0.1:13306 / demo_retail / jiuzhang_reader，密码为 .env 的 SOURCE_READ_PASSWORD。本地关闭 TLS 使用固定公钥；外部源须启用 TLS。服务器不限制数据库主机白名单，但会拒绝未指定、IPv6、未分配、组播及链路本地地址。
-2. 测试/保存→orders→创建数据集→选择表或自定义 SQL→预览取数→保存；清洗、质量和脱敏从数据集详情配置，再单独发布。入库数据集发布后可手动运行，也可在任务中心启用 Cron 或固定间隔计划。
+2. 测试/保存→orders→创建数据集→在页内填写名称／提供方式／全量或追加，选择表或自定义 SQL→预览取数→直接保存草稿；清洗、质量和脱敏从数据集详情配置，再单独发布。入库数据集发布后可手动运行，也可在任务中心启用 Cron 或固定间隔计划。
 3. 仓库表查看当前快照→SQL 工作台→查询→导出 CSV→导出中心下载。
 
 数据集 SQL 在所选 MySQL/OceanBase MySQL/PostgreSQL 源库执行，支持单条只读 SELECT，包括 CTE、JOIN、子查询、聚合和窗口函数；预览最多 100 行并限制 30 秒/10 MiB，完整入库执行最多 100 万行并受运行超时限制。拒绝多语句、写入语句、锁定读取、变量写入、文件输出及已知副作用函数。仓库 SQL 工作台仍使用独立的有限查询语法。操作细节见[数据集快速指南](docs/dataset-quick-start.md)。
@@ -142,3 +142,12 @@ PostgreSQL 接入后，Maven verify（45 项）、pnpm check（104 项）及带�
 apps/web 前端；apps/api HTTP；apps/worker 执行；modules/platform 后端库；packages/contracts/openapi.yaml 唯一协议；infra/migrations/postgresql 迁移。pnpm/Maven 独立构建。
 
 [总体架构](docs/architecture.md) · [页面矩阵](docs/frontend-page-map.md) · [开发规范](AGENTS.md) · [AI 规范](docs/ai-development.md) · [例会待办](docs/meeting-todos.md)。
+
+追加写入的真实验收（先按上文启动本地栈并完成源初始化，在私有环境加载配置后执行）：
+
+~~~bash
+python3 tools/test-dataset-append.py
+node tools/test-dataset-append-ui.mjs
+~~~
+
+追加不按业务键去重；SQL 决定本次取数范围，定时策略只控制执行时刻。首版复用快照发布，历史结果原样复制进新快照，不重新计算；累计数据越大，复制成本越高。更多规则见[数据集快速指南](docs/dataset-quick-start.md#提供方式与发布)。

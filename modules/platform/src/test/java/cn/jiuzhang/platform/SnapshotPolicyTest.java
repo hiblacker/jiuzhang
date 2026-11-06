@@ -11,6 +11,14 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.*;
 
 class SnapshotPolicyTest {
+    @Test void appendPreservesNamesTypesAndNullabilityWithoutDependingOnColumnOrder() {
+        var id = new SnapshotPolicy.OutputColumn("id", "integer", false);
+        var amount = new SnapshotPolicy.OutputColumn("amount", "decimal(20,4)", true);
+        assertThat(SnapshotPolicy.compatibleOutput(List.of(id, amount), List.of(amount, id))).isTrue();
+        assertThat(SnapshotPolicy.compatibleOutput(List.of(id, amount), List.of(id))).isFalse();
+        assertThat(SnapshotPolicy.compatibleOutput(List.of(id), List.of(new SnapshotPolicy.OutputColumn("id", "string", false)))).isFalse();
+        assertThat(SnapshotPolicy.compatibleOutput(List.of(id), List.of(new SnapshotPolicy.OutputColumn("id", "integer", true)))).isFalse();
+    }
     @Test void emptyFirstLoadAndExplicitOverrideDifferFromAccidentalErasure() {
         assertThat(SnapshotPolicy.requiresEmptyApproval(0, 0, false)).isFalse();
         assertThat(SnapshotPolicy.requiresEmptyApproval(100000, 0, false)).isTrue();

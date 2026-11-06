@@ -11,6 +11,9 @@ public interface WarehousePort {
 
   void append(String physical, List<Field> fields, List<Map<String, Object>> rows);
 
+  /** Copy already-published output unchanged into an isolated, unpublished snapshot. */
+  void copy(String source, String destination, List<Field> fields);
+
   long count(String physical);
 
   void publish(String logical, String physical, List<Field> fields);

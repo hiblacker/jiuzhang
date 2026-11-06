@@ -1,23 +1,36 @@
 <script setup lang="ts">
 const canWrite = useCan('write')
-const canApproveEmpty = useCan('system')
+const hasSystemPermission = useCan('system')
+const canApproveEmpty = computed(() => hasSystemPermission.value && props.writeMode === 'replace')
 const allowEmpty = ref(false)
 const confirmEmpty = ref(false)
 const optionsOpen = ref(false)
 const root = ref<HTMLElement>()
 const allowEmptyCheckbox = ref<CheckboxInst>()
 const requestKey = ref(crypto.randomUUID())
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { NButton, NCheckbox, NPopover, type CheckboxInst } from 'naive-ui'
 import { SlidersHorizontal } from 'lucide-vue-next'
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
 import { useJobActions } from '../composables/use-jobs'
+import type { Model } from '@/shared/api/types'
 import { useCan } from '@/shared/security/permissions'
 import { useI18n } from 'vue-i18n'
-const props = defineProps<{ datasetId: string; disabled?: boolean; compact?: boolean }>()
+const props = defineProps<{
+  datasetId: string
+  disabled?: boolean
+  compact?: boolean
+  writeMode?: Model<'Output'>['writeMode']
+}>()
 const emit = defineEmits<{ started: [id: string] }>()
 const { run } = useJobActions(),
   { t } = useI18n()
+watch(
+  () => props.writeMode,
+  () => {
+    allowEmpty.value = false
+  },
+)
 watch(optionsOpen, async (open) => {
   if (!open) return
   await nextTick()
@@ -36,7 +49,7 @@ async function start(approved = false) {
   try {
     const result = await run.mutateAsync({
       datasetId: props.datasetId,
-      allowEmptySnapshot: allowEmpty.value,
+      allowEmptySnapshot: allowEmpty.value && props.writeMode === 'replace',
       key: requestKey.value,
     })
     requestKey.value = crypto.randomUUID()
@@ -48,6 +61,9 @@ async function start(approved = false) {
 </script>
 <template>
   <div ref="root" class="run-trigger">
+    <span v-if="writeMode && !compact">{{
+      writeMode === 'append' ? t('jobs.writeModes.append') : t('jobs.writeModes.replace')
+    }}</span>
     <NButton
       type="primary"
       size="small"

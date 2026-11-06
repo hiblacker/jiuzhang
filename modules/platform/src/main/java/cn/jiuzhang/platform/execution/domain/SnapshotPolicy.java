@@ -13,8 +13,14 @@ public final class SnapshotPolicy {
     public record SourceColumn(String name, String type, long precision, int scale,
                                long length, boolean nullable) {}
     public record HistoricalSnapshot(String id, Instant replacedAt) {}
+    public record OutputColumn(String name, String type, boolean nullable) {}
 
     private SnapshotPolicy() {}
+
+    /** Column order may change; names, types and nullability must preserve stored values. */
+    public static boolean compatibleOutput(List<OutputColumn> previous, List<OutputColumn> next) {
+        return previous.size() == next.size() && new java.util.HashSet<>(previous).equals(new java.util.HashSet<>(next));
+    }
 
     public static boolean requiresEmptyApproval(long previousRows, long nextRows, boolean allowed) {
         if (previousRows < 0 || nextRows < 0) throw new IllegalArgumentException("Negative row count");

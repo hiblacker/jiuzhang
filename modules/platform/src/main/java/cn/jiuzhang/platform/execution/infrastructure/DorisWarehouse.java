@@ -87,6 +87,11 @@ public class DorisWarehouse implements WarehousePort {
     }
   }
 
+  public void copy(String source, String destination, List<Field> fields) {
+    String selected = columns(fields.stream().filter(Field::output).map(Field::target).toList());
+    execute("INSERT INTO " + q(destination) + " (" + selected + ") SELECT " + selected + " FROM " + q(source));
+  }
+
   public long count(String physical) {
     try (var c = open();
         var s = c.createStatement()) {

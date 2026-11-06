@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Layers, Plus, Save } from 'lucide-vue-next'
@@ -9,13 +9,14 @@ import {
   NForm,
   NFormItem,
   NInput,
-  NModal,
   NSelect,
   NTag,
   type FormInst,
+  type InputInst,
 } from 'naive-ui'
 import {
   useDatasetEditor,
+  useDatasetVersion,
   sourceFieldType,
   DatasetSqlWorkspace,
   DatasetPreviewPanel,
@@ -41,7 +42,10 @@ const submitting = ref(false)
 const requestBusy = computed(() => save.isPending.value || preview.isPending.value)
 const busy = computed(() => requestBusy.value || submitting.value)
 const form = ref<FormInst>()
-const saving = ref(false)
+const nameInput = ref<InputInst>()
+const publishedVersion = useDatasetVersion(id, () =>
+  String(query.data.value?.publishedVersion || ''),
+)
 const sqlWorkspace = ref<InstanceType<typeof DatasetSqlWorkspace>>()
 const referenceId = ref('')
 const selectedObject = computed(() =>
@@ -171,10 +175,14 @@ async function submit() {
     await form.value?.validate()
     if (!preview.definitionCurrent.value && !(await define())) return
     const saved = await save.mutateAsync()
-    saving.value = false
     submitting.value = false
     await router.push('/datasets/' + saved.id)
   } catch {
+    if (!draft.value.name.trim()) {
+      submitting.value = false
+      await nextTick()
+      nameInput.value?.focus()
+    }
   } finally {
     submitting.value = false
   }
@@ -197,8 +205,13 @@ useEditGuard(dirty, busy)
         <NButton :disabled="busy" @click="router.push(id ? '/datasets/' + id : '/datasets')">{{
           t('datasets.editor.exit')
         }}</NButton>
-        <NButton type="primary" :disabled="!definitionReady || busy" @click="saving = true">
-          <template #icon><Save :size="16" /></template>{{ t('save') }}
+        <NButton
+          type="primary"
+          :disabled="!definitionReady || busy"
+          :loading="submitting"
+          @click="submit"
+        >
+          <template #icon><Save :size="16" /></template>{{ t('ui.dataset_editor_4cd30ef9') }}
         </NButton>
       </div>
     </header>
@@ -207,6 +220,60 @@ useEditGuard(dirty, busy)
       :error="query.error.value"
       @retry="query.refetch()"
     >
+      <NForm
+        ref="form"
+        class="editor-settings"
+        :model="draft"
+        label-placement="top"
+        :disabled="busy"
+        :rules="{
+          name: {
+            required: true,
+            validator: (_rule, value: string) => !!value?.trim(),
+            message: t('ui.dataset_editor_505e9598'),
+            trigger: 'blur',
+          },
+        }"
+      >
+        <DatasetDeliverySettings
+          v-model="draft.definition"
+          :subject-domain-label="t('warehouse.subjectDomain')"
+          :subject-domain-hint="t('warehouse.domainHint')"
+          :locked="(query.data.value?.publishedVersion ?? 0) > 0"
+          :disabled="busy"
+          :published-output="publishedVersion.data.value?.definition.output"
+          :published-version="query.data.value?.publishedVersion"
+        >
+          <template #identity>
+            <NFormItem :label="t('ui.dataset_editor_5aa625bf')" path="name">
+              <NInput
+                ref="nameInput"
+                v-model:value="draft.name"
+                :input-props="{ 'aria-label': t('ui.dataset_editor_5aa625bf') }"
+              />
+            </NFormItem>
+          </template>
+          <template #metadata>
+            <NFormItem :label="t('ui.dataset_editor_974d383f')" :show-feedback="false"
+              ><NInput
+                v-model:value="draft.owner"
+                :input-props="{ 'aria-label': t('ui.dataset_editor_974d383f') }"
+            /></NFormItem>
+            <NFormItem :label="t('ui.dataset_editor_ae0a7afe')" :show-feedback="false"
+              ><TagEditor v-model="draft.tags" :disabled="busy"
+            /></NFormItem>
+            <NFormItem :label="t('ui.dataset_editor_26670dda')" :show-feedback="false"
+              ><NInput
+                v-model:value="draft.description"
+                :input-props="{ 'aria-label': t('ui.dataset_editor_26670dda') }"
+            /></NFormItem>
+          </template>
+        </DatasetDeliverySettings>
+        <NAlert v-if="publishedVersion.isError.value" type="warning" :show-icon="false"
+          >{{ t('datasets.output.activeLoadFailed') }}
+          <NButton text @click="publishedVersion.refetch()">{{ t('retry') }}</NButton></NAlert
+        >
+      </NForm>
       <main class="editor-main">
         <aside class="definition-sidebar">
           <div class="definition-settings">
@@ -337,71 +404,6 @@ useEditGuard(dirty, busy)
         </section>
       </main>
     </AsyncState>
-    <NModal
-      :aria-label="t('datasets.editor.deliver')"
-      :show="saving"
-      preset="card"
-      class="dataset-save-dialog"
-      :title="t('datasets.editor.deliver')"
-      :style="{ width: '680px', maxHeight: '85vh', overflowY: 'auto' }"
-      :closable="!busy"
-      :mask-closable="!busy"
-      :close-on-esc="!busy"
-      @update:show="saving = $event"
-    >
-      <NForm
-        ref="form"
-        :model="draft"
-        label-placement="top"
-        :disabled="busy"
-        :rules="{
-          name: {
-            required: true,
-            validator: (_rule, value: string) => !!value?.trim(),
-            message: t('ui.dataset_editor_505e9598'),
-            trigger: 'blur',
-          },
-        }"
-      >
-        <NFormItem :label="t('ui.dataset_editor_5aa625bf')" path="name"
-          ><NInput
-            v-model:value="draft.name"
-            :input-props="{ 'aria-label': t('ui.dataset_editor_5aa625bf') }"
-        /></NFormItem>
-        <NFormItem :label="t('ui.dataset_editor_974d383f')"
-          ><NInput
-            v-model:value="draft.owner"
-            :input-props="{ 'aria-label': t('ui.dataset_editor_974d383f') }"
-        /></NFormItem>
-        <NFormItem :label="t('ui.dataset_editor_ae0a7afe')"
-          ><TagEditor v-model="draft.tags" :disabled="busy"
-        /></NFormItem>
-        <NFormItem :label="t('ui.dataset_editor_26670dda')"
-          ><NInput
-            v-model:value="draft.description"
-            :input-props="{ 'aria-label': t('ui.dataset_editor_26670dda') }"
-        /></NFormItem>
-        <DatasetDeliverySettings
-          v-model="draft.definition"
-          :subject-domain-label="t('warehouse.subjectDomain')"
-          :subject-domain-hint="t('warehouse.domainHint')"
-          :locked="(query.data.value?.publishedVersion ?? 0) > 0"
-          :disabled="busy"
-        />
-      </NForm>
-      <template #footer
-        ><div class="save-actions">
-          <NButton :disabled="busy" @click="saving = false">{{ t('cancel') }}</NButton
-          ><NButton
-            type="primary"
-            :disabled="!definitionReady || busy"
-            :loading="busy"
-            @click="submit"
-            >{{ t('ui.dataset_editor_4cd30ef9') }}</NButton
-          >
-        </div></template
-      >
-    </NModal>
   </div>
 </template>
 <style scoped>
@@ -422,8 +424,7 @@ useEditGuard(dirty, busy)
 }
 .editor-header,
 .editor-identity,
-.header-actions,
-.save-actions {
+.header-actions {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -442,6 +443,14 @@ h1 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.editor-settings {
+  flex-shrink: 0;
+  max-height: 42vh;
+  overflow: auto;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surfaceRaised);
 }
 .editor-main {
   display: grid;
@@ -535,8 +544,5 @@ h1 {
 .table-preview {
   flex: 1;
   min-height: 0;
-}
-.save-actions {
-  justify-content: flex-end;
 }
 </style>

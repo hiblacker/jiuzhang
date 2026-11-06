@@ -26,6 +26,6 @@ const mode = computed(() => {
         output.keys.join('、') || t('datasets.output.noKeys')
       }}</NDescriptionsItem>
     </ResponsiveDescriptions>
-    <NAlert type="info">{{ t('datasets.realOutput') }}</NAlert>
+    <NAlert type="info">{{ mode.description }}</NAlert>
   </section>
 </template>

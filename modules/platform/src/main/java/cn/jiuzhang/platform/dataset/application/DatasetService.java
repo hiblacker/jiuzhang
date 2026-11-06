@@ -410,7 +410,7 @@ public class DatasetService {
       if (timeout < 1 || timeout > 600) throw new Failure(422, "TIMEOUT_LIMIT");
       var o = map(d, "output");
       if (requireWarehouseOutput && delivery.equals("warehouse")) {
-        if (!text(o, "writeMode").equals("replace"))
+        if (!Set.of("replace", "append").contains(text(o, "writeMode")))
           throw new Failure(422, "OUTPUT_UNSUPPORTED");
         if (!text(o, "table").matches("[a-zA-Z_][a-zA-Z0-9_]{0,55}")
             || text(o, "table").startsWith("jz_"))

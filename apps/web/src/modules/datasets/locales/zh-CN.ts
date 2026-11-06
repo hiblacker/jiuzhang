@@ -7,6 +7,9 @@ export default {
       define: '定义取数',
       process: '清洗与脱敏',
       deliver: '保存数据集',
+      moreInformation: '更多信息',
+      lessInformation: '收起更多信息',
+      warehouseSettings: '入库设置',
       steps: '数据集配置步骤',
       unsaved: '未保存',
       draft: '草稿',
@@ -47,7 +50,7 @@ export default {
       },
     },
     realOutput:
-      '完整读取、质量检查与脱敏后发布独立快照；成功后替换当前数据，失败不影响旧快照。旧快照最多保留 3 份且不超过 7 天。',
+      '完整读取、质量检查与脱敏后，按发布版本的写入方式发布结果；失败不影响当前数据。旧快照最多保留 3 份且不超过 7 天。',
     realScope:
       '支持 MySQL 表、只读 SQL 和 Excel 工作表；可选择直连读取，或全量快照入库并按任务计划自动运行。入库目标表必须独占，首次发布后固定。',
     related: {
@@ -93,14 +96,25 @@ export default {
     scheduleUnsupported: '定时计划在任务中心配置；数据集发布后才会按计划运行。',
     output: {
       summary: '输出写入配置',
-      mode: '写入语义',
+      mode: '写入方式',
+      published: '当前生效的入库设置',
+      unpublished: '尚未发布，以下为草稿设置。',
+      activeVersion: '当前生效：{mode} · 已发布 v{version}',
+      pendingChange: '草稿修改，发布后生效',
+      replaceWarning: '切换为全量替换后，新建运行成功时将替换目标表全部已有数据。',
+      activeLoadFailed: '读取当前生效配置失败，请重试。',
+      publishVersion: '将创建发布版本 v{version}。',
+      publishMode: '写入方式：{mode}。',
+      publishChange: '写入方式：{before} → {after}。',
+      publishBoundary:
+        '发布本身不修改数据。发布后新建的运行使用此版本，已创建的运行仍按原版本执行。',
       keys: '业务主键',
       noKeys: '未配置',
-      append: '追加',
+      append: '追加写入',
       replace: '全量替换',
       upsert: '按主键更新',
-      appendHelp: '保留目标表已有行，追加本次输出；业务主键相同的行也会保留。',
-      replaceHelp: '用本次全部输出替换目标表已有样本；业务日期用于分区标记，不代表只替换该分区。',
+      appendHelp: '保留已有数据，追加本次结果。重复记录也会写入。',
+      replaceHelp: '每次成功运行，用本次结果替换全部已有数据。',
       upsertHelp:
         '按全部业务主键组合更新相同行，插入新键，并保留本次未出现的旧键；业务主键必须输出且不能为空。',
       boundary: '运行使用绑定发布版本的配置；草稿修改须重新发布后生效。目标表必须由该数据集独占。',

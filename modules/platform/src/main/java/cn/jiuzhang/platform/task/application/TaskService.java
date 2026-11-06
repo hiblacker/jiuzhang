@@ -44,7 +44,7 @@ public class TaskService {
 
   private Map<String, Object> view(Map<String, Object> task) {
     var result = new java.util.LinkedHashMap<String, Object>();
-    for (String key : List.of("id", "name", "description", "owner", "tags", "updatedAt", "datasetId", "enabled", "schedule", "lastSuccessRunId", "lastSuccessAt", "nextRunAt"))
+    for (String key : List.of("id", "name", "description", "owner", "tags", "updatedAt", "datasetId", "enabled", "schedule", "lastSuccessRunId", "lastSuccessAt", "nextRunAt", "datasetVersion", "writeMode"))
       result.put(key, task.get(key));
     return result;
   }

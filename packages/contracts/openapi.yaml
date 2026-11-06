@@ -14415,6 +14415,15 @@
               "null"
             ],
             "pattern": "^[0-9]+$"
+          },
+          "publishedWriteMode": {
+            "type": "string",
+            "enum": [
+              "replace",
+              "append"
+            ],
+            "readOnly": true,
+            "description": "最新已发布版本的写入方式；未发布时不返回，与草稿的 output.writeMode 独立。"
           }
         },
         "required": [
@@ -14613,6 +14622,21 @@
             "format": "date-time",
             "readOnly": true,
             "description": "Next scheduled UTC instant; null for manual/paused schedules."
+          },
+          "writeMode": {
+            "type": "string",
+            "enum": [
+              "replace",
+              "append"
+            ],
+            "readOnly": true,
+            "description": "任务使用最新发布版本的写入方式；运行使用其绑定发布版本的写入方式，不读取当前草稿。"
+          },
+          "datasetVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "readOnly": true,
+            "description": "当前任务将使用的数据集已发布版本。"
           }
         },
         "required": [
@@ -14841,6 +14865,15 @@
             "type": "boolean",
             "readOnly": true,
             "description": "Automatic retry is pending but the task is paused."
+          },
+          "writeMode": {
+            "type": "string",
+            "enum": [
+              "replace",
+              "append"
+            ],
+            "readOnly": true,
+            "description": "任务使用最新发布版本的写入方式；运行使用其绑定发布版本的写入方式，不读取当前草稿。"
           }
         },
         "required": [

@@ -42,8 +42,7 @@ page.on("response", async (response) => {
   }
 });
 const editor = () => page.getByLabel("数据集 SQL 编辑器", { exact: true });
-const saveDialog = () =>
-  page.getByRole("dialog", { name: "保存数据集", exact: true });
+const configuration = () => page.locator(".editor-settings");
 
 async function preview(action) {
   const pending = page.waitForResponse(
@@ -119,10 +118,6 @@ async function checkViewport() {
     page.getByRole("checkbox", { name: "去除首尾空白", exact: true }),
   ).toHaveCount(0);
 }
-async function openSave() {
-  await page.getByRole("button", { name: "保存", exact: true }).click();
-  await saveDialog().waitFor();
-}
 async function save(doubleClick = false) {
   const previousWriteCount = datasetWriteRequests.length;
   const response = page.waitForResponse(
@@ -130,7 +125,7 @@ async function save(doubleClick = false) {
       /\/api\/v1\/datasets(?:\/\d+)?$/.test(r.url()) &&
       ["POST", "PATCH"].includes(r.request().method()),
   );
-  const saveButton = saveDialog().getByRole("button", {
+  const saveButton = page.getByRole("button", {
     name: "保存草稿",
     exact: true,
   });
@@ -254,23 +249,16 @@ try {
     .toBe(true);
   await expect(page.locator(".n-base-select-option")).toHaveCount(1);
   await page.locator(".n-base-select-option").click();
-  await openSave();
-  await saveDialog()
-    .getByRole("button", { name: "保存草稿", exact: true })
-    .click();
-  await saveDialog().getByText("请填写数据集名称", { exact: true }).waitFor();
-  await saveDialog()
-    .getByLabel("数据集名称", { exact: true })
-    .fill("browser_visual_" + stamp);
-  await saveDialog()
-    .getByLabel("目标表", { exact: true })
-    .fill("browser_visual_" + stamp);
-  await saveDialog().getByRole("button", { name: "取消", exact: true }).click();
-  await expect(saveDialog()).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "保存", exact: true }),
-  ).toBeFocused();
-  await openSave();
+  await expect(page.getByRole("dialog", { name: "保存数据集", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "保存草稿", exact: true }).click();
+  await configuration().getByText("请填写数据集名称", { exact: true }).waitFor();
+  await expect(configuration().getByLabel("数据集名称", { exact: true })).toBeFocused();
+  await configuration().getByLabel("数据集名称", { exact: true }).fill("browser_visual_" + stamp);
+  await configuration().getByLabel("目标表", { exact: true }).fill("browser_visual_" + stamp);
+  await configuration().getByRole("button", { name: "更多信息", exact: true }).click();
+  await configuration().getByLabel("负责人", { exact: true }).fill("inline_owner");
+  await configuration().getByRole("button", { name: "收起更多信息", exact: true }).click();
+  await expect(configuration().getByLabel("负责人", { exact: true })).toHaveCount(0);
   const visual = await save(true);
   if (
     visual.definition.cleaning.length ||
@@ -280,6 +268,7 @@ try {
     throw new Error("Creation applied processing");
   await publish();
   const visualUrl = page.url();
+  expect(visual.owner).toBe("inline_owner");
 
   await page.goto("http://localhost:5175/datasets/new?sourceId=" + source.id);
   await setMode();
@@ -352,7 +341,7 @@ try {
     sidebar.x !== 0 ||
     workspace.x !== 280 ||
     sqlBox.width < 900 ||
-    resultsBox.height < 360 ||
+    resultsBox.height < 220 ||
     resultsBox.y <= sqlBox.y
   )
     throw new Error("Two-column workspace layout is incorrect");
@@ -440,11 +429,10 @@ try {
   );
   await editor().press("Control+Enter");
   await successful(await keyboardRequest);
-  await openSave();
-  await saveDialog()
+  await configuration()
     .getByLabel("数据集名称", { exact: true })
     .fill("browser_sql_direct_" + stamp);
-  await saveDialog()
+  await configuration()
     .getByRole("button", { name: "提供方式", exact: true })
     .click();
   await page.getByText("直连数据源", { exact: true }).click();
@@ -482,7 +470,6 @@ try {
   await successful(
     await runSql("SELECT id, amount, phone FROM orders LIMIT 10"),
   );
-  await openSave();
   await save();
   await page
     .getByRole("button", { name: "配置清洗与脱敏", exact: true })
@@ -529,11 +516,9 @@ try {
   await page.getByText("12345.6700", { exact: true }).waitFor();
   await page.goto(directUrl + "/edit");
   await checkViewport();
-  await openSave();
   await expect(
-    saveDialog().getByRole("button", { name: "提供方式", exact: true }),
+    configuration().getByRole("button", { name: "提供方式", exact: true }),
   ).toBeDisabled();
-  await saveDialog().getByRole("button", { name: "取消", exact: true }).click();
   await editor().fill("SELECT id FROM orders");
   page.once("dialog", (dialog) => dialog.dismiss());
   await page.getByRole("button", { name: "退出编辑", exact: true }).click();
@@ -545,8 +530,7 @@ try {
   await successful(
     await runSql("SELECT id, amount, phone FROM orders LIMIT 10"),
   );
-  await openSave();
-  await saveDialog()
+  await configuration()
     .getByLabel("数据集名称", { exact: true })
     .fill("browser_sql_updated_" + stamp);
   const updated = await save();
@@ -558,14 +542,12 @@ try {
   )
     throw new Error("Definition save discarded downstream processing");
   await page.goto(visualUrl + "/edit");
-  await openSave();
   await expect(
-    saveDialog().getByLabel("目标表", { exact: true }),
+    configuration().getByLabel("目标表", { exact: true }),
   ).toBeDisabled();
   await expect(
-    saveDialog().getByRole("button", { name: "提供方式", exact: true }),
+    configuration().getByRole("button", { name: "提供方式", exact: true }),
   ).toBeDisabled();
-  await saveDialog().getByRole("button", { name: "取消", exact: true }).click();
   await page.getByRole("button", { name: "退出编辑", exact: true }).click();
   await page.waitForURL(visualUrl);
   if (errors.length)

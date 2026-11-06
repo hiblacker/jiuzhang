@@ -129,6 +129,7 @@ public class RunService {
             "datasetId",
             "datasetName",
             "datasetVersion",
+            "writeMode",
             "retryOf",
             "status",
             "startedAt",

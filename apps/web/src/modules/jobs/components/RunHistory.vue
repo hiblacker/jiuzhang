@@ -35,6 +35,21 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
         () => run.id,
       ),
   },
+  {
+    title: t('jobs.runWriteMode'),
+    key: 'writeMode',
+    width: 130,
+    render: (run) => {
+      if (!run.writeMode) return '—'
+      return run.writeMode === 'append' ? t('jobs.writeModes.append') : t('jobs.writeModes.replace')
+    },
+  },
+  {
+    title: t('jobs.runRows'),
+    key: 'rowCount',
+    width: 130,
+    render: (run) => (run.status === 'succeeded' ? run.rowCount : '—'),
+  },
   { title: t('status'), key: 'status', width: 100, render: (run) => t('states.' + run.status) },
   { title: t('jobs.dataset'), key: 'datasetName', width: 180, ellipsis: { tooltip: true } },
   {
@@ -63,7 +78,7 @@ const columns = computed<DataTableColumns<Model<'Run'>>>(() => [
         :columns="columns"
         :data="query.data.value?.data ?? []"
         :row-key="(run) => run.id"
-        :scroll-x="700"
+        :scroll-x="960"
         :bordered="false"
       />
     </AsyncState>

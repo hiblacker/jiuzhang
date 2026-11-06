@@ -68,6 +68,17 @@ const columns = computed<DataTableColumns<Model<'Task'>>>(() => [
       ),
   },
   {
+    title: uiText('jobs.runWriteMode'),
+    key: 'writeMode',
+    width: 130,
+    render: (task) => {
+      if (!task.writeMode) return '—'
+      return task.writeMode === 'append'
+        ? uiText('jobs.writeModes.append')
+        : uiText('jobs.writeModes.replace')
+    },
+  },
+  {
     title: uiText('ui.tasks_36019dc2'),
     key: 'schedule',
     minWidth: 160,
@@ -119,6 +130,7 @@ const columns = computed<DataTableColumns<Model<'Task'>>>(() => [
           () => (t.enabled ? uiText('ui.tasks_130448bc') : uiText('ui.tasks_79748ca1')),
         ),
         h(RunTrigger, {
+          writeMode: t.writeMode,
           datasetId: t.datasetId,
           compact: true,
           onStarted: (id: string) => router.push('/runs/' + id),

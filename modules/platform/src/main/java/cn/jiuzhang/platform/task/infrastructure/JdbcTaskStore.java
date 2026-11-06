@@ -272,7 +272,7 @@ public class JdbcTaskStore implements TaskStore {
   }
 
   private String baseSql() {
-    return "SELECT d.id AS dataset_id,d.name AS dataset_name,d.description AS dataset_description,d.owner_label AS dataset_owner,d.tags AS dataset_tags,d.published_version,s.owner_id,s.enabled,s.name,s.description,s.owner_label,s.tags,s.schedule AS schedule_json,s.next_run_at,s.last_success_run_id,s.last_success_at,s.updated_at,s.revision FROM dataset d JOIN dataset_schedule s ON s.dataset_id=d.id";
+    return "SELECT d.id AS dataset_id,d.name AS dataset_name,d.description AS dataset_description,d.owner_label AS dataset_owner,d.tags AS dataset_tags,d.published_version,v.body #>> '{definition,output,writeMode}' AS write_mode,s.owner_id,s.enabled,s.name,s.description,s.owner_label,s.tags,s.schedule AS schedule_json,s.next_run_at,s.last_success_run_id,s.last_success_at,s.updated_at,s.revision FROM dataset d JOIN dataset_schedule s ON s.dataset_id=d.id LEFT JOIN dataset_version v ON v.dataset_id=d.id AND v.version=d.published_version";
   }
 
   private String warehouseDatasetClause() {
@@ -299,6 +299,7 @@ public class JdbcTaskStore implements TaskStore {
     m.put("lastSuccessAt", instant(row.get("last_success_at")));
     m.put("nextRunAt", instant(row.get("next_run_at")));
     m.put("datasetVersion", row.get("published_version"));
+    m.put("writeMode", row.get("write_mode"));
     m.put("_revision", row.get("revision"));
     m.put("ownerId", row.get("owner_id") == null ? "" : row.get("owner_id").toString());
     return m;

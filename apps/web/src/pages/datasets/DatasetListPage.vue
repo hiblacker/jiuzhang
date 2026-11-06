@@ -164,6 +164,7 @@ const columns = computed<DataTableColumns<Model<'Dataset'>>>(() => [
           : [
               h(RunTrigger, {
                 datasetId: dataset.id,
+                writeMode: dataset.publishedWriteMode,
                 compact: true,
                 disabled: !dataset.publishedVersion,
                 onStarted: (id: string) => router.push('/runs/' + id),

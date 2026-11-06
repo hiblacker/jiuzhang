@@ -86,6 +86,13 @@ const retryable = computed(() =>
             "
             >v{{ query.data.value?.datasetVersion }}</NButton
           ></NDescriptionsItem
+        ><NDescriptionsItem :label="t('jobs.runWriteMode')">{{
+          query.data.value?.writeMode
+            ? query.data.value.writeMode === 'append'
+              ? t('jobs.writeModes.append')
+              : t('jobs.writeModes.replace')
+            : '—'
+        }}</NDescriptionsItem
         ><NDescriptionsItem label="Run ID">{{ id }}<CopyButton :value="id" /></NDescriptionsItem
         ><NDescriptionsItem :label="t('jobs.businessDate')"
           >{{ query.data.value?.businessDate ?? '—' }} ·
@@ -148,9 +155,16 @@ const retryable = computed(() =>
             @click="router.push('/warehouse/tables/' + query.data.value.outputTableId)"
             >{{ query.data.value.outputTableId }}</NButton
           ><span v-else>{{ uiText('ui.run_detail_ff233aab') }}</span></NDescriptionsItem
-        ><NDescriptionsItem :label="uiText('ui.run_detail_05799576')">{{
-          query.data.value?.rowCount
-        }}</NDescriptionsItem></ResponsiveDescriptions
+        ><NDescriptionsItem
+          :label="
+            query.data.value?.status !== 'succeeded'
+              ? t('jobs.processedRows')
+              : query.data.value.writeMode === 'append'
+                ? t('jobs.appendedRows')
+                : t('jobs.replacedRows')
+          "
+          >{{ query.data.value?.rowCount }}</NDescriptionsItem
+        ></ResponsiveDescriptions
       ><NSteps :current="step" :status="retryable ? 'error' : 'process'" style="margin-top: 32px"
         ><NStep :title="uiText('ui.run_detail_cfb281f6')" /><NStep
           :title="uiText('ui.run_detail_b6b97ac6')" /><NStep
@@ -163,8 +177,22 @@ const retryable = computed(() =>
         : t('jobs.waitingConcurrency')
     }}</NAlert
     ><NAlert v-if="query.data.value?.errorCode" type="warning" class="mb"
-      >{{ query.data.value.errorCode }}{{ uiText('ui.run_detail_057a1285') }}</NAlert
-    ><NCard :title="uiText('ui.run_detail_560d2c9f')" :bordered="false" class="mb">
+      >{{
+        query.data.value.errorCode === 'APPEND_SCHEMA_MISMATCH'
+          ? t('errors.APPEND_SCHEMA_MISMATCH')
+          : query.data.value.errorCode
+      }}{{ uiText('ui.run_detail_057a1285') }}</NAlert
+    ><NAlert
+      v-if="
+        query.data.value?.status === 'succeeded' &&
+        query.data.value.writeMode === 'append' &&
+        query.data.value.rowCount === '0'
+      "
+      type="info"
+      class="mb"
+      >{{ t('jobs.appendEmpty') }}</NAlert
+    >
+    <NCard :title="uiText('ui.run_detail_560d2c9f')" :bordered="false" class="mb">
       <pre class="run-log">{{
         query.data.value?.logs
           .map((line, i) => String(i + 1).padStart(2, '0') + '  ' + line)

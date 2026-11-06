@@ -119,6 +119,7 @@ async function toggle() {
       <RunTrigger
         v-if="query.data.value"
         :dataset-id="query.data.value.datasetId"
+        :write-mode="query.data.value.writeMode"
         @started="router.push('/runs/' + $event)"
       />
     </template>
@@ -126,6 +127,23 @@ async function toggle() {
 
   <AsyncState :loading="query.isLoading.value" :error="query.error.value" @retry="query.refetch()">
     <NCard :bordered="false">
+      <NAlert v-if="query.data.value?.writeMode" type="info" class="mb" :show-icon="false">
+        {{
+          uiText('jobs.publishedWriteMode', {
+            version: query.data.value.datasetVersion,
+            mode:
+              query.data.value.writeMode === 'append'
+                ? uiText('jobs.writeModes.append')
+                : uiText('jobs.writeModes.replace'),
+          })
+        }}
+        <NButton
+          text
+          type="primary"
+          @click="router.push('/datasets/' + query.data.value!.datasetId + '/edit')"
+          >{{ uiText('jobs.editDataset') }}</NButton
+        >
+      </NAlert>
       <NAlert v-if="!editing" type="info" class="mb">
         {{ uiText('ui.task_scheduleNote') }}
       </NAlert>

@@ -82,6 +82,7 @@ public class ExecutionEngine {
       var version = datasets.version(dataset, integer(run, "datasetVersion"));
       var d = map(version, "definition");
       var plan = service.executable(version);
+      boolean append = text(map(d, "output"), "writeMode").equals("append");
       if (publishing) {
         var snapshot = runs.snapshot(id);
         publish(id, dataset, token, text(snapshot, "physical"), plan);
@@ -174,7 +175,23 @@ public class ExecutionEngine {
       if (warehouse.count(physical) != count[0])
         throw new Failure(422, "WAREHOUSE_ROW_COUNT_MISMATCH");
       var current = runs.current(dataset);
-      if (SnapshotPolicy.requiresEmptyApproval(
+      long total = count[0];
+      if (append && current != null) {
+        var previous = objects(current, "fields").stream()
+            .map(f -> new SnapshotPolicy.OutputColumn(text(f, "target"), text(f, "type"), bool(f, "nullable")))
+            .toList();
+        var next = plan.fields().stream().filter(DatasetPlan.Field::output)
+            .map(f -> new SnapshotPolicy.OutputColumn(f.target(), f.type(), f.nullable())).toList();
+        if (!SnapshotPolicy.compatibleOutput(previous, next))
+          throw new Failure(422, "APPEND_SCHEMA_MISMATCH");
+        if (leaseLost.get()) throw new Failure(409, "RUN_LEASE_LOST");
+        if (runs.canceled(id, token)) throw new Failure(409, "RUN_CANCELED");
+        warehouse.copy(text(current, "physical"), physical, plan.fields());
+        total = Math.addExact(total, Long.parseLong(text(current, "rowCount")));
+        if (warehouse.count(physical) != total)
+          throw new Failure(422, "WAREHOUSE_ROW_COUNT_MISMATCH");
+      }
+      if (!append && SnapshotPolicy.requiresEmptyApproval(
           current == null ? 0 : Long.parseLong(text(current, "rowCount")),
           count[0],
           (Boolean) run.get("allowEmpty"))) throw new Failure(409, "EMPTY_SNAPSHOT_BLOCKED");
@@ -183,7 +200,7 @@ public class ExecutionEngine {
           token,
           physical,
           objects(d, "fields").stream().filter(f -> bool(f, "output")).toList(),
-          count[0],
+          total,
           raw);
       publishing = true;
       publish(id, dataset, token, physical, plan);
@@ -204,7 +221,7 @@ public class ExecutionEngine {
             token,
             requested
                 ? "canceled"
-                : Set.of("SCHEMA_CHANGED", "QUALITY_BLOCKED", "EMPTY_SNAPSHOT_BLOCKED")
+                : Set.of("SCHEMA_CHANGED", "APPEND_SCHEMA_MISMATCH", "QUALITY_BLOCKED", "EMPTY_SNAPSHOT_BLOCKED")
                         .contains(code)
                     ? "blocked"
                     : "failed",
