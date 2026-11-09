@@ -50,6 +50,17 @@ bash tools/local.sh infra           # 单独准备基础服务
 
 数据集 SQL 在所选 MySQL/OceanBase MySQL/PostgreSQL 源库执行，支持单条只读 SELECT，包括 CTE、JOIN、子查询、聚合和窗口函数；预览最多 100 行并限制 30 秒/10 MiB，完整入库执行最多 100 万行并受运行超时限制。拒绝多语句、写入语句、锁定读取、变量写入、文件输出及已知副作用函数。仓库 SQL 工作台仍使用独立的有限查询语法。操作细节见[数据集快速指南](docs/dataset-quick-start.md)。
 
+## 演示数据播种（NAS）
+
+`tools/seed-nas-story-defect.py` 向 NAS 上 `devopsv1` 库的 `STORY`/`DEFECT` 写入演示数据（每批新增 20 条 + 推进 8 条状态），供平台定时快照对比使用。它经 SSH 调用容器内的 mysql 客户端，密码取自容器环境变量，不落盘、不进源码；平台本身仍是只读通道。
+
+~~~bash
+python3 tools/seed-nas-story-defect.py --dry-run --print-sql   # 只读采样并打印 SQL
+python3 tools/seed-nas-story-defect.py --apply                # 写入本小时批次，同一 run-id 幂等
+~~~
+
+每行都带 `<!--seed:<run-id>-->` 标记，只有带该标记的行才会被推进状态；`--run-id` 可指定小时桶重放批次。
+
 ## 权限与限制
 
 admin 可管理用户/审计/原始预览和一次空覆盖；developer 可配置/发布/运行；viewer 可读仓库、查询和导出本人结果。当前无逐对象授权和独立 export 权限，私有结果按创建者隔离。敏感输出必须绑定启用脱敏，质量在脱敏前执行。
