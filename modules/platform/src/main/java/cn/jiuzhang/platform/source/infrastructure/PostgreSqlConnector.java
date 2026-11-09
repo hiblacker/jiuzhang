@@ -26,7 +26,9 @@ import org.springframework.stereotype.Component;
 public final class PostgreSqlConnector implements SourceConnector {
     private final int queryTimeoutSeconds;
     private final String rootCertificate;
-    private static final Set<String> TYPES=Set.of("smallint","integer","bigint","boolean","char","varchar","text","date","timestamp","timestamp with time zone","uuid","json","jsonb");
+    // numeric 单独列出：不带精度的 numeric（ORM 里常见的金额列）保持原样，
+    // 由 sourceFieldType 归一到字符串，不再按不支持类型拒绝整张表。
+    private static final Set<String> TYPES=Set.of("smallint","integer","bigint","boolean","char","varchar","text","date","timestamp","timestamp with time zone","uuid","json","jsonb","numeric");
 
     public PostgreSqlConnector(@Value("${JIUZHANG_POSTGRESQL_QUERY_TIMEOUT_SECONDS:300}") int timeout,
                               @Value("${JIUZHANG_POSTGRESQL_SSL_ROOT_CERT:}") String rootCertificate) {
@@ -194,7 +196,7 @@ public final class PostgreSqlConnector implements SourceConnector {
         for(int i=1;i<=metadata.getColumnCount();i++) {
             String name=metadata.getColumnLabel(i);Failure.require(name!=null&&!name.isBlank()&&name.length()<=256&&names.add(name.toLowerCase(Locale.ROOT)),"SQL_COLUMNS_INVALID");
             String nativeType=metadata.getColumnTypeName(i).toLowerCase(Locale.ROOT);
-            String type=switch(nativeType){case "int2"->"smallint";case "int4"->"integer";case "int8"->"bigint";case "bool"->"boolean";case "bpchar"->"char";case "timestamptz"->"timestamp with time zone";default->nativeType;};
+            String type=catalogType(nativeType);
             long precision=0,length=0;int scale=0;
             if(nativeType.equals("numeric")||nativeType.equals("decimal")) {
                 precision=metadata.getPrecision(i);scale=metadata.getScale(i);type="numeric";
@@ -206,7 +208,25 @@ public final class PostgreSqlConnector implements SourceConnector {
         return List.copyOf(columns);
     }
 
-    private void supported(List<Column> columns) {
+    /**
+     * 把 JDBC 元数据里的 PostgreSQL 原生类型名归一成平台类型名。
+     *
+     * serial / bigserial 是 pgjdbc 对「自增列」报出的伪类型名（底层仍是 int4/int8），
+     * 不归一就会让每张带自增主键的表都被判成不支持的类型。
+     */
+    static String catalogType(String nativeType) {
+        return switch(nativeType){
+            case "int2","smallserial","serial2"->"smallint";
+            case "int4","serial","serial4"->"integer";
+            case "int8","bigserial","serial8"->"bigint";
+            case "bool"->"boolean";
+            case "bpchar"->"char";
+            case "timestamptz"->"timestamp with time zone";
+            default->nativeType;
+        };
+    }
+
+    void supported(List<Column> columns) {
         for(var column:columns)if(!TYPES.contains(column.type())&&!column.type().matches("decimal\\([1-9][0-9]?,[0-9]{1,2}\\)"))throw new Failure(422,"SOURCE_COLUMN_TYPE_UNSUPPORTED");
     }
     private List<Column> select(List<Column> columns,List<String> selected) {
