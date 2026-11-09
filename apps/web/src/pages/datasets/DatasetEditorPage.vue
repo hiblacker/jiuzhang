@@ -218,6 +218,16 @@ useEditGuard(dirty, busy)
           :disabled="busy || (!!id && query.isLoading.value)"
         />
         <div class="header-source-controls">
+          <div class="header-source">
+            <span>{{ t('ui.dataset_editor_a3ccf702') }}</span>
+            <SourcePicker
+              compact
+              :value="draft.definition.sourceId"
+              :disabled="busy || (!!id && query.isLoading.value)"
+              :label="t('ui.dataset_editor_a3ccf702')"
+              @update:value="selectSource"
+            />
+          </div>
           <div class="header-definition">
             <span>{{ t('datasets.definitionMode') }}</span>
             <NSelect
@@ -234,16 +244,6 @@ useEditGuard(dirty, busy)
                 },
               ]"
               @update:value="selectDefinitionMode"
-            />
-          </div>
-          <div class="header-source">
-            <span>{{ t('ui.dataset_editor_a3ccf702') }}</span>
-            <SourcePicker
-              compact
-              :value="draft.definition.sourceId"
-              :disabled="busy || (!!id && query.isLoading.value)"
-              :label="t('ui.dataset_editor_a3ccf702')"
-              @update:value="selectSource"
             />
           </div>
         </div>

@@ -122,15 +122,15 @@ async function checkHeaderLayout() {
   const header = page.locator(".editor-header");
   const boxes = await Promise.all([
     header.getByRole("button", { name: "修改数据集名称", exact: true }).boundingBox(),
-    header.getByText("定义方式", { exact: true }).boundingBox(),
-    header.getByRole("button", { name: "定义方式", exact: true }).boundingBox(),
     header.getByText("数据源", { exact: true }).boundingBox(),
     header.getByRole("button", { name: "打开数据源选项", exact: true }).boundingBox(),
+    header.getByText("定义方式", { exact: true }).boundingBox(),
+    header.getByRole("button", { name: "定义方式", exact: true }).boundingBox(),
     header.getByRole("button", { name: "保存草稿", exact: true }).boundingBox(),
   ]);
   if (boxes.some((box) => !box)) throw new Error("Header controls must be visible");
-  const [editIcon, definitionLabel] = boxes;
-  expect(definitionLabel.x - (editIcon.x + editIcon.width)).toBeLessThan(24);
+  const [editIcon, sourceLabel] = boxes;
+  expect(sourceLabel.x - (editIcon.x + editIcon.width)).toBeLessThan(24);
   for (let i = 1; i < boxes.length; i++) {
     const previous = boxes[i - 1];
     const current = boxes[i];
