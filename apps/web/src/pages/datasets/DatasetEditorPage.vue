@@ -217,39 +217,39 @@ useEditGuard(dirty, busy)
           :placeholder="t('ui.dataset_editor_e78bd5fa')"
           :disabled="busy || (!!id && query.isLoading.value)"
         />
+        <div class="header-source-controls">
+          <div class="header-definition">
+            <span>{{ t('datasets.definitionMode') }}</span>
+            <NSelect
+              v-select-trigger-name="t('datasets.definitionMode')"
+              size="small"
+              :value="draft.definition.mode"
+              :disabled="busy || (!!id && query.isLoading.value)"
+              :options="[
+                { label: t('datasets.tableMode'), value: 'visual' },
+                {
+                  label: t('datasets.sqlMode'),
+                  value: 'sql',
+                  disabled: source.data.value?.type === 'Excel',
+                },
+              ]"
+              @update:value="selectDefinitionMode"
+            />
+          </div>
+          <div class="header-source">
+            <span>{{ t('ui.dataset_editor_a3ccf702') }}</span>
+            <SourcePicker
+              compact
+              :value="draft.definition.sourceId"
+              :disabled="busy || (!!id && query.isLoading.value)"
+              :label="t('ui.dataset_editor_a3ccf702')"
+              @update:value="selectSource"
+            />
+          </div>
+        </div>
         <NTag size="small" :bordered="false">{{
           dirty ? t('datasets.editor.unsaved') : t('datasets.editor.draft')
         }}</NTag>
-      </div>
-      <div class="header-source-controls">
-        <div class="header-definition">
-          <span>{{ t('datasets.definitionMode') }}</span>
-          <NSelect
-            v-select-trigger-name="t('datasets.definitionMode')"
-            size="small"
-            :value="draft.definition.mode"
-            :disabled="busy || (!!id && query.isLoading.value)"
-            :options="[
-              { label: t('datasets.tableMode'), value: 'visual' },
-              {
-                label: t('datasets.sqlMode'),
-                value: 'sql',
-                disabled: source.data.value?.type === 'Excel',
-              },
-            ]"
-            @update:value="selectDefinitionMode"
-          />
-        </div>
-        <div class="header-source">
-          <span>{{ t('ui.dataset_editor_a3ccf702') }}</span>
-          <SourcePicker
-            compact
-            :value="draft.definition.sourceId"
-            :disabled="busy || (!!id && query.isLoading.value)"
-            :label="t('ui.dataset_editor_a3ccf702')"
-            @update:value="selectSource"
-          />
-        </div>
       </div>
       <div class="header-actions">
         <slot name="workspace-actions" />
@@ -495,20 +495,24 @@ useEditGuard(dirty, busy)
 .header-source-controls {
   flex-shrink: 0;
   display: flex;
-  align-items: start;
+  align-items: center;
   gap: 12px;
 }
+.header-definition,
+.header-source {
+  display: grid;
+  align-items: center;
+  gap: 8px;
+}
 .header-source-controls span {
-  display: block;
-  margin-bottom: 2px;
   color: var(--textSecondary);
   font-size: 12px;
 }
 .header-definition {
-  width: 132px;
+  grid-template-columns: max-content 132px;
 }
 .header-source {
-  width: 200px;
+  grid-template-columns: max-content 200px;
 }
 .header-actions {
   flex-shrink: 0;

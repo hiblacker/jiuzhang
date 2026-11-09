@@ -118,6 +118,28 @@ async function checkViewport() {
     page.getByRole("checkbox", { name: "去除首尾空白", exact: true }),
   ).toHaveCount(0);
 }
+async function checkHeaderLayout() {
+  const header = page.locator(".editor-header");
+  const boxes = await Promise.all([
+    header.getByRole("button", { name: "修改数据集名称", exact: true }).boundingBox(),
+    header.getByText("定义方式", { exact: true }).boundingBox(),
+    header.getByRole("button", { name: "定义方式", exact: true }).boundingBox(),
+    header.getByText("数据源", { exact: true }).boundingBox(),
+    header.getByRole("button", { name: "打开数据源选项", exact: true }).boundingBox(),
+    header.getByRole("button", { name: "保存草稿", exact: true }).boundingBox(),
+  ]);
+  if (boxes.some((box) => !box)) throw new Error("Header controls must be visible");
+  const [editIcon, definitionLabel] = boxes;
+  expect(definitionLabel.x - (editIcon.x + editIcon.width)).toBeLessThan(24);
+  for (let i = 1; i < boxes.length; i++) {
+    const previous = boxes[i - 1];
+    const current = boxes[i];
+    expect(current.x).toBeGreaterThanOrEqual(previous.x + previous.width);
+    const centerOffset = current.y + current.height / 2 - previous.y - previous.height / 2;
+    expect(Math.abs(centerOffset)).toBeLessThan(2);
+  }
+  expect(boxes.at(-1).x + boxes.at(-1).width).toBeLessThan(1280);
+}
 async function save(doubleClick = false) {
   const previousWriteCount = datasetWriteRequests.length;
   const response = page.waitForResponse(
@@ -220,9 +242,7 @@ try {
     page.getByRole("button", { name: "读取数据", exact: true }),
   ).toBeEnabled();
   await checkViewport();
-  const header = page.locator(".editor-header");
-  await expect(header.getByRole("button", { name: "定义方式", exact: true })).toBeVisible();
-  await expect(header.getByRole("button", { name: "打开数据源选项", exact: true })).toBeVisible();
+  await checkHeaderLayout();
   await expect(page.getByText("加载更多数据源", { exact: true })).toHaveCount(
     0,
   );
@@ -272,8 +292,12 @@ try {
   await page.getByRole("button", { name: "保存草稿", exact: true }).click();
   await page.locator(".dataset-name-editor").getByText("请填写数据集名称", { exact: true }).waitFor();
   await expect(page.getByLabel("数据集名称", { exact: true })).toBeFocused();
-  await page.getByLabel("数据集名称", { exact: true }).fill("browser_visual_" + stamp);
-  await page.getByLabel("数据集名称", { exact: true }).press("Enter");
+  const name = page.getByLabel("数据集名称", { exact: true });
+  await name.fill("用于验证标题栏布局的长数据集名称".repeat(4));
+  await name.press("Enter");
+  await expect(name).toHaveCount(0);
+  await checkHeaderLayout();
+  await rename("browser_visual_" + stamp);
   await openSettings();
   await configuration().getByLabel("目标表", { exact: true }).fill("browser_visual_" + stamp);
   await configuration().getByRole("button", { name: "更多信息", exact: true }).click();
