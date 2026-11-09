@@ -220,6 +220,9 @@ try {
     page.getByRole("button", { name: "读取数据", exact: true }),
   ).toBeEnabled();
   await checkViewport();
+  const header = page.locator(".editor-header");
+  await expect(header.getByRole("button", { name: "定义方式", exact: true })).toBeVisible();
+  await expect(header.getByRole("button", { name: "打开数据源选项", exact: true })).toBeVisible();
   await expect(page.getByText("加载更多数据源", { exact: true })).toHaveCount(
     0,
   );
@@ -259,6 +262,12 @@ try {
     .toBe(true);
   await expect(page.locator(".n-base-select-option")).toHaveCount(1);
   await page.locator(".n-base-select-option").click();
+  const tables = page.getByRole("complementary", { name: "选择数据表", exact: true });
+  await tables.getByRole("button", { name: "orders", exact: true }).click();
+  await expect(tables.getByRole("button", { name: "orders", exact: true })).toHaveAttribute("aria-current", "true");
+  const keys = page.getByRole("region", { name: "表字段与业务主键", exact: true });
+  await keys.getByRole("button", { name: "业务主键", exact: true }).click();
+  await page.locator(".n-base-select-option").getByText("id", { exact: true }).click();
   await expect(page.getByRole("dialog", { name: "保存数据集", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "保存草稿", exact: true }).click();
   await page.locator(".dataset-name-editor").getByText("请填写数据集名称", { exact: true }).waitFor();
@@ -278,9 +287,44 @@ try {
     visual.definition.qualityRuleIds.length
   )
     throw new Error("Creation applied processing");
-  await publish();
-  const visualUrl = page.url();
+  expect(visual.definition.output.keys).toEqual(["id"]);
   expect(visual.owner).toBe("inline_owner");
+  const visualUrl = page.url();
+  const scheduleTab = page.getByRole("tab", { name: "调度", exact: true });
+  await scheduleTab.click();
+  await expect(page.getByText("发布入库版本后可配置调度。", { exact: true })).toBeVisible();
+  await publish();
+
+  const editSchedule = page.getByRole("button", { name: "配置调度", exact: true });
+  const saveSchedule = page.getByRole("button", { name: "保存配置", exact: true });
+  await editSchedule.click();
+  const scheduleUrl = page.url();
+  await page.getByLabel("调度方式", { exact: true }).click();
+  await page.getByText("Cron", { exact: true }).click();
+  await page.getByLabel("Cron", { exact: true }).fill("60 * * * *");
+  await saveSchedule.click();
+  await expect(page.getByText("请输入合法的五字段数字 Cron", { exact: false })).toBeVisible();
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.getByRole("tab", { name: "概览", exact: true }).click();
+  await expect(page).toHaveURL(scheduleUrl);
+  await expect(page.getByLabel("Cron", { exact: true })).toHaveValue("60 * * * *");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "取消", exact: true }).click();
+  await expect(editSchedule).toBeVisible();
+  await expect(page.getByLabel("Cron", { exact: true })).toHaveCount(0);
+  await editSchedule.click();
+  await page.getByRole("button", { name: "时区", exact: true }).click();
+  await page.getByText("UTC", { exact: true }).click();
+  const taskPath = "/api/v1/tasks/" + visual.id;
+  const schedulePatch = page.waitForResponse((r) => r.url().endsWith(taskPath) && r.request().method() === "PATCH");
+  await saveSchedule.click();
+  const scheduled = await successful(await schedulePatch);
+  expect(Object.keys(scheduled.request().postDataJSON())).toEqual(["schedule"]);
+  await expect(editSchedule).toBeVisible();
+  await expect(page).toHaveURL(scheduleUrl);
+  await page.goto("http://localhost:5175/tasks/" + visual.id + "/edit");
+  await expect(page.getByText("UTC", { exact: true })).toBeVisible();
+  await expect(saveSchedule).toBeVisible();
 
   await page.goto("http://localhost:5175/datasets/new?sourceId=" + source.id);
   await setMode();
@@ -289,10 +333,14 @@ try {
     name: "对象目录",
     exact: true,
   });
+  const reference = page.getByRole("region", { name: "表字段参考", exact: true });
+  await expect(reference.getByRole("heading", { name: "表字段参考", exact: true })).toBeVisible();
+  await expect(reference.getByText("点击目录中的表查看并插入字段。", { exact: true })).toBeVisible();
   await objectCatalog.getByLabel("搜索表名", { exact: true }).fill("orders");
   await objectCatalog
     .getByRole("button", { name: "orders", exact: true })
     .click();
+  await expect(reference.getByText("orders", { exact: true })).toBeVisible();
   const lowerCaseSql = await successful(await runSql("select * from ORDERS"));
   const lowerCaseResult = await lowerCaseSql.json();
   expect(lowerCaseResult.data.rows).toHaveLength(3);
@@ -454,9 +502,11 @@ try {
   const directUrl = page.url();
 
   // Detail owns processing; cancellation protects the saved draft.
-  await page
-    .getByRole("button", { name: "配置清洗与脱敏", exact: true })
-    .click();
+  const processingTab = page.getByRole("tab", { name: "清洗与脱敏", exact: true });
+  const editProcessing = page.getByRole("button", { name: "配置清洗与脱敏", exact: true });
+  await expect(editProcessing).toHaveCount(0);
+  await processingTab.click();
+  await editProcessing.click();
   await page
     .getByLabel("输出名 amount", { exact: true })
     .fill("cancelled_amount");
@@ -483,9 +533,8 @@ try {
     await runSql("SELECT id, amount, phone FROM orders LIMIT 10"),
   );
   await save();
-  await page
-    .getByRole("button", { name: "配置清洗与脱敏", exact: true })
-    .click();
+  await processingTab.click();
+  await editProcessing.click();
   await page.getByLabel("输出名 id", { exact: true }).fill("order_id");
   await page.getByLabel("输出名 amount", { exact: true }).fill("revenue");
   await page
@@ -566,7 +615,7 @@ try {
   if (errors.length)
     throw new Error("Browser runtime errors: " + errors.join("; "));
   console.log(
-    "PASS real dataset browser 1280x1000: single-page table/SQL creation, source search/20 options, completion/alias/insert, selection/themes, SQL shortcut/failure/retry/empty schema, single-write double save, detail processing/masking/cancel, direct/warehouse publish, edit locks/preserved processing",
+    "PASS real dataset browser 1280x1000: header table/SQL creation and business keys, inline scheduling shared with Task Center, source search/20 options, completion/alias/insert, selection/themes, SQL shortcut/failure/retry/empty schema, single-write double save, detail processing/masking/cancel, direct/warehouse publish, edit locks/preserved processing",
   );
 } catch (error) {
   await page.screenshot({

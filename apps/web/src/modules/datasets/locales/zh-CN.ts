@@ -13,6 +13,11 @@ export default {
       rename: '修改数据集名称',
       sidebar: '数据集编辑区',
       sourceTab: '取数',
+      chooseSourceTable: '选择数据表',
+      chooseWorksheet: '选择工作表',
+      tableKeys: '表字段与业务主键',
+      tableKeysHint: '业务主键可选，用于记录字段含义。',
+      chooseReferenceTable: '点击目录中的表查看并插入字段。',
       settingsTab: '设置',
       steps: '数据集配置步骤',
       unsaved: '未保存',
@@ -86,7 +91,7 @@ export default {
     schemaRemoved:
       '已移除不再返回的字段：{fields}。其余配置已保留，请在详情页复核字段处理、规则及输出主键。',
     basicSettings: '基本信息',
-    sourceReference: '源表与字段参考',
+    sourceReference: '表字段参考',
     referenceHint: '选择表名查看字段；此操作不会修改 SQL。',
     deliveryMode: '提供方式',
     directMode: '直连数据源',
@@ -97,7 +102,7 @@ export default {
       '发布后，平台查询接口会按此版本定义读取数据源并返回经过字段处理与脱敏的结果。',
     warehouseHelp:
       '发布后可手动运行，也可在任务中心配置 Cron 或固定间隔，将处理结果写入数仓目标表并替换当前快照。',
-    scheduleUnsupported: '定时计划在任务中心配置；数据集发布后才会按计划运行。',
+    scheduleNeedsPublish: '发布入库版本后可配置调度。',
     output: {
       summary: '输出写入配置',
       mode: '写入方式',

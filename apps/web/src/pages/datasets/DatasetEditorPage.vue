@@ -45,8 +45,14 @@ const referenceId = ref('')
 const selectedObject = computed(() =>
   objects.data.value?.find((o) => o.id === draft.value.definition.objectId),
 )
-const referenceObject = computed(
-  () => objects.data.value?.find((o) => o.id === referenceId.value) ?? objects.data.value?.[0],
+const referenceObject = computed(() => objects.data.value?.find((o) => o.id === referenceId.value))
+const tableKeyOptions = computed(() =>
+  draft.value.definition.fields
+    .filter((field) => field.output)
+    .map(({ name, target }) => ({
+      label: name === target ? name : name + ' → ' + target,
+      value: target,
+    })),
 )
 const sqlDefaultSchema = computed(() => {
   const current = source.data.value
@@ -132,6 +138,7 @@ function selectSource(value: string) {
   draft.value.definition.sourceId = value
   draft.value.definition.objectId = ''
   draft.value.definition.fields = []
+  draft.value.definition.output.keys = []
 }
 function selectObject(value: string) {
   if (busy.value) return
@@ -142,9 +149,11 @@ function selectObject(value: string) {
   if (draft.value.definition.objectId === value) return
   draft.value.definition.objectId = value
   draft.value.definition.fields = []
+  draft.value.definition.output.keys = []
 }
 function selectDefinitionMode(value: 'visual' | 'sql') {
   if (draft.value.definition.mode === value) return
+  if (value === 'sql') referenceId.value = draft.value.definition.objectId
   draft.value.definition.mode = value
   draft.value.definition.fields = []
   draft.value.definition.objectId = ''
@@ -212,6 +221,36 @@ useEditGuard(dirty, busy)
           dirty ? t('datasets.editor.unsaved') : t('datasets.editor.draft')
         }}</NTag>
       </div>
+      <div class="header-source-controls">
+        <div class="header-definition">
+          <span>{{ t('datasets.definitionMode') }}</span>
+          <NSelect
+            v-select-trigger-name="t('datasets.definitionMode')"
+            size="small"
+            :value="draft.definition.mode"
+            :disabled="busy || (!!id && query.isLoading.value)"
+            :options="[
+              { label: t('datasets.tableMode'), value: 'visual' },
+              {
+                label: t('datasets.sqlMode'),
+                value: 'sql',
+                disabled: source.data.value?.type === 'Excel',
+              },
+            ]"
+            @update:value="selectDefinitionMode"
+          />
+        </div>
+        <div class="header-source">
+          <span>{{ t('ui.dataset_editor_a3ccf702') }}</span>
+          <SourcePicker
+            compact
+            :value="draft.definition.sourceId"
+            :disabled="busy || (!!id && query.isLoading.value)"
+            :label="t('ui.dataset_editor_a3ccf702')"
+            @update:value="selectSource"
+          />
+        </div>
+      </div>
       <div class="header-actions">
         <slot name="workspace-actions" />
         <NButton :disabled="busy" @click="router.push(id ? '/datasets/' + id : '/datasets')">{{
@@ -246,32 +285,6 @@ useEditGuard(dirty, busy)
           >
             <NTabPane name="source" :tab="t('datasets.editor.sourceTab')" display-directive="show">
               <div class="source-panel">
-                <div class="definition-settings">
-                  <NFormItem :label="t('datasets.definitionMode')">
-                    <NSelect
-                      :value="draft.definition.mode"
-                      :disabled="busy"
-                      v-select-trigger-name="t('datasets.definitionMode')"
-                      :options="[
-                        { label: t('datasets.tableMode'), value: 'visual' },
-                        {
-                          label: t('datasets.sqlMode'),
-                          value: 'sql',
-                          disabled: source.data.value?.type === 'Excel',
-                        },
-                      ]"
-                      @update:value="selectDefinitionMode"
-                    />
-                  </NFormItem>
-                  <NFormItem :label="t('ui.dataset_editor_a3ccf702')">
-                    <SourcePicker
-                      :value="draft.definition.sourceId"
-                      :disabled="busy"
-                      :label="t('ui.dataset_editor_a3ccf702')"
-                      @update:value="selectSource"
-                    />
-                  </NFormItem>
-                </div>
                 <div class="object-catalog">
                   <AsyncState
                     :loading="objects.isLoading.value"
@@ -280,6 +293,13 @@ useEditGuard(dirty, busy)
                   >
                     <SourceObjectList
                       :objects="objects.data.value ?? []"
+                      :heading="
+                        draft.definition.mode !== 'visual'
+                          ? undefined
+                          : source.data.value?.type === 'Excel'
+                            ? t('datasets.editor.chooseWorksheet')
+                            : t('datasets.editor.chooseSourceTable')
+                      "
                       :object-id="
                         draft.definition.mode === 'sql'
                           ? (referenceObject?.id ?? '')
@@ -290,40 +310,64 @@ useEditGuard(dirty, busy)
                   </AsyncState>
                 </div>
                 <section
-                  v-if="draft.definition.mode === 'sql' && referenceObject"
+                  v-if="draft.definition.mode === 'sql'"
                   class="field-reference"
-                  :aria-label="t('sources.fields')"
+                  :aria-label="t('datasets.sourceReference')"
                 >
-                  <header>
-                    <strong :title="referenceObject.name">{{ referenceObject.name }}</strong>
-                    <CopyButton :value="referenceObject.name" />
-                    <NButton
-                      quaternary
-                      size="small"
-                      :disabled="busy"
-                      :aria-label="t('datasets.editor.insertTable')"
-                      :title="t('datasets.editor.insertTable')"
-                      @click="insertTable"
-                      ><template #icon><Plus :size="16" /></template
-                    ></NButton>
-                  </header>
-                  <ul>
-                    <li
-                      v-for="field in referenceObject.fields"
-                      :key="field.name"
-                      :title="field.description"
-                    >
+                  <h2>{{ t('datasets.sourceReference') }}</h2>
+                  <p v-if="!referenceObject" class="reference-hint">
+                    {{ t('datasets.editor.chooseReferenceTable') }}
+                  </p>
+                  <template v-else>
+                    <header>
+                      <strong :title="referenceObject.name">{{ referenceObject.name }}</strong>
+                      <CopyButton :value="referenceObject.name" />
                       <NButton
-                        text
+                        quaternary
+                        size="small"
                         :disabled="busy"
-                        :title="t('datasets.editor.insertField', { name: field.name })"
-                        @click="sqlWorkspace?.insertText(quoteIdentifier(field.name))"
-                        >{{ field.name }}</NButton
+                        :aria-label="t('datasets.editor.insertTable')"
+                        :title="t('datasets.editor.insertTable')"
+                        @click="insertTable"
+                        ><template #icon><Plus :size="16" /></template
+                      ></NButton>
+                    </header>
+                    <ul>
+                      <li
+                        v-for="field in referenceObject.fields"
+                        :key="field.name"
+                        :title="field.description"
                       >
-                      <small>{{ field.type }}</small
-                      ><CopyButton :value="field.name" />
-                    </li>
-                  </ul>
+                        <NButton
+                          text
+                          :disabled="busy"
+                          :title="t('datasets.editor.insertField', { name: field.name })"
+                          @click="sqlWorkspace?.insertText(quoteIdentifier(field.name))"
+                          >{{ field.name }}</NButton
+                        >
+                        <small>{{ field.type }}</small
+                        ><CopyButton :value="field.name" />
+                      </li>
+                    </ul>
+                  </template>
+                </section>
+                <section
+                  v-else-if="selectedObject && draft.definition.deliveryMode === 'warehouse'"
+                  class="table-keys"
+                  :aria-label="t('datasets.editor.tableKeys')"
+                >
+                  <h2>{{ t('datasets.editor.tableKeys') }}</h2>
+                  <NFormItem :label="t('datasets.output.keys')" :show-feedback="false">
+                    <NSelect
+                      v-model:value="draft.definition.output.keys"
+                      v-select-trigger-name="t('datasets.output.keys')"
+                      multiple
+                      clearable
+                      :disabled="busy"
+                      :options="tableKeyOptions"
+                    />
+                  </NFormItem>
+                  <p class="reference-hint">{{ t('datasets.editor.tableKeysHint') }}</p>
                 </section>
               </div>
             </NTabPane>
@@ -396,7 +440,9 @@ useEditGuard(dirty, busy)
           />
           <template v-else>
             <div class="table-toolbar">
-              <strong>{{ selectedObject?.name ?? t('datasets.editor.chooseTable') }}</strong>
+              <strong :title="selectedObject?.name">{{
+                selectedObject?.name ?? t('datasets.editor.chooseTable')
+              }}</strong>
               <NButton
                 type="primary"
                 :disabled="!canReadSensitive || !definitionReady || busy"
@@ -446,6 +492,27 @@ useEditGuard(dirty, busy)
   flex: 1;
   min-width: 0;
 }
+.header-source-controls {
+  flex-shrink: 0;
+  display: flex;
+  align-items: start;
+  gap: 12px;
+}
+.header-source-controls span {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--textSecondary);
+  font-size: 12px;
+}
+.header-definition {
+  width: 132px;
+}
+.header-source {
+  width: 200px;
+}
+.header-actions {
+  flex-shrink: 0;
+}
 .editor-settings {
   height: 100%;
   overflow: auto;
@@ -472,14 +539,6 @@ useEditGuard(dirty, busy)
   background: var(--surfaceRaised);
   border-right: 1px solid var(--border);
 }
-.definition-settings {
-  padding: 20px 20px 0;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
-}
-.definition-settings :deep(.n-form-item) {
-  --n-label-height: 24px;
-}
 .object-catalog {
   flex: 1;
   min-height: 160px;
@@ -488,11 +547,26 @@ useEditGuard(dirty, busy)
 .field-reference {
   display: flex;
   flex-direction: column;
-  flex: 1;
   min-height: 0;
   max-height: 44%;
   border-top: 1px solid var(--border);
   padding: 12px 16px;
+}
+.table-keys {
+  max-height: 44%;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+}
+.field-reference h2,
+.table-keys h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.reference-hint {
+  margin: 8px 0 0;
+  color: var(--textSecondary);
 }
 .field-reference header,
 .field-reference li {
@@ -547,6 +621,15 @@ useEditGuard(dirty, busy)
   gap: 12px;
   min-height: 42px;
   margin-bottom: 12px;
+}
+.table-toolbar strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.table-toolbar :deep(.n-button) {
+  flex-shrink: 0;
 }
 .table-preview {
   flex: 1;

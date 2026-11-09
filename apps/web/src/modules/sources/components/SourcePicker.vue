@@ -5,7 +5,7 @@ import { vSelectTriggerName } from '@/shared/ui/select-trigger-name'
 import { NButton, NSelect } from 'naive-ui'
 import { useSource, useSourceOptions } from '../composables/use-sources'
 
-const props = defineProps<{ value: string; label: string; disabled?: boolean }>()
+const props = defineProps<{ value: string; label: string; disabled?: boolean; compact?: boolean }>()
 const emit = defineEmits<{ 'update:value': [value: string] }>()
 const { t } = useI18n()
 const search = ref('')
@@ -31,9 +31,15 @@ async function retry() {
 }
 </script>
 <template>
-  <div class="source-picker" role="group" :aria-label="t('sources.picker')">
+  <div
+    class="source-picker"
+    :class="{ 'source-picker-compact': compact && error }"
+    role="group"
+    :aria-label="t('sources.picker')"
+  >
     <NSelect
       v-select-trigger-name="t('openSelect', { label })"
+      :size="compact ? 'small' : 'medium'"
       :value="value || null"
       :input-props="{ 'aria-label': label }"
       :placeholder="label"
@@ -58,5 +64,9 @@ async function retry() {
   min-width: 0;
   display: grid;
   gap: 8px;
+}
+.source-picker-compact {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
 }
 </style>

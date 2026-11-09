@@ -137,7 +137,7 @@ function updateOutput(patch: Partial<Model<'DatasetInput'>['definition']['output
         />
       </NFormItem>
       <NFormItem
-        v-if="definition.deliveryMode === 'warehouse'"
+        v-if="definition.deliveryMode === 'warehouse' && definition.mode === 'sql'"
         :label="t('datasets.output.keys')"
         :show-feedback="false"
       >

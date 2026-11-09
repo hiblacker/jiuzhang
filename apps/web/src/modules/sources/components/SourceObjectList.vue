@@ -7,6 +7,7 @@ import type { Model } from '@/shared/api/types'
 const props = defineProps<{
   objects: Model<'SourceObject'>[]
   objectId: string
+  heading?: string
 }>()
 const emit = defineEmits<{ select: [objectId: string] }>()
 const { t } = useI18n()
@@ -19,9 +20,9 @@ const filteredObjects = computed(() => {
 })
 </script>
 <template>
-  <aside class="object-list-panel" :aria-label="t('sources.catalog')">
+  <aside class="object-list-panel" :aria-label="heading ?? t('sources.catalog')">
     <header class="catalog-heading">
-      <h2>{{ t('sources.catalog') }}</h2>
+      <h2>{{ heading ?? t('sources.catalog') }}</h2>
       <span>{{ t('sources.tableCount', { count: objects.length }) }}</span>
     </header>
     <NInput
@@ -30,7 +31,11 @@ const filteredObjects = computed(() => {
       :placeholder="t('sources.searchObjects')"
       :input-props="{ 'aria-label': t('sources.searchObjects') }"
     />
-    <ul v-if="filteredObjects.length" class="object-list" :aria-label="t('sources.catalog')">
+    <ul
+      v-if="filteredObjects.length"
+      class="object-list"
+      :aria-label="heading ?? t('sources.catalog')"
+    >
       <li v-for="object in filteredObjects" :key="object.id" :data-object-item="object.id">
         <NButton
           text

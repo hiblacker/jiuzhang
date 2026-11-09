@@ -8,8 +8,8 @@ const { t: uiText } = useUiI18n()
 
 const canWrite = useCan('write')
 const canReadSensitive = useCan('readSensitive')
-import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   NCard,
@@ -21,6 +21,8 @@ import {
   NDescriptions,
   NDescriptionsItem,
   NDataTable,
+  NForm,
+  type FormInst,
 } from 'naive-ui'
 import {
   useDatasetEditor,
@@ -34,7 +36,8 @@ import {
 } from '@/modules/datasets'
 import { GovernanceBindingSelect } from '@/modules/governance'
 import { useEditGuard } from '@/shared/composables/use-edit-guard'
-import { RunHistory, RunTrigger } from '@/modules/jobs'
+import { RunHistory, RunTrigger, ScheduleForm, useJobActions, useTask } from '@/modules/jobs'
+import type { Model } from '@/shared/api/types'
 import { PageHeader } from '@/shared/ui/page-header'
 import { AsyncState } from '@/shared/ui/async-state'
 import { CopyButton } from '@/shared/ui/copy-button'
@@ -74,7 +77,7 @@ const publishDescription = computed(() => {
 })
 const publishedReady = computed(() => !query.data.value?.publishedVersion || !!published.data.value)
 const editing = ref(false)
-const busy = computed(() => save.isPending.value || processing.isPending.value)
+const processingBusy = computed(() => save.isPending.value || processing.isPending.value)
 const versions = useDatasetVersions(id),
   actions = useDatasetActions(),
   confirm = ref(false),
@@ -91,10 +94,32 @@ const preview = useDatasetPreview(
       query.data.value?.definition.deliveryMode === 'direct' && query.data.value?.publishedVersion,
     ),
 )
-const editGuard = useEditGuard(() => editing.value && dirty.value, busy)
+const schedulable = computed(
+  () =>
+    !!query.data.value?.publishedVersion && query.data.value.definition.deliveryMode !== 'direct',
+)
+const task = useTask(() => (schedulable.value && tab.value === 'schedule' ? id.value : ''))
+const scheduleActions = useJobActions()
+const scheduleDraft = ref<Model<'Schedule'>>()
+const scheduleForm = ref<FormInst>()
+let scheduleBaseline = ''
+const savingSchedule = ref(false)
+const scheduleDirty = computed(
+  () => !!scheduleDraft.value && JSON.stringify(scheduleDraft.value) !== scheduleBaseline,
+)
+const busy = computed(() => processingBusy.value || savingSchedule.value)
+const editGuard = useEditGuard(() => (editing.value && dirty.value) || scheduleDirty.value, busy)
+onBeforeRouteUpdate((to, from) => {
+  if (to.path === from.path && to.query.tab !== from.query.tab) return editGuard.canLeave()
+  return true
+})
+watch([id, tab], ([datasetId], [previousId]) => {
+  if (editing.value && datasetId === previousId) reset()
+  editing.value = false
+  scheduleDraft.value = undefined
+})
 function editProcessing() {
   if (readonly.value || busy.value) return
-  tab.value = 'rules'
   editing.value = true
 }
 function cancelProcessing() {
@@ -108,6 +133,31 @@ async function saveProcessing() {
     await save.mutateAsync()
     editing.value = false
   } catch {}
+}
+function editSchedule() {
+  const schedule = task.data.value?.schedule
+  if (readonly.value || !schedule || busy.value) return
+  scheduleBaseline = JSON.stringify(schedule)
+  scheduleDraft.value = { ...schedule, dependencies: [...schedule.dependencies] }
+}
+function cancelSchedule() {
+  if (editGuard.canLeave()) scheduleDraft.value = undefined
+}
+async function saveSchedule() {
+  if (readonly.value || !scheduleDraft.value || !scheduleForm.value || busy.value) return
+  savingSchedule.value = true
+  try {
+    await scheduleForm.value.validate()
+    await scheduleActions.save.mutateAsync({
+      id: id.value,
+      input: { schedule: scheduleDraft.value },
+    })
+    scheduleDraft.value = undefined
+  } catch {
+    // Validation stays in the form; request errors use the application mutation message.
+  } finally {
+    savingSchedule.value = false
+  }
 }
 function requestPublish() {
   if (
@@ -135,9 +185,6 @@ async function publish() {
     :description="query.data.value?.description"
     ><NButton :disabled="readonly" @click="router.push('/datasets/' + id + '/edit')">{{
       uiText('ui.dataset_detail_13bd30e1')
-    }}</NButton
-    ><NButton :disabled="readonly || !query.data.value || editing" @click="editProcessing">{{
-      t('datasets.editor.configureProcessing')
     }}</NButton
     ><NButton
       :disabled="readonly || !query.data.value || editing || !publishedReady"
@@ -319,7 +366,10 @@ async function publish() {
               />
             </div>
           </template>
-          <NDescriptions v-else :column="1" bordered
+          <NButton v-if="!editing && !readonly" class="mb" @click="editProcessing">{{
+            t('datasets.editor.configureProcessing')
+          }}</NButton>
+          <NDescriptions v-if="!editing" :column="1" bordered
             ><NDescriptionsItem :label="uiText('ui.dataset_detail_cd56476f')">{{
               query.data.value?.definition.cleaning.join('、') || '—'
             }}</NDescriptionsItem
@@ -343,20 +393,46 @@ async function publish() {
               ></NDescriptionsItem
             ></NDescriptions
           ></NTabPane
-        ><NTabPane name="schedule" :tab="uiText('ui.dataset_detail_36019dc2')"
-          ><template v-if="query.data.value?.definition.deliveryMode === 'direct'"
-            ><NAlert type="info">{{ t('datasets.directHelp') }}</NAlert></template
-          ><template v-else-if="query.data.value?.status === 'published'"
-            ><NAlert type="info" class="mb">{{ t('datasets.scheduleUnsupported') }}</NAlert
-            ><NButton
-              type="primary"
-              :disabled="readonly"
-              @click="router.push('/tasks/' + id + '/edit')"
-              >{{ uiText('ui.dataset_detail_d1d5bfef') }}</NButton
-            ></template
-          ><NAlert v-else type="warning" class="mb">{{
-            t('datasets.scheduleUnsupported')
-          }}</NAlert></NTabPane
+        ><NTabPane name="schedule" :tab="uiText('ui.dataset_detail_36019dc2')">
+          <NAlert v-if="query.data.value?.definition.deliveryMode === 'direct'" type="info">{{
+            t('datasets.directHelp')
+          }}</NAlert>
+          <NAlert v-else-if="!schedulable" type="info">{{
+            t('datasets.scheduleNeedsPublish')
+          }}</NAlert>
+          <AsyncState
+            v-else
+            :loading="task.isLoading.value"
+            :error="task.error.value"
+            @retry="task.refetch()"
+          >
+            <NForm
+              v-if="scheduleDraft"
+              ref="scheduleForm"
+              :model="{ schedule: scheduleDraft }"
+              label-placement="top"
+            >
+              <ScheduleForm v-model="scheduleDraft" :readonly="savingSchedule" />
+              <div class="schedule-actions">
+                <NButton :disabled="savingSchedule" @click="cancelSchedule">{{
+                  t('cancel')
+                }}</NButton>
+                <NButton
+                  type="primary"
+                  :disabled="!scheduleDirty"
+                  :loading="savingSchedule"
+                  @click="saveSchedule"
+                  >{{ uiText('ui.task_817af187') }}</NButton
+                >
+              </div>
+            </NForm>
+            <template v-else-if="task.data.value">
+              <NButton v-if="!readonly" class="mb" @click="editSchedule">{{
+                uiText('ui.dataset_detail_d1d5bfef')
+              }}</NButton>
+              <ScheduleForm :model-value="task.data.value.schedule" readonly />
+            </template>
+          </AsyncState> </NTabPane
         ><NTabPane name="versions" :tab="uiText('ui.dataset_detail_989d1aff')"
           ><AsyncState
             :loading="versions.isLoading.value"
@@ -390,6 +466,12 @@ async function publish() {
   />
 </template>
 <style scoped>
+.schedule-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
 .processing-actions {
   display: flex;
   align-items: center;

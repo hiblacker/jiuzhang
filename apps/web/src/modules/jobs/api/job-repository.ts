@@ -7,7 +7,7 @@ export const jobRepository = {
   async task(id: string, signal?: AbortSignal) {
     return unwrap(await api.GET('/tasks/{id}', { params: { path: { id } }, signal })).data
   },
-  async save(id: string, body: Model<'TaskInput'>) {
+  async save(id: string, body: Model<'TaskInputPatch'>) {
     return unwrap(await api.PATCH('/tasks/{id}', { params: { path: { id } }, body })).data
   },
   async toggle(id: string, enabled: boolean) {

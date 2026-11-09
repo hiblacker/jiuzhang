@@ -120,7 +120,7 @@ export function useJobActions() {
       onSuccess: done,
     }),
     save: useMutation({
-      mutationFn: ({ id, input }: { id: string; input: Model<'TaskInput'> }) =>
+      mutationFn: ({ id, input }: { id: string; input: Model<'TaskInputPatch'> }) =>
         jobRepository.save(id, input),
       onSuccess: done,
     }),
