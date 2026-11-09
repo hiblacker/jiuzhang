@@ -7,6 +7,7 @@ Every row it creates carries an invisible HTML comment marker, which is the only
 thing it is ever allowed to update on a later run.
 """
 import argparse
+import collections
 import datetime as dt
 import os
 import random
@@ -60,6 +61,8 @@ def parse_args(argv):
     parser.add_argument("--advance", type=int, default=8, help="rows to move forward one status")
     parser.add_argument("--projects", default=DEFAULT_PROJECTS, help="comma separated project codes")
     parser.add_argument("--run-id", default=dt.datetime.now(TZ).strftime("%Y%m%d%H"))
+    parser.add_argument("--from", dest="from_date", help="backfill start date YYYY-MM-DD")
+    parser.add_argument("--to", dest="to_date", help="backfill end date YYYY-MM-DD")
     parser.add_argument("--ssh-host", default="hiblacker@192.168.1.10")
     parser.add_argument("--ssh-port", type=int, default=13022)
     parser.add_argument("--ssh-key", default="~/.ssh/id_rsa")
@@ -167,6 +170,10 @@ def build_context_sql(codes, run_id):
         "FROM DEFECT WHERE ENCODE REGEXP '^#DEF-[A-Za-z0-9]+-[0-9]+$' GROUP BY PROJECT_ID;",
         "SELECT 'MARK', 'STORY', COUNT(*) FROM STORY WHERE DESCRIPTION LIKE %s;" % quote(marker),
         "SELECT 'MARK', 'DEFECT', COUNT(*) FROM DEFECT WHERE DESCRIPTION LIKE %s;" % quote(marker),
+        "SELECT 'RUNS', SUBSTRING_INDEX(SUBSTRING_INDEX(DESCRIPTION,'<!--seed:',-1),'-->',1) "
+        "FROM STORY WHERE DESCRIPTION LIKE %s UNION "
+        "SELECT 'RUNS', SUBSTRING_INDEX(SUBSTRING_INDEX(DESCRIPTION,'<!--seed:',-1),'-->',1) "
+        "FROM DEFECT WHERE DESCRIPTION LIKE %s;" % (quote(MARKER_LIKE), quote(MARKER_LIKE)),
         "SELECT 'PARENT', PROJECT_ID, ID FROM STORY WHERE %s AND DELETE_FLAG=0 AND TYPE=0 "
         "ORDER BY CREATE_TIME DESC LIMIT 400;" % scope,
         "SELECT 'ADV', 'STORY', ID, PROJECT_ID, TYPE, STATUS FROM STORY WHERE %s AND DELETE_FLAG=0 "
@@ -199,6 +206,7 @@ def load_context(args, codes):
         "advance": {"STORY": [], "DEFECT": []},
         "counts": {},
         "marker": {},
+        "runs": set(),
     }
     for row in rows[1:]:
         tag = row[0]
@@ -231,6 +239,8 @@ def load_context(args, codes):
             ctx["serial"][(row[2], row[1])] = int(row[3])
         elif tag == "MARK":
             ctx["marker"][row[1]] = int(row[2])
+        elif tag == "RUNS":
+            ctx["runs"].add(row[1])
         elif tag == "PARENT":
             ctx["parents"].setdefault(row[1], []).append(row[2])
         elif tag == "ADV":
@@ -451,58 +461,105 @@ def render_insert(table, row):
         table, ", ".join(columns), ", ".join(values))
 
 
-def plan(args, ctx):
-    rng = random.Random(args.run_id)
-    now = dt.datetime.now(TZ)
+def project_pools(ctx):
+    pids = [meta["id"] for meta in ctx["projects"].values()]
+    return {
+        "req": [pid for pid in pids if state_of(ctx, pid, "STORY", 0, 0)],
+        "task": [pid for pid in pids if state_of(ctx, pid, "STORY", 1, 0)],
+        "defect": [pid for pid in pids if state_of(ctx, pid, "DEFECT", 2, 0)],
+    }
+
+
+def make_inserts(rng, ctx, run_id, start, counts, serial):
+    """Build one hour bucket. counts = (requirements, tasks, defects)."""
+    pools = project_pools(ctx)
+    if not pools["req"]:
+        raise RemoteError(3, "no project exposes a requirement status=0 combination")
     moments = []
-    cursor = now - dt.timedelta(seconds=600)
-    for _ in range(args.story_req + args.story_task + args.defect):
+    cursor = start
+    for _ in range(sum(counts)):
         cursor = cursor + dt.timedelta(seconds=rng.randint(5, 90))
         moments.append(cursor)
 
-    story_pids = [meta["id"] for meta in ctx["projects"].values()]
-    req_pids = [pid for pid in story_pids if state_of(ctx, pid, "STORY", 0, 0)]
-    task_pids = [pid for pid in story_pids if state_of(ctx, pid, "STORY", 1, 0)]
-    defect_pids = [pid for pid in story_pids if state_of(ctx, pid, "DEFECT", 2, 0)]
-    if not req_pids:
-        raise RemoteError(3, "no project exposes a requirement status=0 combination")
-
-    serial = {}
     statements = []
     inserted = {"STORY": 0, "DEFECT": 0}
+    created = []
     new_requirements = {}
     slot = 0
 
-    for _ in range(args.story_req):
-        pid = rng.choice(req_pids)
+    for _ in range(counts[0]):
+        pid = rng.choice(pools["req"])
         key = (pid, "STR")
         serial[key] = serial.get(key, ctx["serial"].get(key, 0)) + 1
-        row = build_story_row(rng, ctx, pid, 0, args.run_id, moments[slot], serial[key], [])
+        row = build_story_row(rng, ctx, pid, 0, run_id, moments[slot], serial[key], [])
         statements.append(render_insert("STORY", row))
         new_requirements.setdefault(pid, []).append(row["ID"])
+        created.append(("STORY", row["ID"], pid, 0, 0))
         inserted["STORY"] += 1
         slot += 1
 
-    for _ in range(args.story_task):
-        pid = rng.choice(task_pids or req_pids)
+    for _ in range(counts[1]):
+        pid = rng.choice(pools["task"] or pools["req"])
         key = (pid, "TSK")
         serial[key] = serial.get(key, ctx["serial"].get(key, 0)) + 1
-        row = build_story_row(rng, ctx, pid, 1, args.run_id, moments[slot],
-                              serial[key], new_requirements.get(pid, []))
+        row = build_story_row(rng, ctx, pid, 1, run_id, moments[slot], serial[key],
+                              new_requirements.get(pid, []))
         statements.append(render_insert("STORY", row))
+        created.append(("STORY", row["ID"], pid, 1, 0))
         inserted["STORY"] += 1
         slot += 1
 
-    for _ in range(args.defect):
-        if not defect_pids:
+    for _ in range(counts[2]):
+        if not pools["defect"]:
             break
-        pid = rng.choice(defect_pids)
+        pid = rng.choice(pools["defect"])
         key = (pid, "DEF")
         serial[key] = serial.get(key, ctx["serial"].get(key, 0)) + 1
-        row = build_defect_row(rng, ctx, pid, args.run_id, moments[slot], serial[key])
+        row = build_defect_row(rng, ctx, pid, run_id, moments[slot], serial[key])
         statements.append(render_insert("DEFECT", row))
+        created.append(("DEFECT", row["ID"], pid, 2, 0))
         inserted["DEFECT"] += 1
         slot += 1
+    return statements, inserted, created
+
+
+def render_advance(table, row_id, pid, stype, status, ctx, stamp):
+    target_to = 1 if status == 0 else 2
+    target = state_of(ctx, pid, table, stype, target_to)
+    if not target:
+        return None
+    node = node_of(ctx, pid, table, stype, target_to)
+    if table == "STORY":
+        sets = ["STATUS=%d" % target["status"], "STATUS_CODE=%s" % quote(target["code"]),
+                "STATUS_NAME=%s" % quote(target["name"]),
+                "NODE_ID=%s" % quote(node), "UPDATE_TIME='%s'" % stamp]
+        if target_to == 1:
+            sets.append("ACTUAL_BEGIN_TIME='%s'" % stamp)
+        else:
+            sets.append("ACTUAL_END_TIME='%s'" % stamp)
+            sets.append("END_TIME='%s'" % stamp[:10])
+        return ("UPDATE STORY SET %s WHERE ID=%s AND PROJECT_ID=%s AND STATUS=%d "
+                "AND DESCRIPTION LIKE %s AND DELETE_FLAG=0;"
+                % (", ".join(sets), quote(row_id), quote(pid), status, quote(MARKER_LIKE)))
+    sets = ["STATUS=%d" % target["status"], "STATUS_CODE=%s" % quote(target["code"]),
+            "STATUS_NAME=%s" % quote(target["name"]),
+            "NODE_Id=%s" % quote(node), "UPDATE_TIME='%s'" % stamp]
+    if target_to == 2:
+        sets.append("ACTUAL_END_TIME='%s'" % stamp)
+        sets.append("END_TIME='%s'" % stamp[:10])
+    else:
+        sets.append("ACTUAL_BEGIN_TIME='%s'" % stamp)
+    return ("UPDATE DEFECT SET %s WHERE ID=%s AND PROJECT_ID=%s AND STATUS=%d "
+            "AND DESCRIPTION LIKE %s AND DELETE_FLAG=0;"
+            % (", ".join(sets), quote(row_id), quote(pid), status, quote(MARKER_LIKE)))
+
+
+def plan(args, ctx):
+    rng = random.Random(args.run_id)
+    now = dt.datetime.now(TZ)
+    statements, inserted, _ = make_inserts(
+        rng, ctx, args.run_id, now - dt.timedelta(seconds=600),
+        (args.story_req, args.story_task, args.defect), {})
 
     updates, advanced = plan_advance(args, rng, ctx, now)
     statements.extend(updates)
@@ -517,44 +574,91 @@ def plan_advance(args, rng, ctx, now):
     stamp_value = (now - dt.timedelta(seconds=30)).strftime("%Y-%m-%d %H:%M:%S")
 
     for table, quota in (("STORY", plan_story), ("DEFECT", plan_defect)):
-        candidates = ctx["advance"].get(table, [])
+        candidates = list(ctx["advance"].get(table, []))
         rng.shuffle(candidates)
         for row_id, pid, stype, status in candidates:
             if advanced[table] >= quota:
                 break
-            target_to = 1 if status == 0 else 2
-            target = state_of(ctx, pid, table, stype, target_to)
-            if not target:
+            statement = render_advance(table, row_id, pid, stype, status, ctx, stamp_value)
+            if not statement:
                 continue
-            node = node_of(ctx, pid, table, stype, target_to)
-            if table == "STORY":
-                sets = ["STATUS=%d" % target["status"], "STATUS_CODE=%s" % quote(target["code"]),
-                        "STATUS_NAME=%s" % quote(target["name"]),
-                        "NODE_ID=%s" % quote(node), "UPDATE_TIME='%s'" % stamp_value]
-                if target_to == 1:
-                    sets.append("ACTUAL_BEGIN_TIME='%s'" % stamp_value)
-                else:
-                    sets.append("ACTUAL_END_TIME='%s'" % stamp_value)
-                    sets.append("END_TIME='%s'" % stamp_value[:10])
-                statements.append(
-                    "UPDATE STORY SET %s WHERE ID=%s AND PROJECT_ID=%s AND STATUS=%d "
-                    "AND DESCRIPTION LIKE %s AND DELETE_FLAG=0;"
-                    % (", ".join(sets), quote(row_id), quote(pid), status, quote(MARKER_LIKE)))
-            else:
-                sets = ["STATUS=%d" % target["status"], "STATUS_CODE=%s" % quote(target["code"]),
-                        "STATUS_NAME=%s" % quote(target["name"]),
-                        "NODE_Id=%s" % quote(node), "UPDATE_TIME='%s'" % stamp_value]
-                if target_to == 2:
-                    sets.append("ACTUAL_END_TIME='%s'" % stamp_value)
-                    sets.append("END_TIME='%s'" % stamp_value[:10])
-                else:
-                    sets.append("ACTUAL_BEGIN_TIME='%s'" % stamp_value)
-                statements.append(
-                    "UPDATE DEFECT SET %s WHERE ID=%s AND PROJECT_ID=%s AND STATUS=%d "
-                    "AND DESCRIPTION LIKE %s AND DELETE_FLAG=0;"
-                    % (", ".join(sets), quote(row_id), quote(pid), status, quote(MARKER_LIKE)))
+            statements.append(statement)
             advanced[table] += 1
     return statements, advanced
+
+
+def backfill_buckets(start, end, now):
+    buckets = []
+    day = start
+    while day <= end:
+        weekend = day.weekday() >= 5
+        last_hour = 12 if weekend else 18
+        for hour in range(9, last_hour + 1):
+            moment = dt.datetime.combine(day, dt.time(hour), tzinfo=TZ)
+            if moment <= now:
+                buckets.append((moment, weekend))
+        day = day + dt.timedelta(days=1)
+    return buckets
+
+
+def dry_backfill(args, ctx):
+    return run_backfill(args, ctx, dry=True)
+
+
+def run_backfill(args, ctx, dry=False):
+    start = dt.date.fromisoformat(args.from_date)
+    end = dt.date.fromisoformat(args.to_date)
+    now = dt.datetime.now(TZ)
+    buckets = backfill_buckets(start, end, now)
+    done = ctx["runs"]
+    serial = {}
+    queue = collections.deque(
+        (table, row_id, pid, stype, status)
+        for table in ("STORY", "DEFECT")
+        for row_id, pid, stype, status in ctx["advance"].get(table, []))
+    totals = {"STORY": 0, "DEFECT": 0, "advanced": 0, "buckets": 0, "skipped": 0}
+    want_story = (args.advance + 1) // 2
+    want_defect = args.advance // 2
+
+    for moment, weekend in buckets:
+        run_id = moment.strftime("%Y%m%d%H")
+        if run_id in done:
+            totals["skipped"] += 1
+            continue
+        rng = random.Random(run_id)
+        counts = (3, 3, 4) if weekend else (6, 6, 8)
+        statements, inserted, created = make_inserts(rng, ctx, run_id, moment, counts, serial)
+        queue.extend(created)
+        stamp_value = (moment + dt.timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
+        advanced = {"STORY": 0, "DEFECT": 0}
+        for _ in range(len(queue)):
+            if advanced["STORY"] >= want_story and advanced["DEFECT"] >= want_defect:
+                break
+            item = queue.popleft()
+            table, row_id, pid, stype, status = item
+            if status >= 2:
+                continue
+            cap = want_story if table == "STORY" else want_defect
+            if advanced[table] >= cap:
+                queue.append(item)
+                continue
+            statement = render_advance(table, row_id, pid, stype, status, ctx, stamp_value)
+            if not statement:
+                continue
+            statements.append(statement)
+            advanced[table] += 1
+            queue.append((table, row_id, pid, stype, status + 1))
+        if not dry:
+            apply_batch(args, statements)
+        totals["STORY"] += inserted["STORY"]
+        totals["DEFECT"] += inserted["DEFECT"]
+        totals["advanced"] += advanced["STORY"] + advanced["DEFECT"]
+        totals["buckets"] += 1
+        if not dry:
+            print("[seed] %s inserted=%d advanced=%d"
+                  % (run_id, inserted["STORY"] + inserted["DEFECT"],
+                     advanced["STORY"] + advanced["DEFECT"]))
+    return totals
 
 
 def apply_batch(args, statements):
@@ -587,7 +691,11 @@ def verify(args, inserted):
 
 def main(argv=None):
     args = parse_args(argv)
-    if not args.run_id.isdigit() or len(args.run_id) != 10:
+    backfill = bool(args.from_date or args.to_date)
+    if backfill and not (args.from_date and args.to_date):
+        print("error: --from and --to must be given together", file=sys.stderr)
+        return 3
+    if not backfill and (not args.run_id.isdigit() or len(args.run_id) != 10):
         print("error: --run-id must be a 10 digit hour bucket, e.g. 2026110914", file=sys.stderr)
         return 3
     codes = [code.strip() for code in args.projects.split(",") if code.strip()]
@@ -602,6 +710,12 @@ def main(argv=None):
                       % (code, meta["id"], ctx["counts"].get(("STORY", meta["id"]), 0),
                          ctx["counts"].get(("DEFECT", meta["id"]), 0),
                          {k[1]: v for k, v in ctx["serial"].items() if k[0] == meta["id"]}))
+        if backfill:
+            totals = run_backfill(args, ctx) if args.apply else dry_backfill(args, ctx)
+            print("[seed] backfill %s..%s buckets=%d skipped=%d story=%d defect=%d advanced=%d"
+                  % (args.from_date, args.to_date, totals["buckets"], totals["skipped"],
+                     totals["STORY"], totals["DEFECT"], totals["advanced"]))
+            return 0
         if ctx["marker"].get("STORY", 0) + ctx["marker"].get("DEFECT", 0) > 0:
             print("[seed] run=%s already applied, skipped" % args.run_id)
             return 0

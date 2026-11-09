@@ -57,9 +57,10 @@ bash tools/local.sh infra           # 单独准备基础服务
 ~~~bash
 python3 tools/seed-nas-story-defect.py --dry-run --print-sql   # 只读采样并打印 SQL
 python3 tools/seed-nas-story-defect.py --apply                # 写入本小时批次，同一 run-id 幂等
+python3 tools/seed-nas-story-defect.py --from 2026-11-03 --to 2026-11-09 --apply  # 按小时回填
 ~~~
 
-每行都带 `<!--seed:<run-id>-->` 标记，只有带该标记的行才会被推进状态；`--run-id` 可指定小时桶重放批次。
+每行都带 `<!--seed:<run-id>-->` 标记，只有带该标记的行才会被推进状态；`--run-id` 可指定小时桶重放批次。回填按工作日 09:00–18:00、周末 09:00–12:00 生成，已写过的桶自动跳过。
 
 ## 权限与限制
 
